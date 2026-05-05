@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.9 Sim — WLAN GUI WPA2 PSK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.danger{background:var(--wrong)}
+  .wlc-window{background:#FFFFFF;border:1px solid var(--border-strong);border-radius:var(--radius-lg);overflow:hidden;margin-top:10px;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+  .wlc-titlebar{background:#1C2738;color:#fff;padding:10px 14px;font-family:var(--font-mono);font-size:.84rem;display:flex;justify-content:space-between;align-items:center}
+  .wlc-titlebar .title{font-weight:700;color:#FCD34D}
+  .wlc-tabs{display:flex;background:#F3F0EB;border-bottom:1px solid var(--border)}
+  .wlc-tab{font-family:var(--font-display);font-size:.86rem;font-weight:600;padding:12px 20px;background:transparent;border:none;border-right:1px solid var(--border);cursor:pointer;color:var(--ink-secondary);position:relative}
+  .wlc-tab.active{background:#FFFFFF;color:var(--ink)}
+  .wlc-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent)}
+  .wlc-tab .step{display:inline-block;width:18px;height:18px;border-radius:99px;background:var(--bg-recessed);color:var(--ink-secondary);font-family:var(--font-mono);font-size:.7rem;font-weight:700;text-align:center;line-height:18px;margin-right:6px;border:1px solid var(--border-strong)}
+  .wlc-tab.done .step{background:var(--correct);color:#fff;border-color:var(--correct)}
+  .wlc-pane{padding:20px;display:none}
+  .wlc-pane.active{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .field-row{display:grid;grid-template-columns:200px 1fr;gap:12px;margin-bottom:12px;align-items:center}
+  .field-row label{font-family:var(--font-display);font-size:.84rem;font-weight:600;color:var(--ink-secondary)}
+  .field-row label .req{color:var(--wrong);margin-left:3px}
+  .field-row input,.field-row select{font-family:var(--font-mono);font-size:.92rem;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:#fff}
+  .field-row .help{grid-column:2;font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted)}
+  .field-row .err{grid-column:2;font-family:var(--font-mono);font-size:.78rem;color:var(--wrong)}
+  .nav-row{display:flex;justify-content:space-between;padding:14px 20px;background:var(--bg-recessed);border-top:1px solid var(--border)}
+  .summary{margin-top:14px;font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.65;display:none}
+  .summary.show{display:block;animation:fadeIn .3s ease}
+  .summary .v{color:#86EFAC}
+  .summary .x{color:#FCA5A5}
+  .summary .muted{color:#A8A29E;font-style:italic}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info);display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=5.9" style="color:var(--accent);text-decoration:none">← 5.9 Mini Sims</a> · 5.9 · Security · WLAN GUI WPA2 PSK</div>
+  <h1>Build a WLAN, the WLC Way<span class="badge">drill</span></h1>
+  <div class="desc">A Catalyst 9800 WLC GUI is mostly four tabs. <strong>General</strong> (name + WLAN ID + status). <strong>Security</strong> (Layer 2 = WPA2/PSK + AES). <strong>Advanced/QoS</strong> (priority profile, client limits). <strong>Interfaces</strong> (which dynamic interface = which VLAN, controls DHCP + default gateway for clients). Walk the wizard below — typical mistakes flagged inline.</div>
+</div>
+
+<div class="panel">
+  <h2>WLC GUI wizard — Create WLAN</h2>
+  <div class="wlc-window">
+    <div class="wlc-titlebar">
+      <span class="title">Catalyst 9800 — Create WLAN</span>
+      <span style="color:#A8A29E">administrator@WLC-1</span>
+    </div>
+    <div class="wlc-tabs">
+      <button class="wlc-tab active" data-tab="general"><span class="step">1</span>General</button>
+      <button class="wlc-tab" data-tab="security"><span class="step">2</span>Security</button>
+      <button class="wlc-tab" data-tab="advanced"><span class="step">3</span>Advanced/QoS</button>
+      <button class="wlc-tab" data-tab="interface"><span class="step">4</span>Interface (VLAN)</button>
+    </div>
+
+    <div class="wlc-pane active" id="paneGeneral">
+      <div class="field-row">
+        <label>Profile name <span class="req">*</span></label>
+        <input id="profileName" value="Corp-WiFi-Profile" maxlength="32">
+        <div class="help">Internal label. ASCII, ≤32 chars. Common pattern: <code>SSID-Profile</code>.</div>
+      </div>
+      <div class="field-row">
+        <label>SSID (network name) <span class="req">*</span></label>
+        <input id="ssid" value="Corp-WiFi" maxlength="32">
+        <div class="help">1–32 octets, case-sensitive. This is what clients see.</div>
+      </div>
+      <div class="field-row">
+        <label>WLAN ID</label>
+        <input type="number" id="wlanId" value="1" min="1" max="512">
+        <div class="help">Unique 1–512 per WLC. Convention: 1=corp, 2=guest, etc.</div>
+      </div>
+      <div class="field-row">
+        <label>Status</label>
+        <select id="status"><option value="enabled">Enabled</option><option value="disabled">Disabled</option></select>
+        <div class="help">Must be ENABLED before clients can join. Common miss.</div>
+      </div>
+    </div>
+
+    <div class="wlc-pane" id="paneSecurity">
+      <div class="field-row">
+        <label>Layer 2 Security <span class="req">*</span></label>
+        <select id="l2sec">
+          <option value="wpa2">WPA2 + WPA3 (transition)</option>
+          <option value="wpa2-only" selected>WPA2 only</option>
+          <option value="wpa3-only">WPA3 only</option>
+          <option value="wpa">WPA (deprecated)</option>
+          <option value="open">Open (no auth)</option>
+        </select>
+        <div class="help">For PSK use case: WPA2 (or WPA2/WPA3 transition for mixed clients).</div>
+      </div>
+      <div class="field-row">
+        <label>Cipher <span class="req">*</span></label>
+        <select id="cipher">
+          <option value="aes" selected>AES (CCMP)</option>
+          <option value="tkip">TKIP — DEPRECATED</option>
+          <option value="both">AES + TKIP</option>
+        </select>
+        <div class="help">WPA2 mandates AES. TKIP is deprecated; never enable on a new WLAN.</div>
+      </div>
+      <div class="field-row">
+        <label>Auth Key Mgmt <span class="req">*</span></label>
+        <select id="akm">
+          <option value="psk" selected>PSK (Pre-Shared Key)</option>
+          <option value="dot1x">802.1X (Enterprise)</option>
+        </select>
+        <div class="help">PSK = one shared password. 802.1X = per-user via RADIUS.</div>
+      </div>
+      <div class="field-row">
+        <label>Pre-Shared Key <span class="req">*</span></label>
+        <input id="psk" type="password" value="C0rp-Wifi-S3cret-2026!">
+        <div class="help">8–63 ASCII characters (or 64 hex). Long, random, unique per site.</div>
+      </div>
+    </div>
+
+    <div class="wlc-pane" id="paneAdvanced">
+      <div class="field-row">
+        <label>QoS Profile</label>
+        <select id="qos">
+          <option value="platinum">Platinum (voice)</option>
+          <option value="gold">Gold (video)</option>
+          <option value="silver" selected>Silver (best-effort default)</option>
+          <option value="bronze">Bronze (background)</option>
+        </select>
+        <div class="help">Marks DSCP/CoS on egress to the wired side.</div>
+      </div>
+      <div class="field-row">
+        <label>Max clients per WLAN</label>
+        <input type="number" id="maxClients" value="0" min="0" max="200000">
+        <div class="help">0 = unlimited. Cap for guest/IoT WLANs to protect AP airtime.</div>
+      </div>
+      <div class="field-row">
+        <label>Client Idle Timeout (s)</label>
+        <input type="number" id="idleT" value="300" min="15" max="100000">
+        <div class="help">Default 300s. Reduce on guest networks to free associations.</div>
+      </div>
+      <div class="field-row">
+        <label>Broadcast SSID</label>
+        <select id="broadcast"><option value="on" selected>Enabled (recommended)</option><option value="off">Hidden</option></select>
+        <div class="help">Hidden ≠ secure (probe requests still leak).</div>
+      </div>
+    </div>
+
+    <div class="wlc-pane" id="paneInterface">
+      <div class="field-row">
+        <label>VLAN / Interface <span class="req">*</span></label>
+        <select id="iface">
+          <option value="">— select —</option>
+          <option value="management">management (VLAN 99)</option>
+          <option value="vlan10" selected>vlan10 — Corp-Data (VLAN 10)</option>
+          <option value="vlan20">vlan20 — Guest (VLAN 20)</option>
+          <option value="vlan30">vlan30 — IoT (VLAN 30)</option>
+        </select>
+        <div class="help">DHCP, default gateway, ACL all live on this interface's VLAN. Wrong choice = "associates but no IP."</div>
+      </div>
+      <div class="field-row">
+        <label>DHCP Required</label>
+        <select id="dhcpReq"><option value="off" selected>No (clients may use static IP)</option><option value="on">Yes (drop clients without DHCP)</option></select>
+        <div class="help">Only flip to Yes if your environment forbids static IPs entirely.</div>
+      </div>
+      <div class="field-row">
+        <label>Allow AAA Override</label>
+        <select id="aaaOverride"><option value="off" selected>Off</option><option value="on">On</option></select>
+        <div class="help">Lets RADIUS attributes override the default VLAN per user. PSK use cases usually leave this OFF.</div>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn ghost" id="btnPrev">← Back</button>
+      <div>
+        <button class="btn ghost" id="btnReset">Reset to good defaults</button>
+        <button class="btn accent" id="btnApply">Apply WLAN config →</button>
+      </div>
+    </div>
+  </div>
+  <div class="verdict" id="verdict"></div>
+  <div class="summary" id="summary"></div>
+</div>
+
+<div class="panel">
+  <h2>What each tab actually controls</h2>
+  <div class="compare">
+    <div><h3>1. General</h3>The label, the SSID, the WLAN ID, the on/off switch. <strong>Status = Enabled</strong> is the easy miss — admin builds the WLAN, then forgets to flip it on.</div>
+    <div><h3>2. Security</h3>WPA2 + AES + PSK is the canonical "WPA2 Personal" combo. AKM = PSK (vs 802.1X). PSK length: 8–63 ASCII.</div>
+    <div><h3>3. Advanced / QoS</h3>QoS Platinum/Gold/Silver/Bronze marks DSCP. Client caps + idle timeout + broadcast on/off live here.</div>
+    <div><h3>4. Interface</h3>Which dynamic interface (VLAN) carries the clients off the WLC. Wrong VLAN = clients associate but get no DHCP.</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Worked example — equivalent CLI (Cat 9800 IOS-XE)</h2>
+  <div class="summary show"><span class="muted">! WLAN profile</span>
+WLC(config)# <span class="v">wlan Corp-WiFi-Profile 1 Corp-WiFi</span>
+WLC(config-wlan)# <span class="v">no shutdown</span>
+
+<span class="muted">! Security: WPA2 + AES + PSK</span>
+WLC(config-wlan)# <span class="v">security wpa wpa2 ciphers aes</span>
+WLC(config-wlan)# <span class="v">security wpa akm psk set-key ascii 0 C0rp-Wifi-S3cret-2026!</span>
+WLC(config-wlan)# <span class="v">security wpa psk set-key ascii 0 C0rp-Wifi-S3cret-2026!</span>
+
+<span class="muted">! Map WLAN to a policy profile (interface = VLAN)</span>
+WLC(config)# <span class="v">wireless profile policy default-policy-profile</span>
+WLC(config-wireless-policy)# <span class="v">vlan 10</span>
+WLC(config-wireless-policy)# <span class="v">no shutdown</span>
+
+<span class="muted">! Bind WLAN to a policy tag attached to AP</span>
+WLC(config)# <span class="v">wireless tag policy default-policy-tag</span>
+WLC(config-policy-tag)# <span class="v">wlan Corp-WiFi-Profile policy default-policy-profile</span></div>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro"><em>"Clients associate to Corp-WiFi but never get an IP and the page never loads."</em> Walk the four tabs and identify the most likely-broken setting.</p>
+  <p class="intro" style="margin-top:8px"><strong>Answer:</strong> Tab 4 — <strong>Interface mapping</strong>. The WLAN is bound to a dynamic interface that doesn't reach the DHCP scope. Either the dynamic interface is on a VLAN with no DHCP relay or the wrong VLAN entirely. Confirm with <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">show wireless client summary</code> + DHCP server logs.</p>
+  <p class="intro" style="margin-top:8px">Other tab-by-tab failure modes:<br>
+  <strong>Tab 1:</strong> Status = Disabled → clients see nothing.<br>
+  <strong>Tab 2:</strong> WPA3-only when phones still on WPA2 → fail to associate.<br>
+  <strong>Tab 3:</strong> Max clients = 1 → second user kicked off.<br>
+  <strong>Tab 4:</strong> Wrong VLAN → no DHCP.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=5.9">← back to 5.9 leaves</a></div>
+
+<script>
+(function(){
+  // tab navigation
+  var tabOrder = ['general','security','advanced','interface'];
+  var current = 0;
+  function showTab(i){
+    current = Math.max(0, Math.min(tabOrder.length-1, i));
+    document.querySelectorAll('.wlc-tab').forEach(function(t,idx){
+      t.classList.toggle('active', idx===current);
+      t.classList.toggle('done', idx<current);
+    });
+    document.querySelectorAll('.wlc-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById('pane' + tabOrder[current].charAt(0).toUpperCase()+tabOrder[current].slice(1)).classList.add('active');
+  }
+  document.querySelectorAll('.wlc-tab').forEach(function(t,idx){
+    t.addEventListener('click', function(){ showTab(idx); });
+  });
+  document.getElementById('btnPrev').addEventListener('click', function(){
+    if (current === 0) showTab(0); else showTab(current-1);
+  });
+
+  function readForm(){
+    return {
+      profileName: document.getElementById('profileName').value.trim(),
+      ssid: document.getElementById('ssid').value.trim(),
+      wlanId: parseInt(document.getElementById('wlanId').value, 10),
+      status: document.getElementById('status').value,
+      l2sec: document.getElementById('l2sec').value,
+      cipher: document.getElementById('cipher').value,
+      akm: document.getElementById('akm').value,
+      psk: document.getElementById('psk').value,
+      qos: document.getElementById('qos').value,
+      maxClients: parseInt(document.getElementById('maxClients').value, 10),
+      idleT: parseInt(document.getElementById('idleT').value, 10),
+      broadcast: document.getElementById('broadcast').value,
+      iface: document.getElementById('iface').value,
+      dhcpReq: document.getElementById('dhcpReq').value,
+      aaaOverride: document.getElementById('aaaOverride').value
+    };
+  }
+
+  function applyWLAN(){
+    var f = readForm();
+    var errs = [];
+    var warns = [];
+    if (!f.ssid) errs.push('SSID is empty.');
+    else if (f.ssid.length > 32) errs.push('SSID exceeds 32 octets.');
+    if (!f.profileName) errs.push('Profile name is empty.');
+    if (!f.wlanId || f.wlanId < 1 || f.wlanId > 512) errs.push('WLAN ID must be 1–512.');
+    if (f.status !== 'enabled') warns.push('WLAN is DISABLED — clients cannot associate yet.');
+    if (f.l2sec === 'open') warns.push('Layer 2 = Open — no encryption. Use a captive portal at minimum.');
+    if (f.l2sec === 'wpa') warns.push('WPA (legacy) is broken. Use WPA2 or WPA3.');
+    if (f.l2sec === 'wpa3-only') warns.push('WPA3-only excludes any WPA2-only clients (older phones, IoT). Consider WPA2/WPA3 transition for mixed fleets.');
+    if (f.akm === 'psk' && f.l2sec !== 'open') {
+      if (!f.psk || f.psk.length < 8) errs.push('PSK must be 8–63 ASCII characters.');
+      if (f.psk.length > 63) errs.push('PSK exceeds 63 characters.');
+    }
+    if (f.akm === 'psk' && f.cipher === 'tkip') errs.push('TKIP is deprecated. Use AES (CCMP).');
+    if (f.akm === 'psk' && f.cipher === 'both') warns.push('AES + TKIP — TKIP fallback weakens the WLAN. Use AES only.');
+    if (!f.iface) errs.push('Interface (VLAN) not selected — clients have nowhere to land.');
+
+    var v = document.getElementById('verdict'); v.className='verdict show';
+    var s = document.getElementById('summary');
+    if (errs.length){
+      v.classList.add('miss');
+      v.textContent = '✗ ' + errs.length + ' error' + (errs.length>1?'s':'') + ': ' + errs.join('  ·  ');
+      s.classList.remove('show');
+      return;
+    }
+    v.classList.add('win');
+    v.textContent = '✓ WLAN config is valid.' + (warns.length ? ' Warnings: ' + warns.join('  ·  ') : ' Apply on the WLC and clients can join.');
+    s.classList.add('show');
+    s.innerHTML =
+      '<div><span class="muted">! Equivalent CLI on Catalyst 9800</span></div>'+
+      '<div>WLC(config)# <span class="v">wlan ' + f.profileName + ' ' + f.wlanId + ' ' + f.ssid + '</span></div>'+
+      '<div>WLC(config-wlan)# <span class="v">' + (f.status==='enabled'?'no shutdown':'shutdown') + '</span></div>'+
+      '<div>WLC(config-wlan)# <span class="v">security wpa ' + (f.l2sec.indexOf('wpa2')===0?'wpa2':f.l2sec) + ' ciphers ' + f.cipher + '</span></div>'+
+      '<div>WLC(config-wlan)# <span class="v">security wpa akm ' + f.akm + '</span></div>'+
+      (f.akm==='psk' ? '<div>WLC(config-wlan)# <span class="v">security wpa psk set-key ascii 0 ' + f.psk.replace(/./g,'•') + '</span></div>' : '') +
+      '<div></div>'+
+      '<div><span class="muted">! Bind to policy profile mapping interface = ' + f.iface + '</span></div>'+
+      '<div>WLC(config)# <span class="v">wireless profile policy ' + f.profileName + '-policy</span></div>'+
+      '<div>WLC(config-wireless-policy)# <span class="v">vlan ' + (f.iface==='management' ? '99' : f.iface.replace('vlan','')) + '</span></div>'+
+      '<div>WLC(config-wireless-policy)# <span class="v">no shutdown</span></div>';
+  }
+
+  document.getElementById('btnApply').addEventListener('click', applyWLAN);
+  document.getElementById('btnReset').addEventListener('click', function(){
+    location.reload();
+  });
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'WPA2-Personal mandatory cipher?', opts:['TKIP','AES (CCMP)','RC4','3DES'], ans:'AES (CCMP)', why:'WPA2 mandates AES (CCMP). TKIP was the WPA-era stop-gap; it is deprecated. Modern WLANs run AES only.' },
+    { stem:'PSK length range?', opts:['1–7 chars','8–63 ASCII (or 64 hex)','64–128 chars','Exactly 16 chars'], ans:'8–63 ASCII (or 64 hex)', why:'IEEE 802.11i: PSK is 8–63 printable-ASCII characters (PMK derived via PBKDF2). Or supply 64 hex chars directly. <8 is rejected.' },
+    { stem:'On a Cat 9800 WLC, where is DHCP for clients on a WLAN sourced from?', opts:['The AP','The dynamic interface (or policy-profile VLAN) the WLAN is mapped to','The console port','Always 192.168.1.1'], ans:'The dynamic interface (or policy-profile VLAN) the WLAN is mapped to', why:'WLAN-to-interface mapping is the L2 boundary. DHCP relay (or scope) lives on that interface\'s VLAN. Wrong mapping = no IP for clients.' },
+    { stem:'Which is L2 vs L3 security on a WLC?', opts:['Both WPA2 and web-auth are L2','WPA2/PSK = L2; web-auth = L3','Both are L3','Both are L1'], ans:'WPA2/PSK = L2; web-auth = L3', why:'WPA2 happens at the link layer during association — before the client gets an IP. Web-auth (captive portal) intercepts HTTP at L3 after the client has an IP. Different layers, often both used.' },
+    { stem:'Clients associate to Corp-WiFi but never get an IP. First place to look?', opts:['Cipher','PSK length','Interface mapping → DHCP-bearing VLAN','SSID broadcast'], ans:'Interface mapping → DHCP-bearing VLAN', why:'Associated but no IP = L2 worked, L3 failed. The dynamic interface for the WLAN is on the wrong VLAN, or DHCP relay is missing. Verify with `show wireless client summary` and DHCP scope/relay config.' },
+    { stem:'WPA2/WPA3 transition mode is for:', opts:['New deployments only','Mixed fleets — WPA3-capable clients use WPA3, WPA2-only clients still join the same SSID','Disabling encryption','Replacing 802.1X'], ans:'Mixed fleets — WPA3-capable clients use WPA3, WPA2-only clients still join the same SSID', why:'Transition mode keeps one SSID while letting newer clients negotiate WPA3-SAE and older ones fall back to WPA2-PSK. Useful during rollouts; once the fleet is WPA3-clean, switch to WPA3-only.' },
+    { stem:'AKM = PSK vs 802.1X — what is "AKM"?', opts:['Auth Key Management — how the session keys are derived','A vendor name','A WLAN ID','802.11n only'], ans:'Auth Key Management — how the session keys are derived', why:'AKM negotiates which method derives the PMK and session keys. PSK = derived from a shared password. 802.1X = derived from EAP exchange via RADIUS.' },
+    { stem:'Hidden SSID setting on a WLAN — security improvement?', opts:['Yes, strong','Yes, but only for guests','None — probe requests still leak the SSID; relies only on real encryption + auth','Encrypts the SSID'], ans:'None — probe requests still leak the SSID; relies only on real encryption + auth', why:'Hiding zeroes the SSID element in beacons. Probe requests from known clients still include it in plaintext. Real defense = WPA2/WPA3 + strong PSK or 802.1X.' },
+    { stem:'QoS profile Platinum is intended for:', opts:['Background','Best effort (data)','Voice — lowest delay/jitter','Print queues'], ans:'Voice — lowest delay/jitter', why:'WLC default QoS profiles map to DSCP/CoS classes: Platinum=voice, Gold=video, Silver=best-effort, Bronze=background. Voice gets the highest scheduling priority on the air.' },
+    { stem:'WLAN was configured but clients cannot find the SSID. First two checks?', opts:['Cable type, fiber vs copper','Status = Enabled, AP/policy-tag mapping pushed to APs','BGP, OSPF','Default gateway'], ans:'Status = Enabled, AP/policy-tag mapping pushed to APs', why:'Cat 9800 needs the WLAN profile in the policy-profile, the policy-profile inside a policy-tag, and the policy-tag bound to the AP\'s site/RF tag. AND the WLAN itself must be `no shutdown` (Status = Enabled). Either step missed = invisible SSID.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
