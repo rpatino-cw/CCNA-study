@@ -31,6 +31,7 @@
       { text: 'Ports → Tunnels', href: 'ports-tunnels.html' },
       { text: 'RFCs', href: 'rfc.html' },
       { text: 'Formula Router', href: 'formula-router.html' },
+      { text: 'Formula Quiz', href: 'formula-quiz.html' },
       { text: 'Subnetting Visual', href: 'subnetting-visual.html' },
       { text: 'VLSM Calculator', href: 'vlsm.html' },
       { text: 'Magic Number', href: 'magic-number.html' },
