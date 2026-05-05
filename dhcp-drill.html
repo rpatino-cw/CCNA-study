@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>DHCP Drill — DORA, Options, Relay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+    .layout-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--s-lg); align-items: start; }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+    .q-card { border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: 22px; background: var(--bg); margin-bottom: 14px; }
+    .q-prompt { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.4; margin-bottom: 12px; }
+    .scenario { font-family: var(--font-mono); font-size: 0.92rem; padding: 12px 16px; background: var(--bg-surface); border-radius: 8px; margin-bottom: 14px; border-left: 4px solid var(--accent); line-height: 1.7; }
+    .config-block { font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.65; padding: 14px 16px; background: #11171f; color: #e5e9ef; border-radius: 8px; margin-bottom: 12px; }
+    .config-block .c-key { color: #c4a36b; }
+    .config-block .c-num { color: #6bbf6b; }
+    .config-line { display: block; }
+    .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .input-row label { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .drill-input { font-family: var(--font-mono); font-size: 1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); width: 220px; }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.secondary { background: var(--bg-surface); color: var(--ink); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+    .teach { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--bg-surface); }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; }
+    .teach-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; color: var(--ink); }
+    .teach-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+    .ref-card { position: sticky; top: 80px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: var(--bg-surface); font-family: var(--font-mono); font-size: 0.78rem; }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Domain 4.3 · DHCP</div>
+      <h1>DHCP Drill</h1>
+      <p>DORA sequence, options (router/DNS/lease/TFTP), relay agent (<code>ip helper-address</code>), conflicts, lease renewal timers. The trap: client-side ports are 67 and 68, source/dest swap by direction.</p>
+    </header>
+    <div class="layout-grid">
+      <main>
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">Question type</span>
+            <button class="pill active" data-qt="all" onclick="setQT(this)">All</button>
+            <button class="pill" data-qt="dora" onclick="setQT(this)">DORA sequence</button>
+            <button class="pill" data-qt="option" onclick="setQT(this)">Option lookup</button>
+            <button class="pill" data-qt="relay" onclick="setQT(this)">Relay (ip helper)</button>
+            <button class="pill" data-qt="ports" onclick="setQT(this)">Ports / direction</button>
+            <button class="pill" data-qt="lease" onclick="setQT(this)">Lease renewal</button>
+          </div>
+          <div class="drill-meta">
+            <span>Streak <strong class="dm-val" id="dhStreak">0</strong></span>
+            <span>Best <strong class="dm-val" id="dhBest">--</strong></span>
+            <span>Score <strong class="dm-val" id="dhScore">0/0</strong></span>
+            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="dhReset()">Reset</button>
+          </div>
+          <div class="q-card">
+            <div class="q-prompt" id="dhPrompt"></div>
+            <div class="scenario" id="dhScenario" style="display:none"></div>
+            <div class="config-block" id="dhConfig" style="display:none"></div>
+            <div id="dhInputArea"></div>
+            <div class="actions">
+              <button class="btn-action" onclick="dhCheck()">Check</button>
+              <button class="btn-action secondary" onclick="dhHint()">Hint</button>
+              <button class="btn-action ghost" onclick="dhNew()">New question</button>
+            </div>
+            <div class="feedback" id="dhFeedback"></div>
+          </div>
+          <div class="teach" id="dhTeach" style="display:none">
+            <div class="teach-title"><span>Walkthrough</span><button class="teach-toggle" onclick="dhToggleTeach()">Hide</button></div>
+            <div id="dhTeachBody"></div>
+          </div>
+        </section>
+        <section class="visual-block">
+          <details>
+            <summary>DHCP cheatsheet</summary>
+            <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.65">
+              <ul style="margin:0 0 0 22px">
+                <li><strong>DORA:</strong> Discover (broadcast) → Offer (server unicast/broadcast) → Request (broadcast) → Ack (server). Then client owns the lease.</li>
+                <li><strong>Ports:</strong> server uses UDP 67, client uses UDP 68. Discover: src 0.0.0.0:68 → dst 255.255.255.255:67.</li>
+                <li><strong>Relay agent:</strong> <code>ip helper-address X.X.X.X</code> on the inbound interface forwards client broadcasts as unicast to server X. Without it, DHCP doesn\'t cross routers.</li>
+                <li><strong>Renewal:</strong> at <strong>T1</strong> (50% of lease) client tries to renew with the same server (unicast). At <strong>T2</strong> (87.5%) it broadcasts to any server. At lease expiry, it must DORA again.</li>
+                <li><strong>Conflict:</strong> server pings the offered IP before issuing. Client also ARPs after Ack — if reply, sends DHCP DECLINE and starts over.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+      </main>
+      <aside>
+        <div class="ref-card">
+          <h3>Common DHCP options</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">#</th><th style="text-align:left">Use</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Subnet mask</td></tr>
+              <tr><td>3</td><td>Router (gateway)</td></tr>
+              <tr><td>6</td><td>DNS server(s)</td></tr>
+              <tr><td>15</td><td>Domain name</td></tr>
+              <tr><td>42</td><td>NTP server</td></tr>
+              <tr><td>43</td><td>Vendor-specific</td></tr>
+              <tr><td>51</td><td>Lease time</td></tr>
+              <tr><td>53</td><td>Message type</td></tr>
+              <tr><td>66</td><td>TFTP server name</td></tr>
+              <tr><td>67</td><td>Boot file name</td></tr>
+              <tr><td>150</td><td>Cisco TFTP server array (IP)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ref-card" style="margin-top:14px">
+          <h3>Ports</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <tbody>
+              <tr><td>UDP 67</td><td style="text-align:right">server</td></tr>
+              <tr><td>UDP 68</td><td style="text-align:right">client</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </div>
+<script defer src="js/nav.js?v=4.56"></script>
+<script>window.dhConfigKey = { storageKey: 'ccna_dh_best' };</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function normalize(s) { return (s || '').trim().toLowerCase().replace(/\s+/g, ''); }
+
+  function genDORA() {
+    var qs = [
+      { q: 'Which DHCP message comes <strong>after</strong> Discover?', a: 'offer', teach: ['DORA = Discover → Offer → Request → Ack.', 'Client broadcasts Discover. Servers reply with Offer.'] },
+      { q: 'Which DHCP message <strong>commits</strong> the lease (server\'s final yes)?', a: 'ack', teach: ['Final step is DHCP Ack from the server.', 'Until Ack, the client may not use the IP.'] },
+      { q: 'Which DHCP message comes <strong>after</strong> Offer?', a: 'request', teach: ['Client picks one Offer (if multiple servers replied) and broadcasts a Request.', 'Includes the server identifier (option 54) so other servers know they weren\'t chosen.'] },
+      { q: 'Which DHCP message is the FIRST a new client sends?', a: 'discover', teach: ['Client has no IP yet → broadcasts Discover from 0.0.0.0:68 to 255.255.255.255:67.'] },
+      { q: 'Order DORA correctly. What does the "R" stand for?', a: 'request', teach: ['D=Discover, O=Offer, R=Request, A=Ack.'] },
+    ];
+    var item = pick(qs);
+    return { type: 'dora', prompt: item.q, answer: item.a, teach: item.teach, hint: 'D-O-R-A.' };
+  }
+
+  function genOption() {
+    var bothWays = [
+      { num: '3', name: 'router', name2: 'default gateway', teach: ['Option 3 = Router (default gateway).'] },
+      { num: '6', name: 'dns', name2: 'dns server', teach: ['Option 6 = DNS server list.'] },
+      { num: '15', name: 'domain name', teach: ['Option 15 = Domain name (e.g., example.com).'] },
+      { num: '51', name: 'lease', name2: 'lease time', teach: ['Option 51 = Lease time in seconds.'] },
+      { num: '66', name: 'tftp server name', teach: ['Option 66 = TFTP server name (string).'] },
+      { num: '150', name: 'cisco tftp server', name2: 'tftp server ip', teach: ['Option 150 = Cisco TFTP server (array of IPs). Used for IP phones.'] },
+      { num: '42', name: 'ntp', name2: 'ntp server', teach: ['Option 42 = NTP server.'] },
+      { num: '53', name: 'message type', teach: ['Option 53 = DHCP message type (Discover/Offer/Request/Ack/Nak/Decline/Release/Inform).'] },
+      { num: '1', name: 'subnet mask', teach: ['Option 1 = Subnet mask.'] },
+    ];
+    var item = pick(bothWays);
+    var ask = pick(['num-from-name', 'name-from-num']);
+    if (ask === 'num-from-name') {
+      return {
+        type: 'option',
+        prompt: 'Which DHCP option carries the <strong>' + item.name + '</strong>?',
+        answer: item.num,
+        teach: item.teach,
+        hint: 'See the cheatsheet sidebar.'
+      };
+    } else {
+      var validNames = [item.name].concat(item.name2 ? [item.name2] : []);
+      return {
+        type: 'option',
+        prompt: 'DHCP option <strong>' + item.num + '</strong> carries what?',
+        answer: validNames,
+        validateAny: true,
+        teach: item.teach,
+        hint: 'See the cheatsheet sidebar.'
+      };
+    }
+  }
+
+  function genRelay() {
+    var server = '10.99.99.10';
+    var iface = pick(['Vlan10', 'GigabitEthernet0/1', 'Gi0/0']);
+    var qs = [
+      {
+        q: 'A client on VLAN 10 isn\'t getting DHCP. The server is on a different subnet. What command, on which interface, fixes this?',
+        a: 'ip helper-address',
+        config: ['interface ' + iface, ' ip address 192.168.10.1 255.255.255.0', ' ip helper-address ' + server],
+        teach: ['Routers don\'t forward broadcasts. Without a relay, DHCP Discover dies at the router.', 'Configure <code>ip helper-address ' + server + '</code> on the client-side L3 interface.', 'The router converts broadcast → unicast to the server (with giaddr field set to the relay\'s IP).']
+      },
+      {
+        q: 'What field does a DHCP relay agent set in the request so the server knows which subnet the client is on?',
+        a: 'giaddr',
+        teach: ['The relay sets <code>giaddr</code> (gateway IP address) in the BOOTP/DHCP header.', 'Server uses giaddr to pick the right pool.']
+      },
+      {
+        q: 'How many <code>ip helper-address</code> commands can you put on one interface?',
+        a: 'multiple',
+        teach: ['Multiple are allowed. The router relays to each in parallel.', 'Useful for redundant DHCP servers.']
+      }
+    ];
+    var item = pick(qs);
+    return {
+      type: 'relay',
+      prompt: item.q,
+      config: item.config,
+      answer: item.a,
+      teach: item.teach,
+      hint: 'Routers + broadcasts = need helper.'
+    };
+  }
+
+  function genPorts() {
+    var qs = [
+      { q: 'A DHCP <strong>Discover</strong> packet — what is the source IP and port?', a: '0.0.0.0:68', teach: ['Client has no IP yet → src = 0.0.0.0.', 'Client port = UDP 68.'] },
+      { q: 'A DHCP <strong>Discover</strong> packet — what is the dest IP and port?', a: '255.255.255.255:67', teach: ['Discover is broadcast to all on the segment.', 'Server port = UDP 67.'] },
+      { q: 'A DHCP <strong>Offer</strong> packet — what is the source port?', a: '67', teach: ['Server replies from UDP 67 → client UDP 68.'] },
+      { q: 'A DHCP relay forwards a Discover. After relay, the packet is sent as <strong>broadcast or unicast</strong>?', a: 'unicast', teach: ['Relay converts the broadcast Discover to unicast destined to the configured helper IP.', 'Far side server sees a unicast.'] },
+    ];
+    var item = pick(qs);
+    return { type: 'ports', prompt: item.q, answer: item.a, teach: item.teach, hint: 'Server=67, Client=68. Discover sources from 0.0.0.0.' };
+  }
+
+  function genLease() {
+    var lease = pick([3600, 7200, 86400, 604800]);
+    var t1 = lease * 0.5;
+    var t2 = lease * 0.875;
+    var qs = [
+      { q: 'Lease is <strong>' + lease + ' seconds</strong>. At what point does the client first try to renew (T1)?', a: String(Math.floor(t1)), teach: ['T1 = 50% of lease duration.', '50% of ' + lease + ' = <strong>' + Math.floor(t1) + ' seconds</strong>.', 'At T1, client unicasts a Request to the original server.'] },
+      { q: 'Lease is <strong>' + lease + ' seconds</strong>. At what point does the client broadcast for any server (T2)?', a: String(Math.floor(t2)), teach: ['T2 = 87.5% of lease.', '87.5% of ' + lease + ' = <strong>' + Math.floor(t2) + ' seconds</strong>.', 'If T1 unicast renewal failed, T2 broadcasts to any server.'] },
+      { q: 'If both T1 and T2 fail and the lease expires, what does the client do?', a: 'discover', teach: ['On lease expiry, client must release the IP and start over from Discover.'] },
+      { q: 'What DHCP message does the server send to REJECT a Request?', a: 'nak', teach: ['DHCP NAK = negative ack.', 'Sent if requested IP is no longer available or is wrong for the subnet.'] },
+    ];
+    var item = pick(qs);
+    return { type: 'lease', prompt: item.q, answer: item.a, teach: item.teach, hint: 'T1 = 50%, T2 = 87.5%.' };
+  }
+
+  function colorize(line) {
+    return line
+      .replace(/\b(interface|ip|helper-address|address|nat|inside|outside)\b/g, '<span class="c-key">$1</span>')
+      .replace(/\b(\d+\.\d+\.\d+\.\d+)\b/g, '<span class="c-num">$1</span>');
+  }
+
+  // ─── State ─────────────────────────────────────────────────
+  var state = {
+    qt: 'all', current: null, streak: 0, correct: 0, total: 0,
+    best: parseInt(localStorage.getItem(window.dhConfigKey.storageKey) || '0', 10),
+    teachOpen: true
+  };
+  function pickQT() { var t = ['dora', 'option', 'relay', 'ports', 'lease']; return state.qt === 'all' ? pick(t) : state.qt; }
+  function genQuestion() {
+    var qt = pickQT();
+    if (qt === 'dora') return genDORA();
+    if (qt === 'option') return genOption();
+    if (qt === 'relay') return genRelay();
+    if (qt === 'ports') return genPorts();
+    if (qt === 'lease') return genLease();
+  }
+
+  function renderQuestion() {
+    var q = state.current;
+    document.getElementById('dhPrompt').innerHTML = q.prompt;
+    document.getElementById('dhFeedback').className = 'feedback';
+    document.getElementById('dhFeedback').textContent = '';
+    document.getElementById('dhTeach').style.display = 'none';
+    var cfg = document.getElementById('dhConfig');
+    if (q.config) {
+      cfg.style.display = 'block';
+      cfg.innerHTML = q.config.map(function(l){ return '<span class="config-line">' + colorize(l) + '</span>'; }).join('');
+    } else { cfg.style.display = 'none'; }
+    document.getElementById('dhScenario').style.display = 'none';
+    document.getElementById('dhInputArea').innerHTML =
+      '<div class="input-row"><label>Answer:</label><input class="drill-input" id="dhAns" placeholder="" onkeydown="if(event.key===&quot;Enter&quot;)dhCheck()"></div>';
+    setTimeout(function(){ var el = document.getElementById('dhAns'); if (el) el.focus(); }, 30);
+  }
+
+  function renderTeach() {
+    var steps = state.current.teach;
+    var html = '';
+    for (var i = 0; i < steps.length; i++) html += '<div class="teach-step"><div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + steps[i] + '</div></div>';
+    document.getElementById('dhTeachBody').innerHTML = html;
+    document.getElementById('dhTeach').style.display = state.teachOpen ? 'block' : 'none';
+  }
+
+  window.dhToggleTeach = function() { state.teachOpen = !state.teachOpen; document.getElementById('dhTeach').style.display = state.teachOpen ? 'block' : 'none'; };
+
+  window.dhNew = function() { state.current = genQuestion(); renderQuestion(); };
+
+  window.dhCheck = function() {
+    if (!state.current) { window.dhNew(); return; }
+    var raw = normalize(document.getElementById('dhAns').value);
+    var ok;
+    if (state.current.validateAny) {
+      ok = state.current.answer.some(function(a){ return raw === normalize(a) || raw.indexOf(normalize(a)) >= 0 || normalize(a).indexOf(raw) >= 0; });
+    } else {
+      ok = raw === normalize(state.current.answer) || raw.indexOf(normalize(state.current.answer)) >= 0;
+    }
+    state.total++;
+    var fb = document.getElementById('dhFeedback');
+    if (ok) {
+      state.correct++; state.streak++;
+      if (state.streak > state.best) { state.best = state.streak; localStorage.setItem(window.dhConfigKey.storageKey, String(state.best)); }
+      fb.className = 'feedback right'; fb.textContent = 'Correct. Streak ' + state.streak + '.';
+    } else {
+      state.streak = 0;
+      fb.className = 'feedback wrong';
+      var ans = Array.isArray(state.current.answer) ? state.current.answer.join(' / ') : state.current.answer;
+      fb.innerHTML = 'Wrong. Answer: <strong>' + ans + '</strong>. Walkthrough below.';
+      state.teachOpen = true;
+    }
+    renderTeach();
+    document.getElementById('dhStreak').textContent = state.streak;
+    document.getElementById('dhBest').textContent = state.best || '--';
+    document.getElementById('dhScore').textContent = state.correct + '/' + state.total;
+  };
+
+  window.dhHint = function() {
+    if (!state.current) return;
+    var fb = document.getElementById('dhFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '#fff4d6'; fb.style.color = '#5a4a1a'; fb.style.borderColor = '#c4a36b';
+    fb.textContent = 'Hint: ' + (state.current.hint || 'Check the cheatsheet.');
+  };
+
+  window.dhReset = function() { state.streak = 0; state.correct = 0; state.total = 0; document.getElementById('dhStreak').textContent = '0'; document.getElementById('dhScore').textContent = '0/0'; };
+  window.setQT = function(btn) { document.querySelectorAll('.pill[data-qt]').forEach(function(p){p.classList.remove('active');}); btn.classList.add('active'); state.qt = btn.dataset.qt; window.dhNew(); };
+
+  document.getElementById('dhBest').textContent = state.best || '--';
+  window.dhNew();
+});
+</script>
+</body>
+</html>

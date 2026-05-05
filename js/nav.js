@@ -45,6 +45,9 @@
       { text: 'OSPF Cost Drill', href: 'ospf-cost-drill.html' },
       { text: 'ACL Match Drill', href: 'acl-match-drill.html' },
       { text: 'NAT Translation Trace', href: 'nat-trace-drill.html' },
+      { text: 'STP Root Bridge Drill', href: 'stp-root-drill.html' },
+      { text: 'Wireless Channels Drill', href: 'wireless-channels-drill.html' },
+      { text: 'DHCP Drill', href: 'dhcp-drill.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
     { text: '3rd Party Apps', children: [

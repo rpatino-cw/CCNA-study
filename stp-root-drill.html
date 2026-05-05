@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>STP Root Bridge Drill — Bridge ID Math</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+    .layout-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--s-lg); align-items: start; }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+    .q-card { border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: 22px; background: var(--bg); margin-bottom: 14px; }
+    .q-prompt { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.4; margin-bottom: 12px; }
+    .switch-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 14px; }
+    .switch-table th { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--ink); }
+    .switch-table td { padding: 6px 10px; border-bottom: 1px dashed var(--border); }
+    .switch-table tr.winner { background: rgba(120, 200, 120, 0.18); font-weight: 600; }
+    .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .input-row label { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .drill-input { font-family: var(--font-mono); font-size: 1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); width: 200px; }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.secondary { background: var(--bg-surface); color: var(--ink); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+    .teach { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--bg-surface); }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; }
+    .teach-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; color: var(--ink); }
+    .teach-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+    .ref-card { position: sticky; top: 80px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: var(--bg-surface); font-family: var(--font-mono); font-size: 0.78rem; }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Domain 2.5 · STP</div>
+      <h1>STP Root Bridge Drill</h1>
+      <p>Pick the root, derive the bridge ID, calculate path cost. Bridge ID = priority (with extended system ID = VLAN) + MAC. Lowest wins. Default priority 32768. Per-VLAN priority adds the VLAN ID.</p>
+      <p style="margin-top:8px"><strong>Multiplayer race:</strong> <a href="stp-root-race.html" style="color:var(--accent);font-weight:600">STP Root Race</a></p>
+    </header>
+    <div class="layout-grid">
+      <main>
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">Question type</span>
+            <button class="pill active" data-qt="all" onclick="setQT(this)">All</button>
+            <button class="pill" data-qt="root" onclick="setQT(this)">Pick the root</button>
+            <button class="pill" data-qt="bid" onclick="setQT(this)">Bridge ID value</button>
+            <button class="pill" data-qt="cost" onclick="setQT(this)">Path cost to root</button>
+            <button class="pill" data-qt="priority" onclick="setQT(this)">Priority for VLAN</button>
+          </div>
+          <div class="drill-meta">
+            <span>Streak <strong class="dm-val" id="srStreak">0</strong></span>
+            <span>Best <strong class="dm-val" id="srBest">--</strong></span>
+            <span>Score <strong class="dm-val" id="srScore">0/0</strong></span>
+            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="srReset()">Reset</button>
+          </div>
+          <div class="q-card">
+            <div class="q-prompt" id="srPrompt"></div>
+            <div id="srBody"></div>
+            <div id="srInputArea"></div>
+            <div class="actions">
+              <button class="btn-action" onclick="srCheck()">Check</button>
+              <button class="btn-action secondary" onclick="srHint()">Hint</button>
+              <button class="btn-action ghost" onclick="srNew()">New question</button>
+            </div>
+            <div class="feedback" id="srFeedback"></div>
+          </div>
+          <div class="teach" id="srTeach" style="display:none">
+            <div class="teach-title"><span>Walkthrough</span><button class="teach-toggle" onclick="srToggleTeach()">Hide</button></div>
+            <div id="srTeachBody"></div>
+          </div>
+        </section>
+        <section class="visual-block">
+          <details>
+            <summary>How root election works (recipe)</summary>
+            <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.65">
+              <ol style="margin:0 0 0 22px">
+                <li><strong>Bridge ID</strong> = 2-byte priority + 6-byte MAC (8 bytes total). Modern Cisco: priority field is 4-bit prio + 12-bit ext system ID (VLAN). So priority on the wire = configured priority + VLAN.</li>
+                <li><strong>Default priority</strong> = 32768. For VLAN 10 → BID priority field = 32768 + 10 = 32778.</li>
+                <li><strong>Lowest bridge ID wins.</strong> Compare priority first; if tied, compare MAC (lowest MAC wins).</li>
+                <li><strong>Priority must be a multiple of 4096</strong> when set manually (because of the 12-bit ext system ID). Valid: 0, 4096, 8192, 12288, 16384, 20480, 24576, 28672, 32768, ...</li>
+                <li><strong>Root path cost</strong> = sum of incoming-link costs from this bridge back to root. IEEE 802.1D-2004 long costs: 10G=2000, 1G=20000, 100M=200000, 10M=2000000.</li>
+              </ol>
+            </div>
+          </details>
+        </section>
+      </main>
+      <aside>
+        <div class="ref-card">
+          <h3>STP cost (long, IEEE 802.1D-2004)</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">Speed</th><th style="text-align:right">Cost</th></tr></thead>
+            <tbody>
+              <tr><td>10 Mbps</td><td style="text-align:right">2,000,000</td></tr>
+              <tr><td>100 Mbps</td><td style="text-align:right">200,000</td></tr>
+              <tr><td>1 Gbps</td><td style="text-align:right">20,000</td></tr>
+              <tr><td>10 Gbps</td><td style="text-align:right">2,000</td></tr>
+              <tr><td>100 Gbps</td><td style="text-align:right">200</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ref-card" style="margin-top:14px">
+          <h3>STP cost (short, classic)</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">Speed</th><th style="text-align:right">Cost</th></tr></thead>
+            <tbody>
+              <tr><td>10 Mbps</td><td style="text-align:right">100</td></tr>
+              <tr><td>100 Mbps</td><td style="text-align:right">19</td></tr>
+              <tr><td>1 Gbps</td><td style="text-align:right">4</td></tr>
+              <tr><td>10 Gbps</td><td style="text-align:right">2</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:8px;color:var(--ink-muted);font-size:0.72rem">CCNA exam usually uses short costs. Default on most Cisco: short.</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+<script defer src="js/nav.js?v=4.56"></script>
+<script>window.srConfig = { storageKey: 'ccna_sr_best' };</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function randMAC() {
+    var p = []; for (var i = 0; i < 6; i++) p.push(randInt(0, 255).toString(16).padStart(2, '0'));
+    return p.join(':');
+  }
+  function macToInt(mac) { return BigInt('0x' + mac.replace(/[:-]/g, '')); }
+  var STP_SHORT = { 10: 100, 100: 19, 1000: 4, 10000: 2 };
+
+  function genRoot() {
+    var n = randInt(3, 5);
+    var sw = [];
+    var mode = pick(['mixed', 'all-default', 'priority-tie']);
+    var basePriority = pick([4096, 8192, 16384, 24576, 32768]);
+    for (var i = 0; i < n; i++) {
+      var name = 'SW' + (i + 1);
+      var prio;
+      if (mode === 'all-default') prio = 32768;
+      else if (mode === 'priority-tie') prio = basePriority;
+      else prio = pick([4096, 8192, 16384, 24576, 32768, 32768, 32768]);
+      sw.push({ name: name, priority: prio, mac: randMAC() });
+    }
+    if (mode === 'mixed' && new Set(sw.map(function(s){return s.priority;})).size === 1) {
+      sw[randInt(0, n - 1)].priority = pick([4096, 8192]);
+    }
+    var sorted = sw.slice().sort(function(a, b){
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      var am = macToInt(a.mac), bm = macToInt(b.mac);
+      return am < bm ? -1 : am > bm ? 1 : 0;
+    });
+    var winner = sorted[0];
+    return {
+      type: 'root',
+      switches: sw,
+      winner: winner,
+      mode: mode,
+      prompt: 'These switches are connected and run STP. <strong>Which is the root bridge?</strong>',
+      teach: function(){
+        var lines = ['Sort switches by bridge ID = priority then MAC. Lowest wins.'];
+        sorted.forEach(function(s, i){ lines.push((i + 1) + '. ' + s.name + ' — prio ' + s.priority + ', MAC ' + s.mac); });
+        var why = (sw.every(function(s){ return s.priority === sorted[0].priority; })) ? 'All priorities tied → tiebreaker is lowest MAC.' : 'Lowest priority wins (' + winner.priority + ').';
+        lines.push(why);
+        lines.push('Root: <strong>' + winner.name + '</strong>.');
+        return lines;
+      }
+    };
+  }
+
+  function genBID() {
+    var prio = pick([4096, 8192, 16384, 24576, 32768]);
+    var vlan = randInt(1, 99);
+    var actualPrio = prio + vlan;
+    return {
+      type: 'bid',
+      prompt: 'Configured bridge priority is <strong>' + prio + '</strong>. The switch is for <strong>VLAN ' + vlan + '</strong>. <strong>What is the priority field value used in BPDUs?</strong>',
+      answer: String(actualPrio),
+      teach: function(){
+        return [
+          'Bridge ID priority field = configured priority + VLAN (extended system ID).',
+          'Configured: ' + prio + '. VLAN: ' + vlan + '.',
+          'BPDU priority = ' + prio + ' + ' + vlan + ' = <strong>' + actualPrio + '</strong>.',
+          'This is per-VLAN STP (PVST+/Rapid PVST+). Each VLAN has its own root election.'
+        ];
+      },
+      hint: 'Add the VLAN ID to the configured priority.'
+    };
+  }
+
+  function genCost() {
+    var hops = randInt(2, 4);
+    var speeds = [];
+    for (var i = 0; i < hops; i++) speeds.push(pick([100, 1000, 10000]));
+    var costs = speeds.map(function(s){ return STP_SHORT[s]; });
+    var total = costs.reduce(function(a,b){return a+b;}, 0);
+    var labels = speeds.map(function(s){
+      if (s === 10000) return '10 Gbps';
+      if (s === 1000) return '1 Gbps';
+      if (s === 100) return '100 Mbps';
+      return s + ' Mbps';
+    });
+    return {
+      type: 'cost',
+      prompt: 'A switch reaches the root via these <strong>' + hops + ' hops</strong> (in order from this switch toward root). <strong>Total root path cost?</strong> (Use IEEE short costs.)',
+      hops: labels,
+      costs: costs,
+      answer: String(total),
+      teach: function(){
+        var lines = ['Each link\'s cost (short): ' + labels.map(function(l, i){ return l + '=' + costs[i]; }).join(', ') + '.'];
+        lines.push('Sum the costs from this switch toward root: ' + costs.join(' + ') + ' = <strong>' + total + '</strong>.');
+        lines.push('Root path cost is the sum of <em>incoming</em> link costs, working back from this switch.');
+        return lines;
+      },
+      hint: 'Short costs: 100M=19, 1G=4, 10G=2. Sum = ' + costs.join(' + ') + '.'
+    };
+  }
+
+  function genPriority() {
+    var vlans = [randInt(1, 50), randInt(51, 200), randInt(201, 999)];
+    var target = pick(vlans);
+    var configured = pick([4096, 8192, 16384, 24576, 0]);
+    return {
+      type: 'priority',
+      prompt: 'You want SW1 to be root for <strong>VLAN ' + target + '</strong> only. Set bridge priority to <strong>' + configured + '</strong> for VLAN ' + target + '. <strong>What\'s the resulting BPDU priority value?</strong>',
+      answer: String(configured + target),
+      teach: function(){
+        return [
+          'BPDU priority = configured priority + VLAN ID.',
+          configured + ' + ' + target + ' = <strong>' + (configured + target) + '</strong>.',
+          'For other VLANs, SW1 keeps its default 32768. So SW1 is root only for VLAN ' + target + '.'
+        ];
+      },
+      hint: 'Add VLAN to configured priority.'
+    };
+  }
+
+  var state = {
+    qt: 'all', current: null, streak: 0, correct: 0, total: 0,
+    best: parseInt(localStorage.getItem(window.srConfig.storageKey) || '0', 10),
+    teachOpen: true
+  };
+
+  function pickQT() {
+    var t = ['root', 'bid', 'cost', 'priority'];
+    return state.qt === 'all' ? pick(t) : state.qt;
+  }
+  function genQuestion() {
+    var qt = pickQT();
+    if (qt === 'root') return genRoot();
+    if (qt === 'bid') return genBID();
+    if (qt === 'cost') return genCost();
+    if (qt === 'priority') return genPriority();
+  }
+
+  function renderQuestion() {
+    var q = state.current;
+    document.getElementById('srPrompt').innerHTML = q.prompt;
+    document.getElementById('srFeedback').className = 'feedback';
+    document.getElementById('srFeedback').textContent = '';
+    document.getElementById('srTeach').style.display = 'none';
+
+    var body = document.getElementById('srBody');
+    if (q.type === 'root') {
+      var rows = q.switches.map(function(s){ return '<tr><td>' + s.name + '</td><td>' + s.priority + '</td><td>' + s.mac + '</td></tr>'; }).join('');
+      body.innerHTML = '<table class="switch-table"><thead><tr><th>Switch</th><th>Priority</th><th>MAC</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    } else if (q.type === 'cost') {
+      body.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.92rem;padding:10px 14px;background:var(--bg-surface);border-radius:8px;margin-bottom:14px;border-left:4px solid var(--accent)">' +
+        'Path: ' + q.hops.map(function(h){return '<strong>' + h + '</strong>';}).join(' → ') + ' → <strong>ROOT</strong></div>';
+    } else {
+      body.innerHTML = '';
+    }
+
+    var inputArea = document.getElementById('srInputArea');
+    if (q.type === 'root') {
+      inputArea.innerHTML = '<div class="input-row"><label>Root switch:</label><input class="drill-input" id="srAns" placeholder="SW1, SW2, ..." style="width:140px" onkeydown="if(event.key===&quot;Enter&quot;)srCheck()"></div>';
+    } else {
+      inputArea.innerHTML = '<div class="input-row"><label>Answer:</label><input class="drill-input" id="srAns" placeholder="number" onkeydown="if(event.key===&quot;Enter&quot;)srCheck()"></div>';
+    }
+    setTimeout(function(){ var el = document.getElementById('srAns'); if (el) el.focus(); }, 30);
+  }
+
+  function renderTeach() {
+    var steps = state.current.teach();
+    var html = '';
+    for (var i = 0; i < steps.length; i++) html += '<div class="teach-step"><div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + steps[i] + '</div></div>';
+    document.getElementById('srTeachBody').innerHTML = html;
+    document.getElementById('srTeach').style.display = state.teachOpen ? 'block' : 'none';
+    if (state.current.type === 'root') {
+      var rows = document.querySelectorAll('.switch-table tbody tr');
+      rows.forEach(function(r){
+        if (r.cells[0].textContent === state.current.winner.name) r.classList.add('winner');
+      });
+    }
+  }
+
+  window.srToggleTeach = function() { state.teachOpen = !state.teachOpen; document.getElementById('srTeach').style.display = state.teachOpen ? 'block' : 'none'; };
+
+  window.srNew = function() { state.current = genQuestion(); renderQuestion(); };
+
+  window.srCheck = function() {
+    if (!state.current) { window.srNew(); return; }
+    var raw = (document.getElementById('srAns').value || '').trim();
+    var ok;
+    if (state.current.type === 'root') {
+      ok = raw.toUpperCase().replace(/\s+/g,'') === state.current.winner.name.toUpperCase();
+    } else {
+      ok = raw === String(state.current.answer);
+    }
+    state.total++;
+    var fb = document.getElementById('srFeedback');
+    if (ok) {
+      state.correct++; state.streak++;
+      if (state.streak > state.best) { state.best = state.streak; localStorage.setItem(window.srConfig.storageKey, String(state.best)); }
+      fb.className = 'feedback right';
+      fb.textContent = 'Correct. Streak ' + state.streak + '.';
+    } else {
+      state.streak = 0;
+      fb.className = 'feedback wrong';
+      var ans = state.current.type === 'root' ? state.current.winner.name : state.current.answer;
+      fb.innerHTML = 'Wrong. Answer: <strong>' + ans + '</strong>. Walkthrough below.';
+      state.teachOpen = true;
+    }
+    renderTeach();
+    document.getElementById('srStreak').textContent = state.streak;
+    document.getElementById('srBest').textContent = state.best || '--';
+    document.getElementById('srScore').textContent = state.correct + '/' + state.total;
+  };
+
+  window.srHint = function() {
+    if (!state.current) return;
+    var fb = document.getElementById('srFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '#fff4d6'; fb.style.color = '#5a4a1a'; fb.style.borderColor = '#c4a36b';
+    var hint = state.current.hint || (state.current.mode === 'all-default' ? 'All priorities equal — tiebreaker?' : 'Lowest priority first; tiebreak with lowest MAC.');
+    fb.textContent = 'Hint: ' + hint;
+  };
+
+  window.srReset = function() { state.streak = 0; state.correct = 0; state.total = 0; document.getElementById('srStreak').textContent = '0'; document.getElementById('srScore').textContent = '0/0'; };
+  window.setQT = function(btn) { document.querySelectorAll('.pill[data-qt]').forEach(function(p){p.classList.remove('active');}); btn.classList.add('active'); state.qt = btn.dataset.qt; window.srNew(); };
+
+  document.getElementById('srBest').textContent = state.best || '--';
+  window.srNew();
+});
+</script>
+</body>
+</html>
