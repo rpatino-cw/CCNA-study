@@ -52,6 +52,7 @@
       { text: 'STP Root Bridge Drill', href: 'stp-root-drill.html' },
       { text: 'Wireless Channels Drill', href: 'wireless-channels-drill.html' },
       { text: 'DHCP Drill', href: 'dhcp-drill.html' },
+      { text: 'HTTP Status Code Drill', href: 'http-status-drill.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
     { text: '3rd Party Apps', children: [
@@ -237,7 +238,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.57.18</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.57.19</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
