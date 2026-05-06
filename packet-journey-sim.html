@@ -69,7 +69,7 @@ section{margin-bottom:var(--s-2xl)}
 
 .link{position:absolute;height:2px;background:var(--border-strong);transform-origin:left center;pointer-events:none}
 
-.packet{position:absolute;padding:3px 7px;border-radius:var(--radius);background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:.6rem;font-weight:700;transform:translate(-50%,-50%);opacity:0;pointer-events:none;box-shadow:0 2px 8px rgba(180,83,9,.3);transition:left .4s ease,top .4s ease,opacity .15s,background .2s}
+.packet{position:absolute;padding:3px 7px;border-radius:var(--radius);background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:.6rem;font-weight:700;transform:translate(-50%,-50%);opacity:0;pointer-events:none;box-shadow:0 2px 8px rgba(180,83,9,.3);transition:opacity .15s,background .2s;will-change:left,top}
 .packet.visible{opacity:1}
 .packet.syn{background:#2563eb;box-shadow:0 2px 8px rgba(37,99,235,.3)}
 .packet.ack{background:var(--prof-strong);box-shadow:0 2px 8px rgba(22,163,74,.3)}
@@ -795,13 +795,21 @@ async function sendHop(from, to, flavor, label){
   // Live packet badge: protocol label + current TTL so the learner sees it
   // tick down as routers forward.
   const live = (label||'PKT') + (wire.ttl!=null ? ' · TTL '+wire.ttl : '');
+  // Hop duration: speed-adjusted; minimum 260ms so the eye can track travel.
+  const rawHopMs  = Math.max(260, latency * 1.2);
+  const visualMs  = rawHopMs / speed;
   p.className='packet '+(flavor||'')+' visible';
   p.textContent=live;
+  // Snap to the source node WITHOUT animating from previous position.
+  p.style.transition='none';
   p.style.left=a.x+'%'; p.style.top=a.y+'%';
   void p.offsetWidth;
+  // Animate to destination over the full hop window, linear so motion feels
+  // like a packet on a wire instead of an ease-out blob.
+  p.style.transition='left '+visualMs+'ms linear, top '+visualMs+'ms linear, opacity .15s, background .2s';
   p.style.left=b.x+'%'; p.style.top=b.y+'%';
   $('n-'+from).classList.add('active');
-  await wait(Math.max(30, latency/2));
+  await wait(rawHopMs);
   $('n-'+from).classList.remove('active');
   $('n-'+to).classList.add('active');
   stats.hops++;
@@ -892,16 +900,22 @@ function maybeDrop(){ return Math.random()*100 < loss; }
 async function dropAnim(pathSlice, idx){
   const path = pathSlice;
   const p = anim.packetEl;
+  const rawHopMs = Math.max(260, latency * 1.2);
+  const visualMs = rawHopMs / speed;
   p.className='packet '+PROTOS[current].cls+' visible'; p.textContent='X';
   const first = NODES.find(n=>n.id===path[0]);
-  p.style.left=first.x+'%'; p.style.top=first.y+'%'; void p.offsetWidth;
+  // Snap to start without animating
+  p.style.transition='none';
+  p.style.left=first.x+'%'; p.style.top=first.y+'%';
+  void p.offsetWidth;
   for (let i=1;i<=idx;i++){
     const n = NODES.find(nn=>nn.id===path[i]);
+    p.style.transition='left '+visualMs+'ms linear, top '+visualMs+'ms linear, opacity .15s, background .2s';
     p.style.left=n.x+'%'; p.style.top=n.y+'%';
-    await wait(Math.max(30, latency/2));
+    await wait(rawHopMs);
   }
   p.classList.add('dropped');
-  await wait(200);
+  await wait(220);
   p.classList.remove('visible','dropped');
   stats.drop++;
 }
