@@ -217,6 +217,11 @@ section{margin-bottom:var(--s-2xl)}
           <div class="slider-cell"><label>Loss</label><input id="loss" class="slider" type="range" min="0" max="50" step="1" value="2"><span id="lossVal" class="slider-val">2 %</span></div>
           <div class="slider-cell"><label>Speed</label><input id="speed" class="slider" type="range" min="5" max="30" step="1" value="10"><span id="spdVal" class="slider-val">1.0×</span></div>
         </div>
+        <div class="sim-row">
+          <span class="sim-row-label">Scenario</span>
+          <button id="btnTtl2" class="sim-btn" title="Set initial TTL to 2 — packet dies before reaching destination, router fires ICMP Time Exceeded">↪ TTL=2 trace</button>
+          <span id="ttlBanner" class="slider-val" style="display:none;color:var(--prof-weak)">initial TTL = 2</span>
+        </div>
         <div class="sim-row" style="justify-content:flex-end;gap:8px">
           <button id="playBtn" class="sim-btn primary">Play</button>
           <button id="resetBtn" class="sim-btn">Reset</button>
@@ -518,6 +523,8 @@ const CHALLENGES = [
 /* ═══ STATE ═══ */
 let current = 'HTTP', latency = 80, loss = 2, speed = 1.0;
 let running = false, anim={timers:[],packetEl:null,t0:0}, stats = newStats();
+let initialTtl = 64;
+class TTLExceeded extends Error { constructor(at){ super('TTL exceeded at '+at); this.at = at; } }
 function newStats(){return {sent:0,recv:0,drop:0,hops:0,bytes:0,startT:0};}
 
 const $ = id => document.getElementById(id);
@@ -599,6 +606,12 @@ $('loss').addEventListener('input',    e=>{loss=+e.target.value;    $('lossVal')
 $('speed').addEventListener('input',   e=>{speed=+e.target.value/10; $('spdVal').textContent=speed.toFixed(1)+'×';});
 $('playBtn').addEventListener('click', function(){ if(!running) play(); });
 $('resetBtn').addEventListener('click', reset);
+$('btnTtl2').addEventListener('click', function(){
+  if (running) return;
+  initialTtl = 2;
+  const b = $('ttlBanner'); if (b) b.style.display='';
+  play();
+});
 
 /* ═══ SIM CORE ═══ */
 function selectProto(k){
@@ -652,8 +665,11 @@ async function decap(host, cls){
 async function sendHop(from, to, flavor, label){
   const a=NODES.find(n=>n.id===from), b=NODES.find(n=>n.id===to);
   const p=anim.packetEl;
+  // Live packet badge: protocol label + current TTL so the learner sees it
+  // tick down as routers forward.
+  const live = (label||'PKT') + (wire.ttl!=null ? ' · TTL '+wire.ttl : '');
   p.className='packet '+(flavor||'')+' visible';
-  p.textContent=label||'PKT';
+  p.textContent=live;
   p.style.left=a.x+'%'; p.style.top=a.y+'%';
   void p.offsetWidth;
   p.style.left=b.x+'%'; p.style.top=b.y+'%';
@@ -662,8 +678,22 @@ async function sendHop(from, to, flavor, label){
   $('n-'+from).classList.remove('active');
   $('n-'+to).classList.add('active');
   stats.hops++;
-  if (b.kind === 'switch') log('· '+b.label+' — L2 forward (dst MAC lookup, no L3 inspection)');
-  else if (b.kind === 'router') log('· '+b.label+' — L3 route lookup, forward to next hop');
+  if (b.kind === 'switch') {
+    log('· '+b.label+' — L2 forward (dst MAC lookup, no L3 inspection, TTL untouched)');
+  } else if (b.kind === 'router') {
+    const before = wire.ttl;
+    wire.ttl = before - 1;
+    setWireField('wTtl', wire.ttl);
+    if (wire.ttl <= 0){
+      log('· '+b.label+' — TTL hit 0 → drop + ICMP Time Exceeded back to source','warn');
+      p.classList.add('dropped');
+      await wait(280);
+      p.classList.remove('visible','dropped');
+      throw new TTLExceeded(b.label);
+    }
+    log('· '+b.label+' — L3 route lookup, TTL '+before+'→'+wire.ttl);
+    p.textContent = (label||'PKT') + ' · TTL '+wire.ttl;
+  }
 }
 function nextL3InPath(path, fromIdx){
   for (let j=fromIdx+1; j<path.length; j++){
@@ -674,6 +704,9 @@ function nextL3InPath(path, fromIdx){
 }
 async function traverse(flavor,label,reverse){
   const path = reverse ? PATH.slice().reverse() : PATH.slice();
+  // Fresh packet emission: real stacks reset TTL to the OS default (64/128/255).
+  wire.ttl = initialTtl;
+  setWireField('wTtl', wire.ttl);
   // Set L3 endpoints once per traverse — IPs do not change end-to-end.
   setWireIPs(path[0], path[path.length-1]);
   for (let i=0;i<path.length-1;i++) {
@@ -718,7 +751,7 @@ function setWireMACs(emitterId, nextL3Id){
 function setWireL7(text){ setWireField('wL7', text); }
 function setWireL4(text){ setWireField('wL4', text); }
 function resetWire(){
-  wire = {ipSrc:'—', ipDst:'—', ethSrc:'—', ethDst:'—', ttl:64};
+  wire = {ipSrc:'—', ipDst:'—', ethSrc:'—', ethDst:'—', ttl:initialTtl};
   ['wEthSrc','wEthDst','wIpSrc','wIpDst','wTtl','wL7','wL4'].forEach(id=>{const el=$(id); if(el) el.textContent='—';});
   $('wireNote').textContent='Press Play. Each layer fills in as encap fires. L2 rewrites at every router hop; L3 stays end-to-end; L4/L7 stay constant top to bottom.';
 }
@@ -842,15 +875,27 @@ function reset(){
   resetWire();
   running=false;
 }
+function endRun(){
+  running=false;
+  $('playBtn').disabled=false; $('playBtn').textContent='Play again';
+  if (initialTtl !== 64){
+    initialTtl = 64;
+    const b = $('ttlBanner'); if (b) b.style.display='none';
+  }
+}
 function play(){
   reset(); running=true; anim.t0=performance.now(); stats.startT=performance.now();
   $('playBtn').disabled=true; $('playBtn').textContent='Running…';
   const fn = {HTTP:runHTTP, HTTPS:runHTTPS, DNS:runDNS,'TCP-HS':runTCPHS, UDP:runUDP}[current];
   fn().then(function(){
     log('— run complete —','ok');
-    running=false;
-    $('playBtn').disabled=false; $('playBtn').textContent='Play again';
-  }).catch(function(e){ console.error(e); running=false; $('playBtn').disabled=false; });
+    endRun();
+  }).catch(function(e){
+    if (e instanceof TTLExceeded){
+      log('Run aborted — TTL exhausted at '+e.at+' (real stack: ICMP Type 11 sent to source)','warn');
+    } else { console.error(e); }
+    endRun();
+  });
 }
 
 selectProto('HTTP');
