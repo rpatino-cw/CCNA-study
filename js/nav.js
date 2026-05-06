@@ -22,6 +22,7 @@
     { text: 'Core v2 ✦', href: 'core-v2.html' },
     { text: '1.1.a Routers ★', href: 'sim-1-1-a-cheat.html' },
     { text: '1.1.b Switches ★', href: 'sim-1-1-b-cheat.html' },
+    { text: '1.1.c NGFW+IPS ★', href: 'sim-1-1-c-cheat.html' },
     { text: 'Roadmap', href: 'roadmap.html' },
     { text: 'Guide', href: 'guide.html' },
     { text: 'Learn', children: [

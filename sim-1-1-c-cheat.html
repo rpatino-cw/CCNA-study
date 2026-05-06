@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.c NGFW + IPS — Read First</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.6;padding:24px;max-width:880px;margin:0 auto}
+  .head{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.7rem;font-weight:700;margin-bottom:6px;letter-spacing:-.02em}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .toc{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;font-family:var(--font-mono);font-size:.78rem}
+  .toc a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:99px;background:var(--bg-surface);border:1px solid var(--border)}
+  .toc a:hover{background:var(--accent);color:#fff}
+  section{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:18px}
+  section h2{font-family:var(--font-display);font-size:1.15rem;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--accent);color:var(--ink);display:flex;align-items:baseline;gap:10px}
+  section h2 .pill{font-family:var(--font-mono);font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+  section p{margin-bottom:10px}
+  section p:last-child{margin-bottom:0}
+  code{font-family:var(--font-mono);font-size:.88em;background:var(--bg-recessed);padding:1px 6px;border-radius:3px}
+  .key{background:var(--accent-light);padding:1px 6px;border-radius:3px;font-weight:700;color:var(--accent)}
+  .pull-quote{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:var(--accent);padding:12px 16px;background:var(--accent-light);border-left:4px solid var(--accent);border-radius:6px;margin:12px 0}
+  ul,ol{margin-left:22px;margin-bottom:8px}
+  li{margin:4px 0}
+  table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.86rem;margin:8px 0}
+  th{text-align:left;padding:8px 10px;background:var(--bg-recessed);border-bottom:2px solid var(--border-strong);font-family:var(--font-display);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+  td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:hover td{background:var(--bg-recessed)}
+  .anatomy-svg{width:100%;display:block;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);min-height:240px;margin:10px 0}
+  .flow-grid{display:grid;grid-template-columns:30px 1fr;gap:8px 14px;margin:8px 0}
+  .flow-grid .step{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--accent);text-align:center}
+  .flow-grid .body{font-size:.95rem}
+  .flow-grid .body strong{color:var(--accent)}
+  .mnemonic-box{background:linear-gradient(135deg,var(--accent-light),#FFE9C5);border:2px solid var(--accent);border-radius:var(--radius);padding:14px 18px;margin:10px 0}
+  .mnemonic-box .lead{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:6px}
+  .mnemonic-box .word{font-family:var(--font-mono);font-size:1.4rem;font-weight:700;color:var(--ink);letter-spacing:.05em}
+  .out{font-family:var(--font-mono);font-size:.84rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.55;overflow-x:auto;margin:8px 0;white-space:pre}
+  .out .hl{color:#FCD34D;font-weight:700}
+  .out .v{color:#86EFAC}
+  .out .x{color:#FCA5A5}
+  .out .c{color:#A8A29E;font-style:italic}
+  .annotate{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-family:var(--font-body);font-size:.92rem;margin:8px 0}
+  .annotate .field{font-family:var(--font-mono);font-size:.84rem;font-weight:700;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:3px;align-self:start}
+  .compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:10px 0}
+  .compare .col{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+  .compare .col h3{font-family:var(--font-display);font-size:1rem;color:var(--accent);margin-bottom:8px}
+  .compare .col ul{margin-left:18px;font-size:.92rem}
+  .trap{background:#FEF2F2;border:1.5px solid var(--wrong);border-radius:var(--radius);padding:12px 16px;margin:10px 0}
+  .trap .lead{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--wrong);margin-bottom:6px}
+  .trap .body{font-size:.94rem}
+  .trap .body strong{color:var(--wrong)}
+  .must-know{background:linear-gradient(135deg,var(--correct-bg),#E0F8E8);border:2px solid var(--correct);border-radius:var(--radius);padding:14px 18px;margin:12px 0}
+  .must-know .lead{font-family:var(--font-display);font-size:.84rem;font-weight:700;color:var(--correct);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .must-know ol{margin-left:24px;font-size:.95rem}
+  .must-know ol li{padding:3px 0;font-weight:600}
+  .selfcheck{background:var(--info-bg);border:1px solid var(--info);border-radius:var(--radius);padding:14px 18px;margin:10px 0}
+  .selfcheck h3{font-family:var(--font-display);font-size:.98rem;color:var(--info);margin-bottom:8px}
+  .selfcheck details{margin:8px 0;font-family:var(--font-body);font-size:.94rem}
+  .selfcheck summary{cursor:pointer;padding:4px 0;font-weight:600}
+  .selfcheck details[open] summary{color:var(--accent)}
+  .selfcheck details p{padding:6px 14px;background:var(--bg-surface);border-radius:4px;margin-top:4px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none;margin-right:14px}
+  .drill-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}
+  .drill-stat{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
+  .drill-stat .lbl{font-family:var(--font-display);font-size:.66rem;font-weight:700;color:var(--ink-secondary);text-transform:uppercase;letter-spacing:.06em}
+  .drill-stat .val{font-family:var(--font-mono);font-size:1.4rem;font-weight:700;color:var(--ink)}
+  .drill-stat.ok .val{color:var(--correct)}
+  .drill-stat.bad .val{color:var(--wrong)}
+  .drill-stat.streak .val{color:var(--accent)}
+  .drill-card{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin:14px 0}
+  .drill-card .meta{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-bottom:8px}
+  .drill-card .stem{font-family:var(--font-body);font-size:1rem;font-weight:600;line-height:1.55;margin-bottom:12px}
+  .drill-card .stem code,.drill-card .stem .out{font-family:var(--font-mono);background:#1C1917;color:#E7E5E4;padding:6px 10px;border-radius:4px;display:block;white-space:pre;font-weight:400;font-size:.84rem;line-height:1.55;margin:8px 0}
+  .drill-opts{display:grid;gap:8px}
+  .drill-opt{font-family:var(--font-mono);font-size:.92rem;padding:11px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;text-align:left}
+  .drill-opt:hover{border-color:var(--accent)}
+  .drill-opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .drill-opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong);text-decoration:line-through}
+  .drill-why{font-family:var(--font-body);font-size:.92rem;background:var(--bg-surface);border-left:3px solid var(--accent-soft);border-radius:var(--radius);padding:11px 14px;margin-top:11px;display:none;line-height:1.55}
+  .drill-why.show{display:block}
+  .drill-why strong{color:var(--accent)}
+  .drill-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+  .btn:hover{filter:brightness(1.1)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.danger{background:var(--wrong)}
+  .progress-bar{height:8px;background:var(--bg-recessed);border-radius:99px;overflow:hidden;margin-top:8px}
+  .progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--accent-soft),var(--correct));transition:width .3s}
+  .timer-box{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;padding:6px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:99px;color:var(--ink)}
+  .timer-box.warn{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  .miss-box{font-family:var(--font-mono);font-size:.78rem;background:var(--wrong-bg);border:1px solid var(--wrong);border-radius:var(--radius);padding:10px;margin-top:10px;display:none;max-height:180px;overflow-y:auto;color:var(--wrong)}
+  .miss-box.show{display:block}
+  .miss-box .row{padding:3px 0;border-bottom:1px dashed var(--wrong)}
+  .pass-banner{background:linear-gradient(135deg,var(--correct),#22C55E);color:#fff;padding:14px 18px;border-radius:var(--radius);font-family:var(--font-display);font-size:1rem;font-weight:700;text-align:center;margin-top:14px;display:none}
+  .pass-banner.show{display:block}
+  .filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;margin-bottom:6px}
+  .filter-pill{font-family:var(--font-mono);font-size:.74rem;padding:5px 11px;border:1px solid var(--border);border-radius:99px;background:var(--bg-recessed);cursor:pointer;color:var(--ink-secondary)}
+  .filter-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1" style="color:var(--accent);text-decoration:none">← 1.1 Mini Sims</a> · 1.1.c · NGFW + IPS · Read First</div>
+  <h1>1.1.c Next-Generation Firewalls and IPS — Read This Before Anything Else</h1>
+  <div class="desc">Cisco 200-301 §1.1.c. Same format as 1.1.a + 1.1.b. Read top-to-bottom, then drill at the bottom until 95%+. Re-read the IDS-vs-IPS table and 7 traps if anything blurs.</div>
+</div>
+
+<div class="toc">
+  <strong style="color:var(--ink);font-family:var(--font-display);align-self:center;margin-right:6px">JUMP:</strong>
+  <a href="#one">1. 30-sec answer</a>
+  <a href="#anat">2. Anatomy</a>
+  <a href="#flow">3. Packet flow</a>
+  <a href="#stateful">4. Stateful vs NGFW</a>
+  <a href="#ids">5. IDS vs IPS</a>
+  <a href="#mnem">6. Mnemonics</a>
+  <a href="#show">7. Show outputs</a>
+  <a href="#fam">8. Cisco families</a>
+  <a href="#traps">9. Cisco traps</a>
+  <a href="#mustknow">10. Top 10</a>
+  <a href="#self">11. Self-check</a>
+  <a href="#cli">12. CLI sim</a>
+  <a href="#match">13. Match</a>
+  <a href="#exhibit">14. Exhibit</a>
+  <a href="#srs">15. SRS</a>
+  <a href="#drill">16. Drill</a>
+</div>
+
+<section id="one">
+  <h2>1. The 30-Second Answer <span class="pill">read this twice</span></h2>
+  <div class="pull-quote">A firewall enforces a security policy at a network boundary. NGFW = stateful firewall + deep packet inspection + application-ID + user-ID + IPS + URL filter + threat intel. IPS = inline scanner that blocks. IDS = passive scanner that alerts.</div>
+  <ul>
+    <li><strong>Stateless firewall (ACL-style)</strong> = matches packets on 5-tuple only (src/dst IP, src/dst port, protocol). No connection memory.</li>
+    <li><strong>Stateful firewall</strong> = tracks connections in a state table. Return traffic for an established connection is allowed automatically.</li>
+    <li><strong>NGFW</strong> = stateful + Layer-7 awareness. Sees that "TCP/443" is actually Facebook or Salesforce, can block by app/user, decrypts TLS, runs IPS, fetches Talos threat feeds.</li>
+    <li><strong>IDS</strong> = sits OUT-of-band on a SPAN/TAP, alerts on bad traffic. <strong>IPS</strong> = sits IN-line, drops bad traffic.</li>
+  </ul>
+  <p class="pull-quote" style="margin-top:14px;font-size:.95rem">Memorize: <span class="key">NGFW = stateful + L7. IDS sees. IPS blocks.</span></p>
+</section>
+
+<section id="anat">
+  <h2>2. NGFW Anatomy at a Glance <span class="pill">visual</span></h2>
+  <svg class="anatomy-svg" viewBox="0 0 600 260">
+    <rect x="20" y="20" width="560" height="220" rx="14" fill="#1F2937" stroke="#0F172A" stroke-width="2"/>
+    <text x="300" y="42" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#FCD34D">Cisco Secure Firewall — FTD (Firepower Threat Defense)</text>
+
+    <rect x="40" y="60" width="160" height="40" rx="6" fill="#0E7490" stroke="#0F172A"/>
+    <text x="120" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">Stateful inspection</text>
+    <text x="120" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">5-tuple + conn state</text>
+
+    <rect x="220" y="60" width="160" height="40" rx="6" fill="#0891B2" stroke="#0F172A"/>
+    <text x="300" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">App-ID + User-ID</text>
+    <text x="300" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">L7 visibility (DPI)</text>
+
+    <rect x="400" y="60" width="160" height="40" rx="6" fill="#16A34A" stroke="#0F172A"/>
+    <text x="480" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">IPS engine (Snort)</text>
+    <text x="480" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">signatures + anomaly</text>
+
+    <rect x="40" y="115" width="160" height="36" rx="6" fill="#7C3AED" stroke="#0F172A"/>
+    <text x="120" y="132" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">URL filter</text>
+    <text x="120" y="146" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">categories + reputation</text>
+
+    <rect x="220" y="115" width="160" height="36" rx="6" fill="#F59E0B" stroke="#0F172A"/>
+    <text x="300" y="132" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">TLS decrypt</text>
+    <text x="300" y="146" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">MITM with own cert</text>
+
+    <rect x="400" y="115" width="160" height="36" rx="6" fill="#DC2626" stroke="#0F172A"/>
+    <text x="480" y="132" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">VPN termination</text>
+    <text x="480" y="146" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">IPsec / AnyConnect SSL</text>
+
+    <rect x="40" y="166" width="240" height="36" rx="6" fill="#475569" stroke="#0F172A"/>
+    <text x="160" y="183" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">Threat intel (Talos)</text>
+    <text x="160" y="197" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">malware/IP/URL feeds</text>
+
+    <rect x="300" y="166" width="260" height="36" rx="6" fill="#0E7490" stroke="#0F172A"/>
+    <text x="430" y="183" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">Zones / Security levels</text>
+    <text x="430" y="197" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">inside / outside / DMZ</text>
+
+    <rect x="40" y="214" width="240" height="14" rx="3" fill="#475569"/>
+    <text x="160" y="224" text-anchor="middle" font-family="JetBrains Mono" font-size="9" font-weight="700" fill="#fff">CONTROL PLANE — policy / mgmt</text>
+    <rect x="300" y="214" width="260" height="14" rx="3" fill="#0E7490"/>
+    <text x="430" y="224" text-anchor="middle" font-family="JetBrains Mono" font-size="9" font-weight="700" fill="#fff">DATA PLANE — flow inspection</text>
+  </svg>
+  <p>NGFW stacks: stateful conn tracking (table) + DPI (App-ID, User-ID) + IPS (Snort signatures) + URL filtering + TLS decrypt + VPN termination + cloud threat intel (Talos). Zones (inside/outside/DMZ) define trust boundaries; policies match on zone+app+user.</p>
+</section>
+
+<section id="flow">
+  <h2>3. Packet Flow Through an NGFW <span class="pill">memorize</span></h2>
+  <div class="flow-grid">
+    <div class="step">1</div><div class="body"><strong>Ingress</strong> on a zone interface (e.g. <em>outside</em>). Read 5-tuple: src IP, dst IP, src port, dst port, protocol.</div>
+    <div class="step">2</div><div class="body"><strong>Connection lookup.</strong> Match against state table. If existing flow + stateful match → fast-path forward.</div>
+    <div class="step">3</div><div class="body"><strong>Policy lookup</strong> for new flows: source zone + dest zone + 5-tuple + (NGFW only: App-ID, User-ID, URL category). Default = deny.</div>
+    <div class="step">4</div><div class="body"><strong>NAT</strong> applied if rule matches (PAT for outbound, static NAT for inbound DMZ).</div>
+    <div class="step">5</div><div class="body"><strong>TLS decrypt</strong> (NGFW with decrypt policy) — terminate SSL with FW's own cert, inspect cleartext.</div>
+    <div class="step">6</div><div class="body"><strong>IPS scan</strong> — signatures match against payload. Drop / alert / log per rule action.</div>
+    <div class="step">7</div><div class="body"><strong>Re-encrypt + forward</strong> out the egress interface. Update state table. Log to mgmt.</div>
+  </div>
+  <div class="pull-quote">Stateless firewall stops at step 1+3. Stateful firewall does 1-4. NGFW does 1-7.</div>
+</section>
+
+<section id="stateful">
+  <h2>4. Stateless vs Stateful vs NGFW <span class="pill">3-way compare</span></h2>
+  <div class="compare">
+    <div class="col"><h3>Stateless (ACL)</h3>
+      <ul>
+        <li>Matches per-packet only</li>
+        <li>5-tuple match</li>
+        <li>NO connection memory</li>
+        <li>Return traffic needs explicit reverse rule</li>
+        <li>Fast, cheap, dumb</li>
+        <li>Cisco: router ACLs, pre-2000 ASA</li>
+      </ul>
+    </div>
+    <div class="col"><h3>Stateful firewall</h3>
+      <ul>
+        <li>Tracks connections (state table)</li>
+        <li>Auto-allows return traffic for established flows</li>
+        <li>L4 only (port + protocol)</li>
+        <li>Doesn't see app inside the port</li>
+        <li>Cisco: classic ASA</li>
+      </ul>
+    </div>
+    <div class="col"><h3>NGFW (next-gen)</h3>
+      <ul>
+        <li>Stateful + L7 awareness</li>
+        <li><strong>App-ID</strong> — sees app, not just port</li>
+        <li><strong>User-ID</strong> — policy by AD user, not just IP</li>
+        <li>Built-in IPS, URL filter, malware</li>
+        <li>TLS decrypt + threat intel</li>
+        <li>Cisco: Firepower / FTD / Secure Firewall</li>
+      </ul>
+    </div>
+  </div>
+  <p><strong>5-tuple</strong> = src IP + dst IP + src port + dst port + protocol. The fingerprint of a connection. Stateful firewalls hash this to track flows.</p>
+  <div class="trap">
+    <div class="lead">Trap to recognize</div>
+    <div class="body">"App-ID = port number" — <strong>WRONG.</strong> App-ID inspects payload to identify the actual application. Many apps run on TCP/443 (HTTPS) — App-ID tells Salesforce from Facebook from a custom tunnel.</div>
+  </div>
+</section>
+
+<section id="ids">
+  <h2>5. IDS vs IPS — The Most-Tested Compare <span class="pill">memorize cold</span></h2>
+  <table>
+    <thead><tr><th>Aspect</th><th>IDS (Detection)</th><th>IPS (Prevention)</th></tr></thead>
+    <tbody>
+      <tr><td>Position</td><td>Out-of-band (mirror / SPAN / TAP)</td><td>In-line (traffic passes through it)</td></tr>
+      <tr><td>Action</td><td>Alerts only — cannot drop</td><td>Drops / blocks / resets in real time</td></tr>
+      <tr><td>Latency impact</td><td>None (sees a copy)</td><td>Adds inspection latency</td></tr>
+      <tr><td>Failure mode</td><td>Loses visibility (traffic still flows)</td><td>Risks dropping traffic if it fails — needs fail-open or HA</td></tr>
+      <tr><td>False positive cost</td><td>Annoying alert</td><td>BLOCKS legitimate traffic</td></tr>
+      <tr><td>Cisco product</td><td>Snort in IDS mode (rare)</td><td>FTD with IPS policy / Snort inline</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:8px"><strong>Detection methods</strong> — both IDS and IPS use the same 3:</p>
+  <ul>
+    <li><strong>Signature-based</strong> — match known bad patterns (CVE exploit signatures, malware hashes). Fast, accurate on known threats. Misses zero-days.</li>
+    <li><strong>Anomaly-based</strong> — baseline normal traffic, flag deviations. Catches new attacks. False positives in volatile environments.</li>
+    <li><strong>Policy-based</strong> — admin defines what "bad" looks like (e.g. "block all traffic to TOR exit nodes"). Most static.</li>
+  </ul>
+  <div class="pull-quote">"IDS sees, IPS blocks." Position decides function: SPAN port = passive = IDS. Inline = active = IPS.</div>
+</section>
+
+<section id="mnem">
+  <h2>6. Mnemonics <span class="pill">memorize</span></h2>
+  <div class="mnemonic-box">
+    <div class="lead">Firewall evolution (3 generations)</div>
+    <div class="word">PACKET → STATEFUL → NGFW</div>
+    <p style="margin-top:6px;font-size:.94rem">Packet filter (stateless ACL) → Stateful (tracks connections) → NGFW (adds L7: App-ID, User-ID, IPS, URL).</p>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">5-tuple — the connection fingerprint</div>
+    <div class="word">src-IP · dst-IP · src-port · dst-port · proto</div>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">IDS vs IPS — one-line truth</div>
+    <div class="word">IDS = MIRROR + ALERT · IPS = INLINE + BLOCK</div>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">NGFW services stack</div>
+    <div class="word">FW · IPS · URL · APP · USER · DECRYPT · INTEL</div>
+    <p style="margin-top:6px;font-size:.94rem">Stateful firewall + IPS + URL filter + App-ID + User-ID + TLS decrypt + threat intel feed = NGFW.</p>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">Detection methods (3)</div>
+    <div class="word">SIGNATURE · ANOMALY · POLICY</div>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">ASA security levels (legacy)</div>
+    <div class="word">inside=100 · outside=0 · DMZ=50</div>
+    <p style="margin-top:6px;font-size:.94rem">Higher = more trusted. Default: high → low allowed; low → high denied unless explicit rule.</p>
+  </div>
+</section>
+
+<section id="show">
+  <h2>7. Show-Output Decoder <span class="pill">read fluently</span></h2>
+
+  <p style="margin-bottom:6px"><strong style="color:var(--accent)"><code>show conn</code> (ASA / FTD)</strong></p>
+  <div class="out"><span class="hl">FTD#</span> show conn
+        <span class="c">12 in use, 234 most used</span>
+        <span class="v">TCP outside  198.51.100.7:443  inside  10.10.10.20:54321, idle 0:00:02, bytes 12483, flags UIO</span>
+        <span class="v">UDP outside  8.8.8.8:53        inside  10.10.10.20:60000, idle 0:00:01, bytes 142,   flags -</span></div>
+  <div class="annotate">
+    <span class="field">in use</span><span>Active connections in the state table. Each is a tracked flow.</span>
+    <span class="field">flags UIO</span><span><strong>U</strong>=up, <strong>I</strong>=inbound packets seen, <strong>O</strong>=outbound packets seen. Full handshake.</span>
+    <span class="field">outside / inside</span><span>Zone names (security levels). Indicates traffic direction across the firewall.</span>
+  </div>
+
+  <p style="margin-top:14px;margin-bottom:6px"><strong style="color:var(--accent)"><code>show xlate</code> (NAT translations)</strong></p>
+  <div class="out"><span class="hl">FTD#</span> show xlate
+        <span class="v">TCP PAT from inside:10.10.10.20/54321 to outside:203.0.113.1/54321 flags ri idle 0:00:02</span>
+        <span class="v">TCP PAT from inside:10.10.10.21/54322 to outside:203.0.113.1/54322 flags ri idle 0:00:05</span></div>
+  <div class="annotate">
+    <span class="field">PAT</span><span>Port Address Translation. Many internal IPs share one outside IP, distinguished by port.</span>
+    <span class="field">flags ri</span><span><strong>r</strong>=portmap, <strong>i</strong>=dynamic. PAT-style dynamic outbound NAT.</span>
+  </div>
+
+  <p style="margin-top:14px;margin-bottom:6px"><strong style="color:var(--accent)"><code>show access-list</code></strong></p>
+  <div class="out"><span class="hl">FTD#</span> show access-list outside_in
+        access-list outside_in line 1 extended permit tcp any host 198.51.100.10 eq 443 (hitcnt=1247)
+        access-list outside_in line 2 extended <span class="x">deny</span> ip any any (hitcnt=8821)</div>
+  <div class="annotate">
+    <span class="field">hitcnt</span><span>Per-line packet count. Useful to verify rules are matching expected traffic.</span>
+    <span class="field">deny ip any any</span><span>Implicit deny made explicit at the bottom — Cisco default for unmatched traffic.</span>
+  </div>
+
+  <p style="margin-top:14px;margin-bottom:6px"><strong style="color:var(--accent)"><code>show service-policy inspect</code></strong></p>
+  <div class="out"><span class="hl">FTD#</span> show service-policy inspect http
+        Class-map: inspection_default
+          Inspect: http preset_http_map, packet 18293, drop 47, reset-drop 12</div>
+  <p style="font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:4px">Inspection engine sees app-level traffic. drop/reset-drop counts show how often inspection has triggered policy action.</p>
+</section>
+
+<section id="fam">
+  <h2>8. Cisco Firewall + IPS Product Families <span class="pill">when each</span></h2>
+  <table>
+    <thead><tr><th>Family</th><th>Tier</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>ASA 5500-X</td><td>Legacy / branch</td><td>Classic stateful FW (+ optional FirePOWER service)</td><td>Pre-NGFW Cisco line. AnyConnect SSL VPN, IPsec. Still in field; NGFW features bolt-on.</td></tr>
+      <tr><td>Firepower / FTD</td><td>Modern enterprise</td><td>NGFW (Snort engine)</td><td>Firepower Threat Defense. Unified image for FW + IPS + URL + AMP. Managed by FMC.</td></tr>
+      <tr><td>Secure Firewall 1000/3100/4200/9300</td><td>Modern (Cisco rebrand)</td><td>NGFW</td><td>Current Cisco NGFW lineup. Replaces ASA + FTD branding. Cloud-managed via Cisco Defense Orchestrator (CDO).</td></tr>
+      <tr><td>Meraki MX</td><td>SMB / branch / SD-WAN</td><td>NGFW + UTM + SD-WAN</td><td>Cloud-managed (Meraki dashboard). All-in-one for branch sites. Auto-VPN. Lower complexity than FTD.</td></tr>
+      <tr><td>Umbrella</td><td>Cloud DNS / SWG</td><td>Cloud security (DNS-layer)</td><td>Not on-prem firewall — cloud-delivered. Blocks malicious domains BEFORE connection. Often paired with FW.</td></tr>
+      <tr><td>Snort 3</td><td>Open-source IPS engine</td><td>IPS (signature + DPI)</td><td>The engine inside FTD/Secure Firewall. Cisco acquired Sourcefire (2013) for it. Also runs standalone.</td></tr>
+      <tr><td>Talos</td><td>Threat intel team</td><td>Threat feeds</td><td>Cisco's intel arm. Powers signatures, blocklists, URL categories. Constant updates push to Cisco devices.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="traps">
+  <h2>9. Cisco's Favorite Traps <span class="pill">spot the wrong answer</span></h2>
+  <div class="trap">
+    <div class="lead">Trap #1 — "IDS blocks bad traffic"</div>
+    <div class="body">Wrong. <strong>IDS only alerts</strong> (out-of-band, mirror/SPAN). To BLOCK you need IPS (inline). Easy 1-point gimme if you know the position rule.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #2 — "Stateful firewall = NGFW"</div>
+    <div class="body">Wrong. <strong>Stateful = L4 only.</strong> NGFW adds L7 (App-ID, User-ID, IPS, URL filter). Classic ASA was stateful but not NGFW.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #3 — "Firewall blocks at L1/L2"</div>
+    <div class="body">Wrong. <strong>Firewalls operate at L3-L7.</strong> They forward by IP (or zone), inspect L4 ports, and (NGFW) parse L7 application data. They do NOT block by MAC by default (that's switch port-security).</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #4 — "TLS-encrypted traffic can't be inspected"</div>
+    <div class="body">Half-wrong. <strong>NGFW can decrypt TLS</strong> with a decrypt policy + the FW's CA cert pushed to clients. Without decrypt, only TLS metadata (SNI, cert info) is visible. Inspection drops to "encrypted bypass" mode.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #5 — "All Cisco ASAs are NGFWs"</div>
+    <div class="body">Wrong. <strong>Classic ASA = stateful FW + VPN only.</strong> NGFW features (IPS, URL filter, App-ID) come from <strong>FirePOWER service module</strong> bolted on, OR by reimaging to FTD. Plain ASA without FirePOWER is NOT an NGFW.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #6 — "Anomaly detection has zero false positives"</div>
+    <div class="body">Wrong. <strong>Anomaly = baseline-driven</strong> — high false positive rate in volatile networks. Signature has fewer FPs but misses zero-days. Each method has tradeoffs.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #7 — "Default deny vs default permit on Cisco firewalls"</div>
+    <div class="body">Cisco firewalls (ASA / FTD) default to <strong>DENY</strong> for traffic from a low security zone to high (e.g. outside → inside). Higher to lower (inside → outside) is permitted by default unless restricted. <strong>Don't confuse with router ACLs</strong> which require explicit permits everywhere.</div>
+  </div>
+</section>
+
+<section id="mustknow">
+  <h2>10. Top 10 Must-Know <span class="pill">if-only-this</span></h2>
+  <div class="must-know">
+    <div class="lead">Memorize until automatic</div>
+    <ol>
+      <li>Firewall = L3-L7 boundary enforcer. <strong>Stateless = ACL.</strong> Stateful = tracks connections. <strong>NGFW = stateful + L7 (App-ID, User-ID, IPS, URL filter).</strong></li>
+      <li><strong>IDS = sees, IPS = blocks.</strong> IDS is out-of-band (mirror/SPAN). IPS is inline. Position decides function.</li>
+      <li><strong>5-tuple</strong> = src IP, dst IP, src port, dst port, protocol. The connection fingerprint stateful firewalls track.</li>
+      <li><strong>App-ID</strong> identifies application from payload, not port. Distinguishes Facebook from Salesforce both on TCP/443.</li>
+      <li><strong>NGFW packet flow:</strong> ingress → conn lookup → policy → NAT → TLS decrypt → IPS scan → re-encrypt + forward.</li>
+      <li>Detection methods: <strong>signature, anomaly, policy.</strong> Signature = known bad patterns. Anomaly = deviation from baseline.</li>
+      <li>Cisco NGFW lineup: <strong>FTD / Firepower / Secure Firewall (NGFW)</strong>. Classic <strong>ASA</strong> = stateful only (NGFW via FirePOWER module).</li>
+      <li><strong>Snort = IPS engine.</strong> <strong>Talos = threat-intel feed.</strong> Both Cisco-owned (Sourcefire acquisition).</li>
+      <li><strong>ASA security levels:</strong> inside=100, outside=0, DMZ=50. Higher → lower allowed; lower → higher denied unless ACL permits.</li>
+      <li><strong>show conn</strong> = state table. <strong>show xlate</strong> = NAT translations. <strong>show access-list</strong> = rule hits. Core ASA/FTD verification commands.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="self">
+  <h2>11. Self-Check <span class="pill">no peeking</span></h2>
+  <div class="selfcheck">
+    <h3>Q1. A device sits on a SPAN port and alerts on suspicious traffic but cannot drop it. What is it?</h3>
+    <details><summary>Reveal</summary><p><strong>IDS (Intrusion Detection System).</strong> Out-of-band, passive. Cannot block. Refer back: §5, §9 trap #1.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q2. Two stateful firewalls receive identical TCP/443 traffic. One blocks Facebook but allows Salesforce. What feature enables that distinction?</h3>
+    <details><summary>Reveal</summary><p><strong>App-ID</strong> (NGFW feature). Without it, both are just "TCP/443" and the firewall can't tell them apart. Refer back: §4.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q3. A user from "outside" zone tries to reach a server in "inside" zone. ASA defaults — allowed or denied?</h3>
+    <details><summary>Reveal</summary><p><strong>Denied by default.</strong> Lower-to-higher security level requires explicit ACL permit. Refer back: §6, §9 trap #7.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q4. NGFW vs traditional stateful firewall — what's the new capability?</h3>
+    <details><summary>Reveal</summary><p><strong>L7 awareness.</strong> App-ID, User-ID, IPS, URL filtering, TLS decrypt, threat intel. Stateful firewall stops at L4. Refer back: §4.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q5. Which command shows current connections in the firewall's state table?</h3>
+    <details><summary>Reveal</summary><p><code>show conn</code> on ASA/FTD. Each line = a tracked flow with 5-tuple, idle time, byte count, flags. Refer back: §7.</p></details>
+  </div>
+</section>
+
+<section id="cli">
+  <h2>12. CLI Simulator <span class="pill">type real firewall commands</span></h2>
+  <p>Fake FTD1 (Cisco Secure Firewall). Try: <code>show conn</code>, <code>show xlate</code>, <code>show access-list</code>, <code>show running-config</code>, <code>show interface ip brief</code>, <code>show vpn-sessiondb</code>, <code>show service-policy</code>, <code>show snort</code>, <code>?</code>.</p>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:.84rem;background:#1C1917;color:#E7E5E4;border-radius:6px;padding:14px;line-height:1.55;min-height:280px;max-height:420px;overflow-y:auto" id="cliOutput"></div>
+  <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+    <span style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700">FTD1#</span>
+    <input type="text" id="cliInput" placeholder="type a command, press Enter" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.92rem;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:6px;background:var(--bg-surface)">
+    <button class="btn ghost" id="cliClear">Clear</button>
+  </div>
+</section>
+
+<section id="match">
+  <h2>13. Match: Term → Definition <span class="pill">click to pair</span></h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+    <div id="matchLeft" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="matchRight" style="display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+  <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:10px" id="matchStatus">0 / 8 matched</div>
+  <button class="btn ghost" id="matchReset" style="margin-top:6px">↻ Reset</button>
+</section>
+
+<section id="exhibit">
+  <h2>14. Multi-Part Exhibit <span class="pill">one diagram → 4 Qs</span></h2>
+  <p>Read the topology + policy excerpt. Answer all 4 questions.</p>
+  <svg viewBox="0 0 600 240" style="width:100%;background:var(--bg-recessed);border:1px solid var(--border);border-radius:6px;margin:10px 0">
+    <rect x="40" y="80" width="80" height="40" rx="6" fill="#374151" stroke="#0F172A"/>
+    <text x="80" y="100" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#FCD34D">Internet</text>
+    <text x="80" y="114" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#94A3B8">198.51.100.0/24</text>
+
+    <rect x="240" y="70" width="120" height="60" rx="6" fill="#DC2626" stroke="#0F172A"/>
+    <text x="300" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">FTD1</text>
+    <text x="300" y="106" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#FFF">Secure Firewall</text>
+    <text x="300" y="120" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#94A3B8">NGFW + IPS</text>
+
+    <line x1="120" y1="100" x2="240" y2="100" stroke="#94A3B8" stroke-width="2"/>
+    <text x="180" y="92" font-family="JetBrains Mono" font-size="9" fill="#57534E">outside (0)</text>
+
+    <rect x="480" y="40" width="80" height="36" rx="6" fill="#374151" stroke="#0F172A"/>
+    <text x="520" y="58" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#FCD34D">DMZ web</text>
+    <text x="520" y="70" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#94A3B8">198.51.100.10</text>
+    <line x1="360" y1="90" x2="480" y2="58" stroke="#94A3B8" stroke-width="2"/>
+    <text x="400" y="76" font-family="JetBrains Mono" font-size="9" fill="#57534E">DMZ (50)</text>
+
+    <rect x="480" y="100" width="80" height="36" rx="6" fill="#374151" stroke="#0F172A"/>
+    <text x="520" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#FCD34D">Inside LAN</text>
+    <text x="520" y="130" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#94A3B8">10.10.10.0/24</text>
+    <line x1="360" y1="115" x2="480" y2="118" stroke="#94A3B8" stroke-width="2"/>
+    <text x="400" y="110" font-family="JetBrains Mono" font-size="9" fill="#57534E">inside (100)</text>
+
+    <text x="40" y="180" font-family="JetBrains Mono" font-size="10" fill="#1C1917">Policy excerpt:</text>
+    <text x="40" y="194" font-family="JetBrains Mono" font-size="9" fill="#57534E">1: outside → DMZ permit tcp any host 198.51.100.10 eq 443</text>
+    <text x="40" y="206" font-family="JetBrains Mono" font-size="9" fill="#57534E">2: inside → outside permit ip any any (PAT to 198.51.100.1)</text>
+    <text x="40" y="218" font-family="JetBrains Mono" font-size="9" fill="#57534E">3: implicit deny ip any any (last)</text>
+  </svg>
+  <div id="exhibitBox"></div>
+</section>
+
+<section id="srs">
+  <h2>15. Spaced Retrieval <span class="pill">+1d / +3d / +7d</span></h2>
+  <div id="srsStatus" style="font-family:var(--font-mono);font-size:.86rem;background:var(--bg-recessed);border:1px solid var(--border);border-radius:6px;padding:14px"></div>
+  <button class="btn accent" id="srsCheck" style="margin-top:10px">▶ Re-test now (5 random Qs)</button>
+  <button class="btn ghost" id="srsReset" style="margin-top:10px">Reset SRS state</button>
+</section>
+
+<section id="drill" style="border:2px solid var(--accent)">
+  <h2>16. Drill — 50 NGFW/IPS-Only Qs <span class="pill">pass = 95%+</span></h2>
+  <p>Read everything above first, then drill until 95%+. Wrong answers re-queue. 2 right in a row retires a Q. 100% = "1.1.c Mastered" badge.</p>
+  <div class="filter-row" id="filterRow">
+    <span class="filter-pill active" data-cat="all">all (50)</span>
+    <span class="filter-pill" data-cat="role">role/decision (12)</span>
+    <span class="filter-pill" data-cat="state">stateful/5-tuple (8)</span>
+    <span class="filter-pill" data-cat="ids">IDS vs IPS (8)</span>
+    <span class="filter-pill" data-cat="ngfw">NGFW services (8)</span>
+    <span class="filter-pill" data-cat="output">show outputs (6)</span>
+    <span class="filter-pill" data-cat="model">Cisco models (5)</span>
+    <span class="filter-pill" data-cat="trap">trap distractors (3)</span>
+  </div>
+
+  <div class="drill-stats">
+    <div class="drill-stat"><div class="lbl">Q</div><div class="val" id="dN">0</div></div>
+    <div class="drill-stat ok"><div class="lbl">Right</div><div class="val" id="dC">0</div></div>
+    <div class="drill-stat bad"><div class="lbl">Wrong</div><div class="val" id="dW">0</div></div>
+    <div class="drill-stat streak"><div class="lbl">Streak</div><div class="val" id="dS">0</div></div>
+    <div class="drill-stat"><div class="lbl">Score</div><div class="val" id="dA">—</div></div>
+    <div class="drill-stat ok"><div class="lbl">Mastered</div><div class="val" id="dM">0</div></div>
+  </div>
+  <div class="progress-bar"><div class="fill" id="dProg" style="width:0%"></div></div>
+  <p style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:6px"><span id="dPool">50</span> in pool · <span id="dSeen">0</span> seen</p>
+
+  <div class="drill-card" id="dCard">
+    <div class="meta"><span id="dSub">click Start</span><span id="dCat"></span></div>
+    <div class="stem" id="dStem">Click <strong>Start drill</strong> to begin.</div>
+    <div class="drill-opts" id="dOpts"></div>
+    <div class="drill-why" id="dWhy"></div>
+  </div>
+
+  <div class="drill-controls">
+    <button class="btn accent" id="dStart">▶ Start drill</button>
+    <button class="btn ghost" id="dNext" disabled>Next →</button>
+    <button class="btn ghost" id="dExam">⏱ Exam mode (20 Qs · 12min · 80%)</button>
+    <button class="btn ghost" id="dShowMiss">Missed (0)</button>
+    <button class="btn danger" id="dReset">↻ Reset</button>
+    <span class="timer-box" id="dTimer" style="display:none">12:00</span>
+  </div>
+  <div class="miss-box" id="dMiss"></div>
+  <div class="pass-banner" id="dPass">✓ 1.1.c MASTERED · 100% on pool · exam-ready</div>
+</section>
+
+<div class="footer-link">
+  <a href="blueprint-drill.html?obj=1.1">← back to 1.1 leaves</a>
+  <a href="sim-1-1-b-cheat.html">↩ 1.1.b Switches</a>
+  <a href="sim-1-1-bank.html">→ broader 1.1 bank</a>
+</div>
+
+<script defer src="js/tutor.js"></script>
+<script>
+(function(){
+  var BANK=[
+    // role/decision — 12
+    {id:1,cat:'role',sub:'1.1.c',stem:'Primary purpose of a firewall in an enterprise network?',opts:['Route between IP networks','Enforce a security policy at a network boundary','Provide DHCP','Switch frames'],ans:'Enforce a security policy at a network boundary',why:'<strong>Firewall = boundary policy enforcer.</strong> Permits/denies traffic based on rules. Routers route, switches switch, firewalls filter.'},
+    {id:2,cat:'role',sub:'1.1.c',stem:'What does NGFW stand for?',opts:['Network Gateway Firewall','Next-Generation Firewall','New Generation Filter Wall','None of the above'],ans:'Next-Generation Firewall',why:'<strong>NGFW = Next-Generation Firewall.</strong> Stateful + L7 awareness (App-ID, User-ID, IPS, URL filter, TLS decrypt).'},
+    {id:3,cat:'role',sub:'1.1.c',stem:'Best description of a stateless firewall?',opts:['Tracks connections','Matches packets per-packet on 5-tuple, no connection memory','Identifies applications','Decrypts TLS'],ans:'Matches packets per-packet on 5-tuple, no connection memory',why:'<strong>Stateless = ACL behavior.</strong> Each packet matched independently. Return traffic needs an explicit reverse rule.'},
+    {id:4,cat:'role',sub:'1.1.c',stem:'Best description of a stateful firewall?',opts:['Same as stateless','Tracks connections (state table) — return traffic for established flows is allowed automatically','Always inspects L7','Routes by IP'],ans:'Tracks connections (state table) — return traffic for established flows is allowed automatically',why:'<strong>Stateful = remembers connections.</strong> 5-tuple keys the state table. Reverse traffic for an existing flow is allowed without an explicit rule.'},
+    {id:5,cat:'role',sub:'1.1.c',stem:'A traditional stateful firewall and an NGFW receive the same TCP/443 packet to a destination IP. Which can distinguish Salesforce from Facebook?',opts:['Both','Stateful firewall only','NGFW only (App-ID inspects payload)','Neither'],ans:'NGFW only (App-ID inspects payload)',why:'<strong>App-ID = NGFW feature.</strong> Stateful FW only sees TCP/443. NGFW parses payload to identify the application.'},
+    {id:6,cat:'role',sub:'1.1.c',stem:'A firewall in "inline" mode means:',opts:['Reads a copy of traffic via SPAN','Traffic flows THROUGH the firewall — it can drop/block','Sends alerts only','Does NAT only'],ans:'Traffic flows THROUGH the firewall — it can drop/block',why:'<strong>Inline = in the path.</strong> The firewall (or IPS) can drop/reset/block in real time. Out-of-band/SPAN = alert-only (IDS).'},
+    {id:7,cat:'role',sub:'1.1.c',stem:'A firewall sits at the edge between an inside corporate LAN and the internet. Which traffic is allowed BY DEFAULT on a Cisco ASA?',opts:['Outside → inside','Inside → outside (higher security level → lower)','Both','Neither'],ans:'Inside → outside (higher security level → lower)',why:'<strong>ASA default:</strong> high security → low security allowed. Low → high requires explicit ACL permit. Inside=100, outside=0.'},
+    {id:8,cat:'role',sub:'1.1.c',stem:'A DMZ zone in a typical 3-zone firewall design holds:',opts:['Internal user PCs','Public-facing servers (web, mail, DNS) — exposed to internet but isolated from internal LAN','Routers only','Switches only'],ans:'Public-facing servers (web, mail, DNS) — exposed to internet but isolated from internal LAN',why:'<strong>DMZ = demilitarized zone.</strong> Web/mail/DNS servers reachable from internet. If compromised, attacker is contained — DMZ → inside is denied by default.'},
+    {id:9,cat:'role',sub:'1.1.c',stem:'A firewall is at OSI layers:',opts:['L1-L2','L3-L4 only (stateful) or L3-L7 (NGFW)','L7 only','L1-L7 always'],ans:'L3-L4 only (stateful) or L3-L7 (NGFW)',why:'<strong>Firewalls operate at L3+.</strong> Stateful FW = L3-L4. NGFW = adds L7 inspection (App-ID, URL, IPS). Switches/hubs handle L1-L2 — firewalls don\'t filter on MAC by default.'},
+    {id:10,cat:'role',sub:'1.1.c',stem:'On a Cisco ASA, what are "security levels"?',opts:['QoS marking','Per-zone numeric trust score (0=untrusted, 100=most trusted) used for default policy','MAC-based ACLs','Encryption strength'],ans:'Per-zone numeric trust score (0=untrusted, 100=most trusted) used for default policy',why:'<strong>ASA security levels:</strong> outside=0, DMZ=50, inside=100. Higher → lower allowed by default; lower → higher denied unless ACL permits.'},
+    {id:11,cat:'role',sub:'1.1.c',stem:'Which is NOT a typical NGFW capability?',opts:['App-ID','User-ID','IPS','Spanning-tree root election'],ans:'Spanning-tree root election',why:'<strong>STP is a switching feature, not firewall.</strong> NGFW = App-ID + User-ID + IPS + URL filter + TLS decrypt + threat intel. STP belongs to switches.'},
+    {id:12,cat:'role',sub:'1.1.c',stem:'A firewall terminates an IPsec site-to-site VPN. What layer does this provide?',opts:['L1','L2','L3 — encrypted IP tunnel between sites','L7'],ans:'L3 — encrypted IP tunnel between sites',why:'<strong>IPsec = L3 encrypted tunnel.</strong> Firewalls are common VPN endpoints (terminate IPsec or AnyConnect SSL VPN). Provides encrypted overlay between sites.'},
+    // stateful / 5-tuple — 8
+    {id:13,cat:'state',sub:'1.1.c',stem:'What is the 5-tuple used to identify a TCP/IP connection?',opts:['MAC, IP, VLAN, port, protocol','Src IP, dst IP, src port, dst port, protocol','Username, password, IP, port, time','URL, IP, port, app, user'],ans:'Src IP, dst IP, src port, dst port, protocol',why:'<strong>5-tuple = connection fingerprint.</strong> Stateful firewalls hash this to track flows. Same 5 fields define a unique L4 connection.'},
+    {id:14,cat:'state',sub:'1.1.c',stem:'Where does a stateful firewall STORE active connection info?',opts:['CAM table','State table (connection table)','Routing table','ARP cache'],ans:'State table (connection table)',why:'<strong>State table = stateful FW core.</strong> Each entry = one tracked flow with 5-tuple, idle timer, byte count. View on ASA/FTD: <code>show conn</code>.'},
+    {id:15,cat:'state',sub:'1.1.c',stem:'A user inside initiates HTTP to an external server. The stateful firewall allows the outbound packet. The reply comes back. What does the firewall do?',opts:['Drops (no inbound rule)','Allows automatically (state table tracks the established connection)','Sends to IDS','Routes via OSPF'],ans:'Allows automatically (state table tracks the established connection)',why:'<strong>Stateful magic.</strong> Outbound creates a state-table entry; reverse direction is auto-permitted for that flow. Stateless FW would need an explicit inbound permit.'},
+    {id:16,cat:'state',sub:'1.1.c',stem:'A stateful firewall vs a stateless ACL — main practical difference?',opts:['Speed','Stateful tracks connections + auto-allows return; stateless requires symmetric rules in both directions','Stateless is more secure','Stateful is L7'],ans:'Stateful tracks connections + auto-allows return; stateless requires symmetric rules in both directions',why:'<strong>Stateful saves rule complexity.</strong> One outbound permit + state table handles return. Stateless = need explicit reverse-direction permits (and risk being too loose).'},
+    {id:17,cat:'state',sub:'1.1.c',stem:'A connection idle for 1 hour is removed from the state table. What is this called?',opts:['Aging','Idle-timeout / connection timeout','Pruning','Flooding'],ans:'Idle-timeout / connection timeout',why:'<strong>Idle-timeout</strong> reclaims state table memory. Default varies (TCP ~1h, UDP ~2min on ASA). After timeout, return traffic for that flow would be dropped (no state entry).'},
+    {id:18,cat:'state',sub:'1.1.c',stem:'A stateful firewall sees a new SYN packet. What does it do FIRST?',opts:['Drop','Match against existing state table; if no match, run policy lookup','Always permit','Send to IPS only'],ans:'Match against existing state table; if no match, run policy lookup',why:'<strong>State first, policy second.</strong> Existing flow = fast-path. New flow (no state match) = policy lookup; if permitted, create state entry + forward.'},
+    {id:19,cat:'state',sub:'1.1.c',stem:'Symmetric routing matters for stateful firewalls because:',opts:['STP requires it','Both directions of a flow must traverse the SAME firewall (or pair) — otherwise return traffic hits a FW with no state entry and is dropped','Routers can\'t handle asymmetric','VPNs require it'],ans:'Both directions of a flow must traverse the SAME firewall (or pair) — otherwise return traffic hits a FW with no state entry and is dropped',why:'<strong>Asymmetric routing breaks stateful inspection.</strong> Common gotcha in dual-firewall designs. Solutions: HA pair sharing state, or force symmetry via routing.'},
+    {id:20,cat:'state',sub:'1.1.c',stem:'A connection in the state table shows flags "UIO" — what do these typically mean?',opts:['Random','Up, Inbound packets, Outbound packets — full bidirectional traffic seen','User, Internet, Outside','Unknown'],ans:'Up, Inbound packets, Outbound packets — full bidirectional traffic seen',why:'<strong>Cisco ASA conn flags:</strong> U=up, I=inbound seen, O=outbound seen. UIO = healthy bi-directional flow. Half-open = SYN seen, no SYN-ACK = potential SYN flood.'},
+    // IDS vs IPS — 8
+    {id:21,cat:'ids',sub:'1.1.c',stem:'A device sits on a SPAN port and alerts on suspicious traffic but cannot drop it. What is it?',opts:['IPS','IDS','NGFW','Router'],ans:'IDS',why:'<strong>IDS = passive (out-of-band).</strong> Receives a copy via SPAN/TAP. Alerts only — physically cannot drop because traffic doesn\'t pass through it.'},
+    {id:22,cat:'ids',sub:'1.1.c',stem:'A device sits inline in the traffic path and drops malicious packets. What is it?',opts:['IDS','IPS','NAT box','DHCP server'],ans:'IPS',why:'<strong>IPS = active (inline).</strong> Traffic passes through. Drops/blocks/resets per policy. Adds latency. If it fails, traffic stops (need fail-open or HA pair).'},
+    {id:23,cat:'ids',sub:'1.1.c',stem:'A false positive on an IDS vs an IPS — which has the bigger impact?',opts:['IDS — annoying alert','IPS — actually BLOCKS legitimate traffic','Same impact','Neither'],ans:'IPS — actually BLOCKS legitimate traffic',why:'<strong>IPS false positive = real outage.</strong> Blocked legit traffic = user-visible failure. IDS false positive = noisy alert. IPS tuning is more critical.'},
+    {id:24,cat:'ids',sub:'1.1.c',stem:'IDS/IPS detection method: matches known attack patterns / hashes.',opts:['Signature-based','Anomaly-based','Policy-based','Heuristic-only'],ans:'Signature-based',why:'<strong>Signature = known-bad pattern matching.</strong> Fast, accurate on known threats. Misses zero-days. Cisco Talos pushes signature updates to Snort/FTD.'},
+    {id:25,cat:'ids',sub:'1.1.c',stem:'IDS/IPS detection method: baselines normal traffic and flags deviations.',opts:['Signature','Anomaly','Policy','Static'],ans:'Anomaly',why:'<strong>Anomaly = baseline + deviation.</strong> Catches novel attacks. Higher false-positive rate in volatile networks (new app deployment looks anomalous).'},
+    {id:26,cat:'ids',sub:'1.1.c',stem:'A SPAN port (mirror) is required for what kind of device?',opts:['IPS (inline)','IDS (out-of-band)','Router','Switch'],ans:'IDS (out-of-band)',why:'<strong>SPAN = passive copy.</strong> Required for IDS sensors. IPS sits inline (no SPAN needed). Cisco switches: <code>monitor session 1 source ... destination ...</code>.'},
+    {id:27,cat:'ids',sub:'1.1.c',stem:'Cisco\'s primary IPS engine name?',opts:['Snort','Wireshark','tcpdump','Suricata'],ans:'Snort',why:'<strong>Snort = Cisco\'s IPS engine.</strong> Cisco acquired Sourcefire (the company behind Snort) in 2013. Powers FTD / Secure Firewall IPS function. Now Snort 3 in current platforms.'},
+    {id:28,cat:'ids',sub:'1.1.c',stem:'An IPS fails (hardware failure). Network behavior with "fail-open"?',opts:['Traffic stops','Traffic continues without inspection (security degraded but business continuity preserved)','Traffic encrypts','Routes via backup'],ans:'Traffic continues without inspection (security degraded but business continuity preserved)',why:'<strong>Fail-open</strong> = bypass on failure. <strong>Fail-closed</strong> = block all traffic. Choice depends on risk: production e-commerce often fail-open; classified networks fail-closed.'},
+    // NGFW services — 8
+    {id:29,cat:'ngfw',sub:'1.1.c',stem:'Which NGFW feature identifies the ACTUAL APPLICATION inside a flow (e.g. tells Salesforce from Facebook on TCP/443)?',opts:['Stateful inspection','App-ID','URL filter','NAT'],ans:'App-ID',why:'<strong>App-ID inspects payload.</strong> Without it, all TCP/443 looks the same. With it, NGFW can write rules like "permit Salesforce, deny Facebook" for the same port.'},
+    {id:30,cat:'ngfw',sub:'1.1.c',stem:'Which NGFW feature lets you write rules based on AD username instead of IP?',opts:['App-ID','User-ID','Threat intel','VPN'],ans:'User-ID',why:'<strong>User-ID = identity-aware policy.</strong> Maps user → IP via AD agent or 802.1X. Enables rules like "Allow finance group access to ERP" without static IP assumptions.'},
+    {id:31,cat:'ngfw',sub:'1.1.c',stem:'TLS-encrypted traffic is opaque to standard inspection. How does NGFW inspect it?',opts:['Cannot — it\'s encrypted','TLS decryption (MITM with FW\'s CA cert pushed to clients)','Hash matching only','Always blocks TLS'],ans:'TLS decryption (MITM with FW\'s CA cert pushed to clients)',why:'<strong>NGFW TLS decrypt</strong> = the firewall acts as a man-in-the-middle for outbound TLS. Clients trust the FW\'s CA. Decrypts → inspects → re-encrypts. Without it, only SNI / cert metadata visible.'},
+    {id:32,cat:'ngfw',sub:'1.1.c',stem:'A URL filter blocks "Gambling" category. What feeds the category data?',opts:['Local DB only','Cloud threat-intel feed (e.g. Cisco Talos) — categories + reputation, updated continuously','DNS only','Hard-coded'],ans:'Cloud threat-intel feed (e.g. Cisco Talos) — categories + reputation, updated continuously',why:'<strong>URL filter = cloud-fed.</strong> Talos (Cisco) categorizes millions of URLs (gambling, malware, social). FW pulls updates regularly. Local-only = stale within days.'},
+    {id:33,cat:'ngfw',sub:'1.1.c',stem:'NGFW packet flow — at what step does IPS scanning happen?',opts:['Before connection lookup','After NAT, after TLS decrypt — during deep packet inspection','At egress only','Never'],ans:'After NAT, after TLS decrypt — during deep packet inspection',why:'<strong>IPS sees cleartext payload.</strong> Order: ingress → conn lookup → policy → NAT → TLS decrypt → IPS scan → re-encrypt → forward. IPS inspects after decrypt because encrypted blob has no signature match.'},
+    {id:34,cat:'ngfw',sub:'1.1.c',stem:'Cisco Talos provides:',opts:['Switching','Threat intelligence (signatures, IP/URL reputation, malware hashes) feeding Cisco security products','VPN','DHCP'],ans:'Threat intelligence (signatures, IP/URL reputation, malware hashes) feeding Cisco security products',why:'<strong>Talos = Cisco\'s intel team.</strong> Feeds signatures to Snort, blocklists to Umbrella, malware hashes to AMP. Continuously updates customer devices.'},
+    {id:35,cat:'ngfw',sub:'1.1.c',stem:'AMP (Advanced Malware Protection) on a Cisco NGFW does what?',opts:['Routes packets','File reputation lookup + sandboxing for unknown files traversing the firewall','Encrypts traffic','Blocks STP'],ans:'File reputation lookup + sandboxing for unknown files traversing the firewall',why:'<strong>AMP = malware engine.</strong> Hashes files, queries Talos for reputation. Unknown files → sandbox. Blocks/quarantines based on verdict.'},
+    {id:36,cat:'ngfw',sub:'1.1.c',stem:'Cisco Umbrella — what is it?',opts:['On-prem firewall','Cloud DNS-layer security (blocks malicious domains BEFORE the connection establishes)','VPN client','Switching fabric'],ans:'Cloud DNS-layer security (blocks malicious domains BEFORE the connection establishes)',why:'<strong>Umbrella = cloud DNS security.</strong> User\'s DNS query for a malicious domain returns a block page. Stops attacks at lookup time, before the IP connection. Often paired with NGFW for defense-in-depth.'},
+    // show outputs — 6
+    {id:37,cat:'output',sub:'1.1.c',stem:'Identify the device producing this:<div class="out">FTD# show conn\n  TCP outside 198.51.100.7:443 inside 10.10.10.20:54321, idle 0:00:02, flags UIO</div>',opts:['Router','Cisco firewall (ASA / FTD)','Switch','Endpoint'],ans:'Cisco firewall (ASA / FTD)',why:'<strong>show conn = ASA/FTD state-table command.</strong> Output format with zone names + 5-tuple + flags = firewall fingerprint. Routers show <code>show ip route</code>; switches show <code>show mac address-table</code>.'},
+    {id:38,cat:'output',sub:'1.1.c',stem:'Output:<div class="out">FTD# show xlate\n  TCP PAT from inside:10.10.10.20/54321 to outside:203.0.113.1/54321 flags ri</div>What feature is this showing?',opts:['Routing','NAT — specifically PAT (Port Address Translation)','VLAN','VPN'],ans:'NAT — specifically PAT (Port Address Translation)',why:'<strong>show xlate = NAT translations.</strong> "PAT" = Port Address Translation = many-to-one NAT (many internal IPs share one external IP, distinguished by port).'},
+    {id:39,cat:'output',sub:'1.1.c',stem:'Output:<div class="out">FTD# show access-list outside_in\n  line 1 permit tcp any host 198.51.100.10 eq 443 (hitcnt=1247)\n  line 2 deny ip any any (hitcnt=8821)</div>What is "hitcnt"?',opts:['Hit count — packet matches per rule line','VLAN ID','Port','Random'],ans:'Hit count — packet matches per rule line',why:'<strong>hitcnt = matches.</strong> Verifies rules are catching expected traffic. Zero hits on a permit = traffic not flowing as expected (or rule misordered).'},
+    {id:40,cat:'output',sub:'1.1.c',stem:'A connection shows flags "UIO". What does this indicate?',opts:['Half-open','Healthy bi-directional flow (Up + Inbound packets seen + Outbound packets seen)','Failed','Unknown protocol'],ans:'Healthy bi-directional flow (Up + Inbound packets seen + Outbound packets seen)',why:'<strong>UIO = healthy connection.</strong> If only U or only one direction = half-open (SYN sent, no reply) — possibly SYN flood or unreachable destination.'},
+    {id:41,cat:'output',sub:'1.1.c',stem:'Command on Cisco ASA/FTD to view current state-table connections:',opts:['show running-config','show conn','show ip route','show mac address-table'],ans:'show conn',why:'<strong>show conn</strong> = ASA/FTD canonical state-table view. Shows 5-tuple, idle, flags. Variations: <code>show conn detail</code>, <code>show conn count</code>.'},
+    {id:42,cat:'output',sub:'1.1.c',stem:'Command on Cisco ASA/FTD to view active NAT translations:',opts:['show ip nat translations (router style)','show xlate (ASA/FTD style)','show vlan','show interfaces'],ans:'show xlate (ASA/FTD style)',why:'<strong>show xlate</strong> on ASA/FTD = active NAT translations. Routers use <code>show ip nat translations</code>. Different platforms, different commands.'},
+    // Cisco models — 5
+    {id:43,cat:'model',sub:'1.1.c',stem:'Cisco\'s legacy stateful firewall family (pre-NGFW)?',opts:['Catalyst 9300','ASA 5500-X','Nexus 9000','Meraki MS'],ans:'ASA 5500-X',why:'<strong>ASA = Adaptive Security Appliance.</strong> Cisco\'s classic stateful firewall + AnyConnect VPN. NGFW capability added via FirePOWER service module bolt-on.'},
+    {id:44,cat:'model',sub:'1.1.c',stem:'Cisco\'s modern NGFW (Snort-based) image name?',opts:['ASA classic','FTD (Firepower Threat Defense) — also rebranded "Secure Firewall"','Catalyst','Meraki MS'],ans:'FTD (Firepower Threat Defense) — also rebranded "Secure Firewall"',why:'<strong>FTD = NGFW image.</strong> Unified FW + IPS + URL + AMP. Managed by FMC (Firepower Management Center) or CDO. Recent rebrand: "Cisco Secure Firewall."'},
+    {id:45,cat:'model',sub:'1.1.c',stem:'Cisco cloud-managed branch firewall + SD-WAN appliance?',opts:['ASA','Meraki MX','Nexus','Umbrella'],ans:'Meraki MX',why:'<strong>Meraki MX</strong> = cloud-managed branch device. NGFW + SD-WAN + UTM features. Configured via Meraki dashboard. Auto-VPN simplifies branch-to-branch.'},
+    {id:46,cat:'model',sub:'1.1.c',stem:'Snort and Talos — relationship to Cisco?',opts:['Unrelated','Snort = open-source IPS engine; Talos = threat intel team. Both Cisco-owned (Sourcefire acquisition 2013)','Just brand names','Hardware models'],ans:'Snort = open-source IPS engine; Talos = threat intel team. Both Cisco-owned (Sourcefire acquisition 2013)',why:'<strong>Sourcefire 2013 acquisition.</strong> Brought Snort + the Vulnerability Research Team (renamed Talos). Snort powers FTD\'s IPS. Talos pushes signatures + intel.'},
+    {id:47,cat:'model',sub:'1.1.c',stem:'Cisco Umbrella sits where in the security stack?',opts:['On-prem inline FW','Cloud-delivered DNS-layer + SWG security (blocks malicious domains BEFORE the connection)','VPN concentrator','Endpoint AV'],ans:'Cloud-delivered DNS-layer + SWG security (blocks malicious domains BEFORE the connection)',why:'<strong>Umbrella = cloud security.</strong> Blocks at DNS resolution. Protects roaming users + branch sites without on-prem hardware. Often layered with NGFW.'},
+    // trap distractors — 3
+    {id:48,cat:'trap',sub:'1.1.c',stem:'Pick the FALSE statement about NGFW:',opts:['Tracks connections in a state table','Identifies applications via App-ID','Blocks broadcast frames at L2 between VLANs','Decrypts TLS to inspect payload'],ans:'Blocks broadcast frames at L2 between VLANs',why:'<strong>FALSE — that\'s a router/L3 boundary thing, not specifically NGFW.</strong> Firewalls operate at L3-L7. L2 broadcast scope is set by VLAN/router boundaries. NGFW inspecting east-west L2 broadcast isn\'t the canonical job.'},
+    {id:49,cat:'trap',sub:'1.1.c',stem:'Pick the BEST description of an NGFW vs a stateful firewall:',opts:['Same thing','NGFW = stateful + L7 awareness (App-ID, User-ID, IPS, URL filter, TLS decrypt, threat intel)','NGFW only does VPN','Stateful FW is faster always'],ans:'NGFW = stateful + L7 awareness (App-ID, User-ID, IPS, URL filter, TLS decrypt, threat intel)',why:'<strong>NGFW = stateful PLUS L7.</strong> The "next-gen" piece is application-layer awareness. Without that, it\'s just a stateful firewall.'},
+    {id:50,cat:'trap',sub:'1.1.c',stem:'Which is true about IDS:',opts:['IDS drops malicious packets','IDS is inline','IDS is passive (out-of-band, mirror/SPAN) — alerts only, cannot drop','IDS only works on encrypted traffic'],ans:'IDS is passive (out-of-band, mirror/SPAN) — alerts only, cannot drop',why:'<strong>IDS = passive watcher.</strong> Receives mirrored copy. Alerts only. Cannot drop because traffic doesn\'t flow through it. To DROP you need IPS (inline).'}
+  ];
+
+  var seen={}, mastered={}, missed=[], qIdx=0, dC=0, dW=0, dS=0;
+  var activeFilter='all', current=null, examMode=false, examTimer=null, examLeft=720, examQs=[], examIdx=0, examCorrect=0;
+
+  function poolFor(f){ return f==='all' ? BANK.slice() : BANK.filter(function(q){return q.cat===f;}); }
+  function unanswered(){ return poolFor(activeFilter).filter(function(q){return !mastered[q.id];}); }
+
+  function pick(){
+    if(examMode){ examNext(); return; }
+    var pool=unanswered();
+    if(pool.length===0){
+      var total=poolFor(activeFilter).length;
+      if(Object.keys(mastered).length>=total && dW===0){
+        document.getElementById('dPass').classList.add('show');
+        document.getElementById('dStem').innerHTML='<strong>✓ '+activeFilter+' pool 100% mastered.</strong>';
+        document.getElementById('dOpts').innerHTML='';
+        return;
+      }
+      pool=poolFor(activeFilter);
+    }
+    var weighted=[];
+    pool.forEach(function(q){
+      var w=missed.indexOf(q.id)>=0 ? 4 : (seen[q.id] ? 1 : 2);
+      for(var i=0;i<w;i++) weighted.push(q);
+    });
+    var q=weighted[Math.floor(Math.random()*weighted.length)];
+    current=q; qIdx++;
+    renderQ(q);
+  }
+
+  function renderQ(q){
+    document.getElementById('dN').textContent=qIdx;
+    document.getElementById('dSub').textContent='Q'+qIdx+' · '+q.cat;
+    document.getElementById('dCat').textContent='#'+q.id;
+    document.getElementById('dStem').innerHTML=q.stem;
+    var box=document.getElementById('dOpts'); box.innerHTML='';
+    var opts=q.opts.slice().sort(function(){return Math.random()-.5;});
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.type='button'; b.className='drill-opt'; b.textContent=o;
+      b.addEventListener('click',function(){ if(b.classList.contains('correct')||b.classList.contains('wrong'))return; answer(o,b); });
+      box.appendChild(b);
+    });
+    document.getElementById('dWhy').classList.remove('show');
+    document.getElementById('dWhy').innerHTML='';
+    document.getElementById('dNext').disabled=true;
+  }
+
+  function answer(p,b){
+    var q=current;
+    seen[q.id]=(seen[q.id]||0)+1;
+    if(p===q.ans){
+      b.classList.add('correct'); dC++; dS++;
+      seen[q.id+'-streak']=(seen[q.id+'-streak']||0)+1;
+      if(seen[q.id+'-streak']>=2){ mastered[q.id]=true; var idx=missed.indexOf(q.id); if(idx>=0) missed.splice(idx,1); }
+      if(examMode) examCorrect++;
+    } else {
+      b.classList.add('wrong');
+      Array.prototype.forEach.call(document.querySelectorAll('#dOpts .drill-opt'),function(x){ if(x.textContent===q.ans) x.classList.add('correct'); });
+      dW++; dS=0;
+      seen[q.id+'-streak']=0;
+      if(missed.indexOf(q.id)<0) missed.push(q.id);
+    }
+    if(!examMode){
+      var w=document.getElementById('dWhy');
+      w.innerHTML='<strong>'+q.sub+' — '+(p===q.ans?'correct':'incorrect')+'</strong><br>'+q.why;
+      w.classList.add('show');
+    }
+    updateStats();
+    document.getElementById('dNext').disabled=false;
+    if(examMode){ setTimeout(function(){ examIdx++; examNext(); },600); }
+  }
+
+  function updateStats(){
+    document.getElementById('dC').textContent=dC;
+    document.getElementById('dW').textContent=dW;
+    document.getElementById('dS').textContent=dS;
+    var t=dC+dW;
+    document.getElementById('dA').textContent=t?Math.round(dC/t*100)+'%':'—';
+    var poolSize=poolFor(activeFilter).length;
+    document.getElementById('dPool').textContent=poolSize;
+    document.getElementById('dSeen').textContent=Math.min(Object.keys(seen).filter(function(k){return !k.endsWith('-streak');}).length,poolSize);
+    document.getElementById('dM').textContent=Object.keys(mastered).length;
+    document.getElementById('dProg').style.width=Math.round(Object.keys(mastered).length/poolSize*100)+'%';
+    document.getElementById('dShowMiss').textContent='Missed ('+missed.length+')';
+  }
+
+  function examNext(){
+    if(examIdx>=examQs.length){ examFinish(); return; }
+    current=examQs[examIdx]; qIdx=examIdx+1;
+    renderQ(current);
+    document.getElementById('dWhy').classList.remove('show');
+  }
+  function examFinish(){
+    clearInterval(examTimer); examTimer=null; examMode=false;
+    document.getElementById('dTimer').style.display='none';
+    var pct=Math.round(examCorrect/examQs.length*100);
+    var pass=pct>=80;
+    document.getElementById('dStem').innerHTML='<strong>'+(pass?'✓ EXAM PASS':'✗ EXAM FAIL')+'</strong><br>'+examCorrect+' / '+examQs.length+' ('+pct+'%)' + (pass?' · 1.1.c mastered':' · need 80%+');
+    document.getElementById('dOpts').innerHTML='';
+    if(pass){
+      document.getElementById('dPass').classList.add('show');
+      var s=getSrs(); if(!s.firstPass){ s.firstPass=Date.now(); setSrs(s); srsRender(); }
+    }
+    document.getElementById('dStart').disabled=false;
+    document.getElementById('dExam').disabled=false;
+  }
+  function fmtT(s){ var m=Math.floor(s/60),x=s%60; return m+':'+(x<10?'0':'')+x; }
+
+  document.getElementById('dStart').addEventListener('click',function(){
+    examMode=false; pick();
+    document.getElementById('dStart').textContent='▶ Restart pool';
+  });
+  document.getElementById('dNext').addEventListener('click',function(){ pick(); });
+  document.getElementById('dExam').addEventListener('click',function(){
+    examMode=true; examIdx=0; examCorrect=0; examLeft=720;
+    var pool=poolFor(activeFilter).slice().sort(function(){return Math.random()-.5;});
+    examQs=pool.slice(0,Math.min(20,pool.length));
+    document.getElementById('dStart').disabled=true;
+    document.getElementById('dExam').disabled=true;
+    document.getElementById('dTimer').style.display='inline-block';
+    document.getElementById('dTimer').textContent=fmtT(examLeft);
+    examNext();
+    examTimer=setInterval(function(){
+      examLeft--;
+      var t=document.getElementById('dTimer'); t.textContent=fmtT(examLeft);
+      if(examLeft<=60) t.classList.add('warn');
+      if(examLeft<=0) examFinish();
+    },1000);
+  });
+  document.getElementById('dReset').addEventListener('click',function(){
+    if(!confirm('reset all 1.1.c drill progress?')) return;
+    seen={}; mastered={}; missed=[]; qIdx=0; dC=0; dW=0; dS=0;
+    document.getElementById('dPass').classList.remove('show');
+    document.getElementById('dMiss').classList.remove('show');
+    document.getElementById('dStem').innerHTML='Click <strong>Start drill</strong> to begin.';
+    document.getElementById('dOpts').innerHTML='';
+    document.getElementById('dWhy').classList.remove('show');
+    document.getElementById('dStart').textContent='▶ Start drill';
+    document.getElementById('dStart').disabled=false;
+    document.getElementById('dExam').disabled=false;
+    document.getElementById('dTimer').style.display='none';
+    document.getElementById('dTimer').classList.remove('warn');
+    updateStats();
+  });
+  document.getElementById('dShowMiss').addEventListener('click',function(){
+    var box=document.getElementById('dMiss');
+    if(box.classList.contains('show')){ box.classList.remove('show'); return; }
+    if(missed.length===0){ box.innerHTML='<span style="color:var(--correct)">no missed yet</span>'; box.classList.add('show'); return; }
+    box.innerHTML=missed.map(function(id){
+      var q=BANK.find(function(x){return x.id===id;});
+      return '<div class="row">#'+id+' ('+q.cat+'): '+q.stem.replace(/<[^>]+>/g,'').substring(0,90)+'…</div>';
+    }).join('');
+    box.classList.add('show');
+  });
+  document.querySelectorAll('.filter-pill').forEach(function(p){
+    p.addEventListener('click',function(){
+      document.querySelectorAll('.filter-pill').forEach(function(x){x.classList.remove('active');});
+      p.classList.add('active');
+      activeFilter=p.dataset.cat;
+      updateStats();
+    });
+  });
+  updateStats();
+
+  // CLI Simulator
+  var CLI={
+    'show conn':'12 in use, 234 most used\nTCP outside 198.51.100.7:443  inside 10.10.10.20:54321, idle 0:00:02, bytes 12483, flags UIO\nUDP outside 8.8.8.8:53        inside 10.10.10.20:60000, idle 0:00:01, bytes 142,   flags -\nTCP outside 198.51.100.55:443 inside 10.10.10.45:51234, idle 0:00:08, bytes 88421, flags UIO',
+    'show xlate':'4 in use, 12 most used\nTCP PAT from inside:10.10.10.20/54321 to outside:203.0.113.1/54321 flags ri idle 0:00:02\nTCP PAT from inside:10.10.10.21/54322 to outside:203.0.113.1/54322 flags ri idle 0:00:05\nNAT from DMZ:198.51.100.10/443 to outside:203.0.113.10/443 flags si idle 0:00:00',
+    'show access-list':'access-list outside_in line 1 extended permit tcp any host 198.51.100.10 eq 443 (hitcnt=1247)\naccess-list outside_in line 2 extended deny ip any any (hitcnt=8821)\naccess-list inside_out line 1 extended permit ip any any (hitcnt=44892)',
+    'show running-config':'! version 7.4\nhostname FTD1\n!\ninterface GigabitEthernet0/0\n nameif outside\n security-level 0\n ip address 203.0.113.1 255.255.255.0\n!\ninterface GigabitEthernet0/1\n nameif inside\n security-level 100\n ip address 10.10.10.1 255.255.255.0\n!\ninterface GigabitEthernet0/2\n nameif DMZ\n security-level 50\n ip address 198.51.100.1 255.255.255.0\n!\nobject network DMZ_WEB\n host 198.51.100.10\n nat (DMZ,outside) static 203.0.113.10\n!\naccess-list outside_in extended permit tcp any host 198.51.100.10 eq 443\n!\nend',
+    'show interface ip brief':'Interface                  IP-Address      OK?  Method  Status                Protocol\nGigabitEthernet0/0         203.0.113.1     YES  manual  up                    up\nGigabitEthernet0/1         10.10.10.1      YES  manual  up                    up\nGigabitEthernet0/2         198.51.100.1    YES  manual  up                    up',
+    'show vpn-sessiondb':'Session Type: AnyConnect\n  Username     : alice         Index   : 1\n  Assigned IP  : 10.10.50.5     Public IP : 198.51.100.99\n  Protocol     : SSL Tunnel\n  Encryption   : AES256\n  Bytes Tx     : 12483          Bytes Rx  : 88421\n  Login Time   : 14:22:17 UTC',
+    'show service-policy':'Global Policy:\n  Service-policy: global_policy\n    Class-map: inspection_default\n      Inspect: dns preset_dns_map, packet 1428, drop 2\n      Inspect: ftp, packet 0, drop 0\n      Inspect: http preset_http_map, packet 18293, drop 47, reset-drop 12\n      Inspect: icmp, packet 882, drop 0',
+    'show snort':'Snort 3 instance: 1\n  Mode: IPS (inline)\n  Policy: Balanced Security and Connectivity\n  Signatures loaded: 41,238\n  Events last 24h: 1,847 (alert), 47 (drop)\n  Talos last update: 2026-05-05 03:00:00 UTC',
+    '?':'Common firewall commands:\n  show conn               - active state-table connections\n  show xlate              - active NAT translations\n  show access-list        - ACL entries + hit counts\n  show running-config     - full firewall config\n  show interface ip brief - interface IPs\n  show vpn-sessiondb      - active VPN sessions\n  show service-policy     - inspection engine stats\n  show snort              - IPS engine status',
+    'enable':'FTD1#'
+  };
+  var cliInput=document.getElementById('cliInput'), cliOut=document.getElementById('cliOutput');
+  function cliPrint(line,color){
+    var d=document.createElement('div'); d.style.whiteSpace='pre'; if(color) d.style.color=color;
+    d.textContent=line; cliOut.appendChild(d); cliOut.scrollTop=cliOut.scrollHeight;
+  }
+  cliPrint('FTD1 — fake Cisco Secure Firewall CLI. Type ? for commands.','#86EFAC');
+  cliInput.addEventListener('keydown',function(e){
+    if(e.key!=='Enter') return;
+    e.preventDefault();
+    var cmd=cliInput.value.trim();
+    if(!cmd) return;
+    cliPrint('FTD1# '+cmd,'#FCD34D');
+    var hit=null;
+    for(var k in CLI){ if(cmd===k || cmd.toLowerCase()===k.toLowerCase()){ hit=CLI[k]; break; } }
+    if(hit) cliPrint(hit);
+    else cliPrint('% Invalid input detected at "^" marker.\n        ^','#FCA5A5');
+    cliInput.value='';
+  });
+  document.getElementById('cliClear').addEventListener('click',function(){ cliOut.innerHTML=''; cliPrint('FTD1 — cleared.','#86EFAC'); });
+
+  // Match
+  var MATCH=[
+    {l:'5-tuple',r:'Src IP, dst IP, src port, dst port, protocol'},
+    {l:'NGFW',r:'Stateful + L7 (App-ID, User-ID, IPS, URL filter, TLS decrypt)'},
+    {l:'IDS',r:'Passive sensor on SPAN — alerts only, cannot block'},
+    {l:'IPS',r:'Inline scanner — drops/blocks malicious traffic in real time'},
+    {l:'App-ID',r:'NGFW feature identifying the actual application from payload'},
+    {l:'Snort',r:'Cisco IPS engine (acquired with Sourcefire 2013)'},
+    {l:'Talos',r:'Cisco threat-intelligence team feeding signatures + URL/IP reputation'},
+    {l:'DMZ',r:'Zone for public-facing servers — isolated from internal LAN'}
+  ];
+  var matchPicked=null, matchDone=0;
+  function renderMatch(){
+    var L=document.getElementById('matchLeft'), R=document.getElementById('matchRight');
+    L.innerHTML=''; R.innerHTML='';
+    var rights=MATCH.map(function(m,i){return {idx:i,txt:m.r};}).sort(function(){return Math.random()-.5;});
+    MATCH.forEach(function(m,i){
+      var b=document.createElement('button'); b.type='button'; b.className='filter-pill'; b.style.cssText='font-family:var(--font-display);font-weight:700;text-align:left;padding:10px 14px;cursor:pointer';
+      b.textContent=m.l; b.dataset.idx=i;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')) return;
+        document.querySelectorAll('#matchLeft .filter-pill').forEach(function(x){x.style.background='var(--bg-recessed)';x.style.color='var(--ink-secondary)';});
+        b.style.background='var(--accent)'; b.style.color='#fff';
+        matchPicked=parseInt(b.dataset.idx,10);
+      });
+      L.appendChild(b);
+    });
+    rights.forEach(function(r){
+      var b=document.createElement('button'); b.type='button'; b.className='filter-pill'; b.style.cssText='font-family:var(--font-body);text-align:left;padding:10px 14px;cursor:pointer';
+      b.textContent=r.txt; b.dataset.idx=r.idx;
+      b.addEventListener('click',function(){
+        if(matchPicked===null||b.classList.contains('correct')) return;
+        if(parseInt(b.dataset.idx,10)===matchPicked){
+          b.classList.add('correct'); b.style.background='var(--correct-bg)'; b.style.color='var(--correct)';
+          var leftBtn=document.querySelector('#matchLeft [data-idx="'+matchPicked+'"]');
+          leftBtn.classList.add('correct'); leftBtn.style.background='var(--correct-bg)'; leftBtn.style.color='var(--correct)';
+          matchDone++;
+          document.getElementById('matchStatus').textContent=matchDone+' / '+MATCH.length+' matched'+(matchDone===MATCH.length?' · ✓ section mastered':'');
+        } else {
+          b.style.background='var(--wrong-bg)'; b.style.color='var(--wrong)';
+          setTimeout(function(){b.style.background='var(--bg-recessed)';b.style.color='var(--ink-secondary)';},800);
+        }
+        matchPicked=null;
+      });
+      R.appendChild(b);
+    });
+  }
+  document.getElementById('matchReset').addEventListener('click',function(){ matchDone=0; matchPicked=null; document.getElementById('matchStatus').textContent='0 / 8 matched'; renderMatch(); });
+  renderMatch();
+
+  // Multi-part exhibit
+  var EXHIBIT=[
+    {q:'1. An external user from internet (198.51.100.7) tries to reach the DMZ web server (198.51.100.10) on TCP/443. According to the policy, what does FTD1 do?',opts:['Drops (default deny)','Permits (line 1 matches)','NATs but drops','Routes via OSPF'],ans:'Permits (line 1 matches)',why:'Line 1: outside → DMZ permit tcp any host 198.51.100.10 eq 443. Match. FTD1 also creates a state-table entry so the reply is auto-allowed back.'},
+    {q:'2. A user inside (10.10.10.20) browses to a website. What NAT type is applied for outbound traffic per the policy?',opts:['Static 1:1','PAT (Port Address Translation) to 198.51.100.1','No NAT','GRE tunnel'],ans:'PAT (Port Address Translation) to 198.51.100.1',why:'Policy line 2 specifies PAT for inside → outside. Many internal IPs share the one outside IP, distinguished by source port. Stateful entry tracks return traffic.'},
+    {q:'3. An internet user (198.51.100.7) tries to reach a host inside the LAN (10.10.10.20) on TCP/22 (SSH). What happens?',opts:['Permitted','Permits via NAT','DROPPED — no policy line matches outside → inside (only outside → DMZ on 443 is allowed). Implicit deny applies.','Sends ICMP redirect'],ans:'DROPPED — no policy line matches outside → inside (only outside → DMZ on 443 is allowed). Implicit deny applies.',why:'No rule permits outside → inside. Lower-to-higher security level requires explicit permit. Implicit deny on line 3 catches it. Inside LAN protected.'},
+    {q:'4. The same DMZ web server is suddenly compromised. Attacker tries to pivot from DMZ (198.51.100.10) to inside (10.10.10.20). What does FTD1 do by default?',opts:['Permits','DROPS — no policy line permits DMZ → inside; default deny applies','Permits via NAT','Routes'],ans:'DROPS — no policy line permits DMZ → inside; default deny applies',why:'Classic DMZ design. DMZ → inside is denied unless explicit permit. Compromised DMZ host cannot reach internal LAN — the whole point of having a DMZ zone.'}
+  ];
+  function renderExhibit(){
+    var box=document.getElementById('exhibitBox'); box.innerHTML='';
+    EXHIBIT.forEach(function(e,i){
+      var card=document.createElement('div'); card.className='drill-card';
+      card.innerHTML='<div class="stem">'+e.q+'</div><div class="drill-opts">'+e.opts.map(function(o){return '<button type="button" class="drill-opt">'+o+'</button>';}).join('')+'</div><div class="drill-why">'+e.why+'</div>';
+      box.appendChild(card);
+      card.querySelectorAll('.drill-opt').forEach(function(b){
+        b.addEventListener('click',function(){
+          if(card.querySelector('.drill-opt.correct')) return;
+          if(b.textContent===e.ans){ b.classList.add('correct'); }
+          else { b.classList.add('wrong'); card.querySelectorAll('.drill-opt').forEach(function(x){if(x.textContent===e.ans) x.classList.add('correct');}); }
+          card.querySelector('.drill-why').classList.add('show');
+        });
+      });
+    });
+  }
+  renderExhibit();
+
+  // SRS
+  var SRS_KEY='ccna-1-1-c-srs';
+  function getSrs(){ return JSON.parse(localStorage.getItem(SRS_KEY)||'{}'); }
+  function setSrs(o){ localStorage.setItem(SRS_KEY,JSON.stringify(o)); }
+  function srsRender(){
+    var s=getSrs();
+    var box=document.getElementById('srsStatus');
+    if(!s.firstPass){
+      box.innerHTML='<strong>Not yet started.</strong><br>After your first 80%+ exam mode pass below, this section unlocks. SRS schedule: re-test at +1 day, +3 days, +7 days. Each re-test = 5 random Qs.';
+      return;
+    }
+    var now=Date.now();
+    var sched=[1,3,7].map(function(d){
+      var due=s.firstPass+d*86400000;
+      return {day:d, due:due, remaining:Math.max(0,due-now), passed:s['day'+d]};
+    });
+    var html='<strong>First mastery:</strong> '+new Date(s.firstPass).toLocaleString()+'<br><br>';
+    sched.forEach(function(x){
+      var status=x.passed?'<span style="color:var(--correct)">✓ done</span>':(x.remaining<=0?'<strong style="color:var(--accent)">DUE NOW</strong>':'<span style="color:var(--ink-muted)">due in '+Math.ceil(x.remaining/3600000)+'h</span>');
+      html+='Day +'+x.day+': '+status+'<br>';
+    });
+    box.innerHTML=html;
+  }
+  document.getElementById('srsCheck').addEventListener('click',function(){
+    var s=getSrs();
+    if(!s.firstPass){ alert('Pass exam mode first (80%+) to unlock spaced retrieval.'); return; }
+    var pool=BANK.slice().sort(function(){return Math.random()-.5;}).slice(0,5);
+    var correct=0;
+    pool.forEach(function(q,i){
+      var ans=prompt('Q'+(i+1)+'/5: '+q.stem.replace(/<[^>]+>/g,'')+'\n\n'+q.opts.map(function(o,j){return (j+1)+'. '+o;}).join('\n')+'\n\nEnter 1-4:');
+      if(ans){ var idx=parseInt(ans,10)-1; if(idx>=0&&idx<q.opts.length&&q.opts[idx]===q.ans) correct++; }
+    });
+    var pct=Math.round(correct/5*100);
+    alert('Result: '+correct+'/5 ('+pct+'%)'+(pct>=80?' — passed!':''));
+    if(pct>=80){
+      var now=Date.now(); var d=Math.floor((now-s.firstPass)/86400000);
+      if(d>=1&&!s.day1) s.day1=now;
+      if(d>=3&&!s.day3) s.day3=now;
+      if(d>=7&&!s.day7) s.day7=now;
+      setSrs(s);
+    }
+    srsRender();
+  });
+  document.getElementById('srsReset').addEventListener('click',function(){
+    if(confirm('Reset SRS state?')){ localStorage.removeItem(SRS_KEY); srsRender(); }
+  });
+  srsRender();
+})();
+</script>
+</body>
+</html>
