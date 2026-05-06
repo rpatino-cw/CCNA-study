@@ -16,7 +16,6 @@
 <style>
   /* ── Empty canvas — minimal blueprint surface ─────────────── */
 
-  .v2-banner { font-family: var(--font-mono); font-size: 0.72rem; padding: 8px 14px; background: #FEF3C7; border: 1px solid #FDE68A; border-radius: var(--radius); color: #92400E; margin-bottom: var(--s-md); display: inline-block; }
 
   /* ── Cinematic hero ──────────────────────────────────────── */
   .v2-hero {
@@ -401,8 +400,6 @@
 <div class="container-wide">
 
 <nav class="top-nav" id="main-nav"></nav>
-
-<div class="v2-banner">DEV · v2 of core.html · empty canvas — blueprint structure only</div>
 
 <header class="v2-hero">
   <div class="v2-grid-overlay"></div>
@@ -878,6 +875,46 @@ document.addEventListener('DOMContentLoaded', function () {
     requestAnimationFrame(tick);
   });
 });
+</script>
+
+<script>
+(function(){
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var ctx = null, master = null, delay = null, fb = null, wet = null;
+  function init(){
+    if (ctx) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0.06;
+    delay = ctx.createDelay(1.0); delay.delayTime.value = 0.22;
+    fb = ctx.createGain(); fb.gain.value = 0.32;
+    wet = ctx.createGain(); wet.gain.value = 0.55;
+    var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+    delay.connect(fb); fb.connect(delay);
+    delay.connect(wet); wet.connect(lp); lp.connect(master);
+    master.connect(ctx.destination);
+  }
+  function ping(){
+    init(); if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880 + Math.random()*120, now);
+    osc.frequency.exponentialRampToValueAtTime(560, now + 0.08);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.5, now + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    osc.connect(g);
+    g.connect(master);
+    g.connect(delay);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+  document.addEventListener('click', ping, { passive: true });
+})();
 </script>
 </body>
 </html>
