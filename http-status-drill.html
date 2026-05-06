@@ -15,7 +15,13 @@
     .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
     .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
     .layout-grid { display: grid; grid-template-columns: 1fr 320px; gap: var(--s-lg); align-items: start; }
+    .layout-grid.ref-hidden { grid-template-columns: 1fr; }
+    .layout-grid.ref-hidden aside { display: none; }
     @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+    .ref-toggle-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+    .ref-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; color: var(--ink-muted); }
+    .ref-toggle:hover { border-color: var(--accent); color: var(--accent); }
+    .ref-toggle.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
     .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
     .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
     .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
@@ -33,10 +39,18 @@
     .input-row label { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
     .drill-input { font-family: var(--font-mono); font-size: 1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); width: 280px; }
     .drill-input:focus { border-color: var(--accent); outline: none; }
-    .choice-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 12px; }
-    .choice-btn { font-family: var(--font-mono); font-size: 0.92rem; padding: 12px 14px; border-radius: 8px; border: 2px solid var(--border); background: var(--bg-surface); cursor: pointer; text-align: left; transition: all 0.15s; }
-    .choice-btn:hover { border-color: var(--accent); }
-    .choice-btn.picked { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+    .choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    @media (max-width: 600px) { .choice-row { grid-template-columns: 1fr; } }
+    .choice-btn { font-family: var(--font-mono); font-size: 0.95rem; padding: 14px 16px; border-radius: 8px; border: 2px solid var(--border); background: var(--bg-surface); cursor: pointer; text-align: left; transition: all 0.12s; display: flex; gap: 12px; align-items: center; line-height: 1.4; }
+    .choice-btn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+    .choice-btn:disabled { cursor: default; opacity: 0.85; }
+    .choice-btn .choice-letter { flex-shrink: 0; width: 26px; height: 26px; border-radius: 13px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; color: var(--ink-muted); }
+    .choice-btn .choice-text { flex: 1; }
+    .choice-btn.right { border-color: #6bbf6b; background: #d6f5d6; color: #1a4d1a; }
+    .choice-btn.right .choice-letter { background: #6bbf6b; color: #fff; border-color: #6bbf6b; }
+    .choice-btn.wrong { border-color: #c46b6b; background: #f9d6d6; color: #5a1a1a; }
+    .choice-btn.wrong .choice-letter { background: #c46b6b; color: #fff; border-color: #c46b6b; }
+    .choice-btn.picked { border-color: var(--ink); }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
     .btn-action:hover { background: var(--accent); border-color: var(--accent); }
@@ -78,7 +92,10 @@
       <h1>HTTP Status Code Drill</h1>
       <p>Status codes a REST API returns: 1xx informational, 2xx success, 3xx redirect, 4xx client error, 5xx server error. The trap on the exam: <strong>301 vs 302</strong> (permanent vs temporary), <strong>401 vs 403</strong> (no creds vs creds-but-denied), <strong>500 vs 503</strong> (any server fault vs overloaded/down).</p>
     </header>
-    <div class="layout-grid">
+    <div class="ref-toggle-row">
+      <button class="ref-toggle" id="hsRefToggle" onclick="hsToggleRef()">Show reference</button>
+    </div>
+    <div class="layout-grid ref-hidden" id="hsLayout">
       <main>
         <section class="visual-block">
           <div class="pill-row">
@@ -100,13 +117,11 @@
           <div class="q-card">
             <div class="q-prompt" id="hsPrompt"></div>
             <div class="code-display" id="hsCodeDisplay" style="display:none"></div>
-            <div id="hsInputArea"></div>
+            <div class="choice-row" id="hsChoices"></div>
             <div class="actions">
-              <button class="btn-action" onclick="hsCheck()">Check</button>
-              <button class="btn-action btn-hint" onclick="hsHint()">Hint</button>
-              <button class="btn-action ghost" onclick="hsNew()">New question</button>
+              <button class="btn-action" id="hsNextBtn" onclick="hsNew()">Next question</button>
             </div>
-            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question</div>
+            <div class="kbd-hint"><kbd>1-4</kbd> or <kbd>A-D</kbd> pick · <kbd>N</kbd> next question</div>
             <div class="feedback" id="hsFeedback"></div>
           </div>
           <div class="teach" id="hsTeach" style="display:none">
@@ -115,7 +130,7 @@
           </div>
         </section>
         <section class="visual-block">
-          <details open>
+          <details>
             <summary>HTTP status code cheatsheet</summary>
             <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.65">
               <div class="class-row">
@@ -221,42 +236,66 @@ document.addEventListener('DOMContentLoaded', function(){
     return ({ '1xx': 'informational', '2xx': 'success', '3xx': 'redirection', '4xx': 'client error', '5xx': 'server error' })[c];
   }
 
+  function shuffle(a) { var b = a.slice(); for (var i = b.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+  function distractors(pool, correct, n) {
+    var out = [];
+    var copy = shuffle(pool.filter(function(x){ return x !== correct; }));
+    for (var i = 0; i < n && i < copy.length; i++) out.push(copy[i]);
+    return out;
+  }
+  function buildChoices(correct, distractorList) {
+    var all = shuffle([correct].concat(distractorList));
+    return { choices: all, correctIndex: all.indexOf(correct) };
+  }
+
+  // Code dictionary already defined above. ALL_NAMES, ALL_CODES helpers:
+  var ALL_NAMES = CODES.map(function(c){ return capName(c); });
+  var ALL_CODES = CODES.map(function(c){ return String(c.code); });
+  var ALL_CLASSES = ['1xx', '2xx', '3xx', '4xx', '5xx'];
+
+  function capName(c) { return c.code + ' ' + titleCase(c.name); }
+  function titleCase(s) { return s.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); }); }
+
   // Question generators -----------------------------------------------------
 
   function genCodeToMeaning() {
     var item = pick(CODES);
+    var correct = capName(item);
+    var ch = buildChoices(correct, distractors(ALL_NAMES, correct, 3));
     return {
       type: 'code-to-meaning',
-      prompt: 'A REST API returns HTTP <strong>' + item.code + '</strong>. What does that mean? <em>(short answer)</em>',
+      prompt: 'A REST API returns HTTP <strong>' + item.code + '</strong>. What does that mean?',
       codeDisplay: String(item.code),
-      answer: item.synonyms,
-      validateAny: true,
-      teach: item.teach,
-      hint: 'Class is ' + classOf(item.code) + ' (' + classDescription(classOf(item.code)) + ').'
+      choices: ch.choices,
+      correctIndex: ch.correctIndex,
+      teach: item.teach
     };
   }
 
   function genMeaningToCode() {
     var item = pick(CODES);
+    var correct = String(item.code);
+    var ch = buildChoices(correct, distractors(ALL_CODES, correct, 3));
     return {
       type: 'meaning-to-code',
-      prompt: 'Which HTTP status code means <strong>"' + item.name + '"</strong>?',
-      answer: String(item.code),
-      teach: item.teach,
-      hint: 'It\'s in the ' + classOf(item.code) + ' range.'
+      prompt: 'Which HTTP status code means <strong>"' + titleCase(item.name) + '"</strong>?',
+      choices: ch.choices,
+      correctIndex: ch.correctIndex,
+      teach: item.teach
     };
   }
 
   function genClass() {
     var item = pick(CODES);
     var cls = classOf(item.code);
+    var ch = buildChoices(cls, distractors(ALL_CLASSES, cls, 3));
     return {
       type: 'class',
-      prompt: 'HTTP <strong>' + item.code + '</strong> belongs to which class? <em>(answer like 2xx, 3xx, 4xx, 5xx)</em>',
+      prompt: 'HTTP <strong>' + item.code + '</strong> belongs to which class?',
       codeDisplay: String(item.code),
-      answer: cls,
-      teach: ['Code ' + item.code + ' = ' + item.name + '.', 'Class <strong>' + cls + '</strong> = ' + classDescription(cls) + '.'],
-      hint: 'First digit defines the class.'
+      choices: ch.choices,
+      correctIndex: ch.correctIndex,
+      teach: ['Code ' + item.code + ' = ' + titleCase(item.name) + '.', 'Class <strong>' + cls + '</strong> = ' + classDescription(cls) + '.']
     };
   }
 
@@ -277,18 +316,20 @@ document.addEventListener('DOMContentLoaded', function(){
       { q: 'A client calls <code>PUT /api/health</code> but that endpoint only supports GET. Most likely status code?', a: '405', teach: ['Verb not supported on the resource = 405 Method Not Allowed.'] },
     ];
     var item = pick(qs);
+    var correct = item.a;
+    var ch = buildChoices(correct, distractors(ALL_CODES, correct, 3));
     return {
       type: 'scenario',
       prompt: item.q,
-      answer: item.a,
-      teach: item.teach,
-      hint: 'Match the situation to its class first (auth? not found? rate? server fault?), then pick the specific code.'
+      choices: ch.choices,
+      correctIndex: ch.correctIndex,
+      teach: item.teach
     };
   }
 
   // State -------------------------------------------------------------------
   var state = {
-    qt: 'all', current: null, streak: 0, correct: 0, total: 0,
+    qt: 'all', current: null, answered: false, streak: 0, correct: 0, total: 0,
     best: parseInt(localStorage.getItem(window.hsConfigKey.storageKey) || '0', 10),
     teachOpen: true
   };
@@ -306,16 +347,24 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderQuestion() {
     var q = state.current;
+    state.answered = false;
     document.getElementById('hsPrompt').innerHTML = q.prompt;
     var disp = document.getElementById('hsCodeDisplay');
     if (q.codeDisplay) { disp.textContent = q.codeDisplay; disp.style.display = 'block'; }
     else { disp.style.display = 'none'; }
-    document.getElementById('hsFeedback').className = 'feedback';
-    document.getElementById('hsFeedback').textContent = '';
+    var fb = document.getElementById('hsFeedback');
+    fb.className = 'feedback';
+    fb.textContent = '';
+    fb.style.cssText = '';
     document.getElementById('hsTeach').style.display = 'none';
-    document.getElementById('hsInputArea').innerHTML =
-      '<div class="input-row"><label>Answer:</label><input class="drill-input" id="hsAns" placeholder="" autocomplete="off" onkeydown="if(event.key===&quot;Enter&quot;)hsCheck()"></div>';
-    setTimeout(function(){ var el = document.getElementById('hsAns'); if (el) el.focus(); }, 30);
+    var letters = ['A', 'B', 'C', 'D'];
+    var html = '';
+    for (var i = 0; i < q.choices.length; i++) {
+      html += '<button class="choice-btn" data-idx="' + i + '" onclick="hsPick(' + i + ')">' +
+              '<span class="choice-letter">' + letters[i] + '</span>' +
+              '<span class="choice-text">' + q.choices[i] + '</span></button>';
+    }
+    document.getElementById('hsChoices').innerHTML = html;
   }
 
   function renderTeach() {
@@ -328,44 +377,56 @@ document.addEventListener('DOMContentLoaded', function(){
 
   window.hsToggleTeach = function() { state.teachOpen = !state.teachOpen; document.getElementById('hsTeach').style.display = state.teachOpen ? 'block' : 'none'; };
 
-  window.hsNew = function() { state.current = genQuestion(); renderQuestion(); };
-
-  window.hsCheck = function() {
-    if (!state.current) { window.hsNew(); return; }
-    var raw = normalize(document.getElementById('hsAns').value);
-    if (!raw) return;
-    var ok;
-    if (state.current.validateAny) {
-      ok = state.current.answer.some(function(a){ return raw === normalize(a) || raw.indexOf(normalize(a)) >= 0 || normalize(a).indexOf(raw) >= 0; });
-    } else {
-      ok = raw === normalize(state.current.answer) || raw.indexOf(normalize(state.current.answer)) >= 0;
+  window.hsToggleRef = function() {
+    var layout = document.getElementById('hsLayout');
+    var btn = document.getElementById('hsRefToggle');
+    var hidden = layout.classList.toggle('ref-hidden');
+    btn.textContent = hidden ? 'Show reference' : 'Hide reference';
+    btn.classList.toggle('on', !hidden);
+    try { localStorage.setItem('ccna_hs_ref_open', hidden ? '0' : '1'); } catch(e){}
+  };
+  try {
+    if (localStorage.getItem('ccna_hs_ref_open') === '1') {
+      document.getElementById('hsLayout').classList.remove('ref-hidden');
+      var btn = document.getElementById('hsRefToggle');
+      btn.textContent = 'Hide reference';
+      btn.classList.add('on');
     }
+  } catch(e){}
+
+  window.hsNew = function() {
+    state.current = genQuestion();
+    renderQuestion();
+  };
+
+  window.hsPick = function(idx) {
+    if (!state.current || state.answered) return;
+    state.answered = true;
+    var q = state.current;
+    var btns = document.querySelectorAll('#hsChoices .choice-btn');
+    var ok = (idx === q.correctIndex);
+    btns.forEach(function(b, i){
+      b.disabled = true;
+      if (i === q.correctIndex) b.classList.add('right');
+      else if (i === idx) b.classList.add('wrong');
+    });
     state.total++;
     var fb = document.getElementById('hsFeedback');
     if (ok) {
       state.correct++; state.streak++;
-      if (state.streak > state.best) { state.best = state.streak; localStorage.setItem(window.hsConfigKey.storageKey, String(state.best)); }
+      if (state.streak > state.best) { state.best = state.streak; try { localStorage.setItem(window.hsConfigKey.storageKey, String(state.best)); } catch(e){} }
       fb.className = 'feedback right';
       fb.textContent = 'Correct. Streak ' + state.streak + '.';
     } else {
       state.streak = 0;
       fb.className = 'feedback wrong';
-      var ans = Array.isArray(state.current.answer) ? state.current.answer[0] : state.current.answer;
-      fb.innerHTML = 'Wrong. Answer: <strong>' + ans + '</strong>. Walkthrough below.';
+      fb.innerHTML = 'Wrong. Correct answer: <strong>' + q.choices[q.correctIndex] + '</strong>. Walkthrough below.';
       state.teachOpen = true;
     }
     renderTeach();
     document.getElementById('hsStreak').textContent = state.streak;
     document.getElementById('hsBest').textContent = state.best || '--';
     document.getElementById('hsScore').textContent = state.correct + '/' + state.total;
-  };
-
-  window.hsHint = function() {
-    if (!state.current) return;
-    var fb = document.getElementById('hsFeedback');
-    fb.className = 'feedback wrong';
-    fb.style.background = '#fff4d6'; fb.style.color = '#5a4a1a'; fb.style.borderColor = '#c4a36b';
-    fb.textContent = 'Hint: ' + (state.current.hint || 'Check the cheatsheet.');
   };
 
   window.hsReset = function() {
@@ -383,7 +444,13 @@ document.addEventListener('DOMContentLoaded', function(){
 
   document.addEventListener('keydown', function(e){
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-    if (e.key === 'n' || e.key === 'N') { window.hsNew(); }
+    if (e.key === 'n' || e.key === 'N') { window.hsNew(); return; }
+    var idx = -1;
+    if (e.key >= '1' && e.key <= '4') idx = parseInt(e.key, 10) - 1;
+    else if (/^[a-dA-D]$/.test(e.key)) idx = e.key.toLowerCase().charCodeAt(0) - 97;
+    if (idx >= 0 && state.current && !state.answered && idx < state.current.choices.length) {
+      window.hsPick(idx);
+    }
   });
 
   document.getElementById('hsBest').textContent = state.best || '--';
