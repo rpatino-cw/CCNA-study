@@ -2,14 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#FAF7F2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Subnet Swipe — CCNA</title>
 <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="css/shared.css?v=4.56">
+<link rel="stylesheet" href="css/mobile-game.css?v=1">
 <style>
 .game-wrap{max-width:480px;margin:0 auto;padding:14px 14px 120px;min-height:100vh;display:flex;flex-direction:column}
 .hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-family:var(--font-mono);font-size:.78rem}
@@ -110,20 +114,21 @@ function render(){
     '<div class="q">Usable host on this network?</div>';
   deck.appendChild(c);
   // touch swipe
-  let sx=null;
-  c.addEventListener('touchstart',e=>{sx=e.touches[0].clientX});
+  let sx=null,curDx=0;
+  c.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;curDx=0},{passive:true});
   c.addEventListener('touchmove',e=>{
     if(sx===null)return;
-    const dx=e.touches[0].clientX-sx;
-    c.style.transform='translateX('+dx+'px) rotate('+(dx/20)+'deg)';
-    document.getElementById('tagYes').style.opacity=Math.max(0,Math.min(1,dx/80));
-    document.getElementById('tagNo').style.opacity=Math.max(0,Math.min(1,-dx/80));
-  });
-  c.addEventListener('touchend',e=>{
-    const dx=parseFloat(c.style.transform.match(/-?\d+\.?\d*/)?.[0]||0);
-    if(dx>80)answer(true);
-    else if(dx<-80)answer(false);
+    curDx=e.touches[0].clientX-sx;
+    if(Math.abs(curDx)>10)e.preventDefault();
+    c.style.transform='translateX('+curDx+'px) rotate('+(curDx/20)+'deg)';
+    document.getElementById('tagYes').style.opacity=Math.max(0,Math.min(1,curDx/80));
+    document.getElementById('tagNo').style.opacity=Math.max(0,Math.min(1,-curDx/80));
+  },{passive:false});
+  c.addEventListener('touchend',()=>{
+    if(curDx>80)answer(true);
+    else if(curDx<-80)answer(false);
     else{c.style.transform='';document.getElementById('tagYes').style.opacity=0;document.getElementById('tagNo').style.opacity=0}
+    sx=null;curDx=0;
   });
   document.getElementById('round').textContent=(round+1)+'/'+ROUNDS;
   document.getElementById('streak').textContent=streak;
@@ -136,12 +141,13 @@ function next(){
   render();
 }
 
+function buzz(ms){if(navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}}
 window.answer=function(yes){
   const card=document.querySelector('.card');if(!card)return;
   const correct=yes===current.valid;
   const fb=document.getElementById('fb');
-  if(correct){streak++;fb.textContent='✓ Correct — streak '+streak;fb.className='feedback right'}
-  else{fb.textContent='✗ '+(current.valid?'Was valid host':'Was '+(current.ip===current.network.split('/')[0]?'network address':'outside subnet/edge'));fb.className='feedback wrong';streak=0}
+  if(correct){streak++;buzz(15);fb.textContent='✓ Correct — streak '+streak;fb.className='feedback right'}
+  else{buzz([40,30,40]);fb.textContent='✗ '+(current.valid?'Was valid host':'Was '+(current.ip===current.network.split('/')[0]?'network address':'outside subnet/edge'));fb.className='feedback wrong';streak=0}
   state.best=Math.max(state.best||0,streak);
   localStorage.setItem(KEY,JSON.stringify(state));
   card.classList.add(yes?'swipe-r':'swipe-l');
