@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#FAF7F2">
+<title>Packet Frogger — CCNA</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+.game-wrap{max-width:480px;margin:0 auto;padding:14px 14px 80px}
+.title{font-family:var(--font-display);font-weight:700;font-size:1.3rem;text-align:center;margin:6px 0}
+.sub{text-align:center;font-family:var(--font-body);font-style:italic;color:var(--ink-muted);font-size:.85rem;margin-bottom:10px}
+.hud{display:flex;justify-content:space-between;margin-bottom:10px;font-family:var(--font-mono);font-size:.78rem}
+.hud .stat{display:flex;flex-direction:column;align-items:center;flex:1}
+.hud .stat .v{font-family:var(--font-display);font-size:1.2rem;font-weight:700;color:var(--accent)}
+.hud .stat .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted)}
+.dest{background:var(--bg-surface);border:2px solid var(--accent);border-radius:12px;padding:10px 14px;text-align:center;margin-bottom:10px;font-family:var(--font-mono)}
+.dest .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:4px}
+.dest .v{font-size:1.4rem;font-weight:700;color:var(--ink)}
+.routes{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.route{padding:14px;border:2px solid var(--border);border-radius:12px;background:var(--bg-surface);cursor:pointer;font-family:var(--font-mono);font-size:.9rem;transition:border-color .15s,background .15s;display:flex;justify-content:space-between;align-items:center}
+.route:active{transform:scale(.98)}
+.route.right{background:#dcfce7;border-color:#15803d;color:#14532d}
+.route.wrong{background:#fee2e2;border-color:#b91c1c;color:#7f1d1d}
+.route.show-correct{background:#fef9c3;border-color:#ca8a04}
+.route .net{font-weight:700}
+.route .nh{font-size:.72rem;color:var(--ink-muted)}
+.fb{text-align:center;font-family:var(--font-mono);font-size:.85rem;margin:10px 0;min-height:18px;color:var(--ink-muted)}
+.btns{display:flex;gap:10px;justify-content:center}
+.btns button{padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg-surface);font-family:var(--font-display);font-weight:700;font-size:.85rem;cursor:pointer}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="game-wrap">
+  <div class="title">Packet Frogger</div>
+  <div class="sub">Pick longest-prefix match for the destination IP.</div>
+  <div class="hud">
+    <div class="stat"><div class="v" id="score">0</div><div class="l">Score</div></div>
+    <div class="stat"><div class="v" id="streak">0</div><div class="l">Streak</div></div>
+    <div class="stat"><div class="v" id="round">1/15</div><div class="l">Round</div></div>
+  </div>
+  <div class="dest"><div class="l">Destination</div><div class="v" id="destIp"></div></div>
+  <div class="routes" id="routes"></div>
+  <div class="fb" id="fb">&nbsp;</div>
+  <div class="btns"><button onclick="newGame()">Restart</button></div>
+</div>
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){
+const ROUNDS=15;
+let score=0,streak=0,round=0,locked=false,target=null;
+
+function ipToInt(ip){return ip.split('.').reduce((a,o)=>a*256+parseInt(o),0)>>>0}
+function intToIp(n){return [n>>>24&255,n>>>16&255,n>>>8&255,n&255].join('.')}
+function maskFor(p){return p===0?0:(0xFFFFFFFF<<(32-p))>>>0}
+function inNet(ip,net,p){return (ipToInt(ip)&maskFor(p))===(ipToInt(net)&maskFor(p))}
+
+function genCase(){
+  // pick a random destination IP
+  const dest=intToIp(Math.floor(Math.random()*0xFFFFFFFF)>>>0);
+  const di=ipToInt(dest);
+  // craft 4 routes — at least one must match dest at varying prefix lengths; longest-prefix wins
+  const matchPrefixes=[8,16,20,24];
+  const routes=[];
+  matchPrefixes.forEach(p=>{
+    const net=intToIp((di&maskFor(p))>>>0);
+    routes.push({net:net,prefix:p,nh:'10.'+(Math.floor(Math.random()*250)+1)+'.'+Math.floor(Math.random()*255)+'.1'});
+  });
+  // randomize one to be a default route 0.0.0.0/0 sometimes; replace one short match w/ default
+  if(Math.random()<0.4){routes[0]={net:'0.0.0.0',prefix:0,nh:'10.0.0.1'}}
+  // shuffle
+  for(let i=routes.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[routes[i],routes[j]]=[routes[j],routes[i]]}
+  // correct = max prefix that still matches
+  let best=-1,correctIdx=-1;
+  routes.forEach((r,i)=>{if(inNet(dest,r.net,r.prefix)&&r.prefix>best){best=r.prefix;correctIdx=i}});
+  return {dest:dest,routes:routes,correctIdx:correctIdx};
+}
+
+function render(){
+  document.getElementById('destIp').textContent=target.dest;
+  document.getElementById('round').textContent=(round+1)+'/'+ROUNDS;
+  document.getElementById('score').textContent=score;
+  document.getElementById('streak').textContent=streak;
+  const wrap=document.getElementById('routes');wrap.innerHTML='';
+  target.routes.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='route';d.dataset.i=i;
+    d.innerHTML='<span class="net">'+r.net+'/'+r.prefix+'</span><span class="nh">→ next-hop '+r.nh+'</span>';
+    d.onclick=()=>pick(i);
+    wrap.appendChild(d);
+  });
+  document.getElementById('fb').textContent=' ';
+  locked=false;
+}
+
+function pick(i){
+  if(locked)return;locked=true;
+  const correct=i===target.correctIdx;
+  document.querySelectorAll('.route').forEach((el,idx)=>{
+    if(idx===target.correctIdx&&!correct)el.classList.add('show-correct');
+    if(idx===i)el.classList.add(correct?'right':'wrong');
+  });
+  if(correct){score+=10+streak*2;streak++;document.getElementById('fb').textContent='✓ Longest prefix /'+target.routes[target.correctIdx].prefix+' wins';document.getElementById('fb').style.color='#15803d'}
+  else{streak=0;document.getElementById('fb').textContent='✗ /'+target.routes[target.correctIdx].prefix+' had longest match';document.getElementById('fb').style.color='#b91c1c'}
+  round++;
+  setTimeout(()=>{if(round>=ROUNDS)return finish();target=genCase();render()},900);
+}
+
+function finish(){
+  document.querySelector('.game-wrap').innerHTML='<div style="text-align:center;padding:30px"><h2 style="font-family:var(--font-display)">Round done</h2><div style="font-family:var(--font-mono);font-size:2rem;color:var(--accent);font-weight:700;margin:14px 0">'+score+' pts</div><button onclick="location.reload()" style="padding:14px 28px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer">Play again</button><div style="margin-top:20px"><a href="practice-hub.html" style="color:var(--accent);font-family:var(--font-display);text-decoration:none">← Practice Hub</a></div></div>';
+}
+
+window.newGame=function(){score=0;streak=0;round=0;target=genCase();render()}
+newGame();
+});</script>
+</body>
+</html>

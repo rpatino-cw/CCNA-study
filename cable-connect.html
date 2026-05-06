@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#FAF7F2">
+<title>Cable Connect — CCNA</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+.game-wrap{max-width:480px;margin:0 auto;padding:14px 14px 80px}
+.title{font-family:var(--font-display);font-weight:700;font-size:1.3rem;text-align:center;margin:6px 0}
+.sub{text-align:center;font-family:var(--font-body);font-style:italic;color:var(--ink-muted);font-size:.85rem;margin-bottom:10px}
+.hud{display:flex;justify-content:space-between;margin-bottom:10px;font-family:var(--font-mono);font-size:.78rem}
+.hud .stat{display:flex;flex-direction:column;align-items:center;flex:1}
+.hud .stat .v{font-family:var(--font-display);font-size:1.2rem;font-weight:700;color:var(--accent)}
+.hud .stat .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted)}
+.scene{background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;padding:20px 16px;margin-bottom:14px}
+.devices{display:flex;justify-content:space-around;align-items:center;gap:8px;margin-bottom:14px}
+.dev{flex:1;text-align:center}
+.dev .icon{font-size:2.2rem;margin-bottom:4px;line-height:1}
+.dev .name{font-family:var(--font-display);font-weight:700;font-size:.85rem}
+.dev .role{font-family:var(--font-mono);font-size:.62rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em}
+.between{font-family:var(--font-mono);font-size:1.4rem;color:var(--ink-muted)}
+.task{font-family:var(--font-body);text-align:center;font-style:italic;color:var(--ink-secondary);font-size:.9rem;margin-top:6px}
+.cables{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cable{padding:14px 10px;border:2px solid var(--border);border-radius:12px;background:var(--bg-surface);cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:.95rem;text-align:center;transition:transform .12s}
+.cable:active{transform:scale(.97)}
+.cable .desc{font-family:var(--font-mono);font-size:.62rem;color:var(--ink-muted);margin-top:4px;font-weight:400;text-transform:uppercase;letter-spacing:.04em}
+.cable.right{background:#dcfce7;border-color:#15803d;color:#14532d}
+.cable.wrong{background:#fee2e2;border-color:#b91c1c;color:#7f1d1d}
+.cable.show-correct{background:#fef9c3;border-color:#ca8a04}
+.fb{text-align:center;font-family:var(--font-mono);font-size:.85rem;margin:10px 0;min-height:18px;color:var(--ink-muted)}
+.btns{display:flex;gap:10px;justify-content:center}
+.btns button{padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg-surface);font-family:var(--font-display);font-weight:700;font-size:.85rem;cursor:pointer}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="game-wrap">
+  <div class="title">Cable Connect</div>
+  <div class="sub">Pick the right cable for the device pair.</div>
+  <div class="hud">
+    <div class="stat"><div class="v" id="score">0</div><div class="l">Score</div></div>
+    <div class="stat"><div class="v" id="streak">0</div><div class="l">Streak</div></div>
+    <div class="stat"><div class="v" id="round">1/15</div><div class="l">Round</div></div>
+  </div>
+  <div class="scene">
+    <div class="devices">
+      <div class="dev"><div class="icon" id="dev1Icon"></div><div class="name" id="dev1Name"></div><div class="role" id="dev1Role"></div></div>
+      <div class="between">↔</div>
+      <div class="dev"><div class="icon" id="dev2Icon"></div><div class="name" id="dev2Name"></div><div class="role" id="dev2Role"></div></div>
+    </div>
+    <div class="task" id="taskText"></div>
+  </div>
+  <div class="cables" id="cables"></div>
+  <div class="fb" id="fb">&nbsp;</div>
+  <div class="btns"><button onclick="newGame()">Restart</button></div>
+</div>
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){
+const ROUNDS=15;
+// Cisco TIA/EIA-568 modern rule set: most pre-MDIX gear used straight between DTE↔DCE, crossover for DTE↔DTE / DCE↔DCE
+// Roles: DTE = PC, Router, Server, Wireless AP (sometimes). DCE = Switch, Hub.
+const DEVS={
+  pc:{i:'💻',n:'PC',r:'DTE'},
+  laptop:{i:'💻',n:'Laptop',r:'DTE'},
+  router:{i:'🌐',n:'Router',r:'DTE'},
+  switch:{i:'🔀',n:'Switch',r:'DCE'},
+  switch2:{i:'🔀',n:'Switch',r:'DCE'},
+  hub:{i:'⚙️',n:'Hub',r:'DCE'},
+  server:{i:'🖥️',n:'Server',r:'DTE'},
+  ap:{i:'📡',n:'Access Point',r:'DTE'}
+};
+const PAIRS=[
+  {a:'pc',b:'switch',cable:'straight',why:'DTE↔DCE = straight-through'},
+  {a:'pc',b:'router',cable:'crossover',why:'DTE↔DTE = crossover (no MDIX)'},
+  {a:'pc',b:'pc',cable:'crossover',why:'DTE↔DTE = crossover'},
+  {a:'router',b:'switch',cable:'straight',why:'DTE↔DCE = straight-through'},
+  {a:'switch',b:'switch2',cable:'crossover',why:'DCE↔DCE = crossover'},
+  {a:'switch',b:'hub',cable:'crossover',why:'DCE↔DCE = crossover'},
+  {a:'router',b:'router',cable:'crossover',why:'DTE↔DTE = crossover'},
+  {a:'pc',b:'router',cable:'console',why:'CLI configuration uses rollover/console',cliMode:true},
+  {a:'pc',b:'switch',cable:'console',why:'CLI configuration uses rollover/console',cliMode:true},
+  {a:'pc',b:'router',cable:'console',why:'CLI access via console port = rollover',cliMode:true},
+  {a:'server',b:'switch',cable:'straight',why:'DTE↔DCE = straight-through'},
+  {a:'ap',b:'switch',cable:'straight',why:'AP (DTE-like) ↔ switch = straight-through'},
+  {a:'pc',b:'server',cable:'crossover',why:'DTE↔DTE = crossover'},
+  {a:'router',b:'hub',cable:'straight',why:'DTE↔DCE = straight-through'}
+];
+const CABLES=[
+  {k:'straight',n:'Straight-through',d:'568-A↔A or B↔B'},
+  {k:'crossover',n:'Crossover',d:'568-A↔B'},
+  {k:'console',n:'Rollover (Console)',d:'8 wires reversed'},
+  {k:'fiber',n:'Fiber LC/SC',d:'optical, long-haul'}
+];
+
+let score=0,streak=0,round=0,locked=false,current=null;
+
+function pickPair(){return PAIRS[Math.floor(Math.random()*PAIRS.length)]}
+
+function render(){
+  current=pickPair();
+  const d1=DEVS[current.a],d2=DEVS[current.b];
+  document.getElementById('dev1Icon').textContent=d1.i;document.getElementById('dev1Name').textContent=d1.n;document.getElementById('dev1Role').textContent=d1.r;
+  document.getElementById('dev2Icon').textContent=d2.i;document.getElementById('dev2Name').textContent=d2.n;document.getElementById('dev2Role').textContent=d2.r;
+  document.getElementById('taskText').textContent=current.cliMode?'Configure '+d2.n+' from '+d1.n+' (CLI access)':'Connect '+d1.n+' to '+d2.n;
+  document.getElementById('round').textContent=(round+1)+'/'+ROUNDS;
+  document.getElementById('score').textContent=score;
+  document.getElementById('streak').textContent=streak;
+  const wrap=document.getElementById('cables');wrap.innerHTML='';
+  CABLES.forEach(c=>{
+    const d=document.createElement('div');d.className='cable';d.dataset.k=c.k;
+    d.innerHTML=c.n+'<div class="desc">'+c.d+'</div>';
+    d.onclick=()=>pick(c.k);
+    wrap.appendChild(d);
+  });
+  document.getElementById('fb').textContent=' ';
+  locked=false;
+}
+
+function pick(k){
+  if(locked)return;locked=true;
+  const correct=k===current.cable;
+  document.querySelectorAll('.cable').forEach(el=>{
+    if(el.dataset.k===current.cable&&!correct)el.classList.add('show-correct');
+    if(el.dataset.k===k)el.classList.add(correct?'right':'wrong');
+  });
+  if(correct){score+=10+streak*2;streak++;document.getElementById('fb').textContent='✓ '+current.why;document.getElementById('fb').style.color='#15803d'}
+  else{streak=0;document.getElementById('fb').textContent='✗ '+current.why;document.getElementById('fb').style.color='#b91c1c'}
+  round++;
+  setTimeout(()=>{if(round>=ROUNDS)return finish();render()},1100);
+}
+
+function finish(){
+  document.querySelector('.game-wrap').innerHTML='<div style="text-align:center;padding:30px"><h2 style="font-family:var(--font-display)">Round done</h2><div style="font-family:var(--font-mono);font-size:2rem;color:var(--accent);font-weight:700;margin:14px 0">'+score+' pts</div><button onclick="location.reload()" style="padding:14px 28px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer">Play again</button><div style="margin-top:20px"><a href="practice-hub.html" style="color:var(--accent);font-family:var(--font-display);text-decoration:none">← Practice Hub</a></div></div>';
+}
+
+window.newGame=function(){score=0;streak=0;round=0;render()}
+newGame();
+});</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#FAF7F2">
+<title>OSI Tetris — CCNA</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+.game-wrap{max-width:480px;margin:0 auto;padding:14px 14px 80px}
+.title{font-family:var(--font-display);font-weight:700;font-size:1.3rem;text-align:center;margin:6px 0}
+.sub{text-align:center;font-family:var(--font-body);font-style:italic;color:var(--ink-muted);font-size:.85rem;margin-bottom:10px}
+.hud{display:flex;justify-content:space-between;margin-bottom:10px;font-family:var(--font-mono);font-size:.78rem}
+.hud .stat{display:flex;flex-direction:column;align-items:center;flex:1}
+.hud .stat .v{font-family:var(--font-display);font-size:1.2rem;font-weight:700;color:var(--accent)}
+.hud .stat .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted)}
+.field{position:relative;background:var(--bg-recessed);border-radius:14px;padding:8px;height:60vh;min-height:400px;overflow:hidden}
+.layers{position:absolute;inset:8px;display:grid;grid-template-rows:repeat(7,1fr);gap:4px}
+.layer{background:var(--bg-surface);border:1px dashed var(--border);border-radius:6px;display:flex;align-items:center;padding:0 10px;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);justify-content:space-between;cursor:pointer;transition:background .15s,border-color .15s}
+.layer:active{background:var(--accent-dim);border-color:var(--accent)}
+.layer .num{font-family:var(--font-display);font-weight:700;color:var(--accent)}
+.layer.target{background:var(--accent-dim);border-color:var(--accent)}
+.falling{position:absolute;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:8px 14px;border-radius:8px;font-family:var(--font-display);font-weight:700;font-size:1rem;box-shadow:0 4px 10px rgba(0,0,0,.15);z-index:5;transition:top .05s linear}
+.fb{text-align:center;font-family:var(--font-mono);font-size:.85rem;margin:10px 0;min-height:18px;color:var(--ink-muted)}
+.btns{display:flex;gap:10px;justify-content:center;margin-top:6px}
+.btns button{padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg-surface);font-family:var(--font-display);font-weight:700;font-size:.85rem;cursor:pointer}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="game-wrap">
+  <div class="title">OSI Tetris</div>
+  <div class="sub">Tap the layer that matches the falling protocol.</div>
+  <div class="hud">
+    <div class="stat"><div class="v" id="score">0</div><div class="l">Score</div></div>
+    <div class="stat"><div class="v" id="lives">3</div><div class="l">Lives</div></div>
+    <div class="stat"><div class="v" id="speed">1×</div><div class="l">Speed</div></div>
+  </div>
+  <div class="field" id="field">
+    <div class="layers" id="layers"></div>
+  </div>
+  <div class="fb" id="fb">&nbsp;</div>
+  <div class="btns">
+    <button onclick="newGame()">Restart</button>
+    <button onclick="togglePause()">Pause</button>
+  </div>
+</div>
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){
+const LAYERS=[
+  {n:7,name:'Application',hint:'HTTP, DNS, FTP, SMTP'},
+  {n:6,name:'Presentation',hint:'TLS, SSL, ASCII'},
+  {n:5,name:'Session',hint:'NetBIOS, RPC, sockets'},
+  {n:4,name:'Transport',hint:'TCP, UDP, ports'},
+  {n:3,name:'Network',hint:'IP, ICMP, OSPF, EIGRP'},
+  {n:2,name:'Data Link',hint:'Ethernet, MAC, ARP, STP'},
+  {n:1,name:'Physical',hint:'cables, hubs, NICs'}
+];
+const PROTOS=[
+  {p:'HTTP',l:7},{p:'DNS',l:7},{p:'FTP',l:7},{p:'SMTP',l:7},{p:'SSH',l:7},{p:'DHCP',l:7},{p:'SNMP',l:7},{p:'Telnet',l:7},
+  {p:'TLS',l:6},{p:'SSL',l:6},
+  {p:'NetBIOS',l:5},{p:'RPC',l:5},
+  {p:'TCP',l:4},{p:'UDP',l:4},
+  {p:'IP',l:3},{p:'ICMP',l:3},{p:'OSPF',l:3},{p:'EIGRP',l:3},{p:'IPv6',l:3},
+  {p:'Ethernet',l:2},{p:'ARP',l:2},{p:'MAC',l:2},{p:'STP',l:2},{p:'PPP',l:2},
+  {p:'RJ-45',l:1},{p:'Hub',l:1},{p:'NIC',l:1},{p:'Cat6',l:1}
+];
+let score=0,lives=3,speedMul=1,paused=false,current=null,fallTop=0,raf=null,gameOver=false;
+
+function renderLayers(){
+  const wrap=document.getElementById('layers');wrap.innerHTML='';
+  LAYERS.forEach(L=>{
+    const d=document.createElement('div');d.className='layer';d.dataset.layer=L.n;
+    d.innerHTML='<span><span class="num">L'+L.n+'</span> '+L.name+'</span><span style="font-size:.62rem">'+L.hint+'</span>';
+    d.onclick=()=>tap(L.n);
+    wrap.appendChild(d);
+  });
+}
+
+function spawn(){
+  const p=PROTOS[Math.floor(Math.random()*PROTOS.length)];
+  current=p;
+  const field=document.getElementById('field');
+  let f=document.querySelector('.falling');if(f)f.remove();
+  f=document.createElement('div');f.className='falling';f.textContent=p.p;f.id='falling';
+  field.appendChild(f);
+  fallTop=0;f.style.top='0px';
+  document.getElementById('speed').textContent=speedMul.toFixed(1)+'×';
+}
+
+function loop(){
+  if(paused||gameOver){raf=requestAnimationFrame(loop);return}
+  const f=document.getElementById('falling');if(!f){raf=requestAnimationFrame(loop);return}
+  const field=document.getElementById('field');
+  const max=field.clientHeight-f.clientHeight-8;
+  fallTop+=1.2*speedMul;
+  if(fallTop>=max){miss();return}
+  f.style.top=fallTop+'px';
+  raf=requestAnimationFrame(loop);
+}
+
+function tap(layerNum){
+  if(!current||gameOver)return;
+  const fb=document.getElementById('fb');
+  if(layerNum===current.l){
+    score+=10;speedMul=Math.min(3,speedMul+0.05);
+    fb.textContent='✓ '+current.p+' = L'+current.l;fb.style.color='#15803d';
+    spawn();
+  }else{
+    fb.textContent='✗ '+current.p+' is L'+current.l+', not L'+layerNum;fb.style.color='#b91c1c';
+    miss(false);
+  }
+  document.getElementById('score').textContent=score;
+}
+function miss(timeout=true){
+  lives--;document.getElementById('lives').textContent=lives;
+  if(timeout){document.getElementById('fb').textContent='✗ '+current.p+' fell — was L'+current.l;document.getElementById('fb').style.color='#b91c1c'}
+  if(lives<=0){end();return}
+  spawn();
+}
+function end(){gameOver=true;const f=document.getElementById('falling');if(f)f.remove();document.getElementById('fb').innerHTML='<span style="color:#b91c1c;font-weight:700">Game over — final score '+score+'</span>'}
+window.togglePause=function(){paused=!paused}
+window.newGame=function(){score=0;lives=3;speedMul=1;paused=false;gameOver=false;document.getElementById('score').textContent=0;document.getElementById('lives').textContent=3;document.getElementById('fb').textContent=' ';renderLayers();spawn();if(!raf)loop()}
+newGame();
+});</script>
+</body>
+</html>
