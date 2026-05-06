@@ -18,7 +18,6 @@
   /* ── Two complete NAV configs — pick one based on cert track ─── */
 
   var CCNA_NAV = [
-    { text: 'CORE', href: 'core.html' },
     { text: 'Core v2 ✦', href: 'core-v2.html' },
     { text: '1.1.a Routers ★', href: 'sim-1-1-a-cheat.html' },
     { text: '1.1.b Switches ★', href: 'sim-1-1-b-cheat.html' },
