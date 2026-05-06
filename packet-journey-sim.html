@@ -81,6 +81,20 @@ section{margin-bottom:var(--s-2xl)}
 .sim-explain strong{color:var(--ink);font-family:var(--font-display);font-weight:600}
 .sim-explain code{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-surface);padding:1px 6px;border-radius:3px;color:var(--accent);border:1px solid var(--border)}
 
+/* Frame-on-the-wire strip — shows ETH/IP headers as they mutate per hop */
+.wire{margin-top:var(--s-md);background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-family:var(--font-mono);font-size:.74rem;line-height:1.55;color:var(--ink-secondary)}
+.wire-title{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:6px;font-weight:700}
+.wire-row{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;padding:3px 0}
+.wire-tag{font-family:var(--font-display);font-size:.6rem;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:8px;background:var(--bg-surface);border:1px solid var(--border);color:var(--ink-muted);min-width:38px;text-align:center}
+.wire-tag.eth{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}
+.wire-tag.ip{color:#b45309;border-color:#fed7aa;background:#fff7ed}
+.wire-field{display:inline-flex;gap:4px;align-items:baseline}
+.wire-field-k{color:var(--ink-muted);font-size:.66rem}
+.wire-field-v{color:var(--ink);font-weight:600}
+.wire-field-v.flash{animation:wire-flash 1s ease-out}
+@keyframes wire-flash{0%{background:rgba(180,83,9,.32);box-shadow:0 0 0 4px rgba(180,83,9,.18)}100%{background:transparent;box-shadow:none}}
+.wire-note{margin-top:6px;color:var(--ink-muted);font-family:var(--font-body);font-size:.78rem;font-style:italic}
+
 /* Metrics grid */
 .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--s-sm);margin-bottom:var(--s-md)}
 @media (max-width:900px){.metrics{grid-template-columns:repeat(3,1fr)}}
@@ -221,6 +235,22 @@ section{margin-bottom:var(--s-2xl)}
       </div>
 
       <div class="sim-explain" id="edNote">Select a protocol to begin.</div>
+
+      <div class="wire" id="wire">
+        <div class="wire-title">Frame on the wire — what the next hop actually receives</div>
+        <div class="wire-row">
+          <span class="wire-tag eth">ETH</span>
+          <span class="wire-field"><span class="wire-field-k">src</span><span id="wEthSrc" class="wire-field-v">—</span></span>
+          <span class="wire-field"><span class="wire-field-k">dst</span><span id="wEthDst" class="wire-field-v">—</span></span>
+        </div>
+        <div class="wire-row">
+          <span class="wire-tag ip">IP</span>
+          <span class="wire-field"><span class="wire-field-k">src</span><span id="wIpSrc" class="wire-field-v">—</span></span>
+          <span class="wire-field"><span class="wire-field-k">dst</span><span id="wIpDst" class="wire-field-v">—</span></span>
+          <span class="wire-field"><span class="wire-field-k">TTL</span><span id="wTtl" class="wire-field-v">—</span></span>
+        </div>
+        <div class="wire-note" id="wireNote">Press Play. Watch L2 (MAC) addresses rewrite at every router; L3 (IP) addresses stay end-to-end.</div>
+      </div>
     </div>
 
     <div class="metrics">
@@ -446,14 +476,16 @@ const PROTOS = {
   UDP:    {label:'UDP',     cls:'',    overhead:'~1%',  hops:4, teaches:'<strong>UDP best-effort.</strong> No handshake, no retransmit, no congestion control. If the network drops a datagram, the app has to notice.'}
 };
 const NODES = [
-  {id:'src', x:5,  y:50, icon:'💻', label:'Client',   sub:'10.0.0.10',       kind:'host'},
-  {id:'sw1', x:18, y:72, icon:'🔁', label:'SW1',      sub:'L2 switch',       kind:'switch'},
-  {id:'r1',  x:33, y:25, icon:'🔷', label:'R1',       sub:'default gateway', kind:'router'},
-  {id:'fw',  x:52, y:60, icon:'🛡️', label:'Firewall', sub:'stateful (L3/4)', kind:'router'},
-  {id:'r2',  x:72, y:25, icon:'🔷', label:'R2',       sub:'transit',         kind:'router'},
-  {id:'dst', x:93, y:50, icon:'🖥️', label:'Server',   sub:'93.184.216.34',   kind:'host'}
+  {id:'src', x:5,  y:50, icon:'💻', label:'Client',   sub:'10.0.0.10',       kind:'host',   ip:'10.0.0.10',      mac:'02:00:00:00:00:01'},
+  {id:'sw1', x:18, y:72, icon:'🔁', label:'SW1',      sub:'L2 switch',       kind:'switch', ip:'—',              mac:'—'},
+  {id:'r1',  x:33, y:25, icon:'🔷', label:'R1',       sub:'default gateway', kind:'router', ip:'10.0.0.1',       mac:'02:00:00:00:00:11'},
+  {id:'fw',  x:52, y:60, icon:'🛡️', label:'Firewall', sub:'stateful (L3/4)', kind:'router', ip:'172.16.0.1',     mac:'02:00:00:00:00:22'},
+  {id:'r2',  x:72, y:25, icon:'🔷', label:'R2',       sub:'transit',         kind:'router', ip:'192.0.2.1',      mac:'02:00:00:00:00:33'},
+  {id:'dst', x:93, y:50, icon:'🖥️', label:'Server',   sub:'93.184.216.34',   kind:'host',   ip:'93.184.216.34', mac:'02:00:00:00:00:99'}
 ];
 const PATH = ['src','sw1','r1','fw','r2','dst'];
+// L3-only path (skips L2 switch). Routers rewrite L2 headers between these stops.
+const L3_PATH = PATH.filter(id => NODES.find(n=>n.id===id).kind !== 'switch');
 
 const CHALLENGES = [
   {d:'beginner', q:'At which OSI layer does a router make forwarding decisions?', a:'<strong>Layer 3 (Network)</strong>. Routers read the IP header to pick the next hop. Switches operate at Layer 2 using MAC addresses.'},
@@ -607,6 +639,43 @@ async function traverse(flavor,label,reverse){
   anim.packetEl.classList.remove('visible');
   document.querySelectorAll('.node').forEach(n=>n.classList.remove('active'));
 }
+// === Wire view (ETH + IP header pane) =====================================
+// Tracks the L3 endpoints (which never change) and the per-hop L2 rewrite.
+let wire = {ipSrc:'—', ipDst:'—', ethSrc:'—', ethDst:'—', ttl:64};
+function flash(elId){
+  const el = $(elId); if (!el) return;
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+function setWireField(elId, val){
+  const el = $(elId); if (!el) return;
+  if (el.textContent !== String(val)){ el.textContent = val; flash(elId); }
+}
+function setWireIPs(srcId, dstId){
+  const s = NODES.find(n=>n.id===srcId), d = NODES.find(n=>n.id===dstId);
+  wire.ipSrc = s.ip; wire.ipDst = d.ip;
+  setWireField('wIpSrc', wire.ipSrc); setWireField('wIpDst', wire.ipDst);
+  setWireField('wTtl', wire.ttl);
+}
+// Called on every L3-hop emit: sender re-encapsulates with their MAC as src,
+// next-hop's MAC as dst. Switches don't trigger this — they forward the
+// existing frame untouched.
+function setWireMACs(emitterId, nextL3Id){
+  const e = NODES.find(n=>n.id===emitterId);
+  const n = NODES.find(n=>n.id===nextL3Id);
+  wire.ethSrc = e.mac; wire.ethDst = n.mac;
+  setWireField('wEthSrc', wire.ethSrc); setWireField('wEthDst', wire.ethDst);
+}
+function resetWire(){
+  wire = {ipSrc:'—', ipDst:'—', ethSrc:'—', ethDst:'—', ttl:64};
+  ['wEthSrc','wEthDst','wIpSrc','wIpDst','wTtl'].forEach(id=>$(id).textContent='—');
+  $('wireNote').textContent='Press Play. Watch L2 (MAC) addresses rewrite at every router; L3 (IP) addresses stay end-to-end.';
+}
+// Returns the next L3 device on the path after a given node (or end).
+function nextL3After(id){
+  const i = L3_PATH.indexOf(id);
+  return (i>=0 && i < L3_PATH.length-1) ? L3_PATH[i+1] : null;
+}
+
 function maybeDrop(){ return Math.random()*100 < loss; }
 async function dropAnim(pathSlice, idx){
   const path = pathSlice;

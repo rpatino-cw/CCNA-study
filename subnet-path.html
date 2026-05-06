@@ -60,6 +60,19 @@
     .legend-dot { width: 12px; height: 12px; border-radius: 6px; border: 2px solid var(--border); }
     .legend-dot.unlocked { border-color: var(--ink); }
     .legend-dot.completed { background: #6bbf6b; border-color: #6bbf6b; }
+
+    .gate-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; padding: 8px 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; }
+    .gate-row.gate-pass { background: #e8f5e8; border: 1px solid #6bbf6b; }
+    .gate-row.gate-pending { background: #fff8e6; border: 1px solid #d4b46b; }
+    .gate-row.gate-manual { background: var(--bg); border: 1px dashed var(--border); }
+    .gate-pill { font-family: var(--font-display); font-size: 0.7rem; padding: 3px 9px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; flex-shrink: 0; }
+    .gate-pill.pass { background: #6bbf6b; color: #fff; }
+    .gate-pill.pending { background: #d4b46b; color: #fff; }
+    .gate-pill.manual { background: var(--ink-muted); color: #fff; }
+    .gate-detail { color: var(--ink); }
+    .gate-row.gate-pending .gate-detail { color: #5a4a1a; }
+    .gate-row.gate-manual .gate-detail { color: var(--ink-muted); font-style: italic; }
+    .footer-note { margin-top: var(--s-xl); padding: 12px 16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-muted); text-align: center; border-top: 1px dashed var(--border); }
   </style>
 </head>
 <body>
@@ -75,6 +88,7 @@
       <span class="ps-label">Progress</span>
       <span class="ps-val" id="progCount">0 / 7</span>
       <div class="progress-bar"><div class="progress-bar-fill" id="progBar" style="width:0%"></div></div>
+      <button onclick="refreshGates()">Refresh status</button>
       <button onclick="resetPath()">Reset</button>
     </div>
 
@@ -85,6 +99,10 @@
     </div>
 
     <div class="timeline" id="timeline"></div>
+
+    <div class="footer-note">
+      Auto-gates re-check on every page focus and on cross-tab localStorage updates. Drill in another tab — switch back to see progress.
+    </div>
   </div>
 
 <script defer src="js/nav.js?v=4.56"></script>
@@ -98,58 +116,134 @@ document.addEventListener('DOMContentLoaded', function(){
       name: 'Powers of 2',
       tier: 'foundation',
       blurb: 'Memorize 2¹–2¹⁶. Reverse-lookup. Divide and multiply via exponent subtract / add. The math underneath everything else.',
-      goal: 'Hit a streak of 15 in Math Drill (any type).',
-      href: 'math-drill.html'
+      goal: 'Best streak ≥ 15 in Math Drill (auto-detected).',
+      href: 'math-drill.html',
+      gate: { kind: 'streak', keys: ['ccna_md_best'], threshold: 15, label: 'streak' }
     },
     {
       id: 'binary',
       name: 'Binary ↔ Decimal Octet',
       tier: 'foundation',
       blurb: 'Convert any decimal 0–255 to 8-bit binary and back. Know bit-position values 128 64 32 16 8 4 2 1 cold.',
-      goal: 'Hit a streak of 12 in Bit Drill (any type).',
-      href: 'bit-drill.html'
+      goal: 'Best streak ≥ 12 in Bit Drill (auto-detected).',
+      href: 'bit-drill.html',
+      gate: { kind: 'streak', keys: ['ccna_bd_best'], threshold: 12, label: 'streak' }
     },
     {
       id: 'magic-number',
       name: 'Magic Number',
       tier: 'bridge',
       blurb: 'Block size = 256 − interesting mask octet. Used to find subnet boundaries instantly.',
-      goal: 'Run Magic Number trainer until block-size questions feel obvious.',
-      href: 'magic-number.html'
+      goal: 'Self-attest. Run trainer until 256 − octet → block-size feels reflexive (~5 min).',
+      href: 'magic-number.html',
+      gate: { kind: 'manual' }
     },
     {
       id: 'prefix-mask',
       name: 'Prefix ↔ Mask',
       tier: 'bridge',
       blurb: 'Translate /N to dotted decimal mask and back. /24 = 255.255.255.0, /26 = 255.255.255.192, /30 = 255.255.255.252.',
-      goal: 'Drill prefix-tier trainer through /24–/30 fast.',
-      href: 'prefix-tier-trainer.html'
+      goal: '≥ 80% accuracy with ≥ 5 questions on each tier /23–/24, /25–/27, /28–/29, /30–/31 in Prefix Tier Trainer (auto-detected).',
+      href: 'prefix-tier-trainer.html',
+      gate: {
+        kind: 'tier-accuracy',
+        statsKey: 'prefix_tier_stats_v1',
+        tiers: [
+          { id: 't5', range: '/23–/24' },
+          { id: 't6', range: '/25–/27' },
+          { id: 't7', range: '/28–/29' },
+          { id: 't8', range: '/30–/31' }
+        ],
+        minQuestions: 5,
+        minAccuracy: 0.8
+      }
     },
     {
       id: 'formula',
       name: 'Formula Recognition',
       tier: 'bridge',
       blurb: 'Read a CCNA-style subnet question and pick the formula (not the answer yet). Pattern recognition before computation.',
-      goal: 'Pass formula quiz with 80%+.',
-      href: 'formula-quiz.html'
+      goal: 'Self-attest. Pass the formula quiz once. No persistence — honor system.',
+      href: 'formula-quiz.html',
+      gate: { kind: 'manual' }
     },
     {
       id: 'visual',
       name: 'Visual Walk-through',
       tier: 'bridge',
       blurb: 'See subnetting as a step-by-step visual. Borrow bits, find network ID, list usable hosts, broadcast.',
-      goal: 'Walk through 3 examples in Subnetting Visual.',
-      href: 'subnetting-visual.html'
+      goal: 'Score ≥ 8/15 on BOTH Visual quizzes (class quiz + main quiz, auto-detected).',
+      href: 'subnetting-visual.html',
+      gate: { kind: 'multi-int', keys: ['subnet-visual-classquiz-best', 'subnet-visual-quiz-best'], threshold: 8, label: 'score' }
     },
     {
       id: 'real-subnet',
       name: 'Real CCNA Subnetting Questions',
       tier: 'real',
       blurb: 'Timed infinite drill. Now you have the math, the binary, the magic number, the prefix-mask map, and pattern recognition. The question becomes mechanical.',
-      goal: 'Hit 80%+ accuracy on Subnetting Trainer over 20 questions, then run Mastery track.',
-      href: 'subnetting-trainer.html'
+      goal: 'Self-attest after a 20-question Trainer session at ≥ 80% accuracy. Final gate is yours to honor.',
+      href: 'subnetting-trainer.html',
+      gate: { kind: 'manual' }
     }
   ];
+
+  function evalGate(stage) {
+    var g = stage.gate;
+    if (!g || g.kind === 'manual') {
+      return { passed: false, status: 'manual', detail: 'Self-attest only — no persistence in this drill.' };
+    }
+    if (g.kind === 'streak') {
+      var v = parseInt(localStorage.getItem(g.keys[0]) || '0', 10);
+      if (isNaN(v)) v = 0;
+      var pass = v >= g.threshold;
+      return {
+        passed: pass,
+        status: pass ? 'pass' : 'pending',
+        detail: pass
+          ? 'Best ' + g.label + ' ' + v + ' ✓ (≥ ' + g.threshold + ')'
+          : 'Best ' + g.label + ' ' + v + ' / ' + g.threshold + ' — keep drilling'
+      };
+    }
+    if (g.kind === 'multi-int') {
+      var vals = g.keys.map(function(k){
+        var n = parseInt(localStorage.getItem(k) || '0', 10);
+        return isNaN(n) ? 0 : n;
+      });
+      var allPass = vals.every(function(n){ return n >= g.threshold; });
+      var summary = vals.map(function(n){ return n + '/' + g.threshold; }).join(' + ');
+      return {
+        passed: allPass,
+        status: allPass ? 'pass' : 'pending',
+        detail: allPass ? 'Both ' + g.label + 's ≥ ' + g.threshold + ' ✓ (' + summary + ')' : summary + ' — both need ≥ ' + g.threshold
+      };
+    }
+    if (g.kind === 'tier-accuracy') {
+      var stats;
+      try { stats = JSON.parse(localStorage.getItem(g.statsKey) || '{}') || {}; }
+      catch (e) { return { passed: false, status: 'pending', detail: 'Invalid tier stats — drill the trainer to populate.' }; }
+      var lines = [];
+      var allPass = true;
+      g.tiers.forEach(function(t){
+        var r = stats[t.id];
+        if (!r || !r.total) {
+          lines.push(t.range + ' 0/0');
+          allPass = false;
+          return;
+        }
+        var acc = r.total > 0 ? r.correct / r.total : 0;
+        var pct = Math.round(acc * 100);
+        var ok = r.total >= g.minQuestions && acc >= g.minAccuracy;
+        if (!ok) allPass = false;
+        lines.push(t.range + ' ' + r.correct + '/' + r.total + ' (' + pct + '%)' + (ok ? ' ✓' : ''));
+      });
+      return {
+        passed: allPass,
+        status: allPass ? 'pass' : 'pending',
+        detail: lines.join(' · ') + (allPass ? '' : ' — need ≥ ' + g.minQuestions + ' Q & ≥ ' + Math.round(g.minAccuracy * 100) + '% per tier')
+      };
+    }
+    return { passed: false, status: 'manual', detail: 'Unknown gate type.' };
+  }
 
   function loadProgress() {
     try {
@@ -168,6 +262,17 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function render() {
+    // First pass: evaluate gates, auto-mark passing stages (idempotent)
+    var gates = STAGES.map(function(s){ return evalGate(s); });
+    var changed = false;
+    for (var j = 0; j < STAGES.length; j++) {
+      if (gates[j].passed && !progress[STAGES[j].id]) {
+        progress[STAGES[j].id] = Date.now();
+        changed = true;
+      }
+    }
+    if (changed) saveProgress(progress);
+
     var tl = document.getElementById('timeline');
     var html = '';
     var doneCount = 0;
@@ -178,6 +283,7 @@ document.addEventListener('DOMContentLoaded', function(){
       var stageClass = done ? 'completed' : (unlocked ? 'unlocked' : 'locked');
       var marker = done ? '✓' : String(i + 1);
       if (done) doneCount++;
+      var gate = gates[i];
 
       html += '<div class="stage ' + stageClass + '">';
       html += '<div class="stage-marker">' + marker + '</div>';
@@ -188,6 +294,19 @@ document.addEventListener('DOMContentLoaded', function(){
       html += '</div>';
       html += '<div class="stage-blurb">' + s.blurb + '</div>';
       html += '<div class="stage-goal"><strong>Goal:</strong> ' + s.goal + '</div>';
+
+      // Gate status row
+      if (unlocked) {
+        var rowCls, pillCls, pillTxt;
+        if (gate.status === 'pass') { rowCls = 'gate-pass'; pillCls = 'pass'; pillTxt = 'Auto ✓'; }
+        else if (gate.status === 'pending') { rowCls = 'gate-pending'; pillCls = 'pending'; pillTxt = 'Auto · pending'; }
+        else { rowCls = 'gate-manual'; pillCls = 'manual'; pillTxt = 'Manual'; }
+        html += '<div class="gate-row ' + rowCls + '">';
+        html += '<span class="gate-pill ' + pillCls + '">' + pillTxt + '</span>';
+        html += '<span class="gate-detail">' + gate.detail + '</span>';
+        html += '</div>';
+      }
+
       html += '<div class="stage-actions">';
       if (unlocked) {
         html += '<a class="stage-link" href="' + s.href + '">Open drill →</a>';
@@ -213,11 +332,16 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   window.resetPath = function() {
-    if (!confirm('Reset all stage progress?')) return;
+    if (!confirm('Reset path progress? (Drill localStorage is untouched.)')) return;
     progress = {};
     saveProgress(progress);
     render();
   };
+
+  window.refreshGates = function() { render(); };
+
+  window.addEventListener('storage', function(){ render(); });
+  window.addEventListener('focus', function(){ render(); });
 
   render();
 });
