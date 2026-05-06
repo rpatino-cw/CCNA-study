@@ -224,6 +224,7 @@ section{margin-bottom:var(--s-2xl)}
         </div>
         <div class="sim-row" style="justify-content:flex-end;gap:8px">
           <button id="playBtn" class="sim-btn primary">Play</button>
+          <button id="stepBtn" class="sim-btn" title="Click to advance one step at a time. Lets you pause and read every encap layer + hop log line.">▷ Step</button>
           <button id="resetBtn" class="sim-btn">Reset</button>
         </div>
       </div>
@@ -524,6 +525,8 @@ const CHALLENGES = [
 let current = 'HTTP', latency = 80, loss = 2, speed = 1.0;
 let running = false, anim={timers:[],packetEl:null,t0:0}, stats = newStats();
 let initialTtl = 64;
+let stepMode = false;
+let stepResolver = null;
 class TTLExceeded extends Error { constructor(at){ super('TTL exceeded at '+at); this.at = at; } }
 function newStats(){return {sent:0,recv:0,drop:0,hops:0,bytes:0,startT:0};}
 
@@ -604,12 +607,14 @@ cc.addEventListener('click', function(e){
 $('latency').addEventListener('input', e=>{latency=+e.target.value; $('latVal').textContent=latency+' ms';});
 $('loss').addEventListener('input',    e=>{loss=+e.target.value;    $('lossVal').textContent=loss+' %';});
 $('speed').addEventListener('input',   e=>{speed=+e.target.value/10; $('spdVal').textContent=speed.toFixed(1)+'×';});
-$('playBtn').addEventListener('click', function(){ if(!running) play(); });
+$('playBtn').addEventListener('click', function(){ if(!running) { stepMode=false; play(); } });
+$('stepBtn').addEventListener('click', advanceStep);
 $('resetBtn').addEventListener('click', reset);
 $('btnTtl2').addEventListener('click', function(){
   if (running) return;
   initialTtl = 2;
   const b = $('ttlBanner'); if (b) b.style.display='';
+  stepMode=false;
   play();
 });
 
@@ -634,7 +639,27 @@ function setLayer(host,n,cls){
   if(d) d.classList.add(cls);
 }
 function clearLayers(){document.querySelectorAll('.osi-layer').forEach(d=>d.classList.remove('active-tx','active-rx'));}
-function wait(ms){return new Promise(r=>{const t=setTimeout(r, ms/speed); anim.timers.push(t);});}
+function wait(ms){
+  // Step mode: each wait point becomes a manual gate the learner advances.
+  if (stepMode){
+    return new Promise(r => { stepResolver = r; updateStepBtn(); });
+  }
+  return new Promise(r => { const t=setTimeout(r, ms/speed); anim.timers.push(t); });
+}
+function updateStepBtn(){
+  const b = $('stepBtn'); if (!b) return;
+  if (stepMode && running) b.textContent = '▶ Next';
+  else if (stepMode) b.textContent = '▷ Step (running)';
+  else b.textContent = '▷ Step';
+}
+function advanceStep(){
+  if (stepResolver){
+    const r = stepResolver; stepResolver = null;
+    r();
+  } else if (!running) {
+    play(true);
+  }
+}
 // Populate the packet-inspector field that corresponds to a given OSI layer.
 // Walks top→down so L7 fills first, then L4, L3, L2.
 function fillHeaderForLayer(n){
@@ -864,6 +889,9 @@ async function runUDP(){
 /* ═══ CONTROL ═══ */
 function reset(){
   anim.timers.forEach(clearTimeout); anim.timers=[];
+  // Cancel any pending step gate so a new run starts cleanly.
+  if (stepResolver){ const r = stepResolver; stepResolver = null; r(); }
+  stepMode = false;
   stats = newStats(); clearLayers();
   $('log').innerHTML='';
   $('sSent').textContent=0; $('sRecv').textContent=0; $('sDrop').textContent=0; $('sHops').textContent=0;
@@ -877,14 +905,18 @@ function reset(){
 }
 function endRun(){
   running=false;
+  stepMode = false; stepResolver = null;
   $('playBtn').disabled=false; $('playBtn').textContent='Play again';
+  updateStepBtn();
   if (initialTtl !== 64){
     initialTtl = 64;
     const b = $('ttlBanner'); if (b) b.style.display='none';
   }
 }
-function play(){
-  reset(); running=true; anim.t0=performance.now(); stats.startT=performance.now();
+function play(useStep){
+  reset();
+  if (useStep) { stepMode = true; updateStepBtn(); }
+  running=true; anim.t0=performance.now(); stats.startT=performance.now();
   $('playBtn').disabled=true; $('playBtn').textContent='Running…';
   const fn = {HTTP:runHTTP, HTTPS:runHTTPS, DNS:runDNS,'TCP-HS':runTCPHS, UDP:runUDP}[current];
   fn().then(function(){
