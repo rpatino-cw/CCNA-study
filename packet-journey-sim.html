@@ -88,6 +88,9 @@ section{margin-bottom:var(--s-2xl)}
 .wire-tag{font-family:var(--font-display);font-size:.6rem;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:8px;background:var(--bg-surface);border:1px solid var(--border);color:var(--ink-muted);min-width:38px;text-align:center}
 .wire-tag.eth{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}
 .wire-tag.ip{color:#b45309;border-color:#fed7aa;background:#fff7ed}
+.wire-tag.l4{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}
+.wire-tag.l7{color:#7c3aed;border-color:#ddd6fe;background:#f5f3ff}
+.wire-payload{font-family:var(--font-mono);font-size:.72rem;color:var(--ink);background:var(--bg-surface);border:1px solid var(--border);border-radius:3px;padding:2px 6px}
 .wire-field{display:inline-flex;gap:4px;align-items:baseline}
 .wire-field-k{color:var(--ink-muted);font-size:.66rem}
 .wire-field-v{color:var(--ink);font-weight:600}
@@ -237,19 +240,27 @@ section{margin-bottom:var(--s-2xl)}
       <div class="sim-explain" id="edNote">Select a protocol to begin.</div>
 
       <div class="wire" id="wire">
-        <div class="wire-title">Frame on the wire — what the next hop actually receives</div>
+        <div class="wire-title">Packet inspector — header by header (top→down builds during encap)</div>
         <div class="wire-row">
-          <span class="wire-tag eth">ETH</span>
-          <span class="wire-field"><span class="wire-field-k">src</span><span id="wEthSrc" class="wire-field-v">—</span></span>
-          <span class="wire-field"><span class="wire-field-k">dst</span><span id="wEthDst" class="wire-field-v">—</span></span>
+          <span class="wire-tag l7">L7</span>
+          <span class="wire-field"><span class="wire-field-k">payload</span><span id="wL7" class="wire-payload">—</span></span>
         </div>
         <div class="wire-row">
-          <span class="wire-tag ip">IP</span>
+          <span class="wire-tag l4">L4</span>
+          <span class="wire-field"><span class="wire-field-k">hdr</span><span id="wL4" class="wire-payload">—</span></span>
+        </div>
+        <div class="wire-row">
+          <span class="wire-tag ip">L3</span>
           <span class="wire-field"><span class="wire-field-k">src</span><span id="wIpSrc" class="wire-field-v">—</span></span>
           <span class="wire-field"><span class="wire-field-k">dst</span><span id="wIpDst" class="wire-field-v">—</span></span>
           <span class="wire-field"><span class="wire-field-k">TTL</span><span id="wTtl" class="wire-field-v">—</span></span>
         </div>
-        <div class="wire-note" id="wireNote">Press Play. Watch L2 (MAC) addresses rewrite at every router; L3 (IP) addresses stay end-to-end.</div>
+        <div class="wire-row">
+          <span class="wire-tag eth">L2</span>
+          <span class="wire-field"><span class="wire-field-k">src</span><span id="wEthSrc" class="wire-field-v">—</span></span>
+          <span class="wire-field"><span class="wire-field-k">dst</span><span id="wEthDst" class="wire-field-v">—</span></span>
+        </div>
+        <div class="wire-note" id="wireNote">Press Play. Each layer fills in as encap fires. L2 rewrites at every router hop; L3 stays end-to-end; L4/L7 stay constant top to bottom.</div>
       </div>
     </div>
 
@@ -475,6 +486,14 @@ const PROTOS = {
   'TCP-HS':{label:'TCP Handshake', cls:'syn',overhead:'~40%', hops:4, teaches:'<strong>Pure TCP 3-way handshake.</strong> SYN → SYN-ACK → ACK. Each side allocates a TCB and picks an ISN. No data flows yet.'},
   UDP:    {label:'UDP',     cls:'',    overhead:'~1%',  hops:4, teaches:'<strong>UDP best-effort.</strong> No handshake, no retransmit, no congestion control. If the network drops a datagram, the app has to notice.'}
 };
+// Per-protocol L7/L4 header content surfaced in the packet inspector pane.
+const PAYLOADS = {
+  HTTP:    {l7:'GET / HTTP/1.1  Host: example.com',     l4:'TCP src=54321 dst=80   flags=PSH,ACK  SEQ=1001'},
+  HTTPS:   {l7:'TLS application data (encrypted)',      l4:'TCP src=54321 dst=443  flags=PSH,ACK  SEQ=1001'},
+  DNS:     {l7:'Q: A example.com  qtype=1 class=IN',    l4:'UDP src=54321 dst=53   length=29'},
+  'TCP-HS':{l7:'(no application data — handshake)',     l4:'TCP src=54321 dst=80   flags=SYN  SEQ=0  win=64240'},
+  UDP:     {l7:'(generic application bytes — 512 B)',   l4:'UDP src=54321 dst=9999 length=512'}
+};
 const NODES = [
   {id:'src', x:5,  y:50, icon:'💻', label:'Client',   sub:'10.0.0.10',       kind:'host',   ip:'10.0.0.10',      mac:'02:00:00:00:00:01'},
   {id:'sw1', x:18, y:72, icon:'🔁', label:'SW1',      sub:'L2 switch',       kind:'switch', ip:'—',              mac:'—'},
@@ -603,10 +622,23 @@ function setLayer(host,n,cls){
 }
 function clearLayers(){document.querySelectorAll('.osi-layer').forEach(d=>d.classList.remove('active-tx','active-rx'));}
 function wait(ms){return new Promise(r=>{const t=setTimeout(r, ms/speed); anim.timers.push(t);});}
+// Populate the packet-inspector field that corresponds to a given OSI layer.
+// Walks top→down so L7 fills first, then L4, L3, L2.
+function fillHeaderForLayer(n){
+  const p = PAYLOADS[current]; if (!p) return;
+  if (n === 7) setWireL7(p.l7);
+  else if (n === 4) setWireL4(p.l4);
+  else if (n === 3) setWireIPs(PATH[0], PATH[PATH.length-1]);
+  else if (n === 2) {
+    const nx = nextL3InPath(PATH, 0);
+    if (nx) setWireMACs(PATH[0], nx);
+  }
+}
 async function encap(host, cls){
   for (let i=0;i<LAYERS.length;i++){
     setLayer(host, LAYERS[i].n, cls);
     log((cls==='active-tx'?'↓ encap':'↑ decap')+' L'+LAYERS[i].n+' — '+LAYERS[i].name);
+    fillHeaderForLayer(LAYERS[i].n);
     await wait(90);
   }
 }
@@ -683,10 +715,12 @@ function setWireMACs(emitterId, nextL3Id){
   wire.ethSrc = e.mac; wire.ethDst = n.mac;
   setWireField('wEthSrc', wire.ethSrc); setWireField('wEthDst', wire.ethDst);
 }
+function setWireL7(text){ setWireField('wL7', text); }
+function setWireL4(text){ setWireField('wL4', text); }
 function resetWire(){
   wire = {ipSrc:'—', ipDst:'—', ethSrc:'—', ethDst:'—', ttl:64};
-  ['wEthSrc','wEthDst','wIpSrc','wIpDst','wTtl'].forEach(id=>$(id).textContent='—');
-  $('wireNote').textContent='Press Play. Watch L2 (MAC) addresses rewrite at every router; L3 (IP) addresses stay end-to-end.';
+  ['wEthSrc','wEthDst','wIpSrc','wIpDst','wTtl','wL7','wL4'].forEach(id=>{const el=$(id); if(el) el.textContent='—';});
+  $('wireNote').textContent='Press Play. Each layer fills in as encap fires. L2 rewrites at every router hop; L3 stays end-to-end; L4/L7 stay constant top to bottom.';
 }
 // Returns the next L3 device on the path after a given node (or end).
 function nextL3After(id){
