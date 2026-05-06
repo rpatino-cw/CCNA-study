@@ -98,6 +98,20 @@ section{margin-bottom:var(--s-2xl)}
 @keyframes wire-flash{0%{background:rgba(180,83,9,.32);box-shadow:0 0 0 4px rgba(180,83,9,.18)}100%{background:transparent;box-shadow:none}}
 .wire-note{margin-top:6px;color:var(--ink-muted);font-family:var(--font-body);font-size:.78rem;font-style:italic}
 
+/* Predict-before-play — active recall before each run */
+.predict{margin-top:var(--s-md);background:var(--accent-dim);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius);padding:12px 16px}
+.predict-label{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700;margin-bottom:6px}
+.predict-q{font-family:var(--font-body);font-size:.92rem;color:var(--ink);margin-bottom:8px;line-height:1.5}
+.predict-opts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.predict-opt{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;color:var(--ink-secondary);transition:all .15s;text-align:left;line-height:1.3}
+.predict-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.predict-opt:disabled{cursor:default;opacity:.7}
+.predict-opt.correct{background:var(--prof-strong);color:#fff;border-color:var(--prof-strong);opacity:1}
+.predict-opt.wrong{background:var(--prof-weak);color:#fff;border-color:var(--prof-weak);opacity:1}
+.predict-result{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary);line-height:1.5;min-height:1.2em}
+.predict-result strong{color:var(--ink)}
+.predict-score{font-family:var(--font-mono);font-size:.66rem;color:var(--ink-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)}
+
 /* Metrics grid */
 .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--s-sm);margin-bottom:var(--s-md)}
 @media (max-width:900px){.metrics{grid-template-columns:repeat(3,1fr)}}
@@ -244,6 +258,14 @@ section{margin-bottom:var(--s-2xl)}
       </div>
 
       <div class="sim-explain" id="edNote">Select a protocol to begin.</div>
+
+      <div class="predict" id="predict">
+        <div class="predict-label">Predict before you play</div>
+        <div class="predict-q" id="predictQ">—</div>
+        <div class="predict-opts" id="predictOpts"></div>
+        <div class="predict-result" id="predictResult"></div>
+        <div class="predict-score" id="predictScore"></div>
+      </div>
 
       <div class="wire" id="wire">
         <div class="wire-title">Packet inspector — header by header (top→down builds during encap)</div>
@@ -492,6 +514,40 @@ const PROTOS = {
   'TCP-HS':{label:'TCP Handshake', cls:'syn',overhead:'~40%', hops:4, teaches:'<strong>Pure TCP 3-way handshake.</strong> SYN → SYN-ACK → ACK. Each side allocates a TCB and picks an ISN. No data flows yet.'},
   UDP:    {label:'UDP',     cls:'',    overhead:'~1%',  hops:4, teaches:'<strong>UDP best-effort.</strong> No handshake, no retransmit, no congestion control. If the network drops a datagram, the app has to notice.'}
 };
+// Predict-before-play questions — one per protocol. correct = index in opts.
+const PREDICT = {
+  HTTP: {
+    q:'How many round trips before the GET response data arrives at the client?',
+    opts:['1 (just the GET)','2 (TCP handshake + GET/200)','3 (handshake + TLS + GET)','4 (DNS + handshake + GET + ACK)'],
+    correct:1,
+    why:'TCP 3-way handshake = 1 RTT, then GET → 200 = 1 more RTT. Total 2.'
+  },
+  HTTPS: {
+    q:'With TLS 1.3, how many RTTs before encrypted application data arrives?',
+    opts:['1','2','3 (TCP + TLS + GET)','4'],
+    correct:2,
+    why:'TCP handshake (1 RTT) + TLS 1.3 handshake (1 RTT) + GET/200 (1 RTT) = 3 RTTs.'
+  },
+  DNS: {
+    q:'If a DNS query packet is dropped in transit, what does the transport layer do?',
+    opts:['UDP retransmits up to 3 times','UDP NACKs to the resolver','Nothing — UDP is fire-and-forget; the resolver app retries on its own timer','Switch buffers the datagram and resends'],
+    correct:2,
+    why:'UDP has no retransmit. The resolver itself sets a query timeout and resends if no answer arrives.'
+  },
+  'TCP-HS': {
+    q:'After the SYN-ACK arrives at the client, what packet finishes the handshake?',
+    opts:['SYN','ACK','FIN','RST'],
+    correct:1,
+    why:'Client → ACK completes the 3-way handshake. Connection then ESTABLISHED.'
+  },
+  UDP: {
+    q:'A UDP datagram is dropped between two routers. What happens at L4?',
+    opts:['UDP retransmits automatically','UDP requests a NACK from the receiver','Nothing — UDP is best-effort; the application must notice and recover','The frame is held by the next switch and resent'],
+    correct:2,
+    why:'UDP is connectionless. Loss is silent at L4 — recovery is the application\'s problem.'
+  }
+};
+
 // Per-protocol L7/L4 header content surfaced in the packet inspector pane.
 const PAYLOADS = {
   HTTP:    {l7:'GET / HTTP/1.1  Host: example.com',     l4:'TCP src=54321 dst=80   flags=PSH,ACK  SEQ=1001'},
@@ -625,7 +681,53 @@ function selectProto(k){
   $('sProto').textContent = PROTOS[k].label;
   $('sOver').textContent = PROTOS[k].overhead;
   $('edNote').innerHTML = PROTOS[k].teaches;
+  renderPredict(k);
   reset();
+}
+function renderPredict(protoKey){
+  const p = PREDICT[protoKey]; if (!p) return;
+  $('predictQ').textContent = p.q;
+  const opts = $('predictOpts'); opts.innerHTML='';
+  p.opts.forEach(function(opt, i){
+    const b = document.createElement('button');
+    b.className='predict-opt'; b.textContent = opt; b.type='button';
+    b.addEventListener('click', function(){ handlePredict(protoKey, i, b); });
+    opts.appendChild(b);
+  });
+  $('predictResult').textContent = '';
+  renderScore();
+}
+function handlePredict(protoKey, picked, btn){
+  const p = PREDICT[protoKey];
+  const opts = $('predictOpts');
+  const buttons = Array.from(opts.children);
+  buttons.forEach(b=>{ b.disabled=true; });
+  if (picked === p.correct){
+    btn.classList.add('correct');
+    $('predictResult').innerHTML = '<strong>✓ Correct.</strong> '+p.why+' Press Play to watch the packets.';
+    bumpPredict(true);
+  } else {
+    btn.classList.add('wrong');
+    buttons[p.correct].classList.add('correct');
+    $('predictResult').innerHTML = '<strong>✗ Not quite.</strong> '+p.why+' Press Play to see why.';
+    bumpPredict(false);
+  }
+}
+function bumpPredict(correct){
+  try {
+    const k = 'pjs.predict';
+    const cur = JSON.parse(localStorage.getItem(k) || '{"r":0,"w":0}');
+    if (correct) cur.r++; else cur.w++;
+    localStorage.setItem(k, JSON.stringify(cur));
+    renderScore();
+  } catch(e){}
+}
+function renderScore(){
+  const el = $('predictScore'); if (!el) return;
+  let cur = {r:0,w:0};
+  try { cur = JSON.parse(localStorage.getItem('pjs.predict') || '{"r":0,"w":0}'); } catch(e){}
+  const total = cur.r + cur.w;
+  el.textContent = total ? ('Predict score: '+cur.r+'/'+total+' correct across all protocols') : '';
 }
 function log(msg, kind){
   const row=document.createElement('div');
