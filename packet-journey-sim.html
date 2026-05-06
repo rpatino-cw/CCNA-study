@@ -59,10 +59,13 @@ section{margin-bottom:var(--s-2xl)}
 .topo-title{position:absolute;top:10px;left:14px;font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-muted);font-weight:700;z-index:5}
 
 .node{position:absolute;width:84px;text-align:center;transform:translate(-50%,-50%)}
-.node-icon{width:54px;height:54px;margin:0 auto;border-radius:var(--radius-lg);background:var(--bg-surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;transition:box-shadow .2s,border-color .2s}
+.node-icon{width:54px;height:54px;margin:0 auto;border-radius:var(--radius-lg);background:var(--bg-surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;transition:box-shadow .2s,border-color .2s;position:relative}
 .node.active .node-icon{border-color:var(--accent);box-shadow:0 0 0 3px rgba(180,83,9,.18),0 0 14px rgba(180,83,9,.15)}
 .node-label{font-family:var(--font-display);font-size:.66rem;font-weight:700;color:var(--ink);margin-top:4px}
 .node-sub{font-family:var(--font-mono);font-size:.56rem;color:var(--ink-muted);margin-top:1px}
+.node-kind{position:absolute;top:-7px;right:-9px;font-family:var(--font-mono);font-size:.52rem;font-weight:700;letter-spacing:.04em;padding:1px 5px;border-radius:8px;background:var(--bg-recessed);border:1px solid var(--border);color:var(--ink-muted)}
+.node.kind-switch .node-kind{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}
+.node.kind-router .node-kind{color:#b45309;border-color:#fed7aa;background:#fff7ed}
 
 .link{position:absolute;height:2px;background:var(--border-strong);transform-origin:left center;pointer-events:none}
 
@@ -443,13 +446,14 @@ const PROTOS = {
   UDP:    {label:'UDP',     cls:'',    overhead:'~1%',  hops:4, teaches:'<strong>UDP best-effort.</strong> No handshake, no retransmit, no congestion control. If the network drops a datagram, the app has to notice.'}
 };
 const NODES = [
-  {id:'src', x:7,  y:50, icon:'💻', label:'Client',   sub:'10.0.0.10'},
-  {id:'r1',  x:28, y:25, icon:'🔷', label:'R1',       sub:'ISP edge'},
-  {id:'fw',  x:50, y:55, icon:'🛡️', label:'Firewall', sub:'stateful'},
-  {id:'r2',  x:72, y:25, icon:'🔷', label:'R2',       sub:'transit'},
-  {id:'dst', x:93, y:50, icon:'🖥️', label:'Server',   sub:'93.184.216.34'}
+  {id:'src', x:5,  y:50, icon:'💻', label:'Client',   sub:'10.0.0.10',       kind:'host'},
+  {id:'sw1', x:18, y:72, icon:'🔁', label:'SW1',      sub:'L2 switch',       kind:'switch'},
+  {id:'r1',  x:33, y:25, icon:'🔷', label:'R1',       sub:'default gateway', kind:'router'},
+  {id:'fw',  x:52, y:60, icon:'🛡️', label:'Firewall', sub:'stateful (L3/4)', kind:'router'},
+  {id:'r2',  x:72, y:25, icon:'🔷', label:'R2',       sub:'transit',         kind:'router'},
+  {id:'dst', x:93, y:50, icon:'🖥️', label:'Server',   sub:'93.184.216.34',   kind:'host'}
 ];
-const PATH = ['src','r1','fw','r2','dst'];
+const PATH = ['src','sw1','r1','fw','r2','dst'];
 
 const CHALLENGES = [
   {d:'beginner', q:'At which OSI layer does a router make forwarding decisions?', a:'<strong>Layer 3 (Network)</strong>. Routers read the IP header to pick the next hop. Switches operate at Layer 2 using MAC addresses.'},
@@ -509,9 +513,11 @@ function renderTopo(){
   // Nodes
   NODES.forEach(function(n){
     const el=document.createElement('div');
-    el.className='node'; el.id='n-'+n.id;
+    el.className='node'+(n.kind?' kind-'+n.kind:''); el.id='n-'+n.id;
     el.style.left=n.x+'%'; el.style.top=n.y+'%';
-    el.innerHTML='<div class="node-icon">'+n.icon+'</div><div class="node-label">'+n.label+'</div><div class="node-sub">'+n.sub+'</div>';
+    const tag = n.kind==='switch' ? 'L2' : (n.kind==='router' ? 'L3' : '');
+    const tagHTML = tag ? '<span class="node-kind">'+tag+'</span>' : '';
+    el.innerHTML='<div class="node-icon">'+n.icon+tagHTML+'</div><div class="node-label">'+n.label+'</div><div class="node-sub">'+n.sub+'</div>';
     topo.appendChild(el);
   });
   anim.packetEl=document.createElement('div');
@@ -592,6 +598,8 @@ async function sendHop(from, to, flavor, label){
   $('n-'+from).classList.remove('active');
   $('n-'+to).classList.add('active');
   stats.hops++;
+  if (b.kind === 'switch') log('· '+b.label+' — L2 forward (dst MAC lookup, no L3 inspection)');
+  else if (b.kind === 'router') log('· '+b.label+' — L3 route lookup, forward to next hop');
 }
 async function traverse(flavor,label,reverse){
   const path = reverse ? PATH.slice().reverse() : PATH.slice();
@@ -635,7 +643,7 @@ function updStats(){
 async function runHTTP(){
   log('HTTP GET /','evt');
   await encap('osiTx','active-tx');
-  if (maybeDrop()){ log('Request dropped in transit','warn'); await dropAnim(PATH,2); stats.sent++; updStats(); return; }
+  if (maybeDrop()){ log('Request dropped in transit','warn'); await dropAnim(PATH,3); stats.sent++; updStats(); return; }
   await traverse('','GET',false);
   stats.sent++; updStats();
   await decap('osiRx','active-rx');
@@ -666,7 +674,7 @@ async function runHTTPS(){
 async function runDNS(){
   log('dig example.com → UDP/53','evt');
   await encap('osiTx','active-tx');
-  if (maybeDrop()){ log('Query lost — no retransmit at UDP layer','warn'); await dropAnim(PATH,2); stats.sent++; updStats(); return; }
+  if (maybeDrop()){ log('Query lost — no retransmit at UDP layer','warn'); await dropAnim(PATH,3); stats.sent++; updStats(); return; }
   await traverse('dns','Q',false); stats.sent++; updStats();
   log('Recursive resolve: root → TLD → authoritative','evt');
   await wait(200);
@@ -689,7 +697,7 @@ async function runUDP(){
   await encap('osiTx','active-tx');
   if (maybeDrop()){
     log('Firewall drops datagram','warn');
-    await dropAnim(PATH,2);
+    await dropAnim(PATH,3);
     stats.sent++; updStats();
     log('No retransmit — app must handle it','warn');
     return;
