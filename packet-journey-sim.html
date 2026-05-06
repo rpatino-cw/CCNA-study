@@ -633,9 +633,27 @@ async function sendHop(from, to, flavor, label){
   if (b.kind === 'switch') log('· '+b.label+' — L2 forward (dst MAC lookup, no L3 inspection)');
   else if (b.kind === 'router') log('· '+b.label+' — L3 route lookup, forward to next hop');
 }
+function nextL3InPath(path, fromIdx){
+  for (let j=fromIdx+1; j<path.length; j++){
+    const n = NODES.find(nn=>nn.id===path[j]);
+    if (n.kind !== 'switch') return path[j];
+  }
+  return null;
+}
 async function traverse(flavor,label,reverse){
   const path = reverse ? PATH.slice().reverse() : PATH.slice();
-  for (let i=0;i<path.length-1;i++) await sendHop(path[i], path[i+1], flavor, label);
+  // Set L3 endpoints once per traverse — IPs do not change end-to-end.
+  setWireIPs(path[0], path[path.length-1]);
+  for (let i=0;i<path.length-1;i++) {
+    const a = NODES.find(n=>n.id===path[i]);
+    // Switches forward L2 frames untouched; only L3 nodes (hosts/routers)
+    // emit onto the wire and rewrite MAC src/dst for the next L3 hop.
+    if (a.kind !== 'switch') {
+      const nx = nextL3InPath(path, i);
+      if (nx) setWireMACs(a.id, nx);
+    }
+    await sendHop(path[i], path[i+1], flavor, label);
+  }
   anim.packetEl.classList.remove('visible');
   document.querySelectorAll('.node').forEach(n=>n.classList.remove('active'));
 }
