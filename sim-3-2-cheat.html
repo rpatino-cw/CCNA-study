@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>3.2 Forwarding Decision — Read First</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.6;padding:24px;max-width:880px;margin:0 auto}
+  .head{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.7rem;font-weight:700;margin-bottom:6px;letter-spacing:-.02em}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .toc{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;font-family:var(--font-mono);font-size:.78rem}
+  .toc a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:99px;background:var(--bg-surface);border:1px solid var(--border)}
+  .toc a:hover{background:var(--accent);color:#fff}
+  section{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:18px}
+  section h2{font-family:var(--font-display);font-size:1.15rem;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--accent);color:var(--ink);display:flex;align-items:baseline;gap:10px}
+  section h2 .pill{font-family:var(--font-mono);font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+  section p{margin-bottom:10px}
+  section p:last-child{margin-bottom:0}
+  code{font-family:var(--font-mono);font-size:.88em;background:var(--bg-recessed);padding:1px 6px;border-radius:3px}
+  .key{background:var(--accent-light);padding:1px 6px;border-radius:3px;font-weight:700;color:var(--accent)}
+  .pull-quote{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:var(--accent);padding:12px 16px;background:var(--accent-light);border-left:4px solid var(--accent);border-radius:6px;margin:12px 0}
+  ul,ol{margin-left:22px;margin-bottom:8px}
+  li{margin:4px 0}
+  table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.86rem;margin:8px 0}
+  th{text-align:left;padding:8px 10px;background:var(--bg-recessed);border-bottom:2px solid var(--border-strong);font-family:var(--font-display);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+  td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:hover td{background:var(--bg-recessed)}
+  .anatomy-svg{width:100%;display:block;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);min-height:240px;margin:10px 0}
+  .flow-grid{display:grid;grid-template-columns:30px 1fr;gap:8px 14px;margin:8px 0}
+  .flow-grid .step{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--accent);text-align:center}
+  .flow-grid .body{font-size:.95rem}
+  .flow-grid .body strong{color:var(--accent)}
+  .mnemonic-box{background:linear-gradient(135deg,var(--accent-light),#FFE9C5);border:2px solid var(--accent);border-radius:var(--radius);padding:14px 18px;margin:10px 0}
+  .mnemonic-box .lead{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:6px}
+  .mnemonic-box .word{font-family:var(--font-mono);font-size:1.4rem;font-weight:700;color:var(--ink);letter-spacing:.05em}
+  .out{font-family:var(--font-mono);font-size:.84rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.55;overflow-x:auto;margin:8px 0;white-space:pre}
+  .out .hl{color:#FCD34D;font-weight:700}
+  .out .v{color:#86EFAC}
+  .out .x{color:#FCA5A5}
+  .out .c{color:#A8A29E;font-style:italic}
+  .annotate{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-family:var(--font-body);font-size:.92rem;margin:8px 0}
+  .annotate .field{font-family:var(--font-mono);font-size:.84rem;font-weight:700;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:3px;align-self:start}
+  .compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:10px 0}
+  .compare .col{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+  .compare .col h3{font-family:var(--font-display);font-size:1rem;color:var(--accent);margin-bottom:8px}
+  .compare .col ul{margin-left:18px;font-size:.92rem}
+  .trap{background:#FEF2F2;border:1.5px solid var(--wrong);border-radius:var(--radius);padding:12px 16px;margin:10px 0}
+  .trap .lead{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--wrong);margin-bottom:6px}
+  .trap .body{font-size:.94rem}
+  .trap .body strong{color:var(--wrong)}
+  .must-know{background:linear-gradient(135deg,var(--correct-bg),#E0F8E8);border:2px solid var(--correct);border-radius:var(--radius);padding:14px 18px;margin:12px 0}
+  .must-know .lead{font-family:var(--font-display);font-size:.84rem;font-weight:700;color:var(--correct);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .must-know ol{margin-left:24px;font-size:.95rem}
+  .must-know ol li{padding:3px 0;font-weight:600}
+  .selfcheck{background:var(--info-bg);border:1px solid var(--info);border-radius:var(--radius);padding:14px 18px;margin:10px 0}
+  .selfcheck h3{font-family:var(--font-display);font-size:.98rem;color:var(--info);margin-bottom:8px}
+  .selfcheck details{margin:8px 0;font-family:var(--font-body);font-size:.94rem}
+  .selfcheck summary{cursor:pointer;padding:4px 0;font-weight:600}
+  .selfcheck details[open] summary{color:var(--accent)}
+  .selfcheck details p{padding:6px 14px;background:var(--bg-surface);border-radius:4px;margin-top:4px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none;margin-right:14px}
+  .drill-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}
+  .drill-stat{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
+  .drill-stat .lbl{font-family:var(--font-display);font-size:.66rem;font-weight:700;color:var(--ink-secondary);text-transform:uppercase;letter-spacing:.06em}
+  .drill-stat .val{font-family:var(--font-mono);font-size:1.4rem;font-weight:700;color:var(--ink)}
+  .drill-stat.ok .val{color:var(--correct)}
+  .drill-stat.bad .val{color:var(--wrong)}
+  .drill-stat.streak .val{color:var(--accent)}
+  .drill-card{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin:14px 0}
+  .drill-card .meta{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-bottom:8px}
+  .drill-card .stem{font-family:var(--font-body);font-size:1rem;font-weight:600;line-height:1.55;margin-bottom:12px}
+  .drill-card .stem code,.drill-card .stem .out{font-family:var(--font-mono);background:#1C1917;color:#E7E5E4;padding:6px 10px;border-radius:4px;display:block;white-space:pre;font-weight:400;font-size:.84rem;line-height:1.55;margin:8px 0}
+  .drill-opts{display:grid;gap:8px}
+  .drill-opt{font-family:var(--font-mono);font-size:.92rem;padding:11px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;text-align:left}
+  .drill-opt:hover{border-color:var(--accent)}
+  .drill-opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .drill-opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong);text-decoration:line-through}
+  .drill-why{font-family:var(--font-body);font-size:.92rem;background:var(--bg-surface);border-left:3px solid var(--accent-soft);border-radius:var(--radius);padding:11px 14px;margin-top:11px;display:none;line-height:1.55}
+  .drill-why.show{display:block}
+  .drill-why strong{color:var(--accent)}
+  .drill-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+  .btn:hover{filter:brightness(1.1)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.danger{background:var(--wrong)}
+  .progress-bar{height:8px;background:var(--bg-recessed);border-radius:99px;overflow:hidden;margin-top:8px}
+  .progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--accent-soft),var(--correct));transition:width .3s}
+  .timer-box{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;padding:6px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:99px;color:var(--ink)}
+  .timer-box.warn{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  .miss-box{font-family:var(--font-mono);font-size:.78rem;background:var(--wrong-bg);border:1px solid var(--wrong);border-radius:var(--radius);padding:10px;margin-top:10px;display:none;max-height:180px;overflow-y:auto;color:var(--wrong)}
+  .miss-box.show{display:block}
+  .miss-box .row{padding:3px 0;border-bottom:1px dashed var(--wrong)}
+  .pass-banner{background:linear-gradient(135deg,var(--correct),#22C55E);color:#fff;padding:14px 18px;border-radius:var(--radius);font-family:var(--font-display);font-size:1rem;font-weight:700;text-align:center;margin-top:14px;display:none}
+  .pass-banner.show{display:block}
+  .filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;margin-bottom:6px}
+  .filter-pill{font-family:var(--font-mono);font-size:.74rem;padding:5px 11px;border:1px solid var(--border);border-radius:99px;background:var(--bg-recessed);cursor:pointer;color:var(--ink-secondary)}
+  .filter-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=3.2" style="color:var(--accent);text-decoration:none">← 3.2 Mini Sims</a> · 3.2 · Forwarding Decision · Read First</div>
+  <h1>3.2 Forwarding Decision — Read This Before Anything Else</h1>
+  <div class="desc">Cisco 200-301 §3.2.a-c. Three rules. One order. Memorize cold: <strong>1) Longest prefix match → 2) Lowest AD → 3) Lowest metric.</strong> Read top-to-bottom, then drill until 95%+.</div>
+</div>
+
+<div class="toc">
+  <strong style="color:var(--ink);font-family:var(--font-display);align-self:center;margin-right:6px">JUMP:</strong>
+  <a href="#one">1. 30-sec answer</a>
+  <a href="#anat">2. Decision pipeline</a>
+  <a href="#lpm">3. LPM (3.2.a)</a>
+  <a href="#ad">4. AD (3.2.b)</a>
+  <a href="#metric">5. Metric (3.2.c)</a>
+  <a href="#ribfib">6. RIB vs FIB</a>
+  <a href="#mnem">7. Mnemonics</a>
+  <a href="#show">8. Show outputs</a>
+  <a href="#traps">9. Cisco traps</a>
+  <a href="#mustknow">10. Top 10</a>
+  <a href="#self">11. Self-check</a>
+  <a href="#cli">12. CLI sim</a>
+  <a href="#match">13. Match</a>
+  <a href="#exhibit">14. Exhibit</a>
+  <a href="#srs">15. SRS</a>
+  <a href="#drill">16. Drill</a>
+</div>
+
+<section id="one">
+  <h2>1. The 30-Second Answer <span class="pill">read this twice</span></h2>
+  <div class="pull-quote">A router's forwarding decision answers ONE question: "Of all routes that match the destination IP, which goes in the routing table?" Three rules, in order: <strong>1) Longest prefix match wins. 2) If tied on prefix, lowest AD wins. 3) If tied on AD (within one protocol), lowest metric wins.</strong></div>
+  <ul>
+    <li><strong>LPM (3.2.a)</strong> — match the destination against every route. The route with the MOST mask bits set wins. Always. First filter.</li>
+    <li><strong>AD (3.2.b)</strong> — only matters when TWO protocols learn the SAME prefix. Lower AD = more trusted. Static (1) beats RIP (120). Static beats OSPF (110). Connected (0) beats everything.</li>
+    <li><strong>Metric (3.2.c)</strong> — only matters WITHIN one protocol. OSPF cost 65 vs OSPF cost 100 → cost 65 wins. Cross-protocol metric comparisons are MEANINGLESS.</li>
+  </ul>
+  <p class="pull-quote" style="margin-top:14px;font-size:.95rem">Memorize: <span class="key">LPM → AD → METRIC</span> — never swap the order.</p>
+</section>
+
+<section id="anat">
+  <h2>2. Decision Pipeline at a Glance <span class="pill">visual</span></h2>
+  <svg class="anatomy-svg" viewBox="0 0 600 240">
+    <rect x="20" y="20" width="560" height="200" rx="14" fill="#1F2937" stroke="#0F172A" stroke-width="2"/>
+    <text x="300" y="42" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#FCD34D">Packet arrives — 3-stage forwarding decision</text>
+
+    <rect x="40" y="65" width="160" height="60" rx="6" fill="#0E7490" stroke="#0F172A"/>
+    <text x="120" y="88" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#FCD34D">1. LPM</text>
+    <text x="120" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">Longest Prefix Match</text>
+    <text x="120" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">most specific wins</text>
+
+    <rect x="220" y="65" width="160" height="60" rx="6" fill="#0891B2" stroke="#0F172A"/>
+    <text x="300" y="88" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#FCD34D">2. AD</text>
+    <text x="300" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">Admin Distance</text>
+    <text x="300" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">lowest = most trusted</text>
+
+    <rect x="400" y="65" width="160" height="60" rx="6" fill="#16A34A" stroke="#0F172A"/>
+    <text x="480" y="88" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#FCD34D">3. METRIC</text>
+    <text x="480" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">within one protocol</text>
+    <text x="480" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">lowest = best path</text>
+
+    <line x1="200" y1="95" x2="220" y2="95" stroke="#FCD34D" stroke-width="3" marker-end="url(#arrow)"/>
+    <line x1="380" y1="95" x2="400" y2="95" stroke="#FCD34D" stroke-width="3" marker-end="url(#arrow)"/>
+
+    <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#FCD34D"/></marker></defs>
+
+    <rect x="40" y="150" width="240" height="36" rx="6" fill="#475569"/>
+    <text x="160" y="167" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">RIB (control plane)</text>
+    <text x="160" y="180" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">Routing Information Base — all candidates</text>
+
+    <rect x="300" y="150" width="260" height="36" rx="6" fill="#0E7490"/>
+    <text x="430" y="167" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">FIB (data plane)</text>
+    <text x="430" y="180" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">Forwarding Information Base — winners only, in TCAM</text>
+
+    <text x="40" y="210" font-family="JetBrains Mono" font-size="10" fill="#FCD34D">Decision happens during RIB computation. FIB stores ONLY the winners for line-rate lookup.</text>
+  </svg>
+  <p>The 3 rules run TOP-DOWN — LPM filters first; only routes for the same longest match are compared on AD; only routes from the same protocol with same AD are compared on metric. Skip a step → wrong answer.</p>
+</section>
+
+<section id="lpm">
+  <h2>3. Longest Prefix Match — 3.2.a <span class="pill">most-tested</span></h2>
+  <p>"Longest prefix match" = match destination IP against every route's network/mask. The route with the MOST mask bits set (longest prefix) wins. More specific = better.</p>
+  <div class="out"><span class="c">Routing table:</span>
+        <span class="v">10.0.0.0/8</span>      via 10.0.0.1
+        <span class="v">10.10.0.0/16</span>    via 10.0.0.2
+        <span class="v">10.10.20.0/24</span>   via 10.0.0.3
+        <span class="v">10.10.20.50/32</span>  via 10.0.0.4
+
+<span class="c">Packet for 10.10.20.50 → which route is used?</span>
+
+  /8  matches?  YES — 10 = 10
+  /16 matches?  YES — 10.10 = 10.10
+  /24 matches?  YES — 10.10.20 = 10.10.20
+  /32 matches?  YES — 10.10.20.50 = 10.10.20.50
+
+  <span class="hl">/32 = longest prefix → WINS. Forwarded via 10.0.0.4.</span></div>
+  <ul>
+    <li><strong>Always check LPM first.</strong> Even if a /8 has lower AD or better metric, a matching /24 still wins because it's more specific.</li>
+    <li><strong>Default route (0.0.0.0/0)</strong> = the SHORTEST possible prefix. Last resort. Used only when no other route matches.</li>
+    <li><strong>Host route (/32)</strong> = the LONGEST possible prefix. Beats everything else for that one IP.</li>
+    <li>LPM happens at <strong>data-plane lookup time</strong>, every single packet. The router doesn't reconsider AD/metric per-packet — those were already used to decide what got into the FIB.</li>
+  </ul>
+  <div class="trap">
+    <div class="lead">Trap to recognize</div>
+    <div class="body">Cisco loves: "a packet for 10.10.20.50 — there's a /16 with low cost and a /24 with high cost. Which wins?" → <strong>/24 wins. Always. LPM is checked before AD or metric.</strong></div>
+  </div>
+</section>
+
+<section id="ad">
+  <h2>4. Administrative Distance — 3.2.b <span class="pill">cross-protocol tiebreaker</span></h2>
+  <p>AD only matters when <strong>TWO different protocols learn the SAME prefix</strong>. Lower AD wins. Whichever wins gets installed in the RIB; the loser is suppressed (still tracked by the protocol but not used for forwarding).</p>
+  <table>
+    <thead><tr><th>Source</th><th>AD</th></tr></thead>
+    <tbody>
+      <tr><td>Connected</td><td><strong>0</strong></td></tr>
+      <tr><td>Static</td><td><strong>1</strong></td></tr>
+      <tr><td>eBGP</td><td><strong>20</strong></td></tr>
+      <tr><td>EIGRP internal</td><td><strong>90</strong></td></tr>
+      <tr><td>OSPF</td><td><strong>110</strong></td></tr>
+      <tr><td>IS-IS</td><td><strong>115</strong></td></tr>
+      <tr><td>RIP</td><td><strong>120</strong></td></tr>
+      <tr><td>EIGRP external</td><td><strong>170</strong></td></tr>
+      <tr><td>iBGP</td><td><strong>200</strong></td></tr>
+      <tr><td>Unreachable</td><td><strong>255</strong></td></tr>
+    </tbody>
+  </table>
+  <p><strong>Floating static</strong> = a static route with manually-raised AD, used as backup. Example: <code>ip route 10.0.0.0 255.0.0.0 10.10.10.99 130</code> — AD 130 makes it less trusted than RIP (120). Only kicks in if RIP fails. Common HA pattern.</p>
+  <p><strong>Same AD, different protocols: impossible</strong> by default — each protocol has its own fixed AD value. AD only conflicts when manually overridden.</p>
+</section>
+
+<section id="metric">
+  <h2>5. Metric — 3.2.c <span class="pill">within-protocol tiebreaker</span></h2>
+  <p>Metric only compares routes <strong>from the same protocol</strong>. Two OSPF routes for the same prefix → lower OSPF cost wins. Two EIGRP routes → lower composite metric wins.</p>
+  <table>
+    <thead><tr><th>Protocol</th><th>Metric basis</th></tr></thead>
+    <tbody>
+      <tr><td>RIP</td><td>Hop count (1-15)</td></tr>
+      <tr><td>OSPF</td><td>Cost (10⁸ / bandwidth)</td></tr>
+      <tr><td>EIGRP</td><td>Composite (BW + delay)</td></tr>
+      <tr><td>IS-IS</td><td>Cost (default 10 per hop)</td></tr>
+      <tr><td>BGP</td><td>Path attributes (weight → local pref → AS path → ...)</td></tr>
+      <tr><td>Static</td><td>0 (n/a)</td></tr>
+    </tbody>
+  </table>
+  <p><strong>ECMP (Equal-Cost Multi-Path):</strong> if two routes from the same protocol have the SAME prefix + SAME metric, BOTH go in the routing table. Traffic load-shares. Cisco default = up to 4 equal paths (configurable up to 32 via <code>maximum-paths</code>).</p>
+  <div class="pull-quote">"OSPF cost 50 vs RIP hop 5 — which wins?" <strong>OSPF.</strong> AD 110 < AD 120. Metric never enters comparison across protocols.</div>
+</section>
+
+<section id="ribfib">
+  <h2>6. RIB vs FIB — Why It Matters <span class="pill">control vs data plane</span></h2>
+  <div class="compare">
+    <div class="col"><h3>RIB (Routing Information Base)</h3>
+      <ul>
+        <li>Control plane — built by routing protocols</li>
+        <li>Lives in CPU memory</li>
+        <li>Holds candidate + winning routes</li>
+        <li>Updated when topology changes (slow, seconds)</li>
+        <li>View: <code>show ip route</code></li>
+      </ul>
+    </div>
+    <div class="col"><h3>FIB (Forwarding Information Base)</h3>
+      <ul>
+        <li>Data plane — derived FROM the RIB</li>
+        <li>Lives in TCAM / ASIC memory</li>
+        <li>Holds ONLY winning routes</li>
+        <li>Looked up at line rate per packet</li>
+        <li>View: <code>show ip cef</code></li>
+      </ul>
+    </div>
+  </div>
+  <p><strong>CEF (Cisco Express Forwarding)</strong> = the modern lookup engine that uses the FIB. Replaces older process switching + fast switching. Default on all modern Cisco routers + L3 switches.</p>
+  <p><strong>The forwarding decision (LPM → AD → metric) happens during RIB → FIB programming, NOT per-packet.</strong> Per-packet, the router just does TCAM lookup against the FIB. Already-decided. Wire-speed.</p>
+</section>
+
+<section id="mnem">
+  <h2>7. Mnemonics <span class="pill">memorize</span></h2>
+  <div class="mnemonic-box">
+    <div class="lead">Forwarding decision — 3 rules in order</div>
+    <div class="word">L · A · M (Longest · Admin · Metric)</div>
+    <p style="margin-top:6px;font-size:.94rem">"L-A-M" — say it 10× until automatic. NEVER reorder.</p>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">When does each apply?</div>
+    <div class="word">LPM = always · AD = cross-protocol · METRIC = within-protocol</div>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">Specificity ladder</div>
+    <div class="word">/32 host · /24 subnet · /16 supernet · /8 net · /0 default</div>
+    <p style="margin-top:6px;font-size:.94rem">More mask bits = more specific = wins LPM.</p>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">RIB vs FIB</div>
+    <div class="word">RIB = candidates (CPU). FIB = winners (TCAM).</div>
+  </div>
+  <div class="mnemonic-box">
+    <div class="lead">ECMP rule</div>
+    <div class="word">Same prefix + same protocol + same metric = both installed</div>
+  </div>
+</section>
+
+<section id="show">
+  <h2>8. Show-Output Decoder <span class="pill">read fluently</span></h2>
+
+  <p style="margin-bottom:6px"><strong style="color:var(--accent)"><code>show ip route 10.10.20.50</code> — confirm which route is used</strong></p>
+  <div class="out"><span class="hl">R1#</span> show ip route 10.10.20.50
+        Routing entry for <span class="v">10.10.20.0/24</span>
+          Known via "<span class="v">ospf 1</span>", distance <span class="v">110</span>, metric <span class="v">65</span>, type intra area
+          Last update from 10.10.10.2 on GigabitEthernet0/0, 00:14:33 ago
+          Routing Descriptor Blocks:
+          * 10.10.10.2, from 10.10.10.5, 00:14:33 ago, via GigabitEthernet0/0
+              Route metric is 65, traffic share count is 1</div>
+  <div class="annotate">
+    <span class="field">Routing entry for 10.10.20.0/24</span><span>The LPM result. Even though we asked about 10.10.20.50 (a host), the matching route is the /24 subnet.</span>
+    <span class="field">distance 110</span><span>OSPF AD. If multiple protocols had this prefix, AD 110 won.</span>
+    <span class="field">metric 65</span><span>OSPF cost. Tiebreaker among OSPF candidates only.</span>
+    <span class="field">* 10.10.10.2</span><span>The asterisk marks the active next-hop being used. Multiple = ECMP.</span>
+  </div>
+
+  <p style="margin-top:14px;margin-bottom:6px"><strong style="color:var(--accent)"><code>show ip cef 10.10.20.50</code> — what FIB will use</strong></p>
+  <div class="out"><span class="hl">R1#</span> show ip cef 10.10.20.50
+        <span class="v">10.10.20.0/24</span>
+          nexthop 10.10.10.2 GigabitEthernet0/0</div>
+  <p style="font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:4px">FIB-level confirmation. Single line. No AD, no metric — those were already resolved during RIB → FIB. Per-packet lookup is THIS fast.</p>
+
+  <p style="margin-top:14px;margin-bottom:6px"><strong style="color:var(--accent)"><code>show ip cef exact-route SRC DEST</code> — ECMP path picker</strong></p>
+  <div class="out"><span class="hl">R1#</span> show ip cef exact-route 10.10.10.5 10.10.20.50
+        10.10.10.5 -&gt; 10.10.20.50  : GigabitEthernet0/0 (next hop 10.10.10.2)</div>
+  <p style="font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:4px">Tells you EXACTLY which path a flow takes when ECMP is in play. Useful for troubleshooting load-balancing.</p>
+</section>
+
+<section id="traps">
+  <h2>9. Cisco's Favorite Traps <span class="pill">spot the wrong answer</span></h2>
+  <div class="trap">
+    <div class="lead">Trap #1 — "Lowest AD always wins"</div>
+    <div class="body">Wrong. <strong>Longest prefix wins FIRST.</strong> /24 with AD 200 still beats /16 with AD 1. AD only tiebreaks if two routes match the same longest prefix.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #2 — "Lowest metric always wins"</div>
+    <div class="body">Wrong. <strong>Metric is rule #3 — last in line.</strong> LPM first, AD second, metric third. And metric only compares within ONE protocol.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #3 — "OSPF cost 5 beats RIP hop 1"</div>
+    <div class="body">Wrong reason. <strong>OSPF wins, but because of AD, not metric.</strong> AD 110 < AD 120. Metric is irrelevant across protocols. Cross-protocol metric comparison is meaningless.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #4 — "Static beats connected"</div>
+    <div class="body">Wrong. <strong>Connected (AD 0) beats static (AD 1).</strong> Static beats EVERYTHING ELSE except connected. Backup intuition: the router can SEE the connected link, so trusts it most.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #5 — "Two routes = always ECMP"</div>
+    <div class="body">Wrong. <strong>ECMP requires same prefix + same protocol + same metric.</strong> Different protocols = AD picks one, no ECMP. Different metrics = lower wins, no ECMP. Strict rules.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #6 — "Floating static is a /32 route"</div>
+    <div class="body">Wrong. <strong>Floating static = static with raised AD.</strong> Used as backup. Configured: <code>ip route 10.0.0.0 255.0.0.0 X.X.X.X 130</code> (AD 130). Not active unless primary protocol fails.</div>
+  </div>
+  <div class="trap">
+    <div class="lead">Trap #7 — "FIB and RIB are the same"</div>
+    <div class="body">Wrong. <strong>RIB = control plane (all candidates), FIB = data plane (winners only, in hardware).</strong> Different memory regions. Different roles. Confusing them = wrong answer on architecture Qs.</div>
+  </div>
+</section>
+
+<section id="mustknow">
+  <h2>10. Top 10 Must-Know <span class="pill">if-only-this</span></h2>
+  <div class="must-know">
+    <div class="lead">Memorize until automatic</div>
+    <ol>
+      <li>Forwarding decision order: <strong>LPM → AD → METRIC</strong>. Never swap. Never skip.</li>
+      <li><strong>LPM = always applies.</strong> Most-specific route wins regardless of AD or metric.</li>
+      <li><strong>AD = cross-protocol tiebreaker.</strong> Only when 2+ protocols learn the same prefix.</li>
+      <li><strong>Metric = within-protocol tiebreaker.</strong> Cross-protocol metric comparisons are meaningless.</li>
+      <li>AD ladder: <strong>0/1/20/90/110/115/120/170/200</strong> (Connected/Static/eBGP/EIGRP/OSPF/ISIS/RIP/EIGRP-ext/iBGP).</li>
+      <li><strong>Default route = 0.0.0.0/0 = shortest prefix possible.</strong> Used only when nothing else matches.</li>
+      <li><strong>ECMP rule:</strong> same prefix + same protocol + same metric = all paths installed, traffic load-shared.</li>
+      <li><strong>Floating static</strong> = static with raised AD for backup. Doesn't activate until primary route fails.</li>
+      <li><strong>RIB vs FIB:</strong> RIB = candidates (CPU/RAM, slow). FIB = winners (TCAM, line-rate). Decision runs RIB→FIB.</li>
+      <li>Verification commands: <code>show ip route X.X.X.X</code> (control plane) + <code>show ip cef X.X.X.X</code> (data plane). Use both to debug forwarding.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="self">
+  <h2>11. Self-Check <span class="pill">no peeking</span></h2>
+  <div class="selfcheck">
+    <h3>Q1. Routing table has 10.0.0.0/8 [110/5] and 10.10.20.0/24 [120/100]. Packet destined for 10.10.20.50. Which route is used?</h3>
+    <details><summary>Reveal</summary><p><strong>10.10.20.0/24.</strong> LPM wins first. /24 is more specific than /8. AD and metric are NOT compared because LPM already decided. Refer back: §3, §9 trap #1.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q2. Two protocols both have a route to 10.10.0.0/16. OSPF cost 50, EIGRP composite 200000. Which is installed?</h3>
+    <details><summary>Reveal</summary><p><strong>EIGRP.</strong> Same prefix → AD compared. EIGRP AD 90 < OSPF AD 110. Metric never enters across-protocol comparison. Refer back: §4, §9 trap #3.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q3. OSPF has two paths to 10.10.0.0/16 — cost 65 and cost 100. What's installed?</h3>
+    <details><summary>Reveal</summary><p><strong>Only cost 65.</strong> Within OSPF, lower metric wins. Cost 100 sits in OSPF database but not RIB. Refer back: §5.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q4. EIGRP has two equal-cost paths (same metric) to 10.10.20.0/24. What gets installed?</h3>
+    <details><summary>Reveal</summary><p><strong>Both — ECMP.</strong> Same prefix + same protocol + same metric = both go in. Traffic load-shares. Refer back: §5, §9 trap #5.</p></details>
+  </div>
+  <div class="selfcheck">
+    <h3>Q5. Where is the forwarding decision actually executed for each packet?</h3>
+    <details><summary>Reveal</summary><p><strong>FIB lookup in TCAM (CEF).</strong> The 3-rule decision (LPM/AD/metric) ran during RIB → FIB programming. Per-packet, just a fast TCAM lookup. Refer back: §6.</p></details>
+  </div>
+</section>
+
+<section id="cli">
+  <h2>12. CLI Simulator <span class="pill">type real router commands</span></h2>
+  <p>Fake R1 (Cisco IOS-XE). Try: <code>show ip route</code>, <code>show ip route 10.10.20.50</code>, <code>show ip cef</code>, <code>show ip cef 10.10.20.50</code>, <code>show ip cef exact-route 10.10.10.5 10.10.20.50</code>, <code>show ip protocols</code>, <code>?</code>.</p>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:.84rem;background:#1C1917;color:#E7E5E4;border-radius:6px;padding:14px;line-height:1.55;min-height:280px;max-height:420px;overflow-y:auto" id="cliOutput"></div>
+  <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+    <span style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700">R1#</span>
+    <input type="text" id="cliInput" placeholder="type a command, press Enter" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:.92rem;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:6px;background:var(--bg-surface)">
+    <button class="btn ghost" id="cliClear">Clear</button>
+  </div>
+</section>
+
+<section id="match">
+  <h2>13. Match: Term → Definition <span class="pill">click to pair</span></h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+    <div id="matchLeft" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="matchRight" style="display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+  <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:10px" id="matchStatus">0 / 8 matched</div>
+  <button class="btn ghost" id="matchReset" style="margin-top:6px">↻ Reset</button>
+</section>
+
+<section id="exhibit">
+  <h2>14. Multi-Part Exhibit <span class="pill">routing table → 4 Qs</span></h2>
+  <p>Read R1's routing table. Answer all 4 questions about forwarding decisions.</p>
+  <div class="out" style="font-size:.78rem"><span class="hl">R1#</span> show ip route
+Gateway of last resort is 203.0.113.1 to network 0.0.0.0
+
+S*   0.0.0.0/0 [1/0] via 203.0.113.1
+     10.0.0.0/8 is variably subnetted, 4 subnets
+O       10.0.0.0/8       [110/100] via 10.10.10.2
+D       10.10.0.0/16     [90/2172416] via 10.10.10.5
+S       10.10.20.0/24    [1/0] via 10.10.10.99
+R       10.10.20.0/24    [120/3] via 10.10.10.50  (suppressed — higher AD)
+O       10.10.20.128/25  [110/65] via 10.10.10.2
+D       10.10.20.50/32   [90/256000] via 10.10.10.5</div>
+  <div id="exhibitBox"></div>
+</section>
+
+<section id="srs">
+  <h2>15. Spaced Retrieval <span class="pill">+1d / +3d / +7d</span></h2>
+  <div id="srsStatus" style="font-family:var(--font-mono);font-size:.86rem;background:var(--bg-recessed);border:1px solid var(--border);border-radius:6px;padding:14px"></div>
+  <button class="btn accent" id="srsCheck" style="margin-top:10px">▶ Re-test now (5 random Qs)</button>
+  <button class="btn ghost" id="srsReset" style="margin-top:10px">Reset SRS state</button>
+</section>
+
+<section id="drill" style="border:2px solid var(--accent)">
+  <h2>16. Drill — 50 Forwarding-Decision Qs <span class="pill">pass = 95%+</span></h2>
+  <p>Read everything above first, then drill until 95%+. Wrong answers re-queue. 2 right in a row retires a Q. 100% = "3.2 Mastered" badge.</p>
+  <div class="filter-row" id="filterRow">
+    <span class="filter-pill active" data-cat="all">all (50)</span>
+    <span class="filter-pill" data-cat="lpm">LPM (12)</span>
+    <span class="filter-pill" data-cat="ad">AD tiebreaker (8)</span>
+    <span class="filter-pill" data-cat="metric">metric tiebreaker (8)</span>
+    <span class="filter-pill" data-cat="ribfib">RIB/FIB/CEF (6)</span>
+    <span class="filter-pill" data-cat="output">show outputs (8)</span>
+    <span class="filter-pill" data-cat="ecmp">ECMP / floating (5)</span>
+    <span class="filter-pill" data-cat="trap">traps (3)</span>
+  </div>
+
+  <div class="drill-stats">
+    <div class="drill-stat"><div class="lbl">Q</div><div class="val" id="dN">0</div></div>
+    <div class="drill-stat ok"><div class="lbl">Right</div><div class="val" id="dC">0</div></div>
+    <div class="drill-stat bad"><div class="lbl">Wrong</div><div class="val" id="dW">0</div></div>
+    <div class="drill-stat streak"><div class="lbl">Streak</div><div class="val" id="dS">0</div></div>
+    <div class="drill-stat"><div class="lbl">Score</div><div class="val" id="dA">—</div></div>
+    <div class="drill-stat ok"><div class="lbl">Mastered</div><div class="val" id="dM">0</div></div>
+  </div>
+  <div class="progress-bar"><div class="fill" id="dProg" style="width:0%"></div></div>
+  <p style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:6px"><span id="dPool">50</span> in pool · <span id="dSeen">0</span> seen</p>
+
+  <div class="drill-card" id="dCard">
+    <div class="meta"><span id="dSub">click Start</span><span id="dCat"></span></div>
+    <div class="stem" id="dStem">Click <strong>Start drill</strong> to begin.</div>
+    <div class="drill-opts" id="dOpts"></div>
+    <div class="drill-why" id="dWhy"></div>
+  </div>
+
+  <div class="drill-controls">
+    <button class="btn accent" id="dStart">▶ Start drill</button>
+    <button class="btn ghost" id="dNext" disabled>Next →</button>
+    <button class="btn ghost" id="dExam">⏱ Exam mode (20 Qs · 12min · 80%)</button>
+    <button class="btn ghost" id="dShowMiss">Missed (0)</button>
+    <button class="btn danger" id="dReset">↻ Reset</button>
+    <span class="timer-box" id="dTimer" style="display:none">12:00</span>
+  </div>
+  <div class="miss-box" id="dMiss"></div>
+  <div class="pass-banner" id="dPass">✓ 3.2 MASTERED · 100% on pool · exam-ready</div>
+</section>
+
+<div class="footer-link">
+  <a href="blueprint-drill.html?obj=3.2">← back to 3.2 leaves</a>
+  <a href="sim-3-1-cheat.html">↩ 3.1 Routing Table</a>
+  <a href="core-v2.html">↩ Core v2</a>
+</div>
+
+<script defer src="js/tutor.js"></script>
+<script>
+(function(){
+  var BANK=[
+    // LPM — 12
+    {id:1,cat:'lpm',sub:'3.2.a',stem:'Routing table has 10.0.0.0/8 and 10.10.20.0/24. Packet for 10.10.20.50. Which route?',opts:['/8','/24 — longest prefix match wins','/0 default','Both ECMP'],ans:'/24 — longest prefix match wins',why:'<strong>LPM wins first.</strong> /24 is more specific than /8. Always check LPM before AD or metric.'},
+    {id:2,cat:'lpm',sub:'3.2.a',stem:'Routing table has /8 [110/5] and /16 [120/100], both match destination. Which wins?',opts:['/8 (lower AD + lower metric)','/16 — longer prefix beats AD/metric','Both ECMP','Drops'],ans:'/16 — longer prefix beats AD/metric',why:'<strong>LPM is rule #1.</strong> /16 wins over /8 regardless of AD or metric. AD/metric only compare routes for the SAME prefix length.'},
+    {id:3,cat:'lpm',sub:'3.2.a',stem:'Routing table has 10.0.0.0/8 (RIP), 10.10.0.0/16 (OSPF), 10.10.20.0/24 (static), 10.10.20.50/32 (connected). Packet for 10.10.20.50.',opts:['/8 — RIP','/16 — OSPF','/24 — static','/32 — connected (longest prefix)'],ans:'/32 — connected (longest prefix)',why:'<strong>/32 = longest possible match.</strong> A host route beats every supernet. Forwarding never even compares AD because LPM ended the contest.'},
+    {id:4,cat:'lpm',sub:'3.2.a',stem:'What is the SHORTEST prefix possible?',opts:['/32','/24','/8','/0 (default route, 0.0.0.0/0)'],ans:'/0 (default route, 0.0.0.0/0)',why:'<strong>/0 = match nothing specifically = match everything as last resort.</strong> Used only when no other route matches.'},
+    {id:5,cat:'lpm',sub:'3.2.a',stem:'What is the LONGEST prefix possible in IPv4?',opts:['/24','/30','/32 (host route)','/64'],ans:'/32 (host route)',why:'<strong>/32 = all 32 bits matched.</strong> One specific IP. Beats every other match for that one address.'},
+    {id:6,cat:'lpm',sub:'3.2.a',stem:'When does LPM run?',opts:['Only on first packet of a flow','At RIB → FIB programming time','On every packet (data-plane lookup)','Once at boot'],ans:'On every packet (data-plane lookup)',why:'<strong>LPM = per-packet TCAM lookup.</strong> Already-installed FIB has the winners; lookup matches dst IP against longest prefix in FIB. Wire-speed.'},
+    {id:7,cat:'lpm',sub:'3.2.a',stem:'Does the default route match every packet?',opts:['Yes — always wins','No — it\'s the LAST resort, only used when no longer prefix matches','Sometimes','Only on weekends'],ans:'No — it\'s the LAST resort, only used when no longer prefix matches',why:'<strong>Default = shortest prefix.</strong> Anything more specific beats it. Default kicks in only when nothing else matches the destination.'},
+    {id:8,cat:'lpm',sub:'3.2.a',stem:'Routing table has 192.168.1.0/24 and 192.168.1.0/25. Packet for 192.168.1.10. Which route?',opts:['/24','/25 — longer prefix','Both ECMP','Drops'],ans:'/25 — longer prefix',why:'<strong>/25 wins.</strong> 192.168.1.0/25 covers 192.168.1.0-127, includes .10. More specific than /24. LPM applies regardless of AD/metric.'},
+    {id:9,cat:'lpm',sub:'3.2.a',stem:'Same scenario but the /25 entry has AD 250 (very untrusted). Now which wins?',opts:['/24','/25 still wins — LPM beats AD','Drops','Whichever has lower metric'],ans:'/25 still wins — LPM beats AD',why:'<strong>LPM is rule #1.</strong> AD is rule #2. Even AD 250 (almost unreachable) on /25 beats AD 0 on /24 — as long as /25 is in the routing table at all.'},
+    {id:10,cat:'lpm',sub:'3.2.a',stem:'Why is LPM run before AD?',opts:['No reason','Specificity matters more than source — admin wants traffic to use the most-specific known path','LPM is faster','Random'],ans:'Specificity matters more than source — admin wants traffic to use the most-specific known path',why:'<strong>Design intent.</strong> A /24 specifically configured exists for a reason. Falling back to /16 because of AD would defeat purpose. Specificity wins by design.'},
+    {id:11,cat:'lpm',sub:'3.2.a',stem:'Pick the FALSE statement about LPM:',opts:['Most-specific match wins','LPM runs at every packet lookup','LPM is overridden by lower AD','Default route has prefix /0'],ans:'LPM is overridden by lower AD',why:'<strong>FALSE — LPM beats AD always.</strong> AD only tiebreaks for the SAME prefix length. Lower AD on a less-specific route is meaningless.'},
+    {id:12,cat:'lpm',sub:'3.2.a',stem:'A packet for 0.0.0.5 — what happens if no route matches except 0.0.0.0/0?',opts:['Drops','Forwarded via the default route (gateway of last resort)','Loops','ICMP redirect'],ans:'Forwarded via the default route (gateway of last resort)',why:'<strong>Default = catch-all.</strong> 0.0.0.0/0 covers every IP. If no longer prefix matches, default route wins. Without it, packet drops.'},
+    // AD tiebreaker — 8
+    {id:13,cat:'ad',sub:'3.2.b',stem:'Two protocols learn the same /24 — OSPF (cost 65) and EIGRP (composite 100000). Which is installed?',opts:['OSPF (lower cost)','EIGRP (lower AD: 90 < 110)','Both ECMP','First-learned wins'],ans:'EIGRP (lower AD: 90 < 110)',why:'<strong>AD compared first.</strong> EIGRP AD 90 < OSPF AD 110. Metric never compared across protocols — meaningless.'},
+    {id:14,cat:'ad',sub:'3.2.b',stem:'Static route AD 1 vs OSPF route AD 110, same prefix. Which wins?',opts:['OSPF — better metric','Static — AD 1 < AD 110','Both','Tie'],ans:'Static — AD 1 < AD 110',why:'<strong>Static beats OSPF.</strong> Lower AD = more trusted. Static is admin-configured intent; OSPF is dynamically learned.'},
+    {id:15,cat:'ad',sub:'3.2.b',stem:'Two routes: connected /24 (AD 0) and static /24 (AD 1) for the SAME prefix (admin made a typo). Which wins?',opts:['Static','Connected — AD 0 < AD 1','Both','Drops'],ans:'Connected — AD 0 < AD 1',why:'<strong>Connected is most trusted (AD 0).</strong> Beats static. Beats everything. Logic: the router can SEE the link directly.'},
+    {id:16,cat:'ad',sub:'3.2.b',stem:'When does AD comparison happen?',opts:['Per-packet','When 2+ protocols/sources have routes for the SAME prefix','Always','Random'],ans:'When 2+ protocols/sources have routes for the SAME prefix',why:'<strong>AD = tiebreaker for SAME-prefix routes from DIFFERENT sources.</strong> If only one source has the prefix, AD is irrelevant.'},
+    {id:17,cat:'ad',sub:'3.2.b',stem:'A floating static route is:',opts:['A static route to /32','A static route with manually-raised AD, used as backup','A dynamic route','HSRP'],ans:'A static route with manually-raised AD, used as backup',why:'<strong>Floating static.</strong> <code>ip route 10.0.0.0 255.0.0.0 X.X.X.X 130</code> — AD 130 makes it less trusted than RIP. Doesn\'t install unless RIP fails.'},
+    {id:18,cat:'ad',sub:'3.2.b',stem:'iBGP AD vs eBGP AD?',opts:['Both 200','Both 20','iBGP=200 (least trusted), eBGP=20 (very trusted)','iBGP=20, eBGP=200'],ans:'iBGP=200 (least trusted), eBGP=20 (very trusted)',why:'<strong>Counterintuitive but correct.</strong> eBGP=20 because external peering is explicit. iBGP=200 because internal BGP requires loop-prevention setup (mesh/RR).'},
+    {id:19,cat:'ad',sub:'3.2.b',stem:'OSPF AD?',opts:['90','100','110','115'],ans:'110',why:'<strong>OSPF = 110.</strong> Common trap: 100 = legacy IGRP. Memorize 110 cold.'},
+    {id:20,cat:'ad',sub:'3.2.b',stem:'AD ladder, low-to-high?',opts:['Static-Connected-OSPF','Connected (0) → Static (1) → eBGP (20) → EIGRP (90) → OSPF (110) → IS-IS (115) → RIP (120) → EIGRP-ext (170) → iBGP (200)','OSPF first','Random'],ans:'Connected (0) → Static (1) → eBGP (20) → EIGRP (90) → OSPF (110) → IS-IS (115) → RIP (120) → EIGRP-ext (170) → iBGP (200)',why:'<strong>Memorize cold.</strong> Connected/Static/eBGP/EIGRP/OSPF/ISIS/RIP/EIGRP-ext/iBGP. Backbone of cross-protocol decisions.'},
+    // metric tiebreaker — 8
+    {id:21,cat:'metric',sub:'3.2.c',stem:'Two OSPF routes for 10.10.0.0/16 — cost 65 and cost 100. Which is installed?',opts:['Both','Cost 65 (lower)','Cost 100','First-learned'],ans:'Cost 65 (lower)',why:'<strong>Same protocol → metric tiebreak.</strong> Lower OSPF cost wins. Cost 100 sits in OSPF DB but not RIB.'},
+    {id:22,cat:'metric',sub:'3.2.c',stem:'OSPF cost 65 vs RIP hop 1, same prefix. Which wins?',opts:['RIP — fewer hops','OSPF — lower AD (110 < 120)','Both','Tie'],ans:'OSPF — lower AD (110 < 120)',why:'<strong>AD first, NOT metric.</strong> Cross-protocol metric comparisons are meaningless. OSPF AD 110 < RIP AD 120.'},
+    {id:23,cat:'metric',sub:'3.2.c',stem:'When does metric matter?',opts:['Always','Only when 2+ routes from the SAME protocol have the SAME prefix','Only on default routes','Never'],ans:'Only when 2+ routes from the SAME protocol have the SAME prefix',why:'<strong>Metric = within-protocol tiebreaker.</strong> OSPF cost compared only to other OSPF costs. RIP hops only to other RIP hops.'},
+    {id:24,cat:'metric',sub:'3.2.c',stem:'EIGRP composite metric is based on:',opts:['Hops','Bandwidth + delay (default; can also use load + reliability + MTU)','MTU only','Cost'],ans:'Bandwidth + delay (default; can also use load + reliability + MTU)',why:'<strong>EIGRP composite.</strong> K-values control which factors. Default: K1=1 (BW), K3=1 (delay). Others typically 0.'},
+    {id:25,cat:'metric',sub:'3.2.c',stem:'OSPF default cost formula?',opts:['Hop count','10⁸ / bandwidth in bps (configurable reference BW)','Random','MTU'],ans:'10⁸ / bandwidth in bps (configurable reference BW)',why:'<strong>OSPF cost.</strong> 10G link → cost 1. 1G → cost 10. 100M → 100. <code>auto-cost reference-bandwidth</code> can raise the reference for modern speeds.'},
+    {id:26,cat:'metric',sub:'3.2.c',stem:'RIP metric?',opts:['Cost','Composite','Hop count (max 15, 16=infinity)','Path attrs'],ans:'Hop count (max 15, 16=infinity)',why:'<strong>RIP = hop count.</strong> Each router = +1 hop. Max 15. Hop 16 = unreachable. Limits RIP to small networks.'},
+    {id:27,cat:'metric',sub:'3.2.c',stem:'In <code>O 10.10.20.0/24 [110/65]</code>, the 65 is:',opts:['AD','OSPF cost (metric)','Hop count','Lifetime'],ans:'OSPF cost (metric)',why:'<strong>[AD/Metric].</strong> 110 = OSPF AD. 65 = sum of OSPF costs along the path.'},
+    {id:28,cat:'metric',sub:'3.2.c',stem:'Static route default metric?',opts:['1','0','100','infinity'],ans:'0',why:'<strong>Static metric = 0.</strong> The "0" in [1/0] for a static route. AD 1, metric 0.'},
+    // RIB / FIB / CEF — 6
+    {id:29,cat:'ribfib',sub:'3.2',stem:'RIB stands for:',opts:['Routing Index Buffer','Routing Information Base — control plane, all routes','Random IP block','Recursive lookup'],ans:'Routing Information Base — control plane, all routes',why:'<strong>RIB = control plane database.</strong> Built by routing protocols. Holds candidate + winning routes. View: <code>show ip route</code>.'},
+    {id:30,cat:'ribfib',sub:'3.2',stem:'FIB stands for:',opts:['Forwarding Information Base — data plane, winners only','Forwarding Index Block','Fast IP Bypass','Filter In Buffer'],ans:'Forwarding Information Base — data plane, winners only',why:'<strong>FIB = data plane lookup table.</strong> Derived from RIB. In TCAM. Wire-speed lookup.'},
+    {id:31,cat:'ribfib',sub:'3.2',stem:'CEF stands for and does:',opts:['Cisco Encryption Framework','Cisco Express Forwarding — modern FIB-based forwarding engine','Centralized Edge Filter','Common ECMP Filter'],ans:'Cisco Express Forwarding — modern FIB-based forwarding engine',why:'<strong>CEF.</strong> Replaces process / fast switching. Default on all modern Cisco. Uses FIB + adjacency table for line-rate forwarding.'},
+    {id:32,cat:'ribfib',sub:'3.2',stem:'When are LPM/AD/metric comparisons run?',opts:['Per-packet (slow path)','At RIB → FIB programming time (winners then loaded into TCAM)','Continuously','Once per second'],ans:'At RIB → FIB programming time (winners then loaded into TCAM)',why:'<strong>Decision happens once at programming.</strong> Per-packet, just TCAM lookup against pre-resolved FIB. Otherwise routers couldn\'t hit line rate.'},
+    {id:33,cat:'ribfib',sub:'3.2',stem:'Command to view what the FIB will use for a destination?',opts:['show ip route X.X.X.X','show ip cef X.X.X.X','show ip arp','show ip protocols'],ans:'show ip cef X.X.X.X',why:'<strong>show ip cef = data-plane view.</strong> Confirms what TCAM is actually programmed with. Pair with <code>show ip route</code> for control-plane view.'},
+    {id:34,cat:'ribfib',sub:'3.2',stem:'Where does the FIB live?',opts:['Disk','RAM only','TCAM (specialized hardware lookup memory) or ASIC RAM','Cloud'],ans:'TCAM (specialized hardware lookup memory) or ASIC RAM',why:'<strong>TCAM = ternary CAM.</strong> Allows mask-based parallel lookup. Dedicated hardware. Per-packet line-rate forwarding.'},
+    // show outputs — 8
+    {id:35,cat:'output',sub:'3.2',stem:'Output:<div class="out">R1# show ip route 10.10.20.50\nRouting entry for 10.10.20.0/24\n  Known via "ospf 1", distance 110, metric 65</div>What does this confirm?',opts:['LPM picked the /24 OSPF route as best for 10.10.20.50','Static route used','Drops','iBGP'],ans:'LPM picked the /24 OSPF route as best for 10.10.20.50',why:'<strong>show ip route X = LPM result.</strong> Even though we asked about a /32 host, the matching /24 is shown as the routing entry used.'},
+    {id:36,cat:'output',sub:'3.2',stem:'Output:<div class="out">R1# show ip cef 10.10.20.50\n10.10.20.0/24\n  nexthop 10.10.10.2 GigabitEthernet0/0</div>What is this showing?',opts:['Routing protocol DB','FIB entry — what TCAM is actually using to forward','ARP','Default route only'],ans:'FIB entry — what TCAM is actually using to forward',why:'<strong>show ip cef = FIB.</strong> Single line, no AD/metric (already resolved). This is the data-plane truth.'},
+    {id:37,cat:'output',sub:'3.2',stem:'Output:<div class="out">  Routing Descriptor Blocks:\n  * 10.10.10.2, via Gi0/0\n    10.10.10.3, via Gi0/1</div>Two next-hops, one with asterisk. What does this indicate?',opts:['Error','ECMP — two equal paths installed; * marks active path','Floating static','Drops'],ans:'ECMP — two equal paths installed; * marks active path',why:'<strong>ECMP = both paths used.</strong> Asterisk = currently active for this flow (load-share rotates per flow on Cisco default).'},
+    {id:38,cat:'output',sub:'3.2',stem:'Output:<div class="out">R1# show ip cef exact-route 10.10.10.5 10.10.20.50\n10.10.10.5 -> 10.10.20.50 : Gi0/0 (next hop 10.10.10.2)</div>What does this command answer?',opts:['Routing table contents','Which exact ECMP path a specific source-destination pair will take','Default route','MTU'],ans:'Which exact ECMP path a specific source-destination pair will take',why:'<strong>show ip cef exact-route.</strong> ECMP load-balancing picker. Confirms which physical path a flow takes. Useful for troubleshooting.'},
+    {id:39,cat:'output',sub:'3.2',stem:'A route in show ip route output reads <code>R 10.0.0.0/8 [120/3] via X</code>, but you have a static <code>S 10.0.0.0/8 [1/0] via Y</code>. Which is in the FIB?',opts:['RIP','Static — lower AD','Both','Drops'],ans:'Static — lower AD',why:'<strong>AD wins.</strong> Same prefix → AD 1 < AD 120 → static installed. RIP route still tracked but not in FIB.'},
+    {id:40,cat:'output',sub:'3.2',stem:'<code>show ip route</code> shows both an OSPF route to /16 and an EIGRP route to /24, both could match a packet. Which goes in FIB for that packet?',opts:['OSPF','EIGRP — longer prefix','Both ECMP','Drops'],ans:'EIGRP — longer prefix',why:'<strong>LPM wins.</strong> /24 more specific than /16. AD never compared because LPM ended the contest.'},
+    {id:41,cat:'output',sub:'3.2',stem:'Output:<div class="out">D 10.10.0.0/16 [90/2172416] via 10.10.10.5\nO 10.10.0.0/16 [110/65]   via 10.10.10.2</div>Both for /16 — which is installed?',opts:['OSPF — better metric','EIGRP — lower AD (90 < 110)','Both','Random'],ans:'EIGRP — lower AD (90 < 110)',why:'<strong>AD wins.</strong> Same prefix → cross-protocol → EIGRP AD 90 beats OSPF AD 110. Metric never enters cross-protocol comparison.'},
+    {id:42,cat:'output',sub:'3.2',stem:'A route is "suppressed" — meaning?',opts:['Filtered out by ACL','Lost AD comparison — not in RIB but tracked by its protocol','In FIB but not RIB','Default-routed'],ans:'Lost AD comparison — not in RIB but tracked by its protocol',why:'<strong>Suppressed = lost AD tiebreak.</strong> Protocol still maintains its DB entry; if winner withdraws, this route can be promoted to RIB.'},
+    // ECMP / floating — 5
+    {id:43,cat:'ecmp',sub:'3.2',stem:'ECMP requires:',opts:['Same prefix only','Same prefix + same protocol + same metric','Same protocol only','Equal AD'],ans:'Same prefix + same protocol + same metric',why:'<strong>ECMP = strict equality.</strong> All three must match. Different protocols → AD picks one (no ECMP). Different metrics → lower wins (no ECMP).'},
+    {id:44,cat:'ecmp',sub:'3.2',stem:'Cisco IOS default maximum-paths for ECMP?',opts:['1','4','16','32'],ans:'4',why:'<strong>Default = 4.</strong> Configurable up to 32 (or 16 on some platforms) via <code>maximum-paths N</code> under the routing protocol process.'},
+    {id:45,cat:'ecmp',sub:'3.2',stem:'Default Cisco load-balancing mode for ECMP?',opts:['Per-packet','Per-destination (CEF default)','Round-robin','Hash-by-MAC'],ans:'Per-destination (CEF default)',why:'<strong>Per-destination = default with CEF.</strong> Same source-dest pair always uses same path (avoids out-of-order packets). Per-packet possible but breaks TCP — rarely used.'},
+    {id:46,cat:'ecmp',sub:'3.2',stem:'Floating static — purpose?',opts:['Encryption','Backup route — only installs if primary protocol fails (because static AD raised above primary protocol AD)','Faster','Multicast'],ans:'Backup route — only installs if primary protocol fails (because static AD raised above primary protocol AD)',why:'<strong>HA pattern.</strong> Static normally has AD 1 (very trusted). Manually setting it to e.g. 130 makes it less-trusted than RIP — so RIP wins normally; only fails over to static if RIP withdraws.'},
+    {id:47,cat:'ecmp',sub:'3.2',stem:'Routing table:<div class="out">D 10.0.0.0/8 [90/X] via 10.0.0.1\nD 10.0.0.0/8 [90/X] via 10.0.0.2</div>Same protocol, same prefix, same metric. What happens?',opts:['One picked at random','Both installed — ECMP','First wins','Drops'],ans:'Both installed — ECMP',why:'<strong>Equal-cost = both installed.</strong> Traffic load-shared (per-destination by default). No tiebreak needed.'},
+    // traps — 3
+    {id:48,cat:'trap',sub:'3.2',stem:'Pick the FALSE statement about forwarding decisions:',opts:['LPM is checked first','AD is checked when 2+ protocols have the same prefix','Lowest metric always wins regardless of LPM','ECMP requires same prefix + protocol + metric'],ans:'Lowest metric always wins regardless of LPM',why:'<strong>FALSE — LPM beats metric, every time.</strong> Metric is rule #3. LPM is rule #1. Don\'t swap.'},
+    {id:49,cat:'trap',sub:'3.2',stem:'Pick the BEST description of forwarding decision order:',opts:['Metric → AD → LPM','LPM → AD → Metric (longest prefix → lowest AD → lowest metric)','AD → LPM → Metric','Random'],ans:'LPM → AD → Metric (longest prefix → lowest AD → lowest metric)',why:'<strong>L-A-M.</strong> NEVER swap. Memorize cold. Foundation of every routing-decision question on the exam.'},
+    {id:50,cat:'trap',sub:'3.2',stem:'Which is TRUE about RIB and FIB?',opts:['Same thing','RIB = control plane (CPU, all candidates) · FIB = data plane (TCAM, winners only)','RIB is hardware','FIB is slower than RIB'],ans:'RIB = control plane (CPU, all candidates) · FIB = data plane (TCAM, winners only)',why:'<strong>RIB stores candidates; FIB stores winners.</strong> Different memory, different roles. CEF programs FIB from RIB. Per-packet lookup hits FIB only.'}
+  ];
+
+  var seen={}, mastered={}, missed=[], qIdx=0, dC=0, dW=0, dS=0;
+  var activeFilter='all', current=null, examMode=false, examTimer=null, examLeft=720, examQs=[], examIdx=0, examCorrect=0;
+
+  function poolFor(f){ return f==='all' ? BANK.slice() : BANK.filter(function(q){return q.cat===f;}); }
+  function unanswered(){ return poolFor(activeFilter).filter(function(q){return !mastered[q.id];}); }
+
+  function pick(){
+    if(examMode){ examNext(); return; }
+    var pool=unanswered();
+    if(pool.length===0){
+      var total=poolFor(activeFilter).length;
+      if(Object.keys(mastered).length>=total && dW===0){
+        document.getElementById('dPass').classList.add('show');
+        document.getElementById('dStem').innerHTML='<strong>✓ '+activeFilter+' pool 100% mastered.</strong>';
+        document.getElementById('dOpts').innerHTML='';
+        return;
+      }
+      pool=poolFor(activeFilter);
+    }
+    var weighted=[];
+    pool.forEach(function(q){
+      var w=missed.indexOf(q.id)>=0 ? 4 : (seen[q.id] ? 1 : 2);
+      for(var i=0;i<w;i++) weighted.push(q);
+    });
+    var q=weighted[Math.floor(Math.random()*weighted.length)];
+    current=q; qIdx++;
+    renderQ(q);
+  }
+
+  function renderQ(q){
+    document.getElementById('dN').textContent=qIdx;
+    document.getElementById('dSub').textContent='Q'+qIdx+' · '+q.cat;
+    document.getElementById('dCat').textContent='#'+q.id;
+    document.getElementById('dStem').innerHTML=q.stem;
+    var box=document.getElementById('dOpts'); box.innerHTML='';
+    var opts=q.opts.slice().sort(function(){return Math.random()-.5;});
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.type='button'; b.className='drill-opt'; b.textContent=o;
+      b.addEventListener('click',function(){ if(b.classList.contains('correct')||b.classList.contains('wrong'))return; answer(o,b); });
+      box.appendChild(b);
+    });
+    document.getElementById('dWhy').classList.remove('show');
+    document.getElementById('dWhy').innerHTML='';
+    document.getElementById('dNext').disabled=true;
+  }
+
+  function answer(p,b){
+    var q=current;
+    seen[q.id]=(seen[q.id]||0)+1;
+    if(p===q.ans){
+      b.classList.add('correct'); dC++; dS++;
+      seen[q.id+'-streak']=(seen[q.id+'-streak']||0)+1;
+      if(seen[q.id+'-streak']>=2){ mastered[q.id]=true; var idx=missed.indexOf(q.id); if(idx>=0) missed.splice(idx,1); }
+      if(examMode) examCorrect++;
+    } else {
+      b.classList.add('wrong');
+      Array.prototype.forEach.call(document.querySelectorAll('#dOpts .drill-opt'),function(x){ if(x.textContent===q.ans) x.classList.add('correct'); });
+      dW++; dS=0;
+      seen[q.id+'-streak']=0;
+      if(missed.indexOf(q.id)<0) missed.push(q.id);
+    }
+    if(!examMode){
+      var w=document.getElementById('dWhy');
+      w.innerHTML='<strong>'+q.sub+' — '+(p===q.ans?'correct':'incorrect')+'</strong><br>'+q.why;
+      w.classList.add('show');
+    }
+    updateStats();
+    document.getElementById('dNext').disabled=false;
+    if(examMode){ setTimeout(function(){ examIdx++; examNext(); },600); }
+  }
+
+  function updateStats(){
+    document.getElementById('dC').textContent=dC;
+    document.getElementById('dW').textContent=dW;
+    document.getElementById('dS').textContent=dS;
+    var t=dC+dW;
+    document.getElementById('dA').textContent=t?Math.round(dC/t*100)+'%':'—';
+    var poolSize=poolFor(activeFilter).length;
+    document.getElementById('dPool').textContent=poolSize;
+    document.getElementById('dSeen').textContent=Math.min(Object.keys(seen).filter(function(k){return !k.endsWith('-streak');}).length,poolSize);
+    document.getElementById('dM').textContent=Object.keys(mastered).length;
+    document.getElementById('dProg').style.width=Math.round(Object.keys(mastered).length/poolSize*100)+'%';
+    document.getElementById('dShowMiss').textContent='Missed ('+missed.length+')';
+  }
+
+  function examNext(){
+    if(examIdx>=examQs.length){ examFinish(); return; }
+    current=examQs[examIdx]; qIdx=examIdx+1;
+    renderQ(current);
+    document.getElementById('dWhy').classList.remove('show');
+  }
+  function examFinish(){
+    clearInterval(examTimer); examTimer=null; examMode=false;
+    document.getElementById('dTimer').style.display='none';
+    var pct=Math.round(examCorrect/examQs.length*100);
+    var pass=pct>=80;
+    document.getElementById('dStem').innerHTML='<strong>'+(pass?'✓ EXAM PASS':'✗ EXAM FAIL')+'</strong><br>'+examCorrect+' / '+examQs.length+' ('+pct+'%)' + (pass?' · 3.2 mastered':' · need 80%+');
+    document.getElementById('dOpts').innerHTML='';
+    if(pass){
+      document.getElementById('dPass').classList.add('show');
+      var s=getSrs(); if(!s.firstPass){ s.firstPass=Date.now(); setSrs(s); srsRender(); }
+    }
+    document.getElementById('dStart').disabled=false;
+    document.getElementById('dExam').disabled=false;
+  }
+  function fmtT(s){ var m=Math.floor(s/60),x=s%60; return m+':'+(x<10?'0':'')+x; }
+
+  document.getElementById('dStart').addEventListener('click',function(){
+    examMode=false; pick();
+    document.getElementById('dStart').textContent='▶ Restart pool';
+  });
+  document.getElementById('dNext').addEventListener('click',function(){ pick(); });
+  document.getElementById('dExam').addEventListener('click',function(){
+    examMode=true; examIdx=0; examCorrect=0; examLeft=720;
+    var pool=poolFor(activeFilter).slice().sort(function(){return Math.random()-.5;});
+    examQs=pool.slice(0,Math.min(20,pool.length));
+    document.getElementById('dStart').disabled=true;
+    document.getElementById('dExam').disabled=true;
+    document.getElementById('dTimer').style.display='inline-block';
+    document.getElementById('dTimer').textContent=fmtT(examLeft);
+    examNext();
+    examTimer=setInterval(function(){
+      examLeft--;
+      var t=document.getElementById('dTimer'); t.textContent=fmtT(examLeft);
+      if(examLeft<=60) t.classList.add('warn');
+      if(examLeft<=0) examFinish();
+    },1000);
+  });
+  document.getElementById('dReset').addEventListener('click',function(){
+    if(!confirm('reset all 3.2 drill progress?')) return;
+    seen={}; mastered={}; missed=[]; qIdx=0; dC=0; dW=0; dS=0;
+    document.getElementById('dPass').classList.remove('show');
+    document.getElementById('dMiss').classList.remove('show');
+    document.getElementById('dStem').innerHTML='Click <strong>Start drill</strong> to begin.';
+    document.getElementById('dOpts').innerHTML='';
+    document.getElementById('dWhy').classList.remove('show');
+    document.getElementById('dStart').textContent='▶ Start drill';
+    document.getElementById('dStart').disabled=false;
+    document.getElementById('dExam').disabled=false;
+    document.getElementById('dTimer').style.display='none';
+    document.getElementById('dTimer').classList.remove('warn');
+    updateStats();
+  });
+  document.getElementById('dShowMiss').addEventListener('click',function(){
+    var box=document.getElementById('dMiss');
+    if(box.classList.contains('show')){ box.classList.remove('show'); return; }
+    if(missed.length===0){ box.innerHTML='<span style="color:var(--correct)">no missed yet</span>'; box.classList.add('show'); return; }
+    box.innerHTML=missed.map(function(id){
+      var q=BANK.find(function(x){return x.id===id;});
+      return '<div class="row">#'+id+' ('+q.cat+'): '+q.stem.replace(/<[^>]+>/g,'').substring(0,90)+'…</div>';
+    }).join('');
+    box.classList.add('show');
+  });
+  document.querySelectorAll('.filter-pill').forEach(function(p){
+    p.addEventListener('click',function(){
+      document.querySelectorAll('.filter-pill').forEach(function(x){x.classList.remove('active');});
+      p.classList.add('active');
+      activeFilter=p.dataset.cat;
+      updateStats();
+    });
+  });
+  updateStats();
+
+  // CLI Simulator
+  var CLI={
+    'show ip route':'Codes: L - local, C - connected, S - static, R - RIP, B - BGP, D - EIGRP, O - OSPF\n       * - candidate default\n\nGateway of last resort is 203.0.113.1 to network 0.0.0.0\n\nS*   0.0.0.0/0 [1/0] via 203.0.113.1\n     10.0.0.0/8 is variably subnetted, 4 subnets\nO       10.0.0.0/8       [110/100] via 10.10.10.2\nD       10.10.0.0/16     [90/2172416] via 10.10.10.5\nS       10.10.20.0/24    [1/0] via 10.10.10.99\nO       10.10.20.128/25  [110/65] via 10.10.10.2\nD       10.10.20.50/32   [90/256000] via 10.10.10.5',
+    'show ip route 10.10.20.50':'Routing entry for 10.10.20.50/32\n  Known via "eigrp 100", distance 90, metric 256000, type internal\n  Last update from 10.10.10.5 on GigabitEthernet0/0, 00:01:22 ago\n  Routing Descriptor Blocks:\n  * 10.10.10.5, from 10.10.10.5, 00:01:22 ago, via GigabitEthernet0/0\n      Route metric is 256000, traffic share count is 1',
+    'show ip route 10.10.20.10':'Routing entry for 10.10.20.0/24\n  Known via "static", distance 1, metric 0\n  Routing Descriptor Blocks:\n  * 10.10.10.99\n      Route metric is 0, traffic share count is 1',
+    'show ip cef':'Prefix              Next Hop        Interface\n0.0.0.0/0           203.0.113.1     Gi0/1\n0.0.0.0/8           drop\n10.0.0.0/8          10.10.10.2      Gi0/0\n10.10.0.0/16        10.10.10.5      Gi0/0\n10.10.20.0/24       10.10.10.99     Gi0/0\n10.10.20.50/32      10.10.10.5      Gi0/0\n10.10.20.128/25     10.10.10.2      Gi0/0\n203.0.113.0/30      attached        Gi0/1',
+    'show ip cef 10.10.20.50':'10.10.20.50/32\n  nexthop 10.10.10.5 GigabitEthernet0/0',
+    'show ip cef exact-route 10.10.10.5 10.10.20.50':'10.10.10.5 -> 10.10.20.50  : GigabitEthernet0/0 (next hop 10.10.10.5)',
+    'show ip cef exact-route 10.10.10.5 8.8.8.8':'10.10.10.5 -> 8.8.8.8  : GigabitEthernet0/1 (next hop 203.0.113.1)',
+    'show ip protocols':'Routing Protocol is "ospf 1"\n  Router ID 1.1.1.1\n  Number of areas in this router is 1.\n  Routing Information Sources:\n    Gateway      Distance   Last Update\n    10.10.10.2   110        00:14:33\n  Distance: (default is 110)\n\nRouting Protocol is "eigrp 100"\n  Default networks flagged in outgoing updates\n  Distance: internal 90 external 170',
+    '?':'Common forwarding-decision commands:\n  show ip route             - control plane RIB\n  show ip route X.X.X.X     - what RIB picks for that destination\n  show ip cef               - data plane FIB (winners only)\n  show ip cef X.X.X.X       - FIB lookup for that IP\n  show ip cef exact-route SRC DEST - which ECMP path a flow uses\n  show ip protocols         - active routing protocols + AD',
+    'enable':'R1#'
+  };
+  var cliInput=document.getElementById('cliInput'), cliOut=document.getElementById('cliOutput');
+  function cliPrint(line,color){
+    var d=document.createElement('div'); d.style.whiteSpace='pre'; if(color) d.style.color=color;
+    d.textContent=line; cliOut.appendChild(d); cliOut.scrollTop=cliOut.scrollHeight;
+  }
+  cliPrint('R1 — fake Cisco IOS-XE router CLI. Type ? for commands.','#86EFAC');
+  cliInput.addEventListener('keydown',function(e){
+    if(e.key!=='Enter') return;
+    e.preventDefault();
+    var cmd=cliInput.value.trim();
+    if(!cmd) return;
+    cliPrint('R1# '+cmd,'#FCD34D');
+    var hit=null;
+    for(var k in CLI){ if(cmd===k || cmd.toLowerCase()===k.toLowerCase()){ hit=CLI[k]; break; } }
+    if(hit) cliPrint(hit);
+    else cliPrint('% Invalid input detected at "^" marker.\n        ^','#FCA5A5');
+    cliInput.value='';
+  });
+  document.getElementById('cliClear').addEventListener('click',function(){ cliOut.innerHTML=''; cliPrint('R1 — cleared.','#86EFAC'); });
+
+  // Match
+  var MATCH=[
+    {l:'LPM',r:'Longest prefix match — most-specific route wins; rule #1'},
+    {l:'AD',r:'Administrative distance — lowest wins when 2+ protocols have same prefix; rule #2'},
+    {l:'Metric',r:'Within-protocol path cost — lowest wins; rule #3'},
+    {l:'RIB',r:'Routing Information Base — control-plane DB of all candidates'},
+    {l:'FIB',r:'Forwarding Information Base — data-plane TCAM holding only winners'},
+    {l:'CEF',r:'Cisco Express Forwarding — modern FIB-based engine, line-rate'},
+    {l:'ECMP',r:'Equal-Cost Multi-Path — same prefix + protocol + metric = both installed'},
+    {l:'Floating static',r:'Static route with raised AD; backup, only used if primary fails'}
+  ];
+  var matchPicked=null, matchDone=0;
+  function renderMatch(){
+    var L=document.getElementById('matchLeft'), R=document.getElementById('matchRight');
+    L.innerHTML=''; R.innerHTML='';
+    var rights=MATCH.map(function(m,i){return {idx:i,txt:m.r};}).sort(function(){return Math.random()-.5;});
+    MATCH.forEach(function(m,i){
+      var b=document.createElement('button'); b.type='button'; b.className='filter-pill'; b.style.cssText='font-family:var(--font-display);font-weight:700;text-align:left;padding:10px 14px;cursor:pointer';
+      b.textContent=m.l; b.dataset.idx=i;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')) return;
+        document.querySelectorAll('#matchLeft .filter-pill').forEach(function(x){x.style.background='var(--bg-recessed)';x.style.color='var(--ink-secondary)';});
+        b.style.background='var(--accent)'; b.style.color='#fff';
+        matchPicked=parseInt(b.dataset.idx,10);
+      });
+      L.appendChild(b);
+    });
+    rights.forEach(function(r){
+      var b=document.createElement('button'); b.type='button'; b.className='filter-pill'; b.style.cssText='font-family:var(--font-body);text-align:left;padding:10px 14px;cursor:pointer';
+      b.textContent=r.txt; b.dataset.idx=r.idx;
+      b.addEventListener('click',function(){
+        if(matchPicked===null||b.classList.contains('correct')) return;
+        if(parseInt(b.dataset.idx,10)===matchPicked){
+          b.classList.add('correct'); b.style.background='var(--correct-bg)'; b.style.color='var(--correct)';
+          var leftBtn=document.querySelector('#matchLeft [data-idx="'+matchPicked+'"]');
+          leftBtn.classList.add('correct'); leftBtn.style.background='var(--correct-bg)'; leftBtn.style.color='var(--correct)';
+          matchDone++;
+          document.getElementById('matchStatus').textContent=matchDone+' / '+MATCH.length+' matched'+(matchDone===MATCH.length?' · ✓ section mastered':'');
+        } else {
+          b.style.background='var(--wrong-bg)'; b.style.color='var(--wrong)';
+          setTimeout(function(){b.style.background='var(--bg-recessed)';b.style.color='var(--ink-secondary)';},800);
+        }
+        matchPicked=null;
+      });
+      R.appendChild(b);
+    });
+  }
+  document.getElementById('matchReset').addEventListener('click',function(){ matchDone=0; matchPicked=null; document.getElementById('matchStatus').textContent='0 / 8 matched'; renderMatch(); });
+  renderMatch();
+
+  // Multi-part exhibit
+  var EXHIBIT=[
+    {q:'1. Packet for 10.10.20.50. Which route from the table is used?',opts:['S* 0.0.0.0/0','D 10.10.20.50/32 (longest prefix wins)','S 10.10.20.0/24','O 10.0.0.0/8'],ans:'D 10.10.20.50/32 (longest prefix wins)',why:'/32 host route = longest possible match. Beats every supernet. AD/metric never enter consideration once LPM picks /32.'},
+    {q:'2. Packet for 10.10.20.10 (note: NOT in /32 host route). Which route?',opts:['/32 — host route','S 10.10.20.0/24 [1/0] via 10.10.10.99 (LPM among matching routes)','/16','/8'],ans:'S 10.10.20.0/24 [1/0] via 10.10.10.99 (LPM among matching routes)',why:'No /32 match exists for .10. Next-longest is /24 static. /24 beats /16 + /8 + default via LPM.'},
+    {q:'3. Packet for 10.10.20.200. Which route?',opts:['Static /24','O 10.10.20.128/25 — covers .128-.255, longer prefix than /24','/16','/8'],ans:'O 10.10.20.128/25 — covers .128-.255, longer prefix than /24',why:'/25 covers 10.10.20.128-255. .200 falls in that range. /25 longer than /24 → LPM picks OSPF /25 over static /24.'},
+    {q:'4. Both EIGRP /16 (AD 90) and OSPF /16 (AD 110) exist for 10.10.0.0/16. Which is in RIB?',opts:['Both ECMP','EIGRP — lower AD','OSPF — better metric','First-learned'],ans:'EIGRP — lower AD',why:'Same prefix → AD compared (LPM tied). EIGRP AD 90 beats OSPF AD 110. Metric never enters cross-protocol comparison.'}
+  ];
+  function renderExhibit(){
+    var box=document.getElementById('exhibitBox'); box.innerHTML='';
+    EXHIBIT.forEach(function(e,i){
+      var card=document.createElement('div'); card.className='drill-card';
+      card.innerHTML='<div class="stem">'+e.q+'</div><div class="drill-opts">'+e.opts.map(function(o){return '<button type="button" class="drill-opt">'+o+'</button>';}).join('')+'</div><div class="drill-why">'+e.why+'</div>';
+      box.appendChild(card);
+      card.querySelectorAll('.drill-opt').forEach(function(b){
+        b.addEventListener('click',function(){
+          if(card.querySelector('.drill-opt.correct')) return;
+          if(b.textContent===e.ans){ b.classList.add('correct'); }
+          else { b.classList.add('wrong'); card.querySelectorAll('.drill-opt').forEach(function(x){if(x.textContent===e.ans) x.classList.add('correct');}); }
+          card.querySelector('.drill-why').classList.add('show');
+        });
+      });
+    });
+  }
+  renderExhibit();
+
+  // SRS
+  var SRS_KEY='ccna-3-2-srs';
+  function getSrs(){ return JSON.parse(localStorage.getItem(SRS_KEY)||'{}'); }
+  function setSrs(o){ localStorage.setItem(SRS_KEY,JSON.stringify(o)); }
+  function srsRender(){
+    var s=getSrs();
+    var box=document.getElementById('srsStatus');
+    if(!s.firstPass){
+      box.innerHTML='<strong>Not yet started.</strong><br>After your first 80%+ exam mode pass below, this section unlocks. SRS schedule: re-test at +1 day, +3 days, +7 days. Each re-test = 5 random Qs.';
+      return;
+    }
+    var now=Date.now();
+    var sched=[1,3,7].map(function(d){
+      var due=s.firstPass+d*86400000;
+      return {day:d, due:due, remaining:Math.max(0,due-now), passed:s['day'+d]};
+    });
+    var html='<strong>First mastery:</strong> '+new Date(s.firstPass).toLocaleString()+'<br><br>';
+    sched.forEach(function(x){
+      var status=x.passed?'<span style="color:var(--correct)">✓ done</span>':(x.remaining<=0?'<strong style="color:var(--accent)">DUE NOW</strong>':'<span style="color:var(--ink-muted)">due in '+Math.ceil(x.remaining/3600000)+'h</span>');
+      html+='Day +'+x.day+': '+status+'<br>';
+    });
+    box.innerHTML=html;
+  }
+  document.getElementById('srsCheck').addEventListener('click',function(){
+    var s=getSrs();
+    if(!s.firstPass){ alert('Pass exam mode first (80%+) to unlock spaced retrieval.'); return; }
+    var pool=BANK.slice().sort(function(){return Math.random()-.5;}).slice(0,5);
+    var correct=0;
+    pool.forEach(function(q,i){
+      var ans=prompt('Q'+(i+1)+'/5: '+q.stem.replace(/<[^>]+>/g,'')+'\n\n'+q.opts.map(function(o,j){return (j+1)+'. '+o;}).join('\n')+'\n\nEnter 1-4:');
+      if(ans){ var idx=parseInt(ans,10)-1; if(idx>=0&&idx<q.opts.length&&q.opts[idx]===q.ans) correct++; }
+    });
+    var pct=Math.round(correct/5*100);
+    alert('Result: '+correct+'/5 ('+pct+'%)'+(pct>=80?' — passed!':''));
+    if(pct>=80){
+      var now=Date.now(); var d=Math.floor((now-s.firstPass)/86400000);
+      if(d>=1&&!s.day1) s.day1=now;
+      if(d>=3&&!s.day3) s.day3=now;
+      if(d>=7&&!s.day7) s.day7=now;
+      setSrs(s);
+    }
+    srsRender();
+  });
+  document.getElementById('srsReset').addEventListener('click',function(){
+    if(confirm('Reset SRS state?')){ localStorage.removeItem(SRS_KEY); srsRender(); }
+  });
+  srsRender();
+})();
+</script>
+</body>
+</html>
