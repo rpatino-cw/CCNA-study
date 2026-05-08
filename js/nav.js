@@ -36,6 +36,7 @@
       { text: 'VLSM Calculator', href: 'vlsm.html' },
       { text: 'Magic Number', href: 'magic-number.html' },
       { text: 'IPv6 Visual', href: 'ipv6.html' },
+      { text: 'IPv6 Subnetting Guide', href: 'ipv6-subnetting.html' },
       { text: 'Wireless AP Lab', href: 'wireless-ap-lab.html' },
     ]},
     { text: 'Practice', children: [
