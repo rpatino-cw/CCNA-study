@@ -47,6 +47,7 @@
       { text: 'Hard Subnetting (2-constraint)', href: 'subnetting-hard.html' },
       { text: 'VLSM Allocation Worksheet', href: 'vlsm-allocation.html' },
       { text: 'Subnet Summarization', href: 'subnet-summarization.html' },
+      { text: 'Division Drill (fast block-find)', href: 'division-drill.html' },
       { text: 'OSPF Cost Drill', href: 'ospf-cost-drill.html' },
       { text: 'ACL Match Drill', href: 'acl-match-drill.html' },
       { text: 'NAT Translation Trace', href: 'nat-trace-drill.html' },

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>Division Drill — Fast Block-Find — CCNA</title>
+  <meta name="description" content="Fast division refresher for subnetting. When the magic number is small (2–32) and the IP last octet is high (100–255), find the block start without counting up. Halve-method, multiples ladder, chunk-subtract.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+    .layout-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--s-lg); align-items: start; }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .drill-meta-compact { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .dmc-val { font-weight: 700; color: var(--ink); }
+    .dmc-sep { color: var(--ink-muted); }
+    .dmc-reset { font-family: var(--font-display); font-size: 0.7rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .q-card { border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: 22px; background: var(--bg); margin-bottom: 14px; }
+    .q-prompt { font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; line-height: 1.4; margin-bottom: 16px; }
+    .q-prompt .expr { font-family: var(--font-mono); background: var(--bg-surface); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); }
+    .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .input-row label { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .drill-input { font-family: var(--font-mono); font-size: 1.1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); width: 140px; }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+    .feedback.hint { background: #fff4d6; color: #5a4a1a; border: 1px solid #c4a36b; display: block; }
+    .teach { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--bg-surface); }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 10px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; }
+    .teach-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 13px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.6; color: var(--ink); }
+    .teach-body code, .teach-body .expr { background: var(--bg); padding: 1px 6px; border-radius: 4px; }
+    .ref-card { position: sticky; top: 80px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: var(--bg-surface); font-family: var(--font-mono); font-size: 0.82rem; }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+    .ref-card table { width: 100%; border-collapse: collapse; }
+    .ref-card td { padding: 3px 0; }
+    .ref-card td:last-child { text-align: right; font-weight: 600; }
+    .ref-card .multi-row td { font-size: 0.78rem; }
+    .ladder { font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; }
+    .ladder .hi { background: var(--accent); color: var(--bg); padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+    .kbd-hint { margin-top: 10px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); }
+    kbd { background: var(--bg-surface); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: var(--font-mono); font-size: 0.75rem; }
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+    .why-block { margin-top: var(--s-md); padding: 14px 16px; background: var(--bg-surface); border-left: 4px solid var(--accent); border-radius: 6px; font-family: var(--font-body); font-size: 0.92rem; line-height: 1.55; color: var(--ink-secondary); }
+    .why-block strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Subnetting · Fast Division</div>
+      <h1>Division Drill</h1>
+      <p>When the magic number is <strong>small</strong> (2–32) and the IP is <strong>high</strong> (100–255), counting up the multiples is slow and error-prone. Drill the three fast moves: <strong>halve-down</strong>, <strong>chunk-subtract</strong>, and <strong>multiples ladder</strong>.</p>
+    </header>
+
+    <div class="why-block">
+      <strong>The pain.</strong> <span class="expr">/28</span> means magic = 16. Last octet = 200. You don't want to count <span class="expr">16, 32, 48, 64, …</span> all the way up. You want to land on <strong>192</strong> in one mental move. This drill builds that move.
+    </div>
+
+    <div class="layout-grid">
+      <main>
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">Mode</span>
+            <button class="pill active" data-qt="block" onclick="setQT(this)">Find the block</button>
+            <button class="pill" data-qt="quotient" onclick="setQT(this)">IP ÷ magic = ?</button>
+            <button class="pill" data-qt="next" onclick="setQT(this)">Next block boundary</button>
+          </div>
+          <div class="drill-meta-compact">
+            <span>Streak <strong class="dmc-val" id="ddStreak">0</strong></span>
+            <span class="dmc-sep">·</span>
+            <span>Best <strong class="dmc-val" id="ddBest">--</strong></span>
+            <span class="dmc-sep">·</span>
+            <span><strong class="dmc-val" id="ddScore">0/0</strong></span>
+            <button class="dmc-reset" onclick="ddReset()">reset</button>
+          </div>
+          <div class="q-card">
+            <div class="q-prompt" id="ddPrompt"></div>
+            <div class="input-row">
+              <label for="ddInput">Answer</label>
+              <input class="drill-input" id="ddInput" type="number" inputmode="numeric" autocomplete="off" placeholder="--">
+            </div>
+            <div class="actions">
+              <button class="btn-action" onclick="ddCheck()">Check</button>
+              <button class="btn-action ghost" onclick="ddHint()">Hint</button>
+              <button class="btn-action ghost" onclick="ddNew()">New question</button>
+            </div>
+            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question · <kbd>H</kbd> hint</div>
+            <div class="feedback" id="ddFeedback"></div>
+          </div>
+          <div class="teach" id="ddTeach" style="display:none">
+            <div class="teach-title"><span>Walkthrough</span><button class="teach-toggle" onclick="ddToggleTeach()">Hide</button></div>
+            <div id="ddTeachBody"></div>
+          </div>
+        </section>
+
+        <section class="visual-block">
+          <details open>
+            <summary>The three fast moves</summary>
+            <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.7">
+              <ol style="margin:0 0 0 22px;padding:0">
+                <li><strong>Halve-down.</strong> Magic is a power of 2. Divide IP by halving that many times. Magic 16 = halve 4 times. <span class="expr">200 → 100 → 50 → 25 → 12.5</span> → floor = <strong>12</strong>. Block start = <span class="expr">12 × 16 = 192</span>.</li>
+                <li><strong>Chunk-subtract.</strong> Subtract the biggest "fat" multiple of magic that fits, then handle the rest. Magic 16, IP 200: <span class="expr">16 × 10 = 160</span>. <span class="expr">200 − 160 = 40</span>. <span class="expr">16 × 2 = 32</span> fits. <span class="expr">160 + 32 = 192</span>. Done.</li>
+                <li><strong>Multiples ladder.</strong> Anchor on the powers-of-2 multiples: <span class="expr">×1, ×2, ×4, ×8, ×16</span>. Magic 16: <span class="expr">16, 32, 64, 128, 256</span>. Land on the biggest ≤ IP, then add another magic if needed. <span class="expr">128 ≤ 200</span>, <span class="expr">128 + 64 = 192 ≤ 200</span>, <span class="expr">192 + 16 = 208 > 200</span> → block = <strong>192</strong>.</li>
+              </ol>
+              <p style="margin-top:14px"><strong>Pick one and stick with it.</strong> Halve-down is fastest for /28–/30 (small magic). Chunk-subtract is better when you blank on multiples. Ladder is the safety net.</p>
+            </div>
+          </details>
+        </section>
+      </main>
+
+      <aside id="ddRefAside">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+          <button class="dmc-reset" id="ddRefToggle" onclick="ddToggleRefs()" aria-pressed="false" title="Hide reference cards (train recall first)">Hide refs</button>
+        </div>
+        <div id="ddRefBody">
+          <div class="ref-card">
+            <h3>Multiples ladder</h3>
+            <div style="font-family:var(--font-mono);font-size:0.78rem;color:var(--ink-muted);margin-bottom:8px">×1 ×2 ×4 ×8 ×16 anchors</div>
+            <table>
+              <tbody>
+                <tr><td>2</td><td>2 4 8 16 32</td></tr>
+                <tr><td>4</td><td>4 8 16 32 64</td></tr>
+                <tr><td>8</td><td>8 16 32 64 128</td></tr>
+                <tr><td>16</td><td>16 32 64 128 256</td></tr>
+                <tr><td>32</td><td>32 64 128 256 —</td></tr>
+                <tr><td>64</td><td>64 128 256 — —</td></tr>
+                <tr><td>128</td><td>128 256 — — —</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ref-card" style="margin-top:14px">
+            <h3>Magic ↔ prefix</h3>
+            <table>
+              <tbody>
+                <tr><td>/25</td><td>128</td></tr>
+                <tr><td>/26</td><td>64</td></tr>
+                <tr><td>/27</td><td>32</td></tr>
+                <tr><td>/28</td><td>16</td></tr>
+                <tr><td>/29</td><td>8</td></tr>
+                <tr><td>/30</td><td>4</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script>window.ddConfigKey = { storageKey: 'ccna_dd_best' };</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var MAGICS = [2, 4, 8, 16, 32];
+  var dd = {
+    streak: 0,
+    best: parseInt(localStorage.getItem('ccna_dd_best') || '0', 10),
+    correct: 0,
+    total: 0,
+    qt: 'block',
+    current: null,
+    hintsUsed: 0
+  };
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function pickIP(magic) {
+    // bias toward high IP — user pain is "low magic, high IP"
+    var lo = Math.max(80, magic * 4);
+    var hi = 255;
+    var ip = lo + Math.floor(Math.random() * (hi - lo + 1));
+    // avoid landing exactly on a block boundary occasionally — mix it up
+    return ip;
+  }
+
+  function blockStart(ip, magic) { return Math.floor(ip / magic) * magic; }
+  function quotient(ip, magic) { return Math.floor(ip / magic); }
+
+  function halveSteps(ip, magic) {
+    var halves = Math.log2(magic);
+    var seq = [ip];
+    var v = ip;
+    for (var i = 0; i < halves; i++) { v = v / 2; seq.push(v); }
+    return seq;
+  }
+
+  // ── Generators ─────────────────────────────────────────
+
+  function genBlock() {
+    var magic = pick(MAGICS);
+    var ip = pickIP(magic);
+    var start = blockStart(ip, magic);
+    var q = quotient(ip, magic);
+    var seq = halveSteps(ip, magic);
+    return {
+      type: 'block',
+      prompt: 'Last octet <span class="expr">' + ip + '</span>, magic <span class="expr">' + magic + '</span> → block start = ?',
+      answer: String(start),
+      teach: [
+        '<strong>Halve-down.</strong> Magic ' + magic + ' = halve ' + Math.log2(magic) + ' times: <span class="expr">' + seq.map(function(x){return x;}).join(' → ') + '</span> → floor = <strong>' + q + '</strong>.',
+        '<strong>Multiply back.</strong> <span class="expr">' + q + ' × ' + magic + ' = ' + start + '</span>. That is the block start.',
+        '<strong>Block range.</strong> <span class="expr">' + start + '–' + (start + magic - 1) + '</span> (size = ' + magic + '). IP ' + ip + ' lives in this block.'
+      ],
+      hint: 'Halve ' + ip + ' exactly ' + Math.log2(magic) + ' times, drop the decimal, multiply by ' + magic + '.'
+    };
+  }
+
+  function genQuotient() {
+    var magic = pick(MAGICS);
+    var ip = pickIP(magic);
+    var q = quotient(ip, magic);
+    var seq = halveSteps(ip, magic);
+    return {
+      type: 'quotient',
+      prompt: '<span class="expr">' + ip + ' ÷ ' + magic + '</span> = ? <span style="font-size:0.7em;color:var(--ink-muted);font-family:var(--font-mono)">(integer part only)</span>',
+      answer: String(q),
+      teach: [
+        '<strong>Halve ' + Math.log2(magic) + ' times.</strong> <span class="expr">' + seq.join(' → ') + '</span>.',
+        'Drop the decimal: <strong>' + q + '</strong>.',
+        'Cross-check: <span class="expr">' + q + ' × ' + magic + ' = ' + (q * magic) + '</span>. Remainder = <span class="expr">' + (ip - q * magic) + '</span>. Total = ' + ip + '. ✓'
+      ],
+      hint: 'Halve ' + ip + ', then halve again. Magic ' + magic + ' = ' + Math.log2(magic) + ' halvings.'
+    };
+  }
+
+  function genNext() {
+    var magic = pick(MAGICS);
+    var ip = pickIP(magic);
+    var start = blockStart(ip, magic);
+    var next = start + magic;
+    return {
+      type: 'next',
+      prompt: 'IP <span class="expr">' + ip + '</span>, magic <span class="expr">' + magic + '</span> → <em>next</em> block starts at?',
+      answer: String(next),
+      teach: [
+        'Find current block: floor(' + ip + '/' + magic + ') × ' + magic + ' = <strong>' + start + '</strong>.',
+        'Next block = current + magic: <span class="expr">' + start + ' + ' + magic + ' = <strong>' + next + '</strong></span>.',
+        'So IP ' + ip + ' is in <span class="expr">' + start + '–' + (next - 1) + '</span>. Anything ≥ ' + next + ' jumps to the next subnet.'
+      ],
+      hint: 'Find the current block first, then add ' + magic + '.'
+    };
+  }
+
+  // ── Render ─────────────────────────────────────────────
+
+  function newQ() {
+    var q;
+    if (dd.qt === 'block') q = genBlock();
+    else if (dd.qt === 'quotient') q = genQuotient();
+    else q = genNext();
+    dd.current = q;
+    dd.hintsUsed = 0;
+    document.getElementById('ddPrompt').innerHTML = q.prompt;
+    var inp = document.getElementById('ddInput');
+    inp.value = '';
+    inp.focus();
+    document.getElementById('ddFeedback').className = 'feedback';
+    document.getElementById('ddFeedback').style.display = 'none';
+    document.getElementById('ddTeach').style.display = 'none';
+  }
+
+  function renderTeach() {
+    var body = document.getElementById('ddTeachBody');
+    body.innerHTML = '';
+    dd.current.teach.forEach(function(step, i){
+      var div = document.createElement('div');
+      div.className = 'teach-step';
+      div.innerHTML = '<div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + step + '</div>';
+      body.appendChild(div);
+    });
+    document.getElementById('ddTeach').style.display = 'block';
+  }
+
+  function updateMeta() {
+    document.getElementById('ddStreak').textContent = dd.streak;
+    document.getElementById('ddBest').textContent = dd.best || '--';
+    document.getElementById('ddScore').textContent = dd.correct + '/' + dd.total;
+  }
+
+  // ── Actions ────────────────────────────────────────────
+
+  window.setQT = function(btn) {
+    document.querySelectorAll('.pill[data-qt]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    dd.qt = btn.dataset.qt;
+    newQ();
+  };
+
+  window.ddCheck = function() {
+    if (!dd.current) return;
+    var val = (document.getElementById('ddInput').value || '').trim();
+    if (val === '') return;
+    dd.total++;
+    var fb = document.getElementById('ddFeedback');
+    if (val === dd.current.answer) {
+      dd.correct++;
+      dd.streak++;
+      if (dd.streak > dd.best) {
+        dd.best = dd.streak;
+        localStorage.setItem('ccna_dd_best', String(dd.best));
+      }
+      fb.className = 'feedback right';
+      fb.textContent = '✓ Correct. ' + (dd.hintsUsed ? '(used ' + dd.hintsUsed + ' hint' + (dd.hintsUsed > 1 ? 's' : '') + ')' : '');
+    } else {
+      dd.streak = 0;
+      fb.className = 'feedback wrong';
+      fb.textContent = '✗ Answer was ' + dd.current.answer + '. Walk through below ↓';
+    }
+    renderTeach();
+    updateMeta();
+  };
+
+  window.ddHint = function() {
+    if (!dd.current) return;
+    dd.hintsUsed++;
+    var fb = document.getElementById('ddFeedback');
+    fb.className = 'feedback hint';
+    fb.textContent = '💡 ' + dd.current.hint;
+  };
+
+  window.ddNew = function() { newQ(); };
+
+  window.ddReset = function() {
+    dd.streak = 0; dd.correct = 0; dd.total = 0;
+    updateMeta();
+    newQ();
+  };
+
+  window.ddToggleRefs = function() {
+    var body = document.getElementById('ddRefBody');
+    var btn = document.getElementById('ddRefToggle');
+    var hidden = body.style.display === 'none';
+    if (hidden) {
+      body.style.display = '';
+      btn.textContent = 'Hide refs';
+      btn.setAttribute('aria-pressed', 'false');
+      localStorage.setItem('ccna_dd_refs_hidden', '0');
+    } else {
+      body.style.display = 'none';
+      btn.textContent = 'Show refs';
+      btn.setAttribute('aria-pressed', 'true');
+      localStorage.setItem('ccna_dd_refs_hidden', '1');
+    }
+  };
+
+  // restore ref visibility
+  if (localStorage.getItem('ccna_dd_refs_hidden') === '1') {
+    document.getElementById('ddRefBody').style.display = 'none';
+    var rb = document.getElementById('ddRefToggle');
+    rb.textContent = 'Show refs';
+    rb.setAttribute('aria-pressed', 'true');
+  }
+
+  window.ddToggleTeach = function() {
+    var t = document.getElementById('ddTeach');
+    var btn = document.querySelector('#ddTeach .teach-toggle');
+    if (t.style.display === 'none') { t.style.display = 'block'; btn.textContent = 'Hide'; }
+    else { t.style.display = 'none'; btn.textContent = 'Show'; }
+  };
+
+  // ── Keyboard ───────────────────────────────────────────
+  document.addEventListener('keydown', function(e){
+    if (e.target.tagName === 'INPUT' && e.key === 'Enter') { ddCheck(); return; }
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'n' || e.key === 'N') ddNew();
+    if (e.key === 'h' || e.key === 'H') ddHint();
+  });
+
+  updateMeta();
+  newQ();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
