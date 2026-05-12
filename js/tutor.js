@@ -370,12 +370,36 @@
     scrollToBottom();
     showTyping();
 
+    // Gather page context (pages can opt-in by defining window.tutorContext())
+    let contextBlock = '';
+    try {
+      const pageTitle = document.title || '';
+      const pageUrl = location.pathname.split('/').pop() || '';
+      const lines = [];
+      lines.push('page: ' + pageUrl + (pageTitle ? ' — ' + pageTitle : ''));
+      if (typeof window.tutorContext === 'function') {
+        const ctx = window.tutorContext();
+        if (ctx && typeof ctx === 'object') {
+          for (const [k, v] of Object.entries(ctx)) {
+            if (v === null || v === undefined || v === '') continue;
+            const val = (typeof v === 'string') ? v : JSON.stringify(v);
+            lines.push(k + ': ' + val);
+          }
+        }
+      }
+      if (lines.length) {
+        contextBlock = '[PAGE CONTEXT — use to give relevant, in-place hints about the student\'s current screen, but do not quote this block back]\n' + lines.join('\n') + '\n---\n';
+      }
+    } catch (e) { /* never block send on context failure */ }
+
+    const messageWithContext = contextBlock + text;
+
     try {
       const res = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: text,
+          message: messageWithContext,
           history: history.slice(-MAX_HISTORY)
         })
       });

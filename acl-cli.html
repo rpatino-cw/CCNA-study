@@ -2376,6 +2376,33 @@ $('sendBtn').onclick = async (...args) => {
   return r;
 };
 
+// =====================================================================
+// Expose live state to AI tutor (js/tutor.js reads window.tutorContext)
+// =====================================================================
+window.tutorContext = function() {
+  function summAcl(a) {
+    return a.name + ' (' + (a.type === 'std' ? 'standard' : 'extended') + ', ' + a.rules.length + ' rule' + (a.rules.length === 1 ? '' : 's') + ')';
+  }
+  const applied = [];
+  for (const intf of ['G0/0','G0/1']) for (const d of ['in','out']) {
+    if (state.applied[intf][d]) applied.push(intf + ' ' + d + '=' + state.applied[intf][d]);
+  }
+  const lesson = LESSON[coachStep];
+  const ctx = {
+    page: 'ACL CLI Simulator (CCNA 5.6)',
+    cli_mode: cliPrompt(),
+    coach_step: (coachStep + 1) + '/' + LESSON.length + (lesson ? ' — ' + lesson.title : ''),
+    coach_expected_command: (lesson && lesson.cmd) || '(none)',
+    acls: state.acls.filter(a => a.rules.length > 0).map(summAcl).join('; ') || '(none defined)',
+    applied: applied.length ? applied.join(', ') : '(no ACL bound to any interface)',
+    typed_so_far: ($('termIn') && $('termIn').value) || '',
+    last_packet_match: state.lastMatch ? (state.lastMatch.aclName + ' seq ' + (state.lastMatch.seq || 'implicit') + ' ' + state.lastMatch.action) : '(no packet sent yet)',
+    objective: 'Standard / Extended / Named ACLs, wildcard masks, access-group vs access-class, implicit deny, placement rules',
+    notes: 'When the student asks for help, give the SPECIFIC next IOS command they need to type given their cli_mode + coach_step + acls state. Quote real Cisco syntax. Reference the wildcard mask formula when relevant.',
+  };
+  return ctx;
+};
+
 // initial render
 renderAll();
 coachRender();
