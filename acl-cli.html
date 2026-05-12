@@ -1,0 +1,2383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<title>ACL CLI Simulator — CCNA 200-301</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+/* Editorial design system — matches ~/dev/CCNA_study/css/shared.css */
+:root {
+  --bg: #FAF7F2;
+  --panel: #FFFFFF;
+  --panel2: #F3F0EB;
+  --bg-hover: #F0EDE7;
+  --border: #E2DFD9;
+  --border-strong: #C7C3BC;
+  --rule: #D4D0C8;
+  --text: #1C1917;
+  --ink-secondary: #57534E;
+  --muted: #A8A29E;
+  --ink-faint: #D6D3D1;
+  --accent: #B45309;
+  --accent-light: #FEF3C7;
+  --accent-dim: #FFFBEB;
+  --ok: #16A34A;
+  --ok-bg: #F0FDF4;
+  --bad: #DC2626;
+  --bad-bg: #FEF2F2;
+  --warn: #CA8A04;
+  --warn-bg: #FEFCE8;
+  --implicit: #A8A29E;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Source Serif 4', Georgia, serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --radius: 4px;
+  --radius-lg: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--font-body); line-height: 1.6;
+  min-height: 100vh;
+}
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px; border-bottom: 1px solid var(--rule); background: var(--bg);
+}
+header h1 {
+  font-family: var(--font-display);
+  font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--text);
+}
+header .sub {
+  font-family: var(--mono); color: var(--ink-secondary);
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+  margin-top: 4px; display: block;
+}
+header .right { display: flex; gap: 8px; align-items: center; }
+.tabs {
+  display: flex; gap: 4px; padding: 12px 24px;
+  background: var(--bg); border-bottom: 1px solid var(--rule); flex-wrap: wrap;
+  max-width: 1280px; margin: 0 auto;
+}
+.tab {
+  padding: 8px 16px; border: 1.5px solid var(--border); background: var(--panel);
+  color: var(--ink-secondary); border-radius: var(--radius); cursor: pointer;
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  transition: all 0.15s;
+}
+.tab:hover { border-color: var(--border-strong); color: var(--text); }
+.tab.active {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+main { padding: 24px; max-width: 1280px; margin: 0 auto; }
+.view { display: none; }
+.view.active { display: block; }
+.grid { display: grid; gap: 16px; }
+.grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 900px) { .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; } }
+.panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+.panel h2 {
+  font-family: var(--font-display); font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--accent); margin-bottom: 14px;
+}
+label {
+  font-family: var(--font-display); display: block;
+  font-size: 0.68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-secondary); margin: 10px 0 4px;
+}
+input, select, textarea {
+  font: inherit; font-family: var(--font-body);
+  background: var(--panel); color: var(--text);
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 8px 10px; width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+button {
+  cursor: pointer; background: var(--accent); color: #fff; border: none;
+  padding: 8px 16px; width: auto; border-radius: var(--radius);
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  transition: all 0.15s;
+}
+button:hover { background: #92400E; }
+button.secondary {
+  background: var(--panel); color: var(--ink-secondary); border: 1.5px solid var(--border);
+}
+button.secondary:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+button.danger { background: var(--bad); }
+button.warn { background: var(--warn); color: #000; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.row { display: grid; gap: 10px; }
+.row.r2 { grid-template-columns: 1fr 1fr; }
+.row.r3 { grid-template-columns: 1fr 1fr 1fr; }
+.row.r4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.mono { font-family: var(--mono); font-size: 0.82rem; }
+.acl-list { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px; min-height: 60px; max-height: 320px; overflow-y: auto; }
+.acl-rule { display: flex; align-items: center; gap: 8px; padding: 4px 6px;
+  border-radius: var(--radius); font-family: var(--mono); font-size: 0.8rem; color: var(--text); }
+.acl-rule:hover { background: var(--bg-hover); }
+.acl-rule.matched-permit { background: var(--ok-bg); border-left: 3px solid var(--ok); }
+.acl-rule.matched-deny { background: var(--bad-bg); border-left: 3px solid var(--bad); }
+.acl-rule .seq { color: var(--accent); width: 32px; text-align: right; font-weight: 600; }
+.acl-rule .rest { flex: 1; }
+.acl-rule .delseq { background: transparent; color: var(--muted); border: 1px solid var(--border);
+  padding: 2px 6px; font-size: 0.7rem; }
+.acl-rule .delseq:hover { color: var(--bad); border-color: var(--bad); }
+.implicit-row { color: var(--implicit); font-style: italic; padding: 6px;
+  font-family: var(--mono); font-size: 0.78rem;
+  border-top: 1px dashed var(--border); margin-top: 4px; }
+.implicit-row.matched { color: var(--bad); background: var(--bad-bg); font-style: normal; }
+.notice { padding: 8px 12px; border-radius: var(--radius); font-size: 0.85rem; font-family: var(--font-body); }
+.notice.warn { background: var(--warn-bg); border: 1px solid var(--warn); color: var(--warn); }
+.notice.ok { background: var(--ok-bg); border: 1px solid var(--ok); color: var(--ok); }
+.notice.bad { background: var(--bad-bg); border: 1px solid var(--bad); color: var(--bad); }
+.notice.info { background: var(--accent-dim); border: 1px solid var(--accent-light); color: var(--ink-secondary); }
+.diagram-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px; }
+svg.topo { width: 100%; height: auto; display: block; }
+.kbd { font-family: var(--mono); background: var(--accent-dim); border: 1px solid var(--accent-light);
+  border-radius: 3px; padding: 2px 6px; font-size: 0.78rem; color: var(--accent); }
+.result-box { margin-top: 14px; padding: 14px 16px; border-radius: var(--radius-lg); font-size: 0.92rem; }
+.result-box.permit { background: var(--ok-bg); border: 1px solid var(--ok); }
+.result-box.deny { background: var(--bad-bg); border: 1px solid var(--bad); }
+.result-box .verdict { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: 0.04em; }
+.result-box.permit .verdict { color: var(--ok); }
+.result-box.deny .verdict { color: var(--bad); }
+.applied-tag { display: inline-block; padding: 4px 10px; border-radius: 100px;
+  background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-light);
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 600; margin: 3px; }
+.applied-tag.empty { background: var(--panel2); color: var(--muted); border: 1px dashed var(--border); }
+.applied-tag .x { margin-left: 6px; cursor: pointer; opacity: 0.6; }
+.applied-tag .x:hover { opacity: 1; color: var(--bad); }
+.qbox { padding: 8px; }
+.qstem { font-size: 1rem; margin-bottom: 14px; font-family: var(--font-body); }
+.qstem .scenario { color: var(--ink-secondary); display: block; margin-top: 4px; font-size: 0.9rem; }
+.choices { display: grid; gap: 8px; }
+.choice {
+  background: var(--panel); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; cursor: pointer; font-family: var(--mono); font-size: 0.85rem;
+  transition: all 0.15s;
+}
+.choice:hover { border-color: var(--accent); background: var(--accent-dim); }
+.choice.right { background: var(--ok-bg); border-color: var(--ok); }
+.choice.wrong { background: var(--bad-bg); border-color: var(--bad); }
+.choice.disabled { cursor: default; }
+.choice.disabled:hover { background: var(--panel); }
+.choice.right.disabled:hover { background: var(--ok-bg); }
+.choice.wrong.disabled:hover { background: var(--bad-bg); }
+.explain { margin-top: 14px; padding: 14px; background: var(--accent-dim);
+  border-left: 3px solid var(--accent); border-radius: var(--radius);
+  font-size: 0.92rem; font-family: var(--font-body); }
+.explain .trap { color: var(--warn); font-weight: 600; margin-top: 8px; display: block;
+  font-family: var(--font-display); font-size: 0.85rem; }
+.qprogress {
+  font-family: var(--mono); color: var(--ink-secondary); font-size: 0.78rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.score-summary { padding: 20px; background: var(--accent-dim); border-radius: var(--radius-lg); border: 1px solid var(--accent-light); }
+.score-summary h3 { font-family: var(--font-display); margin: 0 0 10px; color: var(--accent); font-size: 1.3rem; }
+.weak-tag { display: inline-block; background: var(--warn-bg); color: var(--warn);
+  border: 1px solid var(--warn); border-radius: 100px; padding: 3px 10px;
+  margin: 3px 4px 3px 0; font-family: var(--mono); font-size: 0.75rem; font-weight: 600; }
+.theme-toggle { background: var(--panel); color: var(--ink-secondary); border: 1.5px solid var(--border); padding: 6px 12px; }
+.range-hint { color: var(--muted); font-size: 0.72rem; margin-top: 3px; }
+.calc-out { background: var(--panel2); padding: 12px 14px; border-radius: var(--radius); font-family: var(--mono);
+  font-size: 0.88rem; border: 1px solid var(--border); }
+.calc-out .label { color: var(--ink-secondary); display: inline-block; width: 110px; font-weight: 600; }
+.shortcut-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.shortcut-btns button { padding: 6px 12px; font-size: 0.78rem; background: var(--panel);
+  color: var(--text); border: 1.5px solid var(--border); font-family: var(--mono); }
+.shortcut-btns button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.acl-tabs { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+.acl-tab { padding: 5px 12px; border: 1.5px solid var(--border); border-radius: var(--radius);
+  background: var(--panel); cursor: pointer; font-family: var(--mono); font-size: 0.78rem; }
+.acl-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+.acl-tab .x { margin-left: 6px; opacity: 0.6; }
+.acl-tab .x:hover { opacity: 1; color: var(--bad); }
+.tip { color: var(--ink-secondary); font-size: 0.78rem; margin-top: 6px; font-family: var(--font-body); }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(28,25,23,0.55);
+  display: none; align-items: center; justify-content: center; z-index: 50; }
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 24px; max-width: 560px; width: 90%;
+}
+.modal h3 { font-family: var(--font-display); margin-bottom: 12px; color: var(--accent); font-size: 1.1rem; }
+.modal .close { margin-top: 16px; }
+hr.sep { border: 0; border-top: 1px solid var(--rule); margin: 14px 0; }
+.legend { display: flex; gap: 14px; font-size: 0.75rem; color: var(--ink-secondary); flex-wrap: wrap; margin-top: 10px; font-family: var(--mono); }
+.legend span::before { content: "■"; margin-right: 4px; }
+.legend .arrow-in::before { color: #4aa3ff; }
+.legend .arrow-out::before { color: var(--warn); }
+.legend .applied::before { color: var(--ok); }
+
+/* Editorial accents */
+.kicker {
+  font-family: var(--font-display); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--accent); font-weight: 600; margin-bottom: 4px;
+}
+
+/* Lesson / Coach panel */
+.coach {
+  background: var(--accent-dim); border: 1px solid var(--accent-light);
+  border-left: 3px solid var(--accent); border-radius: var(--radius-lg);
+  padding: 18px 22px; margin-bottom: 16px;
+}
+.coach .coach-kicker {
+  font-family: var(--font-display); font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent);
+  margin-bottom: 6px;
+}
+.coach .coach-title {
+  font-family: var(--font-display); font-size: 1.15rem; font-weight: 700;
+  color: var(--text); margin-bottom: 6px;
+}
+.coach .coach-body {
+  font-family: var(--font-body); font-size: 0.95rem; line-height: 1.55;
+  color: var(--ink-secondary); max-width: 75ch;
+}
+.coach .coach-cmd {
+  display: inline-block; font-family: var(--mono); font-size: 0.85rem;
+  background: var(--panel); padding: 3px 8px; border-radius: var(--radius);
+  border: 1px solid var(--border); color: var(--text); margin: 0 2px;
+}
+.coach .coach-step {
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 700;
+  color: var(--accent); background: var(--panel);
+  padding: 2px 8px; border-radius: 100px; border: 1px solid var(--accent-light);
+  margin-right: 8px;
+}
+.coach-progress {
+  display: flex; gap: 4px; margin-top: 12px;
+}
+.coach-pip {
+  flex: 1; height: 4px; background: var(--ink-faint); border-radius: 2px;
+}
+.coach-pip.done { background: var(--accent); }
+.coach-pip.now { background: var(--accent); opacity: 0.5; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+.coach-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.coach-actions button {
+  padding: 6px 12px; font-size: 0.72rem;
+}
+
+/* Terminal — emulates Cisco IOS console */
+.term {
+  background: #0a0a0a; color: #d4d4d4; border-radius: 6px;
+  padding: 12px 14px; font-family: var(--mono); font-size: 13px;
+  line-height: 1.42;
+  min-height: 520px; max-height: 75vh; overflow-y: auto;
+  border: 1px solid #1f2630;
+  resize: vertical;
+  cursor: text;
+  caret-color: #d4d4d4;
+}
+.term::selection, .term *::selection { background: #ffd866; color: #000; }
+.term-line { white-space: pre-wrap; word-break: break-word; }
+.term-prompt-color { color: #5fb3b3; }
+.term-err { color: #ff6b6b; }
+.term-out { color: #d4d4d4; }
+.term-comment { color: #6e7681; font-style: italic; }
+.term-help { color: #8b96a3; }
+.term-active {
+  display: flex; align-items: baseline; gap: 0;
+  white-space: pre-wrap;
+}
+.term-active .prompt {
+  color: #5fb3b3; font-family: var(--mono); font-size: 13px;
+  white-space: pre;
+}
+.term-active .prompt::after { content: " "; }
+.term-active input {
+  background: transparent; border: none; outline: none; box-shadow: none;
+  color: #d4d4d4; font-family: var(--mono); font-size: 13px;
+  flex: 1; padding: 0; margin: 0;
+  caret-color: #5fb3b3;
+  min-width: 0;
+}
+.term-active input:focus { outline: none; }
+.term-wrap { display: flex; flex-direction: column; }
+.term-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.term-hint code { background: var(--panel2); padding: 1px 5px; border-radius: 3px; font-family: var(--mono); }
+.term-hint .kshort { display: inline-block; padding: 1px 4px; border: 1px solid var(--border); border-radius: 3px; margin: 0 2px; font-family: var(--mono); font-size: 10.5px; }
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+
+<main class="container">
+
+<div class="kicker">CCNA 200-301 · Objective 5.6</div>
+<h1 style="font-family:var(--font-display);font-size:1.8rem;margin-bottom:6px">ACL CLI Simulator</h1>
+<p style="font-family:var(--font-body);color:var(--ink-secondary);margin-bottom:24px;max-width:65ch">Interactive Cisco IOS terminal. Build, apply, and test access-lists exactly the way you will on the exam. Guided lesson auto-advances as you type real commands.</p>
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="secondary" id="resetCoachBtn" title="Reset guided lesson">Restart lesson</button></div>
+
+<nav class="tabs" style="border-bottom:none;padding:0 0 14px;background:transparent">
+  <button class="tab active" data-view="sim">Simulator</button>
+  <button class="tab" data-view="calc">Wildcard Calc</button>
+  <button class="tab" data-view="quiz">Quiz (10)</button>
+</nav>
+
+<!-- ============ SIMULATOR VIEW ============ -->
+<section class="view active" id="view-sim">
+
+  <!-- Coach panel — guided lesson -->
+  <div class="coach" id="coachPanel">
+    <div class="coach-kicker"><span class="coach-step" id="coachStepNum">Step 1 / 7</span><span id="coachKicker">Lesson</span></div>
+    <div class="coach-title" id="coachTitle">Start the router</div>
+    <div class="coach-body" id="coachBody">Welcome. We're going to build, apply, and test an ACL together.</div>
+    <div class="coach-progress" id="coachProgress"></div>
+    <div class="coach-actions">
+      <button id="coachTypeBtn">Type this for me</button>
+      <button class="secondary" id="coachSkipBtn">Skip step</button>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <svg class="topo" viewBox="0 0 900 280" id="topoSvg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="arrowIn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#4aa3ff"/>
+        </marker>
+        <marker id="arrowOut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#d29922"/>
+        </marker>
+      </defs>
+
+      <!-- wires -->
+      <line x1="120" y1="170" x2="400" y2="170" stroke="var(--border)" stroke-width="2"/>
+      <line x1="540" y1="170" x2="780" y2="170" stroke="var(--border)" stroke-width="2"/>
+
+      <!-- PC -->
+      <g>
+        <rect x="50" y="140" width="80" height="60" rx="6" fill="var(--panel2)" stroke="var(--border)"/>
+        <text x="90" y="170" text-anchor="middle" font-size="11" fill="var(--text)">PC</text>
+        <text x="90" y="186" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="ui-monospace,monospace">192.168.1.10</text>
+      </g>
+
+      <!-- Subnet cloud -->
+      <g>
+        <ellipse cx="210" cy="170" rx="50" ry="22" fill="none" stroke="var(--muted)" stroke-dasharray="4,3"/>
+        <text x="210" y="174" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="ui-monospace,monospace">192.168.1.0/24</text>
+      </g>
+
+      <!-- Router -->
+      <g>
+        <rect x="400" y="140" width="140" height="60" rx="10" fill="var(--panel2)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="470" y="170" text-anchor="middle" font-size="11" fill="var(--text)">Router R1</text>
+        <text x="470" y="186" text-anchor="middle" font-size="10" fill="var(--muted)">(IOS)</text>
+        <!-- G0/0 left interface label -->
+        <text x="395" y="135" text-anchor="end" font-size="10" fill="var(--text)" font-family="ui-monospace,monospace">G0/0</text>
+        <text x="395" y="148" text-anchor="end" font-size="9" fill="var(--muted)" font-family="ui-monospace,monospace">192.168.1.1</text>
+        <!-- G0/1 right interface label -->
+        <text x="545" y="135" font-size="10" fill="var(--text)" font-family="ui-monospace,monospace">G0/1</text>
+        <text x="545" y="148" font-size="9" fill="var(--muted)" font-family="ui-monospace,monospace">10.0.0.1</text>
+
+        <!-- direction arrows G0/0 -->
+        <line x1="370" y1="218" x2="395" y2="218" stroke="#4aa3ff" stroke-width="1.5" marker-end="url(#arrowIn)"/>
+        <text x="320" y="222" font-size="9" fill="#4aa3ff" font-family="ui-monospace,monospace">in →</text>
+        <line x1="395" y1="234" x2="370" y2="234" stroke="#d29922" stroke-width="1.5" marker-end="url(#arrowOut)"/>
+        <text x="320" y="238" font-size="9" fill="#d29922" font-family="ui-monospace,monospace">← out</text>
+
+        <!-- direction arrows G0/1 -->
+        <line x1="570" y1="218" x2="545" y2="218" stroke="#4aa3ff" stroke-width="1.5" marker-end="url(#arrowIn)"/>
+        <text x="575" y="222" font-size="9" fill="#4aa3ff" font-family="ui-monospace,monospace">← in</text>
+        <line x1="545" y1="234" x2="570" y2="234" stroke="#d29922" stroke-width="1.5" marker-end="url(#arrowOut)"/>
+        <text x="575" y="238" font-size="9" fill="#d29922" font-family="ui-monospace,monospace">out →</text>
+
+        <!-- applied ACL labels (filled by JS) -->
+        <text id="lblG00in"  x="395" y="116" text-anchor="end" font-size="10" fill="var(--ok)" font-family="ui-monospace,monospace"></text>
+        <text id="lblG00out" x="395" y="104" text-anchor="end" font-size="10" fill="var(--warn)" font-family="ui-monospace,monospace"></text>
+        <text id="lblG01in"  x="545" y="116" font-size="10" fill="var(--ok)" font-family="ui-monospace,monospace"></text>
+        <text id="lblG01out" x="545" y="104" font-size="10" fill="var(--warn)" font-family="ui-monospace,monospace"></text>
+      </g>
+
+      <!-- Server -->
+      <g>
+        <rect x="780" y="140" width="80" height="60" rx="6" fill="var(--panel2)" stroke="var(--border)"/>
+        <text x="820" y="170" text-anchor="middle" font-size="11" fill="var(--text)">Server</text>
+        <text x="820" y="186" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="ui-monospace,monospace">10.0.0.5</text>
+      </g>
+
+      <!-- packet (hidden until send) -->
+      <circle id="packet" cx="90" cy="170" r="7" fill="var(--accent)" opacity="0"/>
+      <text id="packetLbl" x="90" y="158" text-anchor="middle" font-size="9" fill="var(--text)" opacity="0"></text>
+    </svg>
+    <div class="legend">
+      <span class="arrow-in">inbound (toward router)</span>
+      <span class="arrow-out">outbound (away from router)</span>
+      <span class="applied">applied ACL label appears above interface</span>
+    </div>
+  </div>
+
+  <div style="height: 14px"></div>
+
+  <div class="grid cols-3">
+    <!-- ============ ACL Builder (CLI) ============ -->
+    <div class="panel">
+      <h2>1 · Router CLI (Cisco IOS)</h2>
+
+      <div class="term-wrap">
+        <div class="term" id="termOut">
+          <div class="term-active" id="termActive">
+            <span class="prompt" id="termPrompt">R1&gt;</span><input id="termIn" autocomplete="off" autocapitalize="off" spellcheck="false" autocorrect="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="term-hint mono">
+        <span class="kshort">Tab</span> complete &nbsp;
+        <span class="kshort">?</span> context help &nbsp;
+        <span class="kshort">↑/↓</span> history &nbsp;
+        <span class="kshort">Ctrl+L</span> clear &nbsp;
+        <span class="kshort">Ctrl+U</span> erase line &nbsp;
+        <span class="kshort">Ctrl+C</span> abort &nbsp;
+        <span class="kshort">Ctrl+Z</span> end &nbsp;
+        paste multi-line OK
+      </div>
+
+      <hr class="sep">
+      <label>show access-lists (live view)</label>
+      <div class="acl-list mono" id="aclList"></div>
+    </div>
+
+    <!-- ============ Application Panel ============ -->
+    <div class="panel">
+      <h2>2 · Apply to Interface</h2>
+
+      <div class="row r2">
+        <div>
+          <label>Interface</label>
+          <select id="applyIntf">
+            <option value="G0/0">G0/0 (source side)</option>
+            <option value="G0/1">G0/1 (dest side)</option>
+          </select>
+        </div>
+        <div>
+          <label>Direction</label>
+          <select id="applyDir">
+            <option value="in">inbound</option>
+            <option value="out">outbound</option>
+          </select>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button id="applyBtn">Apply Active ACL</button>
+        <button class="secondary" id="showCmdBtn">Show IOS command</button>
+      </div>
+      <div id="applyMsg"></div>
+
+      <hr class="sep">
+      <label>Currently Applied</label>
+      <div id="appliedView"></div>
+
+      <hr class="sep">
+      <h2>access-group vs access-class</h2>
+      <div class="notice info mono">
+        <div><span class="kbd">ip access-group N {in|out}</span> — applies ACL to a routed interface (Layer 3 traffic).</div>
+        <div style="margin-top:6px"><span class="kbd">access-class N {in|out}</span> — applies ACL to VTY lines (Telnet / SSH management access).</div>
+      </div>
+      <div class="tip">Best practice: standard ACL → close to <em>destination</em>; extended ACL → close to <em>source</em>.</div>
+    </div>
+
+    <!-- ============ Packet Tracer ============ -->
+    <div class="panel">
+      <h2>3 · Packet Tracer</h2>
+
+      <div class="row r2">
+        <div>
+          <label>Source IP</label>
+          <input id="pkSrc" value="192.168.1.10">
+        </div>
+        <div>
+          <label>Dest IP</label>
+          <input id="pkDst" value="10.0.0.5">
+        </div>
+      </div>
+      <div class="row r2">
+        <div>
+          <label>Protocol</label>
+          <select id="pkProto">
+            <option>ip</option>
+            <option selected>tcp</option>
+            <option>udp</option>
+            <option>icmp</option>
+          </select>
+        </div>
+        <div>
+          <label>Dest port</label>
+          <input id="pkPort" type="number" value="80" min="1" max="65535">
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button id="sendBtn">Send Packet →</button>
+        <button class="secondary" id="resetBtn">Reset highlights</button>
+      </div>
+
+      <div id="pkResult"></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============ WILDCARD CALC VIEW ============ -->
+<section class="view" id="view-calc">
+  <div class="grid cols-2">
+    <div class="panel">
+      <h2>Subnet Mask → Wildcard</h2>
+      <label>Subnet mask (dotted decimal)</label>
+      <input id="cMask" value="255.255.255.0" placeholder="255.255.255.0">
+      <div style="height:10px"></div>
+      <div class="calc-out" id="cMaskOut"></div>
+
+      <hr class="sep">
+      <h2>CIDR prefix → Both</h2>
+      <label>CIDR prefix /n (0–32)</label>
+      <input id="cCidr" type="number" min="0" max="32" value="24">
+      <div style="height:10px"></div>
+      <div class="calc-out" id="cCidrOut"></div>
+
+      <hr class="sep">
+      <h2>Formula</h2>
+      <div class="calc-out mono">
+        255.255.255.255 − subnet_mask = wildcard_mask
+      </div>
+
+      <hr class="sep">
+      <label>Common shortcuts</label>
+      <div class="shortcut-btns" id="shortcuts">
+        <button data-cidr="24">/24</button>
+        <button data-cidr="25">/25</button>
+        <button data-cidr="26">/26</button>
+        <button data-cidr="27">/27</button>
+        <button data-cidr="28">/28</button>
+        <button data-cidr="29">/29</button>
+        <button data-cidr="30">/30</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>What is a wildcard mask?</h2>
+      <div class="notice info">
+        A wildcard mask tells the router <strong>which bits of the IP to match</strong>:
+        <ul style="margin:6px 0 0 18px; padding:0;">
+          <li><code>0</code> bit = <strong>must match exactly</strong></li>
+          <li><code>1</code> bit = <strong>don't care</strong></li>
+        </ul>
+      </div>
+      <div style="height:10px"></div>
+      <h2>Cheat sheet</h2>
+      <div class="calc-out mono" style="white-space:pre">
+host 1.1.1.1     = 1.1.1.1 0.0.0.0
+any              = 0.0.0.0 255.255.255.255
+single /24       = 0.0.0.255
+single /25       = 0.0.0.127
+single /26       = 0.0.0.63
+single /27       = 0.0.0.31
+single /28       = 0.0.0.15
+single /29       = 0.0.0.7
+single /30       = 0.0.0.3
+match 4 /24's    = 0.0.3.255   (e.g. 10.0.0.0 → 10.0.3.255)
+match 8 /24's    = 0.0.7.255
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUIZ VIEW ============ -->
+<section class="view" id="view-quiz">
+  <div class="panel">
+    <h2>Cisco-style scenario quiz · 10 questions</h2>
+    <div id="quizArea" class="qbox"></div>
+  </div>
+</section>
+
+</main>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modalTitle">Notice</h3>
+    <div id="modalBody"></div>
+    <div class="close"><button class="secondary" id="modalClose">Close</button></div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// State
+// =====================================================================
+const state = {
+  acls: [],        // [{id, name, type:'std'|'ext', rules:[{seq, action, srcIp, srcMask, dstIp, dstMask, proto, op, port}]}]
+  activeAclId: null,
+  applied: {       // ACL name (string) applied per interface/direction
+    'G0/0': { in: null, out: null },
+    'G0/1': { in: null, out: null },
+  },
+  lastMatch: null, // {aclName, seq, action, implicit:boolean}
+};
+let aclCounter = 1;
+
+function uid() { return 'acl-' + (aclCounter++); }
+
+function newAcl(name='10', type='std') {
+  const acl = { id: uid(), name, type, rules: [] };
+  state.acls.push(acl);
+  state.activeAclId = acl.id;
+  return acl;
+}
+
+function activeAcl() {
+  return state.acls.find(a => a.id === state.activeAclId);
+}
+
+// CLI drives ACL creation — no starter seed
+
+// =====================================================================
+// IP / wildcard utilities
+// =====================================================================
+function ipToInt(ip) {
+  if (typeof ip !== 'string') return null;
+  ip = ip.trim();
+  if (ip === 'any') return 0;
+  const parts = ip.split('.');
+  if (parts.length !== 4) return null;
+  let n = 0;
+  for (const p of parts) {
+    const v = parseInt(p, 10);
+    if (isNaN(v) || v < 0 || v > 255) return null;
+    n = (n * 256) + v;
+  }
+  return n >>> 0;
+}
+function intToIp(n) {
+  return [(n>>>24)&255, (n>>>16)&255, (n>>>8)&255, n&255].join('.');
+}
+function cidrToMask(c) {
+  if (c <= 0) return 0;
+  if (c >= 32) return 0xFFFFFFFF >>> 0;
+  return ((0xFFFFFFFF << (32 - c)) >>> 0);
+}
+function maskToCidr(m) {
+  // count leading 1s; only valid if contiguous
+  let c = 0;
+  let bits = m >>> 0;
+  let saw0 = false;
+  for (let i = 31; i >= 0; i--) {
+    const bit = (bits >>> i) & 1;
+    if (bit === 1) {
+      if (saw0) return -1; // non-contiguous
+      c++;
+    } else { saw0 = true; }
+  }
+  return c;
+}
+function wildcardFromMask(m) { return ((~m) >>> 0) & 0xFFFFFFFF; }
+
+// match ip against (ruleIp, wildcard)
+function wildcardMatch(ip, ruleIp, wildcard) {
+  // bits set in wildcard are 'don't care'
+  return (((ip ^ ruleIp) & (~wildcard >>> 0)) >>> 0) === 0;
+}
+
+// Parse user IP token: "any", "host x.x.x.x", "x.x.x.x"
+function parseIpToken(ipStr, wcStr) {
+  ipStr = (ipStr || '').trim();
+  if (!ipStr) return null;
+  if (ipStr === 'any') return { ip: 0, wc: 0xFFFFFFFF >>> 0, repr: 'any' };
+  if (/^host\s+/i.test(ipStr)) {
+    const host = ipStr.replace(/^host\s+/i, '').trim();
+    const n = ipToInt(host);
+    if (n === null) return null;
+    return { ip: n, wc: 0, repr: 'host ' + host };
+  }
+  const n = ipToInt(ipStr);
+  if (n === null) return null;
+  const w = ipToInt((wcStr || '').trim());
+  if (w === null) return null;
+  // canonical
+  if (n === 0 && w === 0xFFFFFFFF >>> 0) return { ip: 0, wc: w, repr: 'any' };
+  if (w === 0) return { ip: n, wc: 0, repr: 'host ' + intToIp(n) };
+  return { ip: n, wc: w, repr: intToIp(n) + ' ' + intToIp(w) };
+}
+
+// =====================================================================
+// Rendering
+// =====================================================================
+const $ = (id) => document.getElementById(id);
+
+function renderAclTabs() { /* removed — CLI drives state */ }
+
+function ruleToText(r) {
+  // Cisco-like
+  if (r.type === 'std' || !r.proto) {
+    return `${r.action} ${r.src.repr}`;
+  }
+  let s = `${r.action} ${r.proto} ${r.src.repr}`;
+  s += ` ${r.dst.repr}`;
+  if (r.proto === 'tcp' || r.proto === 'udp') {
+    if (r.op && r.port) s += ` ${r.op} ${r.port}`;
+  }
+  return s;
+}
+
+function renderAclList() {
+  const list = $('aclList');
+  list.innerHTML = '';
+  const populated = state.acls.filter(a => a.rules.length > 0);
+  if (populated.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'tip mono';
+    empty.textContent = '(no access lists configured — use the terminal)';
+    list.appendChild(empty);
+    return;
+  }
+  populated.forEach(acl => {
+    const header = document.createElement('div');
+    header.className = 'mono';
+    header.style.color = 'var(--muted)';
+    header.style.marginTop = '4px';
+    header.textContent = (acl.type === 'std' ? 'Standard' : 'Extended') + ' IP access list ' + acl.name;
+    list.appendChild(header);
+    acl.rules.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'acl-rule';
+      if (state.lastMatch && !state.lastMatch.implicit &&
+          state.lastMatch.aclName === acl.name && state.lastMatch.seq === r.seq) {
+        row.classList.add(r.action === 'permit' ? 'matched-permit' : 'matched-deny');
+      }
+      row.innerHTML = `<span class="seq">${r.seq}</span><span class="rest">  ${escapeHtml(ruleToText(r))}</span>`;
+      list.appendChild(row);
+    });
+    const imp = document.createElement('div');
+    imp.className = 'implicit-row' +
+      (state.lastMatch && state.lastMatch.implicit && state.lastMatch.aclName === acl.name ? ' matched' : '');
+    imp.textContent = '    — deny any (implicit — hidden in "show access-lists")';
+    list.appendChild(imp);
+  });
+}
+
+function renderApplied() {
+  const v = $('appliedView');
+  v.innerHTML = '';
+  for (const intf of ['G0/0','G0/1']) {
+    for (const d of ['in','out']) {
+      const acl = state.applied[intf][d];
+      const tag = document.createElement('span');
+      tag.className = 'applied-tag' + (acl ? '' : ' empty');
+      tag.innerHTML = `${intf} ${d}: ${acl ? escapeHtml(acl) : '—'}`;
+      if (acl) {
+        const x = document.createElement('span');
+        x.className = 'x';
+        x.textContent = '✕';
+        x.title = 'Remove binding';
+        x.onclick = () => { state.applied[intf][d] = null; renderAll(); };
+        tag.appendChild(x);
+      }
+      v.appendChild(tag);
+    }
+  }
+  // diagram labels
+  $('lblG00in').textContent  = state.applied['G0/0'].in  ? `in: ${state.applied['G0/0'].in}` : '';
+  $('lblG00out').textContent = state.applied['G0/0'].out ? `out: ${state.applied['G0/0'].out}` : '';
+  $('lblG01in').textContent  = state.applied['G0/1'].in  ? `in: ${state.applied['G0/1'].in}` : '';
+  $('lblG01out').textContent = state.applied['G0/1'].out ? `out: ${state.applied['G0/1'].out}` : '';
+}
+
+function renderAll() {
+  renderAclList();
+  renderApplied();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// =====================================================================
+// Cisco IOS CLI engine
+// =====================================================================
+const cli = {
+  mode: 'user',             // user | enable | config | config-if | config-std-nacl | config-ext-nacl
+  intf: null,               // 'G0/0' | 'G0/1' when in config-if
+  nacl: null,               // active named ACL object when in config-*-nacl
+  history: [],
+  histIdx: -1,
+  hostname: 'R1',
+};
+
+const WELL_KNOWN_PORTS = {
+  20: 'ftp-data', 21: 'ftp', 22: '22', 23: 'telnet', 25: 'smtp',
+  53: 'domain', 67: 'bootps', 68: 'bootpc', 69: 'tftp',
+  80: 'www', 110: 'pop3', 123: 'ntp', 143: 'imap',
+  161: 'snmp', 162: 'snmptrap', 179: 'bgp', 389: 'ldap',
+  443: '443', 514: 'syslog', 520: 'rip', 636: '636', 3389: '3389',
+};
+function portName(p) { return WELL_KNOWN_PORTS[p] || String(p); }
+
+function cliPrompt() {
+  const h = cli.hostname;
+  switch (cli.mode) {
+    case 'user':            return h + '>';
+    case 'enable':          return h + '#';
+    case 'config':          return h + '(config)#';
+    case 'config-if':       return h + '(config-if)#';
+    case 'config-std-nacl': return h + '(config-std-nacl)#';
+    case 'config-ext-nacl': return h + '(config-ext-nacl)#';
+    default:                return h + '>';
+  }
+}
+
+function termWrite(text, cls) {
+  const out = $('termOut');
+  const active = $('termActive');
+  const div = document.createElement('div');
+  div.className = 'term-line ' + (cls || 'term-out');
+  div.textContent = text;
+  if (active && active.parentNode === out) out.insertBefore(div, active);
+  else out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+function termEchoCommand(line) {
+  termWrite(cliPrompt() + line, 'term-prompt-color');
+}
+function termInvalid(line, badToken) {
+  termEchoCommand(line);
+  let offset = (badToken !== undefined && badToken !== null) ? line.indexOf(badToken) : 0;
+  if (offset < 0) offset = 0;
+  const caretPos = cliPrompt().length + offset;
+  termWrite(' '.repeat(caretPos) + '^', 'term-err');
+  termWrite("% Invalid input detected at '^' marker.", 'term-err');
+  termWrite('', 'term-out');
+}
+function termIncomplete(line) {
+  termEchoCommand(line);
+  termWrite('% Incomplete command.', 'term-err');
+  termWrite('', 'term-out');
+}
+function termAmbiguous(line, frag) {
+  termEchoCommand(line);
+  termWrite("% Ambiguous command:  \"" + frag + "\"", 'term-err');
+  termWrite('', 'term-out');
+}
+
+// ---------------------------------------------------------------------
+// Token-expansion (Cisco accepts unique prefixes — e.g. "conf t" → "configure terminal")
+// ---------------------------------------------------------------------
+function expand(token, candidates) {
+  if (!token) return { ok: false, code: 'incomplete' };
+  if (candidates.includes(token)) return { ok: true, value: token };
+  const matches = candidates.filter(c => c.startsWith(token));
+  if (matches.length === 1) return { ok: true, value: matches[0] };
+  if (matches.length === 0) return { ok: false, code: 'invalid' };
+  return { ok: false, code: 'ambiguous' };
+}
+
+// Normalize interface name: "G0/0" "g0/0" "gi0/0" "gig0/0" "GigabitEthernet0/0" → "G0/0"
+function normIntf(s) {
+  if (!s) return null;
+  const m = s.match(/^(gigabitethernet|gigabit|gig|gi|g|fastethernet|fa|f|ethernet|eth|e)\s*0\/(0|1)$/i);
+  if (!m) return null;
+  return 'G0/' + m[2];
+}
+
+function pickAclName(name) {
+  return state.acls.find(a => a.name === name);
+}
+
+function aclNumberValid(numStr, kind) {
+  if (!/^\d+$/.test(numStr)) return false;
+  const n = parseInt(numStr, 10);
+  if (kind === 'std') return (n >= 1 && n <= 99) || (n >= 1300 && n <= 1999);
+  if (kind === 'ext') return (n >= 100 && n <= 199) || (n >= 2000 && n <= 2699);
+  return false;
+}
+function aclKindFromNumber(numStr) {
+  if (!/^\d+$/.test(numStr)) return null;
+  const n = parseInt(numStr, 10);
+  if ((n >= 1 && n <= 99) || (n >= 1300 && n <= 1999)) return 'std';
+  if ((n >= 100 && n <= 199) || (n >= 2000 && n <= 2699)) return 'ext';
+  return null;
+}
+
+// Returns { spec, consumed } OR { error, badToken }
+function parseAddrSpec(toks, i) {
+  if (i >= toks.length) return { error: 'incomplete' };
+  if (toks[i] === 'any') return { spec: { ip: 0, wc: 0xFFFFFFFF >>> 0, repr: 'any' }, consumed: 1 };
+  if (toks[i] === 'host') {
+    if (i + 1 >= toks.length) return { error: 'incomplete' };
+    const ip = ipToInt(toks[i+1]);
+    if (ip === null) return { error: 'invalid', badToken: toks[i+1] };
+    return { spec: { ip, wc: 0, repr: 'host ' + intToIp(ip) }, consumed: 2 };
+  }
+  const ip = ipToInt(toks[i]);
+  if (ip === null) return { error: 'invalid', badToken: toks[i] };
+  if (i + 1 >= toks.length) return { error: 'incomplete' };
+  const wc = ipToInt(toks[i+1]);
+  if (wc === null) return { error: 'invalid', badToken: toks[i+1] };
+  let repr;
+  if (ip === 0 && wc === (0xFFFFFFFF >>> 0)) repr = 'any';
+  else if (wc === 0) repr = 'host ' + intToIp(ip);
+  else repr = intToIp(ip) + ' ' + intToIp(wc);
+  return { spec: { ip, wc, repr }, consumed: 2 };
+}
+
+function nextSeq(acl) {
+  if (acl.rules.length === 0) return 10;
+  return acl.rules[acl.rules.length - 1].seq + 10;
+}
+
+// =====================================================================
+// Command dispatch
+// =====================================================================
+function runLine(rawLine) {
+  // strip leading whitespace, collapse spaces (keep history of raw)
+  const line = rawLine.replace(/\s+/g, ' ').trim();
+  if (line === '') { termEchoCommand(''); return; }
+
+  // global commands available in many modes
+  // '?' — minimal help
+  if (line === '?') {
+    termEchoCommand(line);
+    helpForMode();
+    return;
+  }
+  if (line === 'exit' || line === 'end') {
+    return doExit(line);
+  }
+
+  const toks = line.split(' ');
+
+  // negation
+  if (toks[0] === 'no') {
+    return runNo(line, toks);
+  }
+
+  switch (cli.mode) {
+    case 'user':            return runUserMode(line, toks);
+    case 'enable':          return runEnableMode(line, toks);
+    case 'config':          return runConfigMode(line, toks);
+    case 'config-if':       return runIfMode(line, toks);
+    case 'config-std-nacl': return runNaclMode(line, toks, 'std');
+    case 'config-ext-nacl': return runNaclMode(line, toks, 'ext');
+  }
+}
+
+function helpForMode() {
+  const lines = {
+    'user': [
+      '  enable             Turn on privileged commands',
+      '  show               Show running system information',
+    ],
+    'enable': [
+      '  configure          Enter configuration mode',
+      '  disable            Turn off privileged commands',
+      '  show               Show running system information',
+    ],
+    'config': [
+      '  access-list        Add an access list entry (numbered)',
+      '  ip                 IP configuration commands (ip access-list ...)',
+      '  interface          Select an interface to configure',
+      '  no                 Negate a command',
+      '  exit / end         Exit configuration mode',
+    ],
+    'config-if': [
+      '  ip access-group    Apply ACL to this interface (in|out)',
+      '  exit               Back to global config',
+      '  end                Back to privileged EXEC',
+    ],
+    'config-std-nacl': [
+      '  [seq] permit|deny <source> [wildcard]',
+      '  no <seq>           Delete entry by sequence number',
+      '  exit / end',
+    ],
+    'config-ext-nacl': [
+      '  [seq] permit|deny <ip|tcp|udp|icmp> <src> <dst> [eq|gt|lt|neq port]',
+      '  no <seq>',
+      '  exit / end',
+    ],
+  };
+  (lines[cli.mode] || []).forEach(l => termWrite(l, 'term-out'));
+  termWrite('', 'term-out');
+}
+
+function doExit(line) {
+  termEchoCommand(line);
+  if (line === 'end') {
+    if (cli.mode === 'user' || cli.mode === 'enable') {
+      // 'end' in user mode is invalid — but be lenient
+    }
+    cli.mode = (cli.mode === 'user') ? 'user' : 'enable';
+    cli.intf = null; cli.nacl = null;
+  } else { // exit
+    switch (cli.mode) {
+      case 'user':            /* logout — keep session */ break;
+      case 'enable':          cli.mode = 'user'; break;
+      case 'config':          cli.mode = 'enable'; break;
+      case 'config-if':       cli.mode = 'config'; cli.intf = null; break;
+      case 'config-std-nacl': cli.mode = 'config'; cli.nacl = null; break;
+      case 'config-ext-nacl': cli.mode = 'config'; cli.nacl = null; break;
+    }
+  }
+  updateTermPrompt();
+}
+
+// ---------- user mode ----------
+function runUserMode(line, toks) {
+  const e0 = expand(toks[0], ['enable', 'show', 'disable', 'exit']);
+  if (!e0.ok) {
+    if (e0.code === 'ambiguous') return termAmbiguous(line, toks[0]);
+    return termInvalid(line, toks[0]);
+  }
+  if (e0.value === 'enable') {
+    termEchoCommand(line);
+    cli.mode = 'enable'; updateTermPrompt(); return;
+  }
+  if (e0.value === 'show') return runShow(line, toks);
+  if (e0.value === 'disable') { termEchoCommand(line); return; }
+  termInvalid(line, toks[0]);
+}
+
+// ---------- enable mode ----------
+function runEnableMode(line, toks) {
+  const e0 = expand(toks[0], ['configure', 'show', 'disable', 'exit', 'enable', 'write']);
+  if (!e0.ok) {
+    if (e0.code === 'ambiguous') return termAmbiguous(line, toks[0]);
+    return termInvalid(line, toks[0]);
+  }
+  if (e0.value === 'configure') {
+    if (toks.length < 2) return termIncomplete(line);
+    const e1 = expand(toks[1], ['terminal']);
+    if (!e1.ok) return termInvalid(line, toks[1]);
+    termEchoCommand(line);
+    termWrite('Enter configuration commands, one per line.  End with CNTL/Z.', 'term-out');
+    cli.mode = 'config'; updateTermPrompt(); return;
+  }
+  if (e0.value === 'show') return runShow(line, toks);
+  if (e0.value === 'disable') { termEchoCommand(line); cli.mode = 'user'; updateTermPrompt(); return; }
+  if (e0.value === 'write') { termEchoCommand(line); termWrite('Building configuration...\n[OK]', 'term-out'); return; }
+  termInvalid(line, toks[0]);
+}
+
+// ---------- config mode ----------
+function runConfigMode(line, toks) {
+  // access-list ...
+  if (toks[0] === 'access-list') {
+    return cmdAccessList(line, toks);
+  }
+  // ip access-list standard|extended <name>
+  if (toks[0] === 'ip') {
+    if (toks.length >= 2 && toks[1] === 'access-list') {
+      return cmdIpAccessList(line, toks);
+    }
+    return termInvalid(line, toks[1] || 'ip');
+  }
+  // interface <name>
+  if (toks[0] === 'interface' || toks[0] === 'int') {
+    if (toks.length < 2) return termIncomplete(line);
+    const intf = normIntf(toks.slice(1).join(' ').replace(/\s+/g, ''));
+    if (!intf) return termInvalid(line, toks[1]);
+    termEchoCommand(line);
+    cli.mode = 'config-if'; cli.intf = intf; updateTermPrompt(); return;
+  }
+  // hostname
+  if (toks[0] === 'hostname') {
+    if (toks.length < 2) return termIncomplete(line);
+    termEchoCommand(line); cli.hostname = toks[1]; updateTermPrompt(); return;
+  }
+  // show
+  if (toks[0] === 'show' || toks[0] === 'do') {
+    const sub = toks[0] === 'do' ? toks.slice(1) : toks;
+    if (sub[0] !== 'show') return termInvalid(line, toks[1] || toks[0]);
+    return runShow(line, sub);
+  }
+  termInvalid(line, toks[0]);
+}
+
+// ---------- interface mode ----------
+function runIfMode(line, toks) {
+  if (toks[0] === 'ip') {
+    if (toks[1] === 'access-group') {
+      if (toks.length < 4) return termIncomplete(line);
+      const aclName = toks[2];
+      const dir = toks[3];
+      if (dir !== 'in' && dir !== 'out') return termInvalid(line, toks[3]);
+      const acl = pickAclName(aclName);
+      if (!acl) {
+        termEchoCommand(line);
+        termWrite('% Access-list ' + aclName + ' not defined — applied anyway (will permit any until defined).', 'term-comment');
+      } else {
+        termEchoCommand(line);
+      }
+      state.applied[cli.intf][dir] = aclName;
+      renderAll();
+      return;
+    }
+    if (toks[1] === 'address') {
+      termEchoCommand(line); return; // accept silently
+    }
+    return termInvalid(line, toks[1] || 'ip');
+  }
+  if (toks[0] === 'shutdown' || toks[0] === 'no') {
+    termEchoCommand(line); return;
+  }
+  // 'interface X' from inside config-if jumps to that interface
+  if (toks[0] === 'interface' || toks[0] === 'int') {
+    return runConfigMode(line, toks);
+  }
+  termInvalid(line, toks[0]);
+}
+
+// ---------- numbered access-list ----------
+function cmdAccessList(line, toks) {
+  // access-list <num> {permit|deny} <args...>
+  if (toks.length < 2) return termIncomplete(line);
+  const num = toks[1];
+  const kind = aclKindFromNumber(num);
+  if (!kind) {
+    termEchoCommand(line);
+    termWrite('% Access list number out of range. Standard: 1-99, 1300-1999. Extended: 100-199, 2000-2699.', 'term-err');
+    termWrite('', 'term-out');
+    return;
+  }
+  if (toks.length < 3) return termIncomplete(line);
+  const action = toks[2];
+  if (action !== 'permit' && action !== 'deny') return termInvalid(line, toks[2]);
+
+  // find-or-create
+  let acl = pickAclName(num);
+  if (acl && acl.type !== kind) {
+    termEchoCommand(line);
+    termWrite('% Access-list ' + num + ' exists with different type.', 'term-err');
+    termWrite('', 'term-out');
+    return;
+  }
+  if (!acl) acl = { id: uid(), name: num, type: kind, rules: [] }, state.acls.push(acl);
+  state.activeAclId = acl.id;
+
+  if (kind === 'std') {
+    // [src spec]
+    const r = parseAddrSpec(toks, 3);
+    if (r.error === 'incomplete') return termIncomplete(line);
+    if (r.error === 'invalid')    return termInvalid(line, r.badToken);
+    if (3 + r.consumed < toks.length) return termInvalid(line, toks[3 + r.consumed]);
+    acl.rules.push({ seq: nextSeq(acl), type: 'std', action, src: r.spec });
+    termEchoCommand(line); renderAll(); return;
+  }
+
+  // extended
+  if (toks.length < 4) return termIncomplete(line);
+  const proto = toks[3];
+  if (!['ip','tcp','udp','icmp'].includes(proto)) return termInvalid(line, toks[3]);
+  const s = parseAddrSpec(toks, 4);
+  if (s.error === 'incomplete') return termIncomplete(line);
+  if (s.error === 'invalid')    return termInvalid(line, s.badToken);
+  let i = 4 + s.consumed;
+  const d = parseAddrSpec(toks, i);
+  if (d.error === 'incomplete') return termIncomplete(line);
+  if (d.error === 'invalid')    return termInvalid(line, d.badToken);
+  i += d.consumed;
+  const rule = { seq: nextSeq(acl), type: 'ext', action, proto, src: s.spec, dst: d.spec };
+  if (i < toks.length) {
+    if (proto !== 'tcp' && proto !== 'udp') return termInvalid(line, toks[i]);
+    const op = toks[i];
+    if (!['eq','gt','lt','neq'].includes(op)) return termInvalid(line, toks[i]);
+    if (i + 1 >= toks.length) return termIncomplete(line);
+    let p = toks[i+1];
+    // accept well-known names
+    const namedToPort = { www: 80, http: 80, ftp: 21, 'ftp-data': 20, telnet: 23, smtp: 25, domain: 53, pop3: 110, ntp: 123, imap: 143, snmp: 161, bgp: 179, https: 443, ssh: 22 };
+    let port = namedToPort[p] !== undefined ? namedToPort[p] : parseInt(p, 10);
+    if (isNaN(port) || port < 0 || port > 65535) return termInvalid(line, toks[i+1]);
+    rule.op = op; rule.port = port;
+    if (i + 2 < toks.length) return termInvalid(line, toks[i+2]);
+  }
+  acl.rules.push(rule);
+  termEchoCommand(line); renderAll();
+}
+
+// ---------- ip access-list standard|extended <name> ----------
+function cmdIpAccessList(line, toks) {
+  // ip access-list standard|extended <name>
+  if (toks.length < 4) return termIncomplete(line);
+  const kindTok = toks[2];
+  const e = expand(kindTok, ['standard', 'extended']);
+  if (!e.ok) return termInvalid(line, kindTok);
+  const kind = e.value === 'standard' ? 'std' : 'ext';
+  const name = toks[3];
+  if (/^\d+$/.test(name)) {
+    // numeric is allowed but must match the kind ranges
+    if (!aclNumberValid(name, kind)) {
+      termEchoCommand(line);
+      termWrite('% Number out of range for ' + e.value + ' ACL.', 'term-err');
+      termWrite('', 'term-out'); return;
+    }
+  }
+  let acl = pickAclName(name);
+  if (acl && acl.type !== kind) {
+    termEchoCommand(line);
+    termWrite('% ACL ' + name + ' already defined with different type.', 'term-err');
+    termWrite('', 'term-out'); return;
+  }
+  if (!acl) { acl = { id: uid(), name, type: kind, rules: [] }; state.acls.push(acl); }
+  state.activeAclId = acl.id;
+  cli.nacl = acl;
+  cli.mode = (kind === 'std') ? 'config-std-nacl' : 'config-ext-nacl';
+  termEchoCommand(line); updateTermPrompt();
+}
+
+// ---------- inside named ACL ----------
+function runNaclMode(line, toks, kind) {
+  // optional leading sequence number
+  let seqOverride = null;
+  let start = 0;
+  if (/^\d+$/.test(toks[0])) {
+    seqOverride = parseInt(toks[0], 10);
+    start = 1;
+  }
+  if (start >= toks.length) return termIncomplete(line);
+  const action = toks[start];
+  if (action !== 'permit' && action !== 'deny') return termInvalid(line, toks[start]);
+  start++;
+  const acl = cli.nacl;
+  if (!acl) return termInvalid(line, toks[0]);
+
+  if (kind === 'std') {
+    const r = parseAddrSpec(toks, start);
+    if (r.error === 'incomplete') return termIncomplete(line);
+    if (r.error === 'invalid')    return termInvalid(line, r.badToken);
+    if (start + r.consumed < toks.length) return termInvalid(line, toks[start + r.consumed]);
+    const seq = seqOverride !== null ? seqOverride : nextSeq(acl);
+    acl.rules.push({ seq, type: 'std', action, src: r.spec });
+    acl.rules.sort((a,b) => a.seq - b.seq);
+    termEchoCommand(line); renderAll(); return;
+  }
+
+  // extended
+  if (start >= toks.length) return termIncomplete(line);
+  const proto = toks[start];
+  if (!['ip','tcp','udp','icmp'].includes(proto)) return termInvalid(line, toks[start]);
+  start++;
+  const s = parseAddrSpec(toks, start);
+  if (s.error === 'incomplete') return termIncomplete(line);
+  if (s.error === 'invalid')    return termInvalid(line, s.badToken);
+  let i = start + s.consumed;
+  const d = parseAddrSpec(toks, i);
+  if (d.error === 'incomplete') return termIncomplete(line);
+  if (d.error === 'invalid')    return termInvalid(line, d.badToken);
+  i += d.consumed;
+  const rule = { type: 'ext', action, proto, src: s.spec, dst: d.spec };
+  if (i < toks.length) {
+    if (proto !== 'tcp' && proto !== 'udp') return termInvalid(line, toks[i]);
+    const op = toks[i];
+    if (!['eq','gt','lt','neq'].includes(op)) return termInvalid(line, toks[i]);
+    if (i + 1 >= toks.length) return termIncomplete(line);
+    const namedToPort = { www: 80, http: 80, ftp: 21, 'ftp-data': 20, telnet: 23, smtp: 25, domain: 53, pop3: 110, ntp: 123, imap: 143, snmp: 161, bgp: 179, https: 443, ssh: 22 };
+    let port = namedToPort[toks[i+1]] !== undefined ? namedToPort[toks[i+1]] : parseInt(toks[i+1], 10);
+    if (isNaN(port) || port < 0 || port > 65535) return termInvalid(line, toks[i+1]);
+    rule.op = op; rule.port = port;
+    if (i + 2 < toks.length) return termInvalid(line, toks[i+2]);
+  }
+  rule.seq = seqOverride !== null ? seqOverride : nextSeq(acl);
+  acl.rules.push(rule);
+  acl.rules.sort((a,b) => a.seq - b.seq);
+  termEchoCommand(line); renderAll();
+}
+
+// ---------- no <...> ----------
+function runNo(line, toks) {
+  // 'no access-list N' (config)
+  if (cli.mode === 'config' && toks[1] === 'access-list' && toks.length === 3) {
+    const num = toks[2];
+    const i = state.acls.findIndex(a => a.name === num);
+    if (i < 0) {
+      termEchoCommand(line);
+      termWrite('% Access list does not exist.', 'term-err');
+      termWrite('', 'term-out'); return;
+    }
+    // unbind interfaces
+    for (const intf of ['G0/0','G0/1']) for (const d of ['in','out']) {
+      if (state.applied[intf][d] === num) state.applied[intf][d] = null;
+    }
+    if (state.activeAclId === state.acls[i].id) state.activeAclId = null;
+    state.acls.splice(i, 1);
+    termEchoCommand(line); renderAll(); return;
+  }
+  // 'no ip access-list standard|extended <name>'
+  if (cli.mode === 'config' && toks[1] === 'ip' && toks[2] === 'access-list') {
+    if (toks.length < 5) return termIncomplete(line);
+    const name = toks[4];
+    const i = state.acls.findIndex(a => a.name === name);
+    if (i < 0) {
+      termEchoCommand(line);
+      termWrite('% ACL does not exist.', 'term-err');
+      termWrite('', 'term-out'); return;
+    }
+    for (const intf of ['G0/0','G0/1']) for (const d of ['in','out']) {
+      if (state.applied[intf][d] === name) state.applied[intf][d] = null;
+    }
+    state.acls.splice(i, 1);
+    termEchoCommand(line); renderAll(); return;
+  }
+  // inside named ACL: 'no <seq>'  (named-ACL granular delete)
+  if ((cli.mode === 'config-std-nacl' || cli.mode === 'config-ext-nacl') && /^\d+$/.test(toks[1] || '')) {
+    const seq = parseInt(toks[1], 10);
+    const acl = cli.nacl;
+    if (!acl) return termInvalid(line, toks[1]);
+    const before = acl.rules.length;
+    acl.rules = acl.rules.filter(r => r.seq !== seq);
+    if (acl.rules.length === before) {
+      termEchoCommand(line);
+      termWrite('% Sequence ' + seq + ' not found.', 'term-err');
+      termWrite('', 'term-out'); return;
+    }
+    termEchoCommand(line); renderAll(); return;
+  }
+  // 'no ip access-group <n> {in|out}' inside config-if
+  if (cli.mode === 'config-if' && toks[1] === 'ip' && toks[2] === 'access-group') {
+    if (toks.length < 5) return termIncomplete(line);
+    const dir = toks[4];
+    if (dir !== 'in' && dir !== 'out') return termInvalid(line, toks[4]);
+    state.applied[cli.intf][dir] = null;
+    termEchoCommand(line); renderAll(); return;
+  }
+  termInvalid(line, toks[1] || 'no');
+}
+
+// ---------- show ----------
+function runShow(line, toks) {
+  if (toks.length < 2) return termIncomplete(line);
+  // show access-lists
+  if (toks[1] === 'access-lists' || (toks[1] && 'access-lists'.startsWith(toks[1]) && toks[1].length >= 6)) {
+    return showAccessLists(line);
+  }
+  // show running-config
+  if (toks[1] === 'running-config' || (toks[1] && 'running-config'.startsWith(toks[1]) && toks[1].length >= 3)) {
+    return showRunningConfig(line);
+  }
+  // show ip interface [name]
+  if (toks[1] === 'ip') {
+    if (toks.length < 3) return termIncomplete(line);
+    if (toks[2] === 'interface' || (toks[2] && 'interface'.startsWith(toks[2]) && toks[2].length >= 3)) {
+      const intfArg = toks[3] ? normIntf(toks[3]) : null;
+      return showIpInterface(line, intfArg, toks[3]);
+    }
+    return termInvalid(line, toks[2]);
+  }
+  // show interface
+  if (toks[1] === 'interface' || toks[1] === 'interfaces') {
+    return showIpInterface(line, toks[2] ? normIntf(toks[2]) : null, toks[2]);
+  }
+  termInvalid(line, toks[1]);
+}
+
+function showAccessLists(line) {
+  termEchoCommand(line);
+  const populated = state.acls.filter(a => a.rules.length > 0);
+  if (populated.length === 0) {
+    termWrite('', 'term-out'); return;
+  }
+  populated.forEach(acl => {
+    termWrite((acl.type === 'std' ? 'Standard' : 'Extended') + ' IP access list ' + acl.name, 'term-out');
+    acl.rules.forEach(r => termWrite('    ' + r.seq + ' ' + iosRuleText(r), 'term-out'));
+  });
+  termWrite('', 'term-out');
+}
+
+function iosRuleText(r) {
+  if (r.type === 'std') {
+    if (r.src.wc === 0)                            return r.action + ' host ' + intToIp(r.src.ip);
+    if (r.src.ip === 0 && r.src.wc === 0xFFFFFFFF) return r.action + ' any';
+    return r.action + ' ' + intToIp(r.src.ip) + ', wildcard bits ' + intToIp(r.src.wc);
+  }
+  let s = r.action + ' ' + r.proto + ' ' + r.src.repr + ' ' + r.dst.repr;
+  if ((r.proto === 'tcp' || r.proto === 'udp') && r.op) s += ' ' + r.op + ' ' + portName(r.port);
+  return s;
+}
+
+function showRunningConfig(line) {
+  termEchoCommand(line);
+  termWrite('Building configuration...', 'term-out');
+  termWrite('', 'term-out');
+  termWrite('Current configuration:', 'term-out');
+  termWrite('!', 'term-out');
+  termWrite('hostname ' + cli.hostname, 'term-out');
+  termWrite('!', 'term-out');
+  // interfaces
+  const intfInfo = {
+    'G0/0': { full: 'GigabitEthernet0/0', addr: '192.168.1.1', mask: '255.255.255.0' },
+    'G0/1': { full: 'GigabitEthernet0/1', addr: '10.0.0.1',    mask: '255.255.255.0' },
+  };
+  ['G0/0','G0/1'].forEach(intf => {
+    const info = intfInfo[intf];
+    termWrite('interface ' + info.full, 'term-out');
+    termWrite(' ip address ' + info.addr + ' ' + info.mask, 'term-out');
+    if (state.applied[intf].in)  termWrite(' ip access-group ' + state.applied[intf].in  + ' in',  'term-out');
+    if (state.applied[intf].out) termWrite(' ip access-group ' + state.applied[intf].out + ' out', 'term-out');
+    termWrite('!', 'term-out');
+  });
+  // numbered ACLs (rendered as access-list lines)
+  state.acls.forEach(acl => {
+    if (acl.rules.length === 0) return;
+    if (/^\d+$/.test(acl.name)) {
+      acl.rules.forEach(r => {
+        if (acl.type === 'std') {
+          termWrite('access-list ' + acl.name + ' ' + iosRuleText(r), 'term-out');
+        } else {
+          termWrite('access-list ' + acl.name + ' ' + iosRuleText(r), 'term-out');
+        }
+      });
+      termWrite('!', 'term-out');
+    }
+  });
+  // named ACLs
+  state.acls.forEach(acl => {
+    if (acl.rules.length === 0) return;
+    if (!/^\d+$/.test(acl.name)) {
+      termWrite('ip access-list ' + (acl.type === 'std' ? 'standard' : 'extended') + ' ' + acl.name, 'term-out');
+      acl.rules.forEach(r => termWrite(' ' + iosRuleText(r), 'term-out'));
+      termWrite('!', 'term-out');
+    }
+  });
+  termWrite('end', 'term-out');
+  termWrite('', 'term-out');
+}
+
+function showIpInterface(line, intf, raw) {
+  termEchoCommand(line);
+  const intfInfo = {
+    'G0/0': { full: 'GigabitEthernet0/0', addr: '192.168.1.1', mask: '/24' },
+    'G0/1': { full: 'GigabitEthernet0/1', addr: '10.0.0.1',    mask: '/24' },
+  };
+  if (raw && !intf) {
+    termWrite('% Invalid interface ' + raw, 'term-err');
+    termWrite('', 'term-out'); return;
+  }
+  const list = intf ? [intf] : ['G0/0','G0/1'];
+  list.forEach(i => {
+    const info = intfInfo[i];
+    termWrite(info.full + ' is up, line protocol is up', 'term-out');
+    termWrite('  Internet address is ' + info.addr + info.mask, 'term-out');
+    termWrite('  Outgoing access list is ' + (state.applied[i].out || 'not set'), 'term-out');
+    termWrite('  Inbound  access list is ' + (state.applied[i].in  || 'not set'), 'term-out');
+    termWrite('', 'term-out');
+  });
+}
+
+// =====================================================================
+// Terminal wiring
+// =====================================================================
+function updateTermPrompt() {
+  $('termPrompt').textContent = cliPrompt();
+}
+
+function termBanner() {
+  termWrite('R1 — Cisco IOS Software (simulated)', 'term-comment');
+  termWrite('Type \'enable\' then \'?\' to explore. CCNA 200-301 v1.1 — ACL scope only.', 'term-comment');
+  termWrite('', 'term-out');
+}
+
+// ---------------------------------------------------------------------
+// Command tree (drives tab-completion + context-sensitive `?` help)
+// ---------------------------------------------------------------------
+const MODE_FIRST = {
+  'user':            ['enable','disable','exit','show'],
+  'enable':          ['configure','disable','enable','exit','show','write'],
+  'config':          ['access-list','do','end','exit','hostname','interface','ip','no'],
+  'config-if':       ['end','exit','ip','no','shutdown'],
+  'config-std-nacl': ['deny','end','exit','no','permit'],
+  'config-ext-nacl': ['deny','end','exit','no','permit'],
+};
+
+function nextTokenOptions(prev) {
+  const m = cli.mode;
+  if (prev.length === 0) return MODE_FIRST[m] || [];
+  const [a, b, c] = prev;
+
+  // show subtree (works in user / enable / inside `do show ...` in config)
+  function showTree(p) {
+    if (p.length === 0) return ['access-lists','ip','interface','interfaces','running-config'];
+    if (p[0] === 'ip') {
+      if (p.length === 1) return ['interface'];
+      if (p[1] === 'interface') return ['G0/0','G0/1'];
+    }
+    if (p[0] === 'interface' || p[0] === 'interfaces') {
+      if (p.length === 1) return ['G0/0','G0/1'];
+    }
+    return [];
+  }
+
+  if (m === 'user' || m === 'enable') {
+    if (a === 'show') return showTree(prev.slice(1));
+    if (a === 'configure') return prev.length === 1 ? ['terminal'] : [];
+  }
+  if (m === 'config') {
+    if (a === 'do') {
+      if (prev.length === 1) return ['show'];
+      if (b === 'show') return showTree(prev.slice(2));
+    }
+    if (a === 'show') return showTree(prev.slice(1));
+    if (a === 'ip') {
+      if (prev.length === 1) return ['access-list'];
+      if (b === 'access-list') {
+        if (prev.length === 2) return ['standard','extended'];
+        return ['<name>'];
+      }
+    }
+    if (a === 'access-list') {
+      if (prev.length === 1) return ['<1-99>','<100-199>','<1300-1999>','<2000-2699>'];
+      if (/^\d+$/.test(b||'')) {
+        if (prev.length === 2) return ['permit','deny'];
+        const k = aclKindFromNumber(b);
+        if (prev.length === 3) {
+          // permit|deny just placed → next varies by kind
+          return k === 'std' ? ['any','host','<source>'] : ['ip','tcp','udp','icmp'];
+        }
+      }
+    }
+    if (a === 'interface') return prev.length === 1 ? ['G0/0','G0/1','GigabitEthernet0/0','GigabitEthernet0/1'] : [];
+    if (a === 'no') {
+      if (prev.length === 1) return ['access-list','ip'];
+      if (b === 'access-list') return ['<num>'];
+      if (b === 'ip' && prev.length === 2) return ['access-list'];
+    }
+  }
+  if (m === 'config-if') {
+    if (a === 'ip') {
+      if (prev.length === 1) return ['access-group','address'];
+      if (b === 'access-group') {
+        if (prev.length === 2) return ['<acl>'];
+        if (prev.length === 3) return ['in','out'];
+      }
+    }
+    if (a === 'no') {
+      if (prev.length === 1) return ['ip','shutdown'];
+      if (b === 'ip' && prev.length === 2) return ['access-group','address'];
+      if (b === 'ip' && c === 'access-group') {
+        if (prev.length === 3) return ['<acl>'];
+        if (prev.length === 4) return ['in','out'];
+      }
+    }
+  }
+  if (m === 'config-std-nacl' || m === 'config-ext-nacl') {
+    const isExt = m === 'config-ext-nacl';
+    if (a === 'permit' || a === 'deny') {
+      if (!isExt) return prev.length === 1 ? ['any','host','<source>'] : [];
+      if (prev.length === 1) return ['ip','tcp','udp','icmp'];
+      if (prev.length === 2) return ['any','host','<source>'];
+    }
+    if (a === 'no' && prev.length === 1) return ['<seq>'];
+  }
+  return [];
+}
+
+// ---------------------------------------------------------------------
+// Tab completion
+// ---------------------------------------------------------------------
+function handleTab() {
+  const input = $('termIn');
+  const v = input.value;
+  const upto = v.substring(0, input.selectionStart);
+  const after = v.substring(input.selectionStart);
+  const tokens = upto.split(/\s+/);
+  // detect trailing space → completing fresh token
+  const trailingSpace = /\s$/.test(upto);
+  const last = trailingSpace ? '' : (tokens.pop() || '');
+  const prev = tokens.filter(p => p !== '');
+  const opts = nextTokenOptions(prev).filter(o => !o.startsWith('<'));
+  const candidates = opts.filter(o => o.startsWith(last));
+  if (candidates.length === 1) {
+    const completion = candidates[0];
+    const newPrefix = (prev.length ? prev.join(' ') + ' ' : '') + completion + ' ';
+    input.value = newPrefix + after.replace(/^\s+/, '');
+    input.selectionStart = input.selectionEnd = newPrefix.length;
+  } else if (candidates.length > 1) {
+    termWrite(cliPrompt() + input.value, 'term-prompt-color');
+    termWrite('  ' + candidates.join('   '), 'term-help');
+  }
+  // 0 → silent (real IOS beeps; skip audio)
+}
+
+// ---------------------------------------------------------------------
+// '?' help
+// ---------------------------------------------------------------------
+function handleHelp() {
+  const input = $('termIn');
+  const upto = input.value.substring(0, input.selectionStart);
+  const tokens = upto.split(/\s+/).filter(p => p !== '');
+  const trailingSpace = /\s$/.test(upto) || upto === '';
+  const partial = trailingSpace ? '' : (tokens.pop() || '');
+  const opts = nextTokenOptions(tokens);
+
+  termWrite(cliPrompt() + input.value + '?', 'term-prompt-color');
+  const filtered = partial ? opts.filter(o => o.startsWith(partial) || o.startsWith('<')) : opts;
+  if (filtered.length === 0) {
+    termWrite('  <cr>', 'term-help');
+  } else {
+    // line them up
+    const labels = {
+      'access-list':    'Add an access list entry',
+      'access-lists':   'List access lists',
+      'access-group':   'Apply ACL to interface',
+      'address':        'Set the IP address of an interface',
+      'configure':      'Enter configuration mode',
+      'deny':           'Specify packets to reject',
+      'disable':        'Turn off privileged commands',
+      'do':             'Run an EXEC command',
+      'enable':         'Turn on privileged commands',
+      'end':            'Exit from configuration mode',
+      'exit':           'Exit current mode',
+      'extended':       'Extended access list',
+      'host':           'A single host address',
+      'hostname':       'Set system\'s network name',
+      'icmp':           'Internet Control Message Protocol',
+      'in':             'inbound packets',
+      'interface':      'Select an interface',
+      'interfaces':     'Interface status and configuration',
+      'ip':             'IP configuration commands',
+      'no':             'Negate a command or set defaults',
+      'out':            'outbound packets',
+      'permit':         'Specify packets to forward',
+      'running-config': 'Current operating configuration',
+      'shutdown':       'Shutdown the interface',
+      'show':           'Show running system information',
+      'standard':       'Standard access list',
+      'tcp':            'Transmission Control Protocol',
+      'terminal':       'Configure from the terminal',
+      'udp':            'User Datagram Protocol',
+      'write':          'Write running configuration to memory',
+      'any':            'Any source / destination host',
+    };
+    const widest = Math.max(...filtered.map(o => o.length));
+    filtered.forEach(o => {
+      const label = labels[o] || '';
+      termWrite('  ' + o.padEnd(widest + 4, ' ') + label, 'term-help');
+    });
+  }
+}
+
+// ---------------------------------------------------------------------
+// Misc terminal shortcuts
+// ---------------------------------------------------------------------
+function clearScreen() {
+  const out = $('termOut');
+  const active = $('termActive');
+  const keep = [];
+  Array.from(out.childNodes).forEach(n => { if (n === active) keep.push(n); });
+  out.innerHTML = '';
+  keep.forEach(n => out.appendChild(n));
+  out.scrollTop = out.scrollHeight;
+}
+
+function abortLine(echo) {
+  if (echo) termWrite(cliPrompt() + $('termIn').value + '^C', 'term-prompt-color');
+  $('termIn').value = '';
+  cli.histIdx = cli.history.length;
+}
+
+// ---------------------------------------------------------------------
+// Paste handler — multi-line clipboard executes one line at a time
+// ---------------------------------------------------------------------
+$('termIn').addEventListener('paste', (ev) => {
+  const text = (ev.clipboardData || window.clipboardData).getData('text');
+  if (!text) return;
+  if (!/[\r\n]/.test(text)) return; // single line → native paste
+  ev.preventDefault();
+  const lines = text.split(/\r?\n/);
+  const typed = $('termIn').value;
+  if (typed) { lines[0] = typed + lines[0]; $('termIn').value = ''; }
+  lines.forEach((line, idx) => {
+    const clean = line.replace(/^[A-Za-z0-9_-]+(\([a-z0-9-]+\))?[>#]\s*/, '').trimEnd();
+    if (idx === lines.length - 1 && !/[\r\n]$/.test(text) && clean !== '') {
+      $('termIn').value = clean;
+      return;
+    }
+    if (clean === '' && idx === lines.length - 1) return;
+    cli.history.push(clean);
+    cli.histIdx = cli.history.length;
+    try { runLine(clean); }
+    catch (e) { termWrite('% Internal error: ' + e.message, 'term-err'); }
+  });
+});
+
+// ---------------------------------------------------------------------
+// Key handler — Tab / Enter / arrows / ? / Ctrl shortcuts
+// ---------------------------------------------------------------------
+$('termIn').addEventListener('keydown', (ev) => {
+  // Ctrl shortcuts
+  if (ev.ctrlKey || ev.metaKey) {
+    if (ev.key === 'l' || ev.key === 'L') { ev.preventDefault(); clearScreen(); return; }
+    if (ev.key === 'u' || ev.key === 'U') { ev.preventDefault(); $('termIn').value = ''; return; }
+    if (ev.key === 'c' || ev.key === 'C') {
+      // Only intercept if no text selected (otherwise allow copy)
+      const sel = window.getSelection ? window.getSelection().toString() : '';
+      if (!sel) { ev.preventDefault(); abortLine(true); return; }
+    }
+    if (ev.key === 'z' || ev.key === 'Z') {
+      ev.preventDefault();
+      termWrite(cliPrompt() + $('termIn').value + '^Z', 'term-prompt-color');
+      $('termIn').value = '';
+      try { runLine('end'); } catch (e) {}
+      return;
+    }
+    // pass other ctrl combos (copy, paste, select all)
+    return;
+  }
+  if (ev.key === 'Tab') {
+    ev.preventDefault();
+    handleTab();
+    return;
+  }
+  if (ev.key === '?') {
+    ev.preventDefault();
+    handleHelp();
+    return;
+  }
+  if (ev.key === 'Enter') {
+    const v = $('termIn').value;
+    cli.history.push(v);
+    cli.histIdx = cli.history.length;
+    $('termIn').value = '';
+    try { runLine(v); }
+    catch (e) { termWrite('% Internal error: ' + e.message, 'term-err'); }
+    return;
+  }
+  if (ev.key === 'ArrowUp') {
+    if (cli.history.length === 0) return;
+    cli.histIdx = Math.max(0, cli.histIdx - 1);
+    $('termIn').value = cli.history[cli.histIdx] || '';
+    // move caret to end
+    setTimeout(() => { const i = $('termIn'); i.selectionStart = i.selectionEnd = i.value.length; }, 0);
+    ev.preventDefault();
+    return;
+  }
+  if (ev.key === 'ArrowDown') {
+    if (cli.history.length === 0) return;
+    cli.histIdx = Math.min(cli.history.length, cli.histIdx + 1);
+    $('termIn').value = cli.history[cli.histIdx] || '';
+    setTimeout(() => { const i = $('termIn'); i.selectionStart = i.selectionEnd = i.value.length; }, 0);
+    ev.preventDefault();
+    return;
+  }
+});
+
+// Click anywhere in terminal pane focuses input + places caret at end
+$('termOut').addEventListener('mousedown', (e) => {
+  // If user clicked to select text, don't steal focus
+  if (e.target.closest('input')) return;
+  setTimeout(() => {
+    const sel = window.getSelection ? window.getSelection().toString() : '';
+    if (sel) return;
+    const i = $('termIn');
+    i.focus();
+    i.selectionStart = i.selectionEnd = i.value.length;
+  }, 0);
+});
+
+// Keep input focused after page load
+window.addEventListener('load', () => $('termIn').focus());
+
+updateTermPrompt();
+termBanner();
+
+// =====================================================================
+// Apply panel
+// =====================================================================
+$('applyBtn').onclick = () => {
+  const acl = activeAcl(); if (!acl) return;
+  const intf = $('applyIntf').value;
+  const dir  = $('applyDir').value;
+  const existing = state.applied[intf][dir];
+  if (existing && existing !== acl.name) {
+    if (!confirm(`Interface ${intf} ${dir} already has ACL "${existing}" applied. Replace?`)) return;
+  }
+  state.applied[intf][dir] = acl.name;
+  showApplyMsg(`Applied ACL ${acl.name} to ${intf} ${dir}.`, 'ok');
+  renderAll();
+};
+
+$('showCmdBtn').onclick = () => {
+  const acl = activeAcl(); if (!acl) return;
+  const intf = $('applyIntf').value;
+  const dir  = $('applyDir').value;
+  showModal('IOS configuration', `
+    <div class="mono" style="white-space:pre">
+R1(config)# interface ${intf}
+R1(config-if)# ip access-group ${acl.name} ${dir}
+    </div>
+    <div class="tip" style="margin-top:8px">For VTY: <span class="kbd">line vty 0 4</span> then <span class="kbd">access-class ${acl.name} ${dir}</span></div>
+  `);
+};
+
+function showApplyMsg(msg, kind) {
+  const el = $('applyMsg');
+  el.innerHTML = `<div class="notice ${kind}">${escapeHtml(msg)}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+// =====================================================================
+// Packet tracer
+// =====================================================================
+function evalAclAgainst(acl, pkt) {
+  // pkt: {srcIp, dstIp, proto, port}
+  for (const r of acl.rules) {
+    if (!wildcardMatch(pkt.srcIp, r.src.ip, r.src.wc)) continue;
+    if (acl.type === 'ext') {
+      if (!wildcardMatch(pkt.dstIp, r.dst.ip, r.dst.wc)) continue;
+      if (r.proto !== 'ip') {
+        if (r.proto !== pkt.proto) continue;
+        if ((r.proto === 'tcp' || r.proto === 'udp') && r.op) {
+          const p = pkt.port;
+          if (r.op === 'eq'  && p !== r.port) continue;
+          if (r.op === 'neq' && p === r.port) continue;
+          if (r.op === 'gt'  && !(p >  r.port)) continue;
+          if (r.op === 'lt'  && !(p <  r.port)) continue;
+        }
+      }
+    }
+    return { match: true, action: r.action, seq: r.seq };
+  }
+  return { match: false, action: 'deny', seq: null, implicit: true };
+}
+
+// Forward path: PC --(arrives G0/0 in)--> Router --(leaves G0/1 out)--> Server
+const FWD_PATH = [
+  { x: 90,  intf: null, dir: null, label: 'PC' },
+  { x: 390, intf: 'G0/0', dir: 'in',  label: 'G0/0 in' },
+  { x: 470, intf: null,  dir: null,   label: 'Router' },
+  { x: 550, intf: 'G0/1', dir: 'out', label: 'G0/1 out' },
+  { x: 820, intf: null,  dir: null,   label: 'Server' },
+];
+
+$('sendBtn').onclick = async () => {
+  $('resetBtn').click();
+  const src = ipToInt($('pkSrc').value);
+  const dst = ipToInt($('pkDst').value);
+  const proto = $('pkProto').value;
+  const port = parseInt($('pkPort').value, 10);
+  if (src === null || dst === null) { showModal('Bad input', 'Invalid source or destination IP.'); return; }
+  const pkt = { srcIp: src, dstIp: dst, proto, port };
+
+  const packet = $('packet');
+  const pktLbl = $('packetLbl');
+  packet.setAttribute('opacity', '1');
+  pktLbl.setAttribute('opacity', '1');
+  pktLbl.textContent = `${$('pkSrc').value}→${$('pkDst').value}${proto !== 'ip' ? ' ' + proto + (port && (proto==='tcp'||proto==='udp') ? ':'+port : '') : ''}`;
+
+  let finalVerdict = null;
+  let finalReason  = '';
+  let stoppedAt    = null;
+
+  for (let i = 0; i < FWD_PATH.length - 1; i++) {
+    const from = FWD_PATH[i];
+    const to   = FWD_PATH[i+1];
+    await tween(packet, pktLbl, from.x, to.x, 170);
+    if (to.intf) {
+      const aclName = state.applied[to.intf][to.dir];
+      if (aclName) {
+        const acl = state.acls.find(a => a.name === aclName);
+        if (acl) {
+          const result = evalAclAgainst(acl, pkt);
+          state.lastMatch = { aclName: acl.name, seq: result.seq, action: result.action, implicit: !!result.implicit };
+          renderAclList();
+          if (result.action === 'deny') {
+            finalVerdict = 'DENIED';
+            stoppedAt = { intf: to.intf, dir: to.dir, aclName: acl.name, seq: result.seq, implicit: !!result.implicit };
+            finalReason = result.implicit
+              ? `ACL <strong>${acl.name}</strong> on ${to.intf} ${to.dir} — no rule matched → <strong>implicit deny</strong>.`
+              : `ACL <strong>${acl.name}</strong> on ${to.intf} ${to.dir} — sequence <strong>${result.seq}</strong> matched (<strong>deny</strong>).`;
+            if (result.implicit) {
+              setTimeout(() => {
+                showModal('Dropped by implicit deny',
+                  `<div>Packet stopped at <strong>${to.intf} ${to.dir}</strong> by ACL <strong>${acl.name}</strong>.</div>
+                   <div class="tip" style="margin-top:6px">Every ACL has a hidden <span class="mono">deny any</span> at the end. It is always present but never appears in <span class="kbd">show access-lists</span>.</div>`);
+              }, 50);
+            }
+            break;
+          } else {
+            finalReason += `Passed ${to.intf} ${to.dir} (ACL ${acl.name}, seq ${result.seq}, permit). `;
+          }
+        }
+      }
+    }
+  }
+
+  if (!finalVerdict) {
+    finalVerdict = 'PERMITTED';
+    finalReason += 'Reached destination.';
+  }
+
+  renderPkResult(finalVerdict, finalReason, stoppedAt, pkt);
+};
+
+function tween(packet, label, fromX, toX, y) {
+  return new Promise(resolve => {
+    const dur = 700;
+    const t0 = performance.now();
+    function step(t) {
+      const k = Math.min(1, (t - t0) / dur);
+      const e = k < 0.5 ? 2*k*k : -1 + (4 - 2*k)*k; // easeInOut
+      const x = fromX + (toX - fromX) * e;
+      packet.setAttribute('cx', x);
+      label.setAttribute('x', x);
+      label.setAttribute('y', y - 12);
+      if (k < 1) requestAnimationFrame(step);
+      else resolve();
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+function renderPkResult(verdict, reason, stop, pkt) {
+  const box = $('pkResult');
+  const cls = verdict === 'PERMITTED' ? 'permit' : 'deny';
+  box.innerHTML = `
+    <div class="result-box ${cls}">
+      <div class="verdict">${verdict}</div>
+      <div style="margin-top:6px">${reason}</div>
+      ${stop ? `<div class="tip mono" style="margin-top:6px">Stopped at: ${stop.intf} ${stop.dir} · ACL ${stop.aclName} · ${stop.implicit ? 'implicit deny' : 'seq ' + stop.seq}</div>` : ''}
+    </div>
+  `;
+}
+
+$('resetBtn').onclick = () => {
+  state.lastMatch = null;
+  $('packet').setAttribute('opacity', '0');
+  $('packetLbl').setAttribute('opacity', '0');
+  $('pkResult').innerHTML = '';
+  renderAclList();
+};
+
+// =====================================================================
+// Wildcard calculator
+// =====================================================================
+function updMask() {
+  const v = $('cMask').value.trim();
+  const m = ipToInt(v);
+  const out = $('cMaskOut');
+  if (m === null) { out.innerHTML = '<span style="color:var(--bad)">invalid mask</span>'; return; }
+  const c = maskToCidr(m);
+  const w = wildcardFromMask(m);
+  out.innerHTML = `
+    <div><span class="label">Subnet mask:</span> ${intToIp(m)}</div>
+    <div><span class="label">CIDR:</span> ${c < 0 ? '(non-contiguous)' : '/' + c}</div>
+    <div><span class="label">Wildcard:</span> <strong>${intToIp(w)}</strong></div>
+    <div style="margin-top:6px; color:var(--muted)">255.255.255.255 − ${intToIp(m)} = ${intToIp(w)}</div>
+  `;
+}
+function updCidr() {
+  const n = parseInt($('cCidr').value, 10);
+  const out = $('cCidrOut');
+  if (isNaN(n) || n < 0 || n > 32) { out.innerHTML = '<span style="color:var(--bad)">prefix must be 0–32</span>'; return; }
+  const m = cidrToMask(n);
+  const w = wildcardFromMask(m);
+  out.innerHTML = `
+    <div><span class="label">CIDR:</span> /${n}</div>
+    <div><span class="label">Subnet mask:</span> ${intToIp(m)}</div>
+    <div><span class="label">Wildcard:</span> <strong>${intToIp(w)}</strong></div>
+  `;
+}
+$('cMask').addEventListener('input', updMask);
+$('cCidr').addEventListener('input', updCidr);
+document.querySelectorAll('#shortcuts button').forEach(b => {
+  b.onclick = () => { $('cCidr').value = b.dataset.cidr; updCidr(); };
+});
+updMask(); updCidr();
+
+// =====================================================================
+// Quiz
+// =====================================================================
+const QUESTIONS = [
+  {
+    topic: 'Wildcard mask',
+    stem: 'You need a wildcard mask that matches exactly the subnet 192.168.10.32/27. Which wildcard mask is correct?',
+    choices: ['0.0.0.31', '0.0.0.15', '0.0.0.63', '255.255.255.224'],
+    correct: 0,
+    explain: '/27 = 255.255.255.224 subnet mask. Wildcard = inverse = 0.0.0.31 (32 addresses, 5 host bits).',
+    trap: 'Cisco trap: candidates pick the subnet mask (255.255.255.224) instead of the wildcard mask. Wildcards INVERT the mask — 0 = match, 1 = don\'t care.',
+  },
+  {
+    topic: 'Standard placement',
+    stem: 'You must filter traffic from 192.168.1.0/24 going to a server at 10.0.0.5 using a standard ACL. Where should the ACL be applied?',
+    choices: [
+      'As close to the source as possible',
+      'As close to the destination as possible',
+      'On the loopback of R1',
+      'On any interface, direction does not matter',
+    ],
+    correct: 1,
+    explain: 'A standard ACL only filters on source IP, so placing it near the source would block traffic to ALL destinations (including legitimate ones). Place standard ACLs near the destination.',
+    trap: 'Cisco trap: "close to source" is correct for EXTENDED ACLs only. For STANDARD ACLs the rule is the opposite — close to destination to avoid over-blocking.',
+  },
+  {
+    topic: 'Extended placement',
+    stem: 'You build an extended ACL that denies TCP from 192.168.1.0/24 to 10.0.0.5 port 80. Where should it be applied for the most efficient filtering?',
+    choices: [
+      'On R1 G0/1 outbound',
+      'On R1 G0/0 inbound (close to source)',
+      'On the destination server\'s NIC',
+      'On the VTY lines with access-class',
+    ],
+    correct: 1,
+    explain: 'Extended ACLs filter on source + destination + protocol + port, so they can be placed close to the source. This drops the unwanted traffic before it traverses the network.',
+    trap: 'Cisco trap: "G0/1 outbound" sounds correct because it is near the destination — but that wastes bandwidth carrying traffic that will be dropped. The exam rewards "close to source" for EXTENDED.',
+  },
+  {
+    topic: 'ACL numbering',
+    stem: 'Which numbering ranges identify a STANDARD numbered ACL?',
+    choices: [
+      '1–99 and 1300–1999',
+      '100–199 and 2000–2699',
+      '1–99 and 2000–2699',
+      '100–199 and 1300–1999',
+    ],
+    correct: 0,
+    explain: 'Standard ACLs use 1–99 and the expanded range 1300–1999. Extended ACLs use 100–199 and 2000–2699.',
+    trap: 'Cisco trap: candidates mix the expanded ranges. Remember: STD = lower numbers (1–99 / 1300–1999); EXT = higher numbers (100–199 / 2000–2699).',
+  },
+  {
+    topic: 'What traffic does this permit',
+    stem: 'Given:\naccess-list 10 permit 192.168.1.0 0.0.0.255\nWhich host is permitted by this rule?',
+    choices: [
+      '192.168.2.50',
+      '192.168.1.200',
+      '10.0.0.5',
+      '172.16.1.1',
+    ],
+    correct: 1,
+    explain: 'Wildcard 0.0.0.255 means the last octet is "don\'t care". The rule matches any host in 192.168.1.0/24. 192.168.1.200 fits; 192.168.2.50 does NOT (different third octet).',
+    trap: 'Cisco trap: students confuse wildcard 0.0.0.255 with 0.0.255.255 (which would also match 192.168.2.x). Read the wildcard octet-by-octet.',
+  },
+  {
+    topic: 'Implicit deny',
+    stem: 'An ACL contains only permit statements. A packet arrives that does not match any permit. What happens?',
+    choices: [
+      'The packet is permitted because no deny statement exists',
+      'The packet is dropped by the implicit deny any at the end',
+      'The packet is logged and then forwarded',
+      'The router returns an ICMP redirect',
+    ],
+    correct: 1,
+    explain: 'Every ACL ends with an implicit "deny any". If no rule matches, the packet is dropped. This implicit rule is always there but never appears in "show access-lists".',
+    trap: 'Cisco trap: the implicit deny is invisible. Candidates assume "no deny listed = permitted." Wrong — the deny is there, just hidden.',
+  },
+  {
+    topic: 'Spot the error',
+    stem: 'A junior admin writes the following extended ACL and applies it INBOUND on G0/0 to allow only web browsing from PC 192.168.1.10. Users report all other access to the internet is broken. What is wrong?\n\nip access-list extended WEB\n permit tcp host 192.168.1.10 any eq 80',
+    choices: [
+      'The ACL needs "permit tcp any any eq 80" added',
+      'Return traffic is blocked: the ACL needs permits for established sessions and DNS (port 53), or to permit other required traffic — implicit deny is dropping everything else',
+      'The wildcard mask is missing on the source',
+      'Extended ACLs cannot be named',
+    ],
+    correct: 1,
+    explain: 'The ACL only permits HTTP from one host. All other traffic (DNS, HTTPS, established return TCP, other hosts) hits the implicit deny and is dropped.',
+    trap: 'Cisco trap: candidates obsess over wildcard or syntax. The real bug is FORGETTING the implicit deny. ACLs need explicit permits for every flow you intend to allow.',
+  },
+  {
+    topic: 'Standard vs Extended',
+    stem: 'Requirement: permit host 192.168.1.10 to reach the server 10.0.0.5 on TCP port 443 ONLY. Which ACL type must you use?',
+    choices: [
+      'Standard — it can filter port 443',
+      'Extended — only extended ACLs can match destination IP and Layer 4 port',
+      'Either — both filter on protocol and port',
+      'Named standard with the "eq" keyword',
+    ],
+    correct: 1,
+    explain: 'Standard ACLs match SOURCE IP ONLY. To match destination IP and Layer 4 (TCP/UDP port), you need an extended ACL.',
+    trap: 'Cisco trap: "named standard" sounds advanced but does NOT add port-matching capability. Standard = source only, named or numbered makes no difference.',
+  },
+  {
+    topic: 'access-group vs access-class',
+    stem: 'You want to restrict SSH/Telnet access to R1 so only management subnet 10.10.0.0/24 can log in. Which command applies the ACL on the VTY lines?',
+    choices: [
+      'ip access-group MGMT in (under interface G0/0)',
+      'access-class MGMT in (under line vty 0 4)',
+      'ip access-list extended MGMT (under line vty 0 4)',
+      'service-policy input MGMT (under VTY)',
+    ],
+    correct: 1,
+    explain: 'VTY lines (Telnet/SSH) use "access-class" — not "access-group". access-group applies an ACL to a routed interface for transit traffic; access-class applies it to VTY lines for management access.',
+    trap: 'Cisco trap: candidates use access-group for everything. Memorize: VTY = access-class. Interface = access-group.',
+  },
+  {
+    topic: 'Wildcard for multiple subnets',
+    stem: 'You need ONE ACL line to match all four subnets 10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24, and 10.0.3.0/24. Which source + wildcard achieves this?',
+    choices: [
+      '10.0.0.0 0.0.0.255',
+      '10.0.0.0 0.0.3.255',
+      '10.0.0.0 0.0.255.255',
+      '10.0.0.0 255.255.252.0',
+    ],
+    correct: 1,
+    explain: 'Four consecutive /24s = a /22 block. Wildcard for /22 is 0.0.3.255 (third octet allows values 0–3, last octet any). Verify: 10.0.0.0 to 10.0.3.255.',
+    trap: 'Cisco trap: candidates pick 0.0.0.255 (only one /24) or confuse with subnet mask 255.255.252.0. ACLs use wildcards, not masks — and the third octet must allow 4 values, so wildcard bit = 0.0.3.x.',
+  },
+];
+
+let qIdx = 0;
+let qScore = 0;
+let qWrongTopics = [];
+let qAnswered = false;
+
+function renderQuiz() {
+  const area = $('quizArea');
+  if (qIdx >= QUESTIONS.length) {
+    // summary
+    const weak = [...new Set(qWrongTopics)];
+    area.innerHTML = `
+      <div class="score-summary">
+        <h3>Quiz complete — ${qScore} / ${QUESTIONS.length}</h3>
+        <div>${qScore >= 8 ? '✅ Solid. Exam-ready on ACL fundamentals.' : qScore >= 5 ? '⚠️ Good base — drill the weak areas below.' : '❌ Review section 5.6 of the CCNA blueprint before retrying.'}</div>
+        ${weak.length ? `<div style="margin-top:10px"><strong>Weak areas:</strong><br>${weak.map(w => `<span class="weak-tag">${escapeHtml(w)}</span>`).join('')}</div>` : ''}
+        <div class="btnrow" style="margin-top:14px">
+          <button id="qRestart">Restart Quiz</button>
+        </div>
+      </div>
+    `;
+    $('qRestart').onclick = () => { qIdx = 0; qScore = 0; qWrongTopics = []; qAnswered = false; renderQuiz(); };
+    return;
+  }
+  const q = QUESTIONS[qIdx];
+  qAnswered = false;
+  area.innerHTML = `
+    <div class="qprogress">Question ${qIdx + 1} / ${QUESTIONS.length} · Topic: <strong>${escapeHtml(q.topic)}</strong> · Score: ${qScore}</div>
+    <div class="qstem" style="margin-top:8px">
+      <div>${escapeHtml(q.stem).replace(/\n/g, '<br>')}</div>
+    </div>
+    <div class="choices" id="choices">
+      ${q.choices.map((c, i) => `<div class="choice" data-i="${i}">${String.fromCharCode(65+i)}. ${escapeHtml(c)}</div>`).join('')}
+    </div>
+    <div id="qFeedback"></div>
+    <div class="btnrow" style="margin-top:10px">
+      <button id="qNext" disabled>Next →</button>
+      <button class="secondary" id="qSkip">Skip</button>
+    </div>
+  `;
+  document.querySelectorAll('.choice').forEach(el => {
+    el.onclick = () => answerQuiz(parseInt(el.dataset.i, 10));
+  });
+  $('qNext').onclick = () => { qIdx++; renderQuiz(); };
+  $('qSkip').onclick = () => { qWrongTopics.push(q.topic); qIdx++; renderQuiz(); };
+}
+
+function answerQuiz(i) {
+  if (qAnswered) return;
+  qAnswered = true;
+  const q = QUESTIONS[qIdx];
+  const choices = document.querySelectorAll('.choice');
+  choices.forEach((el, idx) => {
+    el.classList.add('disabled');
+    if (idx === q.correct) el.classList.add('right');
+    else if (idx === i) el.classList.add('wrong');
+    el.onclick = null;
+  });
+  if (i === q.correct) qScore++;
+  else qWrongTopics.push(q.topic);
+  $('qFeedback').innerHTML = `
+    <div class="explain">
+      <strong>${i === q.correct ? '✅ Correct.' : '❌ Incorrect.'}</strong>
+      <div style="margin-top:6px">${escapeHtml(q.explain).replace(/\n/g,'<br>')}</div>
+      <span class="trap">⚠ Cisco exam trap: ${escapeHtml(q.trap)}</span>
+    </div>
+  `;
+  $('qNext').disabled = false;
+}
+
+renderQuiz();
+
+// =====================================================================
+// Modal
+// =====================================================================
+function showModal(title, html) {
+  $('modalTitle').textContent = title;
+  $('modalBody').innerHTML = html;
+  $('modal').classList.add('open');
+}
+$('modalClose').onclick = () => $('modal').classList.remove('open');
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') $('modal').classList.remove('open'); });
+
+// =====================================================================
+// Tabs
+// =====================================================================
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $('view-' + t.dataset.view).classList.add('active');
+  };
+});
+
+// =====================================================================
+// Coach — guided lesson that updates as the user does things
+// =====================================================================
+const LESSON = [
+  {
+    kicker: 'Lesson 1 of 7 — Power on',
+    title: 'Type "enable" in the terminal',
+    body: 'You are at <span class="coach-cmd">R1&gt;</span> — user mode. Only show commands work here. Promote to privileged mode by typing <span class="coach-cmd">enable</span>. The prompt changes to <span class="coach-cmd">R1#</span>.',
+    cmd: 'enable',
+    done: () => cli.mode === 'enable' || cli.mode === 'config' || cli.mode === 'config-if' || cli.mode.startsWith('config-'),
+  },
+  {
+    kicker: 'Lesson 2 of 7 — Enter config',
+    title: 'Drop into global configuration',
+    body: 'Privileged mode lets you look. Configuration mode lets you change. Type <span class="coach-cmd">configure terminal</span> (or <span class="coach-cmd">conf t</span> for short). The prompt becomes <span class="coach-cmd">R1(config)#</span>.',
+    cmd: 'configure terminal',
+    done: () => cli.mode === 'config' || cli.mode === 'config-if' || cli.mode.startsWith('config-'),
+  },
+  {
+    kicker: 'Lesson 3 of 7 — Build the ACL',
+    title: 'Block one host',
+    body: 'We will block the lab PC. Standard ACLs (1–99) filter on source IP only. Type:<br><span class="coach-cmd">access-list 10 deny host 192.168.1.10</span><br>The "host" keyword = wildcard 0.0.0.0 = match exactly that IP.',
+    cmd: 'access-list 10 deny host 192.168.1.10',
+    done: () => {
+      const a = state.acls.find(x => x.name === '10');
+      return !!a && a.rules.some(r => r.action === 'deny');
+    },
+  },
+  {
+    kicker: 'Lesson 4 of 7 — Permit everyone else',
+    title: 'Add the permit (or implicit deny kills you)',
+    body: 'Every ACL ends with an invisible <span class="coach-cmd">deny any</span>. If you stop here, ALL traffic gets dropped — not just the PC. Add a permit:<br><span class="coach-cmd">access-list 10 permit any</span>',
+    cmd: 'access-list 10 permit any',
+    done: () => {
+      const a = state.acls.find(x => x.name === '10');
+      return !!a && a.rules.some(r => r.action === 'permit');
+    },
+  },
+  {
+    kicker: 'Lesson 5 of 7 — Pick the interface',
+    title: 'Step into G0/0',
+    body: 'To bind the ACL you must be on an interface. Standard ACL placement rule = close to destination, but G0/0 inbound is fastest for this demo — it drops the PC traffic the second it hits the router. Type <span class="coach-cmd">interface G0/0</span>.',
+    cmd: 'interface G0/0',
+    done: () => cli.mode === 'config-if' && cli.intf === 'G0/0',
+  },
+  {
+    kicker: 'Lesson 6 of 7 — Apply',
+    title: 'Bind the ACL inbound',
+    body: 'Type <span class="coach-cmd">ip access-group 10 in</span>. Watch the diagram — "in: 10" appears above the G0/0 interface label.',
+    cmd: 'ip access-group 10 in',
+    done: () => state.applied['G0/0'].in === '10',
+  },
+  {
+    kicker: 'Lesson 7 of 7 — Test it',
+    title: 'Send a packet from the Packet Tracer',
+    body: 'Look right → <strong>Packet Tracer</strong> panel. Hit <span class="coach-cmd">Send Packet →</span>. The PC (192.168.1.10) should be DENIED at G0/0 in — rule 10 lights red. Then change Source IP to <span class="coach-cmd">192.168.1.50</span> and resend — PERMITTED, rule 20 lights green.',
+    cmd: null,
+    done: () => false, // never auto-advance from final
+  },
+];
+
+let coachStep = 0;
+
+function coachRender() {
+  const lesson = LESSON[coachStep];
+  if (!lesson) return;
+  $('coachStepNum').textContent = 'Step ' + (coachStep + 1) + ' / ' + LESSON.length;
+  $('coachKicker').textContent = lesson.kicker;
+  $('coachTitle').textContent = lesson.title;
+  $('coachBody').innerHTML = lesson.body;
+  $('coachTypeBtn').style.display = lesson.cmd ? '' : 'none';
+  $('coachSkipBtn').style.display = lesson.cmd ? '' : 'none';
+  // progress pips
+  const prog = $('coachProgress');
+  prog.innerHTML = '';
+  LESSON.forEach((_, i) => {
+    const pip = document.createElement('div');
+    pip.className = 'coach-pip' + (i < coachStep ? ' done' : (i === coachStep ? ' now' : ''));
+    prog.appendChild(pip);
+  });
+  // Final celebration
+  if (coachStep === LESSON.length - 1 && LESSON[coachStep].cmd === null) {
+    // already last
+  }
+}
+
+function coachCheck() {
+  // Walk forward through completed steps in case user did several at once
+  while (coachStep < LESSON.length - 1 && LESSON[coachStep].done()) {
+    coachStep++;
+  }
+  coachRender();
+}
+
+$('coachTypeBtn').onclick = () => {
+  const lesson = LESSON[coachStep];
+  if (!lesson || !lesson.cmd) return;
+  // type into terminal and execute
+  const input = $('termIn');
+  input.focus();
+  input.value = lesson.cmd;
+  cli.history.push(lesson.cmd);
+  cli.histIdx = cli.history.length;
+  input.value = '';
+  try { runLine(lesson.cmd); }
+  catch (e) { termWrite('% Internal error: ' + e.message, 'term-err'); }
+  setTimeout(coachCheck, 50);
+};
+
+$('coachSkipBtn').onclick = () => {
+  if (coachStep < LESSON.length - 1) coachStep++;
+  coachRender();
+};
+
+$('resetCoachBtn').onclick = () => {
+  coachStep = 0;
+  coachRender();
+};
+
+// Hook: re-check coach after any successful CLI line or apply/send action
+const _origRunLine = runLine;
+runLine = function(line) {
+  const r = _origRunLine(line);
+  setTimeout(coachCheck, 30);
+  return r;
+};
+const _origApply = $('applyBtn').onclick;
+$('applyBtn').onclick = (...args) => {
+  const r = _origApply.apply(null, args);
+  setTimeout(coachCheck, 30);
+  return r;
+};
+const _origSend = $('sendBtn').onclick;
+$('sendBtn').onclick = async (...args) => {
+  const r = await _origSend.apply(null, args);
+  setTimeout(coachCheck, 30);
+  return r;
+};
+
+// initial render
+renderAll();
+coachRender();
+</script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
