@@ -62,7 +62,7 @@ for (const f of files) {
       : (c.front || '');
     cards.push({
       id: cardId,
-      type: 'basic',
+      type: 'jeremy',
       section: sectionId,
       front: front,
       back: c.back || '',
