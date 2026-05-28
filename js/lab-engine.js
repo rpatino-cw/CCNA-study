@@ -324,7 +324,8 @@
       .replace(/^gi(?:gabitethernet)?/i, 'GigabitEthernet')
       .replace(/^fa(?:stethernet)?/i, 'FastEthernet')
       .replace(/^lo(?:opback)?/i, 'Loopback')
-      .replace(/^vlan\s*/i, 'Vlan');
+      .replace(/^vlan\s*/i, 'Vlan')
+      .replace(/^(?:po|port-channel)\s*/i, 'Port-channel');
   };
 
   LabBase.prototype.completeObjective = function(idx) {

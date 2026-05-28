@@ -1,0 +1,91 @@
+{
+  "deck": "Flashit - ccna-troubleshooting-flows.apkg",
+  "count": 17,
+  "cards": [
+    {
+      "front": "**Ping fails between hosts in different VLANs across switches.** Diagnostic flow?",
+      "back": "```\nping fails \u2014 VLAN A host \u2192 VLAN B host (across switches)\n   \u2502\n   \u25bc\nshow interfaces fa0/1 switchport on BOTH switches\n   \u2502\n   \u25bc\nOperational Mode = trunk on both?\n   \u2502\nno \u2500\u25ba fix access-stuck side: switchport mode trunk\n   \u2502\nyes\n   \u25bc\nshow interfaces trunk\n   \u2502\n   \u25bc\nNative VLAN matches? Allowed VLAN list includes both VLANs?\n   \u2502\nno \u2500\u25ba fix: switchport trunk native vlan X / allowed vlan add Y\n   \u2502\nyes\n   \u25bc\nL3 gateway exists for both VLANs? (SVI or ROAS sub-interface)\n   \u2502\nno \u2500\u25ba configure SVI: interface vlan X / ip address / no shut\n   \u2502\nyes\n   \u25bc\nip routing enabled on the L3 switch?\n   \u2502\nno \u2500\u25ba conf t / ip routing\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**OSPF neighbor stuck or won't form.** Diagnostic flow?",
+      "back": "```\nOSPF neighbor down / never reaches FULL\n   \u2502\n   \u25bc\nshow ip ospf neighbor \u2014 what state is it in?\n   \u2502\nDown  \u2500\u25ba no Hello seen. Check: interface up? OSPF process running?\n        network statement matches? ACL blocking proto 89?\n   \u2502\nInit  \u2500\u25ba one-way. Check matching Hello/Dead timers, area ID,\n        authentication, subnet on link\n   \u2502\n2-Way (between DROthers) \u2500\u25ba EXPECTED on broadcast. Not a bug.\n   \u2502\nExStart/Exchange stuck \u2500\u25ba MTU MISMATCH. Fix:\n        ip ospf mtu-ignore  (or set matching MTU both ends)\n   \u2502\n   \u25bc\nshow ip ospf interface gX/Y \u2014 area + timers + auth must match neighbor\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**EtherChannel won't bundle (Po stays down).** Diagnostic flow?",
+      "back": "```\nEtherChannel members exist but Po flag = I (stand-alone) or D (down)\n   \u2502\n   \u25bc\nshow etherchannel summary \u2014 what flags on member ports?\n   \u2502\nI (stand-alone) \u2500\u25ba LACP/PAgP negotiation failed. Check:\n                   \u2022 Both sides active+active OR active+passive (not passive+passive)\n                   \u2022 Same channel-protocol on both sides\n                   \u2022 channel-group X mode <correct mode>\n   \u2502\ns (suspended)   \u2500\u25ba Config mismatch between member ports. Check:\n                   \u2022 speed, duplex, switchport mode, native VLAN,\n                     allowed VLAN list, STP settings \u2014 ALL must match\n   \u2502\nD (down)        \u2500\u25ba All member interfaces are down. show ip int brief.\n   \u2502\n   \u25bc\nshow lacp neighbor \u2014 does both sides report each other?\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**SSH refused or \"connection closed.\"** Diagnostic flow?",
+      "back": "```\nssh -l admin <ip>  \u2192 fails\n   \u2502\n   \u25bc\nPing reaches device?\n   \u2502\nno \u2500\u25ba IP/route/ACL problem. show ip route, show access-list\n   \u2502\nyes\n   \u25bc\nshow ip ssh \u2014 version 2? RSA key generated?\n   \u2502\nno key \u2500\u25ba crypto key generate rsa modulus 2048\n   \u2502\n   \u25bc\nshow running-config | section line vty\n   \u2502\n   \u25bc\ntransport input ssh? login local? username defined?\n   \u2502\nmissing \u2500\u25ba add: transport input ssh / login local /\n                username admin secret <pw>\n   \u2502\n   \u25bc\nip domain-name set? (required for RSA key gen)\n   \u2502\nno \u2500\u25ba ip domain-name lab.local then re-gen RSA\n   \u2502\n   \u25bc\nCheck ACL on VTY: access-class? \u2014 blocking source?\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**DHCP client gets 169.254.x.x (APIPA \u2014 no IP).** Diagnostic flow?",
+      "back": "```\nClient shows APIPA (169.254.x.x)  \u2014 never got DHCP lease\n   \u2502\n   \u25bc\nIs client port in correct VLAN? show int gX/Y switchport\n   \u2502\nno \u2500\u25ba fix: switchport access vlan X\n   \u2502\nyes\n   \u25bc\nDHCP server reachable from client's VLAN gateway?\n   \u2502\n   \u25bc\nOn gateway router/L3 switch: ip helper-address configured on SVI?\n(needed if DHCP server is in different subnet)\n   \u2502\nno \u2500\u25ba interface vlan X / ip helper-address <dhcp-server-ip>\n   \u2502\nyes\n   \u25bc\nshow ip dhcp pool \u2014 pool exists for this network? IPs available?\n   \u2502\nexhausted \u2500\u25ba extend pool range or reduce lease time\n   \u2502\n   \u25bc\nshow ip dhcp conflict \u2014 IP conflict detected?\n   \u2502\nyes \u2500\u25ba clear ip dhcp conflict *\n   \u2502\n   \u25bc\ndebug ip dhcp server events / packet \u2014 watch for DHCP DISCOVER arriving\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**NAT translations not happening (LAN host can't reach internet).** Diagnostic flow?",
+      "back": "```\nLAN host ping 8.8.8.8 fails\n   \u2502\n   \u25bc\nping 8.8.8.8 from the NAT router itself \u2014 works?\n   \u2502\nno \u2500\u25ba routing issue, not NAT. Check default route + ISP link.\n   \u2502\nyes\n   \u25bc\nshow ip nat translations \u2014 any entries when LAN host pings?\n   \u2502\nempty\n   \u25bc\nOutside interface marked? show run | include nat outside\n   \u2502\nno \u2500\u25ba interface <wan> / ip nat outside\n   \u2502\n   \u25bc\nInside interface(s) marked? ip nat inside\n   \u2502\nno \u2500\u25ba interface <lan> / ip nat inside\n   \u2502\n   \u25bc\nip nat inside source list/route-map + overload \u2014 configured?\nACL referenced by NAT rule actually matches LAN traffic?\n   \u2502\n   \u25bc\nshow ip nat statistics \u2014 Hits should increment as LAN host pings\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Static route doesn't appear in `show ip route`.** Diagnostic flow?",
+      "back": "```\nip route added in running-config but no S in show ip route\n   \u2502\n   \u25bc\nExit interface or next-hop reachable?\n   \u2502\n   \u25bc\nFor next-hop static (ip route X.X.X.0 mask via Y.Y.Y.Y):\n   \u2022 show ip route Y.Y.Y.Y \u2014 recursive lookup must resolve\n   \u2022 If next-hop not in RIB \u2192 route invalid, won't install\n   \u2502\nFor interface static (ip route X.X.X.0 mask gX/Y):\n   \u2022 show ip int brief gX/Y \u2014 must be up/up\n   \u2022 If admin-down \u2192 no shutdown\n   \u2502\n   \u25bc\nAnother route with lower AD for same prefix?\n   \u2022 show ip route X.X.X.0 \u2014 what source?\n   \u2022 Floating static intentionally higher AD = expected hiding\n   \u2502\n   \u25bc\nTrack configured + tracked object Down?\n   \u2022 show track \u2014 if down, static is suppressed by design\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Inter-VLAN routing on ROAS broken (PCs in same VLAN work, different VLANs don't).** Diagnostic flow?",
+      "back": "```\nPCs in VLAN X can talk to each other but not to VLAN Y\n   \u2502\n   \u25bc\nOn router \u2014 sub-interfaces exist for both VLANs?\n   show ip int brief \u2014 gX/Y.10, gX/Y.20, etc?\n   \u2502\nno \u2500\u25ba create sub-interface: encapsulation dot1q <vlan> / ip address\n   \u2502\nyes\n   \u25bc\nencapsulation dot1q <vlan> matches actual VLAN ID?\n   \u2502\nno \u2500\u25ba fix encapsulation\n   \u2502\nyes\n   \u25bc\nOn switch \u2014 trunk to router carries both VLANs?\n   show interfaces trunk\n   \u2502\n   \u25bc\nAllowed VLAN list includes both? Native VLAN matches router's \"native\" sub-interface?\n   \u2502\n   \u25bc\nClient default gateway = router sub-interface IP for its VLAN?\n   ipconfig / ifconfig \u2014 gateway correct?\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Port-security err-disabled.** Diagnostic flow + recovery?",
+      "back": "```\nInterface in err-disabled state \u2014 link unusable\n   \u2502\n   \u25bc\nshow interfaces gX/Y status \u2014 \"err-disabled\"\nshow interfaces gX/Y \u2014 \"Last input: violation\"\n   \u2502\n   \u25bc\nshow port-security interface gX/Y\n   \u2022 Max MAC: how many allowed?\n   \u2022 Total MAC count: how many seen?\n   \u2022 Last source: which MAC triggered?\n   \u2022 Violation count: should be > 0\n   \u2502\n   \u25bc\nCause:\n   \u2022 Wrong device plugged in\n   \u2022 PC + phone behind port (max=1 too restrictive \u2014 needs max=2)\n   \u2022 Sticky MACs locked + device replaced\n   \u2502\n   \u25bc\nRecovery (manual):\n   shutdown\n   no shutdown",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**ACL blocking unexpected traffic (legitimate flow denied).** Diagnostic flow?",
+      "back": "```\nTraffic that \"should work\" is being denied\n   \u2502\n   \u25bc\nshow access-lists \u2014 read top-down, first match wins\n   \u2502\n   \u25bc\nFor each line, check Hits/Matches counter \u2014 incrementing = catching this traffic\n   \u2502\n   \u25bc\nshow ip interface gX/Y | include access list\n   \u2022 Which ACL is applied? Inbound or outbound?\n   \u2502\n   \u25bc\nWildcard mask correct? (common typo: subnet mask instead of wildcard)\n   \u2022 0.0.0.0 = exact match one host\n   \u2022 0.0.0.255 = match /24 network\n   \u2022 255.255.255.255 = match anything\n   \u2502\n   \u25bc\nImplicit deny at end \u2014 is the legitimate flow explicitly permitted?\n   \u2022 show ip access-list \u2014 last line should be permit if you want anything else allowed\n   \u2502\n   \u25bc\nPlacement rule:\n   \u2022 Standard ACL \u2192 close to DESTINATION (only matches src IP)\n   \u2022 Extended ACL \u2192 close to SOURCE\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**HSRP not failing over to Standby when Active should be down.** Diagnostic flow?",
+      "back": "```\nActive router goes down \u2014 clients lose connectivity (no failover)\n   \u2502\n   \u25bc\nshow standby brief on Standby router \u2014 what state?\n   \u2502\nListen/Speak \u2500\u25ba hasn't been elected Standby yet. Wait for hold timer (default 10s).\n   \u2502\nStandby      \u2500\u25ba should be promoting now. Check hold timer expiring properly.\n   \u2502\n   \u25bc\nHold timer too long? Tune for faster failover:\n   standby 1 timers 1 3      ! hello 1s, hold 3s (both sides match)\n   \u2502\n   \u25bc\nIf \"Active\" router is just reloading + coming back up faster than Standby promotes:\n   \u2022 Preempt OFF by default \u2014 Active won't take over from \"lower priority\"\n   \u2022 Issue: did Active actually go down, or just flap?\n   \u2502\n   \u25bc\nTracking working? show track \u2014 if track Up but Active priority decremented\n   correctly, Standby should win priority race\n   \u2502\n   \u25bc\nBoth sides see each other?\n   \u2022 show standby \u2014 same vIP, same group #, same auth on both\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Time wrong on device (NTP not syncing).** Diagnostic flow?",
+      "back": "```\nshow clock shows wrong time\n   \u2502\n   \u25bc\nshow ntp status\n   \u2022 Clock is unsynchronized? \u2192 not pulling from server\n   \u2022 Stratum 16 = unsynchronized\n   \u2502\n   \u25bc\nshow ntp associations\n   \u2022 Server listed? Stratum reasonable? \"*\" = sync peer\n   \u2022 No \"*\" = found server but can't sync\n   \u2502\n   \u25bc\nPing NTP server \u2014 reachable?\n   \u2502\nno \u2500\u25ba routing problem or ACL blocking UDP 123\n   \u2502\nyes\n   \u25bc\nACL allows UDP 123 inbound (responses)?\n   ! NTP uses UDP 123 source AND destination\n   \u2502\n   \u25bc\nAuthentication mismatch?\n   show ntp authentication-keys\n   If keys configured but wrong \u2192 won't sync\n   \u2502\n   \u25bc\nTimezone correct? clock timezone CST -6 (then NTP sync sets UTC underneath)\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Interface \"up/down\" \u2014 physical up but line protocol down.** Diagnostic flow?",
+      "back": "```\nshow ip interface brief shows: g0/1 up down\n   \u2502\n   \u25bc\n\"up\" = layer 1 (physical signal OK)\n\"down\" = layer 2 (no protocol handshake)\n   \u2502\n   \u25bc\nFor Ethernet \u2014 usually a keepalive issue, less common\nFor Serial \u2014 check encapsulation matches both sides (PPP, HDLC)\n   \u2022 show interface s0/0 \u2014 \"encapsulation HDLC\" or \"encapsulation PPP\"\n   \u2502\n   \u25bc\nIf serial PPP \u2014 authentication mismatch (PAP/CHAP credentials wrong)\nFor Ethernet \u2014 duplex/speed mismatch on rare occasions\n   \u2502\n   \u25bc\nshutdown / no shutdown \u2014 sometimes resets the line protocol negotiation\n   \u2502\n   \u25bc\nFor DTE/DCE serial \u2014 DCE side must have clock rate set\n   interface s0/0 / clock rate 64000\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Cannot reach hosts on a directly-connected subnet (ARP fails).** Diagnostic flow?",
+      "back": "```\nRouter has interface in subnet but can't ping hosts\n   \u2502\n   \u25bc\nshow ip arp \u2014 destination IP resolved?\n   \u2502\nno ARP entry \u2500\u25ba host not responding to ARP, or ARP request not reaching\n   \u2022 Check L2: STP blocking? VLAN mismatch? Trunk allow this VLAN?\n   \u2022 Check L1: cable, link light, duplex\n   \u2502\nARP entry says \"Incomplete\" \u2500\u25ba request sent, no reply\n   \u2022 Host firewall blocking ARP?\n   \u2022 Host actually on this subnet? (IP/mask mismatch \u2014 host thinks gateway is elsewhere)\n   \u2502\n   \u25bc\ndebug arp \u2014 see ARP requests + replies in real time\n(use briefly \u2014 chatty on busy interfaces)\n   \u2502\n   \u25bc\nclear ip arp <ip> \u2014 force fresh ARP resolution\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Console doesn't prompt for password / locks you out.** Diagnostic flow?",
+      "back": "```\nPlug into console \u2014 get prompt immediately, no password\n   \u2502\n   \u25bc\nshow running-config | section line con\n   \u2502\n   \u25bc\nNo \"password X\" or \"login\" command? \u2192 no password protection (DEFAULT)\n   \u2022 This is the factory default \u2014 IOS does NOT enforce console password\n   \u2502\n   \u25bc\nFix: \n   line con 0\n    password ConsolePass1!\n    login                                ! enables password check\n    exec-timeout 10 0\n   \u2502\n   \u25bc\nSame approach for auxiliary line:\n   line aux 0\n    password ...\n    login\n   \u2502\n   \u25bc\nLOCKED OUT (forgot password)?\n   \u2022 Reload while pressing Ctrl+Break \u2192 ROMmon\n   \u2022 confreg 0x2142  (skip startup-config on next boot)\n   \u2022 reset \u2192 boots without config \u2192 set new password \u2192 save\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Trunk drops some VLANs but not others.** Diagnostic flow?",
+      "back": "```\nVLAN 10 works across trunk, VLAN 20 doesn't\n   \u2502\n   \u25bc\nshow interfaces trunk on BOTH sides\n   \u2022 \"Vlans allowed on trunk\" \u2014 does it include both 10 and 20?\n   \u2022 \"Vlans allowed and active in management domain\" \u2014 does it list both?\n   \u2022 \"Vlans in spanning tree forwarding state\" \u2014 is VLAN 20 forwarding or blocking?\n   \u2502\n   \u25bc\nAllowed list missing 20?\n   switchport trunk allowed vlan add 20\n   (DO use \"add\" \u2014 without it, you REPLACE the list)\n   \u2502\n   \u25bc\nVLAN 20 not created on this switch?\n   vlan 20\n    name Servers\n   \u2502\n   \u25bc\nSTP blocking on this trunk for VLAN 20?\n   show spanning-tree vlan 20\n   Look for \"BLK\" (blocking) on trunk port\n   \u2022 Different STP topology than VLAN 10 \u2014 root may be elsewhere\n   \u2502\n   \u25bc\nDTP issue \u2014 operational mode = access for this VLAN?\n   show interfaces switchport \u2014 verify trunk operational on both sides\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    },
+    {
+      "front": "**Speed/duplex mismatch suspected.** Diagnostic flow?",
+      "back": "```\nSlow throughput, errors, partial connectivity\n   \u2502\n   \u25bc\nshow interfaces gX/Y\n   \u2022 Look for: \"input errors\" + \"CRC\" + \"frame\" + \"late collisions\"\n   \u2022 Late collisions on full-duplex = duplex mismatch (impossible on true full-duplex)\n   \u2502\n   \u25bc\nshow interfaces gX/Y | include duplex\n   \"Half-duplex\" vs \"Full-duplex\"\n   \u2502\n   \u25bc\nCompare BOTH ends of the link \u2014 must be consistent:\n   \u2022 Both auto \u2192 fine\n   \u2022 Both hardcoded same \u2192 fine\n   \u2022 One auto, one hardcoded \u2192 MISMATCH (auto side falls back to half-duplex)\n   \u2502\n   \u25bc\nFix:\n   interface gX/Y\n    duplex full\n    speed 1000\n   (or `duplex auto / speed auto` on BOTH sides)\n   \u2502\n   \u25bc\nAfter change: clear counters gX/Y, monitor for fresh errors\n```",
+      "tags": "flashcards/ccna-troubleshooting-flows"
+    }
+  ]
+}

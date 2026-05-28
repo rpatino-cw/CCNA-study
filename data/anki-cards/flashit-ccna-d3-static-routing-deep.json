@@ -1,0 +1,86 @@
+{
+  "deck": "Flashit - ccna-d3-static-routing-deep.apkg",
+  "count": 16,
+  "cards": [
+    {
+      "front": "4 forms of static routes covered by CCNA:",
+      "back": "1. **Network route** \u2014 to a specific network (most common)\n2. **Default route** \u2014 `ip route 0.0.0.0 0.0.0.0 <nh>` (gateway of last resort)\n3. **Host route** \u2014 /32 mask, matches one specific IP\n4. **Floating static** \u2014 backup with higher AD than primary protocol",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "What's a **host route**? Why use it?",
+      "back": "A static route with `/32` mask that matches only one specific IP.\n```\nip route 10.10.10.99 255.255.255.255 192.168.1.5\n```\nUse cases: pinhole one server to take a non-default path; null-route a single attacker IP; force specific traffic through a security appliance.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Static route with **next-hop IP** vs **exit interface** \u2014 pros/cons?",
+      "back": "- **Next-hop IP** (`ip route X.X.X.0 255.255.255.0 192.168.1.1`):\n  - Forces recursive lookup (slight CPU)\n  - Survives interface changes (route stays valid)\n  - Preferred on multi-access (Ethernet)",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Static route with **only an exit interface** on multipoint Ethernet \u2014 what's the problem?",
+      "back": "Router treats the destination as if it's directly attached. Sends an ARP request for the **destination IP** (not the next-hop) every time \u2192 ARP table bloats with non-local entries. Use a next-hop IP instead.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Static IPv6 route:",
+      "back": "```\nipv6 unicast-routing                  ! enable IPv6 routing globally\nipv6 route 2001:db8:1::/64 2001:db8:0::2\nipv6 route ::/0 2001:db8:0::2         ! default\nipv6 route 2001:db8:2::5/128 2001:db8:0::3   ! host route\n```",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Static route with **administrative distance**:",
+      "back": "```\nip route 10.0.0.0 255.0.0.0 192.168.1.1 200\n```\nThe `200` at the end = AD. Default is 1. Higher = less preferred \u2192 used as backup (floating).",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Floating static use case \u2014 backup link via DSL when MPLS fails:",
+      "back": "```\nip route 10.0.0.0 255.0.0.0 172.16.1.1 ! primary via MPLS, AD 1\nip route 10.0.0.0 255.0.0.0 192.168.99.1 200    ! backup via DSL, AD 200\n```\nPrimary always wins (lower AD). DSL only appears in RIB if MPLS next-hop goes unreachable.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Static route with **object tracking**:",
+      "back": "```\ntrack 1 ip sla 10 reachability\nip route 0.0.0.0 0.0.0.0 192.168.1.1 track 1\n```\nRoute is removed from RIB if tracked object goes Down. Adds upstream failure detection that interface state alone can't.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Why is static routing preferred over dynamic in some cases?",
+      "back": "- **Stub networks** (single uplink) \u2014 no benefit to OSPF/BGP, just adds complexity\n- **Predictable, manually controlled paths** \u2014 explicit, no surprises\n- **Security boundary** \u2014 don't want neighbors learning topology from you\n- **Resource savings** \u2014 no CPU/memory for protocol processing on small routers",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Why is dynamic routing preferred over static in most cases?",
+      "back": "- **Auto-convergence** \u2014 routes adapt to failures without manual intervention\n- **Scales** \u2014 1000 networks don't need 1000 static commands\n- **Faster failover** \u2014 sub-second with tuned timers\n- **Load balancing** \u2014 ECMP across multiple paths automatically",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Verify static routes:",
+      "back": "```\nshow ip route static\nshow ip route 10.10.10.0\nshow running-config | include ip route\nshow ipv6 route static\n```",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Common static route mistake \u2014 forgetting `no shutdown` on exit interface?",
+      "back": "Router accepts the static route config, but if exit interface is admin-down, route doesn't install. `show ip route` won't show it. Always verify with `show ip interface brief` that interfaces are `up/up`.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Static route via interface that doesn't exist \u2014 what happens?",
+      "back": "Router stores the config but never installs route in RIB. No error. Common when typos: `ip route 10.0.0.0 255.0.0.0 g0/2` but interface is actually g0/1. `show ip route` won't show your route. Verify with `show running-config | include ip route` to confirm config is there.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "Trap \u2014 two static routes for same prefix, different next-hops, same AD. What happens?",
+      "back": "**Both installed** in routing table. Router does **equal-cost load balancing** (per-flow or per-packet depending on platform/CEF config). Useful or accidental \u2014 verify behavior matches intent.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "What's a **null route** and what's it used for?",
+      "back": "Route that points to `null0` interface (the bit bucket). Drops matching packets silently.\n```\nip route 10.99.99.0 255.255.255.0 null0\n```\nUses: blackhole hostile traffic, summarize for BGP advertising without loop, prevent specific recursive lookups.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    },
+    {
+      "front": "`ip route 0.0.0.0 0.0.0.0 g0/0` vs `ip route 0.0.0.0 0.0.0.0 192.168.1.1` \u2014 which is better for a typical SOHO router?",
+      "back": "**Next-hop IP version** (`192.168.1.1`). With just `g0/0`, the router treats all unknown destinations as directly attached on g0/0 and ARPs for every dest IP it sees. Massive ARP table + broken behavior. Always use next-hop IP on Ethernet defaults.",
+      "tags": "flashcards/ccna-d3-static-routing-deep"
+    }
+  ]
+}
