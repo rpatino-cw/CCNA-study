@@ -742,6 +742,7 @@
   <script defer src="data/anki-data.js"></script>
   <script defer src="data/jeremy-data.js"></script>
   <script defer src="data/examtopics-data.js"></script>
+  <script defer src="data/flashit-data.js"></script>
   <script defer src="data/card-objectives.js"></script>
   <script defer src="js/store.js"></script>
   <script defer src="js/nav.js"></script>
@@ -903,7 +904,9 @@
     var DECK_LABELS = {
       'examtopics-1': 'ExamTopics Set 1',
       'examtopics-2': 'ExamTopics Set 2',
-      'examtopics-3': 'ExamTopics Set 3'
+      'examtopics-3': 'ExamTopics Set 3',
+      'flashit': 'Flashit (Vault)',
+      'jeremy': "Jeremy's IT Lab"
     };
 
     function convertExamTopicsCards(rawCards) {
@@ -957,6 +960,8 @@
     var jeremySections = typeof ANKI_JEREMY_SECTIONS !== 'undefined' ? ANKI_JEREMY_SECTIONS : [];
     var jeremyCards = typeof ANKI_JEREMY_CARDS !== 'undefined' ? ANKI_JEREMY_CARDS : [];
     var rawExamTopics = typeof EXAMTOPICS_CARDS !== 'undefined' ? EXAMTOPICS_CARDS : [];
+    var flashitSections = typeof FLASHIT_SECTIONS !== 'undefined' ? FLASHIT_SECTIONS : [];
+    var flashitCards = typeof FLASHIT_CARDS !== 'undefined' ? FLASHIT_CARDS : [];
 
     // Tag Flackbox cards with deck info
     ankiCards.forEach(function(c) {
@@ -970,11 +975,17 @@
       c.deckLabel = "Jeremy's IT Lab";
     });
 
+    // Tag Flashit (Vault) cards — sourced from ~/Documents/Obsidian Vault/Flashcards
+    flashitCards.forEach(function(c) {
+      c.deck = 'flashit';
+      c.deckLabel = 'Flashit (Vault)';
+    });
+
     // Convert ExamTopics
     var etCards = convertExamTopicsCards(rawExamTopics);
 
     // Combined card pool
-    var masterCards = ankiCards.concat(jeremyCards).concat(etCards);
+    var masterCards = ankiCards.concat(jeremyCards).concat(etCards).concat(flashitCards);
 
     // ── Deck definitions ──────────────────────────────────────
     var DECKS = [
@@ -983,7 +994,8 @@
       { id: 'jeremy', label: "Jeremy's IT Lab", count: jeremyCards.length },
       { id: 'examtopics-1', label: 'ExamTopics Set 1', count: etCards.filter(function(c) { return c.deck === 'examtopics-1'; }).length },
       { id: 'examtopics-2', label: 'ExamTopics Set 2', count: etCards.filter(function(c) { return c.deck === 'examtopics-2'; }).length },
-      { id: 'examtopics-3', label: 'ExamTopics Set 3', count: etCards.filter(function(c) { return c.deck === 'examtopics-3'; }).length }
+      { id: 'examtopics-3', label: 'ExamTopics Set 3', count: etCards.filter(function(c) { return c.deck === 'examtopics-3'; }).length },
+      { id: 'flashit', label: 'Flashit (Vault)', count: flashitCards.length }
     ];
 
     var currentDeck = 'all'; // session-only, resets on reload
@@ -1033,6 +1045,12 @@
     if (typeof JEREMY_SECTION_OBJECTIVES !== 'undefined') {
       Object.keys(JEREMY_SECTION_OBJECTIVES).forEach(function(k) {
         SECTION_OBJECTIVES[k] = JEREMY_SECTION_OBJECTIVES[k];
+      });
+    }
+    // Merge Flashit (Vault) topic-section → domain/objective mappings
+    if (typeof FLASHIT_SECTION_OBJECTIVES !== 'undefined') {
+      Object.keys(FLASHIT_SECTION_OBJECTIVES).forEach(function(k) {
+        SECTION_OBJECTIVES[k] = FLASHIT_SECTION_OBJECTIVES[k];
       });
     }
 
@@ -1158,12 +1176,14 @@
       var base;
       if (currentDeck === 'flackbox') base = ankiSections;
       else if (currentDeck === 'jeremy') base = jeremySections;
+      else if (currentDeck === 'flashit') base = flashitSections;
       else if (currentDeck === 'all') {
         base = ankiSections.concat(
           jeremySections,
           etSectionsByDeck['examtopics-1'],
           etSectionsByDeck['examtopics-2'],
-          etSectionsByDeck['examtopics-3']
+          etSectionsByDeck['examtopics-3'],
+          flashitSections
         );
       } else {
         base = etSectionsByDeck[currentDeck] || [];
@@ -1184,6 +1204,7 @@
     ['examtopics-1', 'examtopics-2', 'examtopics-3'].forEach(function(deckId) {
       etSectionsByDeck[deckId].forEach(function(s) { sectionMap[s.id] = s; });
     });
+    flashitSections.forEach(function(s) { sectionMap[s.id] = s; });
 
     // Index cards by section (all cards)
     var cardsBySection = {};
@@ -1578,10 +1599,15 @@
 
       activeSections.forEach(function(sec) {
         var isETSection = sec.id.indexOf('et_') === 0;
+        var isFlashitSection = sec.id.indexOf('fl_') === 0;
 
         // Insert ET group header at boundary
         if (needHeaders && isETSection && html.indexOf('ExamTopics') === -1) {
           html += '<li class="fc-section-group-header">ExamTopics</li>';
+        }
+        // Insert Flashit group header at boundary
+        if (needHeaders && isFlashitSection && html.indexOf('Flashit (Vault)') === -1) {
+          html += '<li class="fc-section-group-header">Flashit (Vault)</li>';
         }
 
         var ss = sectionStats(sec.id);
