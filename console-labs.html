@@ -279,11 +279,11 @@ const LABS = [
     ptTopo: {devices:[{name:'R1',type:'4321',x:200,y:150},{name:'R2',type:'4321',x:500,y:150},{name:'SW1',type:'2960',x:100,y:320},{name:'SW2',type:'2960',x:600,y:320}],links:[{d1:'R1',p1:'Gi0/0',d2:'R2',p2:'Gi0/0'},{d1:'R1',p1:'Gi0/1',d2:'SW1',p2:'Gi0/1'},{d1:'R2',p1:'Gi0/1',d2:'SW2',p2:'Gi0/1'}]},
     objectives: [
       { text: 'Enter global config mode', hint: 'enable → configure terminal', check: d => d.mode === 'config' || d.mode.startsWith('config-') },
-      { text: 'Start OSPF process 1', hint: 'router ospf 1', check: d => d.ospf && d.ospf.processId === 1 },
-      { text: 'Advertise 10.0.1.0/24 in Area 0', hint: 'network 10.0.1.0 0.0.0.255 area 0', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.1.0' && n.area === '0') },
-      { text: 'Advertise 10.0.2.0/24 in Area 0', hint: 'network 10.0.2.0 0.0.0.255 area 0', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.2.0' && n.area === '0') },
-    
-      { text: 'Verify OSPF — run: show ip ospf neighbor', hint: 'end → show ip ospf neighbor', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+ospf/i.test(c.cmd)) },
+      { text: 'Start OSPF process 1 (PID is locally significant — peer can run any PID)', hint: 'router ospf 1', check: d => d.ospf && d.ospf.processId === 1 },
+      { text: 'Advertise 10.0.1.0/24 in Area 0 (use subnet ID, not host IP)', hint: 'network 10.0.1.0 0.0.0.255 area 0', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.1.0' && n.area === '0') },
+      { text: 'Advertise 10.0.2.0/24 in Area 0', hint: 'network 10.0.2.0 0.0.0.255 area 0 — aggregate two /30s with 0.0.0.7 wildcard if contiguous', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.2.0' && n.area === '0') },
+      { text: 'Place Loopback0 in OSPF area 0 (per-interface method)', hint: 'interface loopback 0 → ip ospf 1 area 0', check: d => { const i = d.interfaces['Loopback0']; return i && i.ospfPid === 1 && i.ospfArea === '0'; } },
+      { text: 'Verify OSPF — run: show ip ospf neighbor (look for FULL/DR, FULL/BDR, or FULL/- on P2P)', hint: 'end → show ip ospf neighbor', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+ospf/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+area\s+(\S+)/i);
@@ -293,6 +293,14 @@ const LABS = [
       }
       const ridMatch = raw.match(/^router-id\s+(\d+\.\d+\.\d+\.\d+)/i);
       if (ridMatch && dev.mode === 'config-router' && dev.ospf) { dev.ospf.routerId = ridMatch[1]; return ''; }
+      // Per-interface OSPF: ip ospf <pid> area <area>
+      const ipOspfMatch = raw.match(/^ip\s+ospf\s+(\d+)\s+area\s+(\S+)/i);
+      if (ipOspfMatch && dev.mode === 'config-if' && dev.currentInterface) {
+        if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
+        dev.interfaces[dev.currentInterface].ospfPid = parseInt(ipOspfMatch[1]);
+        dev.interfaces[dev.currentInterface].ospfArea = ipOspfMatch[2];
+        return '';
+      }
     }
   },
   {
@@ -477,17 +485,18 @@ const LABS = [
     desc: 'Dual-stack rollout starts at this site today. R1 currently runs IPv4 only — IPv6 routing has never been enabled, so even a `show ipv6 route` returns nothing. Turn on IPv6 unicast-routing globally, then assign 2001:db8:1::1/64 to Gi0/0 (user LAN segment) and bring the interface up. The other interfaces stay IPv4 for now.',
     device: { name: 'R1', type: 'router', hostname: 'R1', interfaces: { 'GigabitEthernet0/1': { up: true, ip: '10.0.99.1' }, 'GigabitEthernet0/2': { up: false }, Loopback0: { up: true, ip: '1.1.1.1' } }, custom: { _noise: { cdpNeighbors: [{ deviceId: 'SW1-V6', localIf: 'Gi0/0', portId: 'Gi0/1', platform: 'WS-C2960', capability: 'S I', ip: '10.0.99.10', holdtime: 159 }, { deviceId: 'R2', localIf: 'Gi0/1', portId: 'Gi0/0', platform: 'ISR4321', capability: 'R', ip: '10.0.99.2', holdtime: 138 }] } } },
     objectives: [
-      { text: 'Enable IPv6 unicast routing', hint: 'ipv6 unicast-routing', check: d => d.custom.ipv6Routing === true },
+      { text: 'Enable IPv6 unicast routing (routers only — do NOT enable on L2 switch SVI labs; grader flags it as extra)', hint: 'ipv6 unicast-routing', check: d => d.custom.ipv6Routing === true },
       { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface === 'GigabitEthernet0/0' },
-      { text: 'Assign IPv6 address 2001:db8:1::1/64', hint: 'ipv6 address 2001:db8:1::1/64', check: d => d.custom.ipv6Addr === '2001:db8:1::1/64' },
+      { text: 'Assign IPv6 address 2001:db8:1::1/64 (use full /64 form, NOT `eui-64` keyword for static)', hint: 'ipv6 address 2001:db8:1::1/64', check: d => d.custom.ipv6Addr === '2001:db8:1::1/64' },
       { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
-    
+      { text: 'Bonus: configure SLAAC on a downstream switch SVI (ipv6 address autoconfig — NOT eui-64)', hint: 'interface vlan 1 → ipv6 address autoconfig', check: d => d.custom.ipv6Autoconfig === true },
       { text: 'Verify IPv6 — run: show ipv6 interface brief', hint: 'end → show ipv6 interface brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+ipv6\s+int/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'ipv6 unicast-routing' && dev.mode === 'config') { dev.custom.ipv6Routing = true; return ''; }
+      if (lower === 'ipv6 address autoconfig' && dev.mode === 'config-if') { dev.custom.ipv6Autoconfig = true; return ''; }
       const v6Match = raw.match(/^ipv6 address\s+(\S+)/i);
-      if (v6Match && dev.mode === 'config-if') { dev.custom.ipv6Addr = v6Match[1]; return ''; }
+      if (v6Match && lower !== 'ipv6 address autoconfig' && dev.mode === 'config-if') { dev.custom.ipv6Addr = v6Match[1]; return ''; }
       const ipMatch = raw.match(/^ip address (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
       if (ipMatch && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
         if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
