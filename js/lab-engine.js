@@ -346,6 +346,22 @@
       });
       return mh + '\n' + mrows.join('\n') + '\nTotal Mac Addresses for this criterion: ' + macs.length;
     }
+    // show ip ssh — reflects current SSH config state
+    if (lower === 'show ip ssh' || lower === 'show ssh') {
+      var c = dev.custom || {};
+      if (!c.rsaKeys) return 'SSH Disabled - version 1.99\n%Please create RSA keys (of at least 768 bits size) to enable SSH v2.\nAuthentication timeout: 120 secs; Authentication retries: 3\nMinimum expected Diffie Hellman key size : 1024 bits\nIOS Keys in SECSH format(ssh-rsa, base64 encoded): NONE';
+      var dom = c.domain || 'lab.local';
+      return 'SSH Enabled - version 2.0\nAuthentication methods:publickey,keyboard-interactive,password\nAuthentication Publickey Algorithms:x509v3-ssh-rsa,ssh-rsa\nHostkey Algorithms:x509v3-ssh-rsa,ssh-rsa\nEncryption Algorithms:aes128-ctr,aes192-ctr,aes256-ctr\nMAC Algorithms:hmac-sha2-256,hmac-sha2-512,hmac-sha1\nKEX Algorithms:diffie-hellman-group14-sha1\nAuthentication timeout: 120 secs; Authentication retries: 3\nMinimum expected Diffie Hellman key size : 1024 bits\nIOS Keys in SECSH format(ssh-rsa, base64 encoded): ' + (dev.hostname || 'R1') + '.' + dom;
+    }
+    // show running-config | section vty
+    if (lower === 'show running-config | section vty' || lower === 'show running-config | sec vty') {
+      var c2 = dev.custom || {};
+      var lines2 = ['line vty 0 4'];
+      if (c2.execTimeout) lines2.push(' exec-timeout ' + c2.execTimeout);
+      if (c2.loginLocal) lines2.push(' login local');
+      if (c2.vtyTransport === 'ssh') lines2.push(' transport input ssh');
+      return lines2.join('\n');
+    }
     return undefined;
   };
 
