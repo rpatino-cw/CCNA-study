@@ -522,6 +522,15 @@
     if (lower.startsWith('do ') && dev.mode !== 'user' && dev.mode !== 'priv') {
       var doRaw = raw.substring(3).trim();
       var doLower = doRaw.toLowerCase();
+      // Handle do wr / do copy run start / do write directly
+      if (doLower === 'wr' || doLower === 'write' || doLower === 'write memory' || doLower === 'write mem' ||
+          doLower === 'copy run start' || doLower === 'copy running-config startup-config' ||
+          doLower === 'copy running startup' || doLower === 'copy running-config startup') {
+        if (!dev.custom) dev.custom = {};
+        dev.custom.configSaved = true;
+        this.checkObjectives();
+        return 'Building configuration...\n[OK]';
+      }
       // Try lab handler then default show
       var doResult = this.handleCommand(dev, doRaw, doLower);
       if (doResult !== undefined) return doResult;
@@ -657,9 +666,10 @@
 
   LabBase.prototype.normalizeInterface = function(name) {
     return name
-      .replace(/^gi(?:gabitethernet)?/i, 'GigabitEthernet')
-      .replace(/^fa(?:stethernet)?/i, 'FastEthernet')
-      .replace(/^lo(?:opback)?/i, 'Loopback')
+      .replace(/^gi(?:gabitethernet)?\s*/i, 'GigabitEthernet')
+      .replace(/^fa(?:stethernet)?\s*/i, 'FastEthernet')
+      .replace(/^se(?:rial)?\s*/i, 'Serial')
+      .replace(/^lo(?:opback)?\s*/i, 'Loopback')
       .replace(/^vlan\s*/i, 'Vlan')
       .replace(/^(?:po|port-channel)\s*/i, 'Port-channel');
   };
