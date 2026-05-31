@@ -207,14 +207,132 @@
     return this.terminal;
   };
 
+  // Cisco IOS shorthand expansion. Real IOS auto-completes unique prefixes.
+  // Map common abbreviations to full tokens before parsing.
+  LabBase.prototype.expandShorthand = function(raw) {
+    var TOKEN_MAP = {
+      'sh': 'show', 'sho': 'show',
+      'conf': 'configure', 'config': 'configure',
+      'en': 'enable',
+      'int': 'interface', 'inter': 'interface',
+      'br': 'brief', 'bri': 'brief',
+      'desc': 'description',
+      'no': 'no',
+      'run': 'running-config', 'runn': 'running-config',
+      'start': 'startup-config',
+      'ver': 'version',
+      'neigh': 'neighbors', 'neighb': 'neighbors',
+      'sum': 'summary', 'summ': 'summary',
+    };
+    var parts = raw.split(/\s+/);
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].toLowerCase();
+      out.push(TOKEN_MAP[p] || parts[i]);
+    }
+    return out.join(' ');
+  };
+
+  // Default show command outputs that work in every lab. Per-lab extraCmds
+  // can still override by returning a value first.
+  LabBase.prototype.defaultShowCmd = function(dev, raw, lower) {
+    if (!lower.startsWith('show ')) return undefined;
+    // show running-config (basic device info)
+    if (lower === 'show running-config' || lower === 'show run') {
+      var lines = ['Building configuration...', '', 'Current configuration:', '!', 'hostname ' + dev.hostname, '!'];
+      Object.keys(dev.interfaces).forEach(function(name) {
+        var i = dev.interfaces[name];
+        lines.push('interface ' + name);
+        if (i.ip) lines.push(' ip address ' + i.ip + ' 255.255.255.0');
+        if (i.mode === 'access' && i.accessVlan) lines.push(' switchport mode access\n switchport access vlan ' + i.accessVlan);
+        if (i.mode === 'trunk') lines.push(' switchport mode trunk');
+        lines.push(i.up ? ' no shutdown' : ' shutdown');
+        lines.push('!');
+      });
+      lines.push('end');
+      return lines.join('\n');
+    }
+    // show ip interface brief
+    if (lower === 'show ip interface brief') {
+      var rows = ['Interface                  IP-Address      OK? Method Status                Protocol'];
+      var names = Object.keys(dev.interfaces);
+      if (names.length === 0) {
+        rows.push('GigabitEthernet0/0         unassigned      YES unset  administratively down down');
+        rows.push('GigabitEthernet0/1         unassigned      YES unset  administratively down down');
+      } else {
+        names.forEach(function(n) {
+          var i = dev.interfaces[n];
+          var ip = (i.ip || 'unassigned').padEnd(15);
+          var status = i.up ? 'up                    ' : 'administratively down  ';
+          var proto = i.up ? 'up' : 'down';
+          rows.push(n.padEnd(26) + ' ' + ip + ' YES manual ' + status + proto);
+        });
+      }
+      return rows.join('\n');
+    }
+    // show ip route (skeleton — labs with routing add detail via extraCmds)
+    if (lower === 'show ip route') {
+      var rt = ['Codes: L - local, C - connected, S - static, O - OSPF, D - EIGRP', '       i - IS-IS, B - BGP', ''];
+      Object.keys(dev.interfaces).forEach(function(n) {
+        var i = dev.interfaces[n];
+        if (i.ip && i.up) rt.push('C    ' + i.ip + '/24 is directly connected, ' + n);
+      });
+      (dev.routes || []).forEach(function(r) {
+        rt.push('S    ' + r.dest + ' [1/0] via ' + r.nextHop);
+      });
+      return rt.join('\n');
+    }
+    // show vlan brief
+    if (lower === 'show vlan brief' || lower === 'show vlan') {
+      var v = ['VLAN Name                             Status    Ports', '---- -------------------------------- --------- -------------------------------'];
+      Object.keys(dev.vlans).forEach(function(id) {
+        var vl = dev.vlans[id];
+        v.push(String(id).padEnd(4) + ' ' + (vl.name || '').padEnd(32) + ' active    ' + (vl.ports || []).join(', '));
+      });
+      return v.join('\n');
+    }
+    // show interfaces (terse)
+    if (lower === 'show interfaces' || lower === 'show interfaces status') {
+      var s = ['Port      Name               Status       Vlan       Duplex  Speed Type'];
+      Object.keys(dev.interfaces).forEach(function(n) {
+        var i = dev.interfaces[n];
+        s.push(n.replace('GigabitEthernet', 'Gi').replace('FastEthernet', 'Fa').padEnd(9) + ' ' + ''.padEnd(18) + ' ' + (i.up ? 'connected   ' : 'notconnect  ') + ' ' + String(i.accessVlan || (i.mode === 'trunk' ? 'trunk' : '1')).padEnd(10) + ' auto    auto   10/100/1000');
+      });
+      return s.join('\n');
+    }
+    // show version (minimal)
+    if (lower === 'show version') {
+      return 'Cisco IOS Software, Version 15.7(3)M3\n' + dev.hostname + ' uptime is 0 minutes\nSystem image file is "flash0:/c2900-universalk9-mz.SPA.157-3.M3.bin"';
+    }
+    // show cdp neighbors (empty unless lab populates)
+    if (lower === 'show cdp neighbors' || lower === 'show cdp neighbors detail') {
+      return 'Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge\n                  S - Switch, H - Host, I - IGMP, r - Repeater\n\nDevice ID    Local Intrfce   Holdtme    Capability  Platform  Port ID\n(no entries — lab does not model neighbors)';
+    }
+    return undefined;
+  };
+
   LabBase.prototype.processCommand = function(cmd) {
     if (!cmd || !cmd.trim()) return '';
 
     var raw = cmd.trim();
+    // Expand Cisco IOS shorthand (sh ip int br → show ip interface brief)
+    raw = this.expandShorthand(raw);
     var lower = raw.toLowerCase();
     this.commandLog.push({ device: this.activeDeviceName, cmd: raw, time: Date.now() });
 
     var dev = this.activeDevice;
+
+    // Support `do <cmd>` from any config mode (real IOS behavior)
+    if (lower.startsWith('do ') && dev.mode !== 'user' && dev.mode !== 'priv') {
+      var doRaw = raw.substring(3).trim();
+      var doLower = doRaw.toLowerCase();
+      // Try lab handler then default show
+      var doResult = this.handleCommand(dev, doRaw, doLower);
+      if (doResult !== undefined) return doResult;
+      var doShow = this.defaultShowCmd(dev, doRaw, doLower);
+      if (doShow !== undefined) return doShow;
+      return '% Invalid input detected at \'^\' marker.\n% Unrecognized command: ' + doRaw.split(' ')[0];
+    }
 
     // Global commands
     if (lower.startsWith('connect ') || lower.startsWith('switch ')) {
@@ -306,6 +424,16 @@
     // Delegate to lab-specific handler
     var result = this.handleCommand(dev, raw, lower);
     if (result !== undefined) return result;
+
+    // Default show commands (work in any lab when in priv/user)
+    if ((dev.mode === 'priv' || dev.mode === 'user') && lower.startsWith('show ')) {
+      var defShow = this.defaultShowCmd(dev, raw, lower);
+      if (defShow !== undefined) return defShow;
+    }
+    // From config modes, suggest `do show ...`
+    if (lower.startsWith('show ') && dev.mode !== 'priv' && dev.mode !== 'user') {
+      return '% Invalid input detected at \'^\' marker.\n  (hint: use `do show ...` to run a show command from config mode, or type `end` to return to privileged EXEC)';
+    }
 
     // Unknown command
     if (dev.mode === 'user') {
