@@ -150,7 +150,7 @@ const LABS = [
     desc: 'Put interface GigabitEthernet0/1 into VLAN 10 as an access port.',
     device: { name: 'SW1', type: 'switch', hostname: 'SW1', vlans: { 1: { name: 'default', ports: [] }, 10: { name: 'SALES', ports: [] } } },
     objectives: [
-      { text: 'Select interface Gi0/1', hint: 'In config: interface GigabitEthernet0/1', check: d => d.currentInterface && d.currentInterface.includes('0/1') },
+      { text: 'Select interface Gi0/1', hint: 'In config: interface GigabitEthernet0/1', check: d => d.currentInterface === 'GigabitEthernet0/1' },
       { text: 'Port mode: access', hint: 'switchport mode access', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.mode === 'access'; } },
       { text: 'Assign it to VLAN 10', hint: 'switchport access vlan 10', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.accessVlan === 10; } },
     ],
@@ -174,7 +174,7 @@ const LABS = [
     device: { name: 'SW1', type: 'switch', hostname: 'SW1' },
     ptTopo: {devices:[{name:'SW1',type:'2960',x:200,y:200},{name:'SW2',type:'2960',x:500,y:200},{name:'PC1',type:'pc',x:100,y:350},{name:'PC2',type:'pc',x:600,y:350}],links:[{d1:'SW1',p1:'Gi0/24',d2:'SW2',p2:'Gi0/24'},{d1:'SW1',p1:'Fa0/1',d2:'PC1',p2:'Fa0'},{d1:'SW2',p1:'Fa0/1',d2:'PC2',p2:'Fa0'}]},
     objectives: [
-      { text: 'Select interface Gi0/24', hint: 'interface GigabitEthernet0/24', check: d => d.currentInterface && d.currentInterface.includes('0/24') },
+      { text: 'Select interface Gi0/24', hint: 'interface GigabitEthernet0/24', check: d => d.currentInterface === 'GigabitEthernet0/24' },
       { text: 'Trunk encap: dot1q', hint: 'switchport trunk encapsulation dot1q', check: d => { const i = d.interfaces['GigabitEthernet0/24']; return i && i.trunkEncap === 'dot1q'; } },
       { text: 'Port mode: trunk', hint: 'switchport mode trunk', check: d => { const i = d.interfaces['GigabitEthernet0/24']; return i && i.mode === 'trunk'; } },
     ],
@@ -197,7 +197,7 @@ const LABS = [
     device: { name: 'R1', type: 'router', hostname: 'R1' },
     ptTopo: {devices:[{name:'R1',type:'4321',x:300,y:150},{name:'SW1',type:'2960',x:300,y:300},{name:'PC1',type:'pc',x:150,y:420},{name:'PC2',type:'pc',x:450,y:420}],links:[{d1:'R1',p1:'Gi0/0',d2:'SW1',p2:'Gi0/1'},{d1:'SW1',p1:'Fa0/1',d2:'PC1',p2:'Fa0'},{d1:'SW1',p1:'Fa0/2',d2:'PC2',p2:'Fa0'}]},
     objectives: [
-      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface && d.currentInterface.includes('0/0') },
+      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface === 'GigabitEthernet0/0' },
       { text: 'IP address: 192.168.1.1 255.255.255.0 (type: ip address …)', hint: 'ip address 192.168.1.1 255.255.255.0', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.ip === '192.168.1.1'; } },
       { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
     ],
@@ -240,7 +240,8 @@ const LABS = [
       { text: 'Domain name: lab.local', hint: 'ip domain-name lab.local', check: d => d.custom.domain === 'lab.local' },
       { text: 'Generate RSA keys (2048 bit)', hint: 'crypto key generate rsa modulus 2048', check: d => d.custom.rsaKeys === true },
       { text: 'Create user admin with password cisco', hint: 'username admin secret cisco', check: d => d.custom.users && d.custom.users['admin'] },
-      { text: 'VTY transport: SSH only', hint: 'line vty 0 4 → transport input ssh', check: d => d.custom.vtyTransport === 'ssh' },
+      { text: 'Enter line vty 0 4', hint: 'line vty 0 4', check: d => d.custom.vtyEntered === true },
+      { text: 'VTY transport: SSH only', hint: 'transport input ssh', check: d => d.custom.vtyTransport === 'ssh' },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('ip domain-name ') && dev.mode === 'config') { dev.custom.domain = raw.substring(15).trim(); return ''; }
@@ -248,7 +249,7 @@ const LABS = [
       if (lower.startsWith('crypto key generate rsa')) { dev.custom.rsaKeys = true; return 'The name for the keys will be: R1.lab.local\n% Generating 2048 bit RSA keys, keys will be non-exportable...\n[OK] (elapsed time was 2 seconds)'; }
       const userMatch = raw.match(/^username\s+(\S+)\s+(?:secret|password)\s+(.+)/i);
       if (userMatch && dev.mode === 'config') { if (!dev.custom.users) dev.custom.users = {}; dev.custom.users[userMatch[1]] = true; return ''; }
-      if (lower.startsWith('line vty')) { dev.mode = 'config-line'; return ''; }
+      if (lower.startsWith('line vty')) { dev.mode = 'config-line'; dev.custom.vtyEntered = true; return ''; }
       if (lower === 'transport input ssh' && dev.mode === 'config-line') { dev.custom.vtyTransport = 'ssh'; return ''; }
       if (lower === 'login local' && dev.mode === 'config-line') { dev.custom.loginLocal = true; return ''; }
     }
@@ -303,7 +304,7 @@ const LABS = [
     desc: 'Enable port security on Gi0/1: max 2 MAC addresses, violation mode restrict.',
     device: { name: 'SW1', type: 'switch', hostname: 'SW1', interfaces: { 'GigabitEthernet0/1': { up: true, mode: 'access' } } },
     objectives: [
-      { text: 'Select interface Gi0/1', hint: 'interface GigabitEthernet0/1', check: d => d.currentInterface && d.currentInterface.includes('0/1') },
+      { text: 'Select interface Gi0/1', hint: 'interface GigabitEthernet0/1', check: d => d.currentInterface === 'GigabitEthernet0/1' },
       { text: 'Enable port security', hint: 'switchport port-security', check: d => d.portSecurity['GigabitEthernet0/1'] && d.portSecurity['GigabitEthernet0/1'].enabled },
       { text: 'Max MACs: 2', hint: 'switchport port-security maximum 2', check: d => d.portSecurity['GigabitEthernet0/1'] && d.portSecurity['GigabitEthernet0/1'].max === 2 },
       { text: 'Violation mode: restrict', hint: 'switchport port-security violation restrict', check: d => d.portSecurity['GigabitEthernet0/1'] && d.portSecurity['GigabitEthernet0/1'].violation === 'restrict' },
@@ -399,7 +400,7 @@ const LABS = [
     device: { name: 'R1', type: 'router', hostname: 'R1', interfaces: { 'GigabitEthernet0/0': { up: true, ip: '192.168.1.1' } } },
     ptTopo: {devices:[{name:'R1',type:'4321',x:200,y:150},{name:'R2',type:'4321',x:500,y:150},{name:'SW1',type:'2960',x:350,y:300},{name:'PC1',type:'pc',x:200,y:420},{name:'PC2',type:'pc',x:500,y:420}],links:[{d1:'R1',p1:'Gi0/0',d2:'SW1',p2:'Gi0/1'},{d1:'R2',p1:'Gi0/0',d2:'SW1',p2:'Gi0/2'},{d1:'SW1',p1:'Fa0/1',d2:'PC1',p2:'Fa0'},{d1:'SW1',p1:'Fa0/2',d2:'PC2',p2:'Fa0'}]},
     objectives: [
-      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface && d.currentInterface.includes('0/0') },
+      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface === 'GigabitEthernet0/0' },
       { text: 'HSRP group 1 VIP: 192.168.1.254', hint: 'standby 1 ip 192.168.1.254', check: d => d.custom.hsrpVip === '192.168.1.254' },
       { text: 'HSRP group 1 priority: 110', hint: 'standby 1 priority 110', check: d => d.custom.hsrpPriority === 110 },
       { text: 'Enable HSRP preempt', hint: 'standby 1 preempt', check: d => d.custom.hsrpPreempt === true },
@@ -444,7 +445,7 @@ const LABS = [
     device: { name: 'R1', type: 'router', hostname: 'R1' },
     objectives: [
       { text: 'Enable IPv6 unicast routing', hint: 'ipv6 unicast-routing', check: d => d.custom.ipv6Routing === true },
-      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface && d.currentInterface.includes('0/0') },
+      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface === 'GigabitEthernet0/0' },
       { text: 'Assign IPv6 address 2001:db8:1::1/64', hint: 'ipv6 address 2001:db8:1::1/64', check: d => d.custom.ipv6Addr === '2001:db8:1::1/64' },
       { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
     ],
@@ -517,7 +518,8 @@ const LABS = [
     objectives: [
       { text: 'Enable DHCP snooping globally', hint: 'ip dhcp snooping', check: d => d.custom.dhcpSnooping === true },
       { text: 'Enable DHCP snooping on VLAN 10', hint: 'ip dhcp snooping vlan 10', check: d => d.custom.dhcpSnoopingVlan === 10 },
-      { text: 'Trust Gi0/1 (snooping)', hint: 'interface Gi0/1 → ip dhcp snooping trust', check: d => d.custom.dhcpTrusted === true },
+      { text: 'Select interface Gi0/1', hint: 'interface GigabitEthernet0/1', check: d => d.currentInterface === 'GigabitEthernet0/1' },
+      { text: 'Trust Gi0/1 (snooping)', hint: 'ip dhcp snooping trust', check: d => d.custom.dhcpTrusted === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'ip dhcp snooping' && dev.mode === 'config') { dev.custom.dhcpSnooping = true; return ''; }
@@ -551,7 +553,7 @@ const LABS = [
     desc: 'Enable PortFast and BPDU Guard on access port Fa0/1. This is an end-host port connected to a PC.',
     device: { name: 'SW1', type: 'switch', hostname: 'SW1', interfaces: { 'FastEthernet0/1': { up: true, mode: 'access' } } },
     objectives: [
-      { text: 'Select interface Fa0/1', hint: 'interface FastEthernet0/1', check: d => d.currentInterface && d.currentInterface.includes('0/1') },
+      { text: 'Select interface Fa0/1', hint: 'interface FastEthernet0/1', check: d => d.currentInterface === 'FastEthernet0/1' },
       { text: 'Enable PortFast', hint: 'spanning-tree portfast', check: d => d.custom.portfast === true },
       { text: 'Enable BPDU Guard', hint: 'spanning-tree bpduguard enable', check: d => d.custom.bpduguard === true },
     ],
@@ -681,8 +683,10 @@ const LABS = [
     device: { name: 'SW1', type: 'switch', hostname: 'SW1' },
     ptTopo: {devices:[{name:'SW1',type:'2960',x:200,y:200},{name:'SW2',type:'2960',x:500,y:200}],links:[{d1:'SW1',p1:'Gi0/1',d2:'SW2',p2:'Gi0/1'},{d1:'SW1',p1:'Gi0/2',d2:'SW2',p2:'Gi0/2'}]},
     objectives: [
-      { text: 'Add Gi0/1 to channel-group 1 mode active', hint: 'interface Gi0/1 → channel-group 1 mode active', check: d => d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/1') },
-      { text: 'Add Gi0/2 to channel-group 1 mode active', hint: 'interface Gi0/2 → channel-group 1 mode active', check: d => d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/2') },
+      { text: 'Select interface Gi0/1', hint: 'interface GigabitEthernet0/1', check: d => d.currentInterface === 'GigabitEthernet0/1' || (d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/1')) },
+      { text: 'Add Gi0/1 to channel-group 1 mode active', hint: 'channel-group 1 mode active', check: d => d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/1') },
+      { text: 'Select interface Gi0/2', hint: 'interface GigabitEthernet0/2', check: d => d.currentInterface === 'GigabitEthernet0/2' || (d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/2')) },
+      { text: 'Add Gi0/2 to channel-group 1 mode active', hint: 'channel-group 1 mode active', check: d => d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/2') },
       { text: 'Verify with show etherchannel summary', hint: 'show etherchannel summary', check: d => d.custom.ecVerified === true },
     ],
     extraCmds: (dev, raw, lower) => {
