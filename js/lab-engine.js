@@ -221,8 +221,18 @@
       'run': 'running-config', 'runn': 'running-config',
       'start': 'startup-config',
       'ver': 'version',
-      'neigh': 'neighbors', 'neighb': 'neighbors',
+      'neigh': 'neighbors', 'neighb': 'neighbors', 'nei': 'neighbors',
       'sum': 'summary', 'summ': 'summary',
+      'vl': 'vlan',
+      'det': 'detail',
+      'inc': 'include',
+      'sec': 'section',
+      'prot': 'protocols',
+      'sp': 'spanning-tree',
+      'ass': 'associations',
+      'sta': 'status',
+      'por': 'port-channel',
+      'acc': 'access-lists',
     };
     var parts = raw.split(/\s+/);
     var out = [];
@@ -304,9 +314,37 @@
     if (lower === 'show version') {
       return 'Cisco IOS Software, Version 15.7(3)M3\n' + dev.hostname + ' uptime is 0 minutes\nSystem image file is "flash0:/c2900-universalk9-mz.SPA.157-3.M3.bin"';
     }
-    // show cdp neighbors (empty unless lab populates)
-    if (lower === 'show cdp neighbors' || lower === 'show cdp neighbors detail') {
-      return 'Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge\n                  S - Switch, H - Host, I - IGMP, r - Repeater\n\nDevice ID    Local Intrfce   Holdtme    Capability  Platform  Port ID\n(no entries — lab does not model neighbors)';
+    // show cdp neighbors / detail — reads device.custom._noise.cdpNeighbors
+    if (lower === 'show cdp neighbors' || lower === 'show cdp nei') {
+      var nbrs = (dev.custom && dev.custom._noise && dev.custom._noise.cdpNeighbors) || [];
+      var header = 'Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge\n                  S - Switch, H - Host, I - IGMP, r - Repeater\n\nDevice ID        Local Intrfce      Holdtme    Capability  Platform   Port ID';
+      if (!nbrs.length) return header + '\n(no neighbors)';
+      var rows = nbrs.map(function(n) {
+        return (n.deviceId || 'UNKNOWN').padEnd(17) + (n.localIf || '').padEnd(19) + String(n.holdtime || 160).padEnd(11) + (n.capability || 'R').padEnd(12) + (n.platform || '4321').padEnd(11) + (n.portId || '');
+      });
+      return header + '\n' + rows.join('\n');
+    }
+    if (lower === 'show cdp neighbors detail' || lower === 'show cdp nei det') {
+      var nbrs2 = (dev.custom && dev.custom._noise && dev.custom._noise.cdpNeighbors) || [];
+      if (!nbrs2.length) return '(no CDP neighbors)';
+      return nbrs2.map(function(n) {
+        return '-------------------------\nDevice ID: ' + (n.deviceId || 'UNKNOWN') +
+          '\nEntry address(es): \n  IP address: ' + (n.ip || '10.0.0.254') +
+          '\nPlatform: cisco ' + (n.platform || '4321') + ',  Capabilities: ' + (n.capability || 'Router') +
+          '\nInterface: ' + (n.localIf || 'Gi0/0') + ',  Port ID (outgoing port): ' + (n.portId || 'Gi0/1') +
+          '\nHoldtime : ' + (n.holdtime || 160) + ' sec' +
+          '\nVersion :\n  Cisco IOS Software, Version 15.7(3)M3';
+      }).join('\n');
+    }
+    // show mac address-table — reads device.custom._noise.macTable
+    if (lower === 'show mac address-table' || lower === 'show mac add' || lower === 'show mac add-table' || lower === 'show mac' || lower === 'show mac-address-table') {
+      var macs = (dev.custom && dev.custom._noise && dev.custom._noise.macTable) || [];
+      var mh = '          Mac Address Table\n-------------------------------------------\n\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----';
+      if (!macs.length) return mh + '\nTotal Mac Addresses for this criterion: 0';
+      var mrows = macs.map(function(m) {
+        return ' ' + String(m.vlan || 1).padEnd(7) + (m.mac || '0000.0000.0000').padEnd(18) + (m.type || 'DYNAMIC').padEnd(12) + (m.port || 'Gi0/1');
+      });
+      return mh + '\n' + mrows.join('\n') + '\nTotal Mac Addresses for this criterion: ' + macs.length;
     }
     return undefined;
   };
