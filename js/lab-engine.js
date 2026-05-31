@@ -518,7 +518,8 @@
 
     var dev = this.activeDevice;
 
-    // Support `do <cmd>` from any config mode (real IOS behavior)
+    // Support `do <cmd>` from any config mode (real IOS behavior).
+    // Temporarily fake priv mode so lab extraCmds that gate on priv/user fire correctly.
     if (lower.startsWith('do ') && dev.mode !== 'user' && dev.mode !== 'priv') {
       var doRaw = raw.substring(3).trim();
       var doLower = doRaw.toLowerCase();
@@ -531,11 +532,15 @@
         this.checkObjectives();
         return 'Building configuration...\n[OK]';
       }
-      // Try lab handler then default show
-      var doResult = this.handleCommand(dev, doRaw, doLower);
-      if (doResult !== undefined) return doResult;
-      var doShow = this.defaultShowCmd(dev, doRaw, doLower);
-      if (doShow !== undefined) return doShow;
+      // Save current mode + fake priv for show-handler purposes
+      var savedMode = dev.mode;
+      dev.mode = 'priv';
+      try {
+        var doResult = this.handleCommand(dev, doRaw, doLower);
+        if (doResult !== undefined) { dev.mode = savedMode; return doResult; }
+        var doShow = this.defaultShowCmd(dev, doRaw, doLower);
+        if (doShow !== undefined) { dev.mode = savedMode; return doShow; }
+      } finally { dev.mode = savedMode; }
       return '% Invalid input detected at \'^\' marker.\n% Unrecognized command: ' + doRaw.split(' ')[0];
     }
 
@@ -590,9 +595,9 @@
       return 'Building configuration...\n[OK]';
     }
 
-    // Interface selection
+    // Interface selection — real IOS allows from any config-* sub-mode
     var ifMatch = raw.match(/^interface\s+(.+)/i);
-    if (ifMatch && (dev.mode === 'config' || dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+    if (ifMatch && (dev.mode === 'config' || dev.mode.startsWith('config-'))) {
       var ifName = this.normalizeInterface(ifMatch[1].trim());
       dev.currentInterface = ifName;
       if (ifName.includes('.')) {
