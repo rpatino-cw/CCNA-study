@@ -103,7 +103,7 @@
 <script defer src="js/store.js"></script>
 <script defer src="js/sync.js"></script>
 <script defer src="js/group-chat.js?v=4"></script>
-<script defer src="js/lab-engine.js?v=6"></script>
+<script defer src="js/lab-engine.js?v=7"></script>
 <script defer src="js/pt-bridge.js"></script>
 <script defer src="js/nav.js"></script>
 <script>document.addEventListener('DOMContentLoaded',function(){
@@ -120,6 +120,8 @@ const LABS = [
       { text: 'Exit back to privileged EXEC', hint: 'Type: end', check: (d, log) => log.some(c => c.cmd.toLowerCase() === 'end' || c.cmd.toLowerCase() === 'exit') && d.mode === 'priv' },
     
       { text: 'Verify modes — run: show running-config', hint: 'end → show running-config', check: (d, log) => log.some(c => /^(do\s+)?show\s+run/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ]
   },
   {
@@ -131,6 +133,8 @@ const LABS = [
       { text: 'Hostname: SW-FLOOR1', hint: 'Type: hostname SW-FLOOR1', check: d => d.hostname === 'SW-FLOOR1' },
     
       { text: 'Verify hostname — run: show running-config', hint: 'end → show running-config | include hostname', check: (d, log) => log.some(c => /^(do\s+)?show\s+run/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('hostname ') && (dev.mode === 'config' || dev.mode.startsWith('config-'))) {
@@ -150,6 +154,8 @@ const LABS = [
       { text: 'Name it SALES', hint: 'name SALES (in vlan config mode)', check: d => d.vlans[10] && d.vlans[10].name.toUpperCase() === 'SALES' },
     
       { text: 'Verify VLAN — run: show vlan brief', hint: 'end → show vlan brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+vl/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ]
   },
   {
@@ -162,6 +168,8 @@ const LABS = [
       { text: 'Assign it to VLAN 10', hint: 'switchport access vlan 10', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.accessVlan === 10; } },
     
       { text: 'Verify port VLAN — run: show vlan brief', hint: 'end → show vlan brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+vl/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'switchport mode access' && dev.mode === 'config-if' && dev.currentInterface) {
@@ -188,6 +196,8 @@ const LABS = [
       { text: 'Port mode: trunk', hint: 'switchport mode trunk', check: d => { const i = d.interfaces['GigabitEthernet0/24']; return i && i.mode === 'trunk'; } },
     
       { text: 'Verify trunk — run: show interfaces trunk', hint: 'end → show interfaces trunk', check: (d, log) => log.some(c => /^(do\s+)?show\s+int(erfaces)?\s+tr(unk)?$/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'switchport trunk encapsulation dot1q' && dev.mode === 'config-if') {
@@ -213,6 +223,8 @@ const LABS = [
       { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
     
       { text: 'Verify IP — run: show ip interface brief', hint: 'end → show ip interface brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+int/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const ipMatch = raw.match(/^ip address (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -238,6 +250,8 @@ const LABS = [
       { text: 'Add static route to 10.0.0.0/8 via 192.168.1.2', hint: 'ip route 10.0.0.0 255.0.0.0 192.168.1.2', check: d => d.routes.some(r => r.net === '10.0.0.0' && r.nh === '192.168.1.2') },
     
       { text: 'Verify route — run: show ip route', hint: 'end → show ip route', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+route/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const rtMatch = raw.match(/^ip route (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -260,6 +274,8 @@ const LABS = [
       { text: 'VTY transport: SSH only', hint: 'transport input ssh', check: d => d.custom.vtyTransport === 'ssh' },
       { text: 'Authenticate against local users', hint: 'login local', check: d => d.custom.loginLocal === true },
       { text: 'Verify SSH enabled — run: show ip ssh (from priv EXEC, type end first)', hint: 'end → show ip ssh', check: (d, log) => d.custom.rsaKeys && log.some(c => /^(do\s+)?show\s+ip\s+ssh\b/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('ip domain-name ') && dev.mode === 'config') { dev.custom.domain = raw.substring(15).trim(); return ''; }
@@ -284,6 +300,8 @@ const LABS = [
       { text: 'Advertise 10.0.2.0/24 in Area 0', hint: 'network 10.0.2.0 0.0.0.255 area 0 — aggregate two /30s with 0.0.0.7 wildcard if contiguous', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.2.0' && n.area === '0') },
       { text: 'Place Loopback0 in OSPF area 0 (per-interface method)', hint: 'interface loopback 0 → ip ospf 1 area 0', check: d => { const i = d.interfaces['Loopback0']; return i && i.ospfPid === 1 && i.ospfArea === '0'; } },
       { text: 'Verify OSPF — run: show ip ospf neighbor (look for FULL/DR, FULL/BDR, or FULL/- on P2P)', hint: 'end → show ip ospf neighbor', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+ospf/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+area\s+(\S+)/i);
@@ -312,6 +330,8 @@ const LABS = [
       { text: 'Apply ACL 10 inbound on Gi0/0', hint: 'interface Gi0/0 → ip access-group 10 in', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.aclIn === '10'; } },
     
       { text: 'Verify ACL — run: show access-lists', hint: 'end → show access-lists', check: (d, log) => log.some(c => /^(do\s+)?show\s+acc/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -341,6 +361,8 @@ const LABS = [
       { text: 'Violation mode: restrict', hint: 'switchport port-security violation restrict', check: d => d.portSecurity['GigabitEthernet0/1'] && d.portSecurity['GigabitEthernet0/1'].violation === 'restrict' },
     
       { text: 'Verify port-security — run: show port-security interface Gi0/1', hint: 'end → show port-security interface Gi0/1', check: (d, log) => log.some(c => /^(do\s+)?show\s+port-sec/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const iface = dev.currentInterface;
@@ -376,6 +398,8 @@ const LABS = [
       { text: 'Enable NAT overload using ACL 1', hint: 'ip nat inside source list 1 interface Gi0/1 overload', check: d => d.nat.overload === true },
     
       { text: 'Verify NAT — run: show ip nat translations', hint: 'end → show ip nat translations', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+nat/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -411,6 +435,8 @@ const LABS = [
       { text: 'DNS server: 8.8.8.8', hint: 'dns-server 8.8.8.8', check: d => d.custom.dhcpDns === '8.8.8.8' },
     
       { text: 'Verify DHCP — run: show ip dhcp pool', hint: 'end → show ip dhcp pool', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+dhcp/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const exclMatch = raw.match(/^ip dhcp excluded-address\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -443,6 +469,8 @@ const LABS = [
       { text: 'Enable HSRP preempt', hint: 'standby 1 preempt', check: d => d.custom.hsrpPreempt === true },
     
       { text: 'Verify HSRP — run: show standby brief', hint: 'end → show standby brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+standby/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const vipMatch = raw.match(/^standby\s+(\d+)\s+ip\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -464,6 +492,8 @@ const LABS = [
       { text: 'Apply NAT overload with the pool', hint: 'ip nat inside source list 1 pool INTERNET overload', check: d => d.custom.natPoolOverload === true },
     
       { text: 'Verify NAT pool — run: show ip nat statistics', hint: 'end → show ip nat statistics', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+nat/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -491,6 +521,8 @@ const LABS = [
       { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
       { text: 'Bonus: configure SLAAC on a downstream switch SVI (ipv6 address autoconfig — NOT eui-64)', hint: 'interface vlan 1 → ipv6 address autoconfig', check: d => d.custom.ipv6Autoconfig === true },
       { text: 'Verify IPv6 — run: show ipv6 interface brief', hint: 'end → show ipv6 interface brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+ipv6\s+int/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'ipv6 unicast-routing' && dev.mode === 'config') { dev.custom.ipv6Routing = true; return ''; }
@@ -525,6 +557,8 @@ const LABS = [
     objectives: [
       { text: 'NTP server: 209.165.200.225', hint: 'ntp server 209.165.200.225', check: d => d.custom.ntpServer === '209.165.200.225' },
       { text: 'Verify NTP status', hint: 'show ntp status', check: d => d.custom.ntpVerified === true },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const ntpMatch = raw.match(/^ntp server\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -546,6 +580,8 @@ const LABS = [
       { text: 'RW community: private', hint: 'snmp-server community private rw', check: d => d.custom.snmpRw === 'private' },
     
       { text: 'Verify SNMP — run: show snmp community', hint: 'end → show snmp community', check: (d, log) => log.some(c => /^(do\s+)?show\s+snmp/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const snmpMatch = raw.match(/^snmp-server community\s+(\S+)\s+(ro|rw)/i);
@@ -568,6 +604,8 @@ const LABS = [
       { text: 'Trust Gi0/1 (snooping)', hint: 'ip dhcp snooping trust', check: d => d.custom.dhcpTrusted === true },
     
       { text: 'Verify snooping — run: show ip dhcp snooping', hint: 'end → show ip dhcp snooping', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+dhcp\s+snoop/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'ip dhcp snooping' && dev.mode === 'config') { dev.custom.dhcpSnooping = true; return ''; }
@@ -584,6 +622,8 @@ const LABS = [
     objectives: [
       { text: 'STP VLAN 10 priority: 4096', hint: 'spanning-tree vlan 10 priority 4096', check: d => d.custom.stpPriority === 4096 },
       { text: 'Verify with show spanning-tree', hint: 'show spanning-tree', check: d => d.custom.stpVerified === true },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const priMatch = raw.match(/^spanning-tree vlan\s+(\d+)\s+priority\s+(\d+)/i);
@@ -606,6 +646,8 @@ const LABS = [
       { text: 'Enable BPDU Guard', hint: 'spanning-tree bpduguard enable', check: d => d.custom.bpduguard === true },
     
       { text: 'Verify BPDU Guard — run: show spanning-tree summary', hint: 'end → show spanning-tree summary', check: (d, log) => log.some(c => /^(do\s+)?show\s+sp/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'spanning-tree portfast' && dev.mode === 'config-if') {
@@ -627,6 +669,8 @@ const LABS = [
       { text: 'Apply BLOCK_HTTP inbound on Gi0/0', hint: 'interface Gi0/0 → ip access-group BLOCK_HTTP in', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.aclIn === 'BLOCK_HTTP'; } },
     
       { text: 'Verify ACL — run: show access-lists', hint: 'end → show access-lists', check: (d, log) => log.some(c => /^(do\s+)?show\s+acc/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const naclMatch = raw.match(/^ip access-list extended\s+(\S+)/i);
@@ -654,6 +698,8 @@ const LABS = [
       { text: 'Logging host: 10.0.0.50', hint: 'logging host 10.0.0.50', check: d => d.custom.logHost === '10.0.0.50' },
       { text: 'Logging trap level: informational', hint: 'logging trap informational', check: d => d.custom.logTrap === 'informational' },
       { text: 'Verify with show logging', hint: 'show logging', check: d => d.custom.logVerified === true },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const hostMatch = raw.match(/^logging host\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -680,6 +726,8 @@ const LABS = [
       { text: 'MOTD banner configured', hint: 'banner motd # Authorized access only! Disconnect immediately if not authorized. #', check: d => d.custom.bannerSet === true },
     
       { text: 'Verify banner — run: show banner motd (or reconnect)', hint: 'end → show banner motd', check: (d, log) => log.some(c => /^(do\s+)?show\s+(banner|run)/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('banner motd') && dev.mode === 'config') { dev.custom.bannerSet = true; dev.custom.bannerText = raw.substring(11).trim(); return ''; }
@@ -697,6 +745,8 @@ const LABS = [
       { text: 'login local', hint: 'login local', check: d => d.custom.loginLocal === true },
     
       { text: 'Verify VTY — run: show running-config | section vty', hint: 'end → show running-config | section vty', check: (d, log) => log.some(c => /^(do\s+)?show\s+run/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('line vty') && dev.mode === 'config') { dev.mode = 'config-line'; dev.custom.vtyEntered = true; return ''; }
@@ -715,6 +765,8 @@ const LABS = [
     objectives: [
       { text: 'Add default route via 203.0.113.1', hint: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1', check: d => d.routes.some(r => r.net === '0.0.0.0' && r.nh === '203.0.113.1') },
       { text: 'Verify with show ip route', hint: 'show ip route', check: d => d.custom.routeVerified === true },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const rtMatch = raw.match(/^ip route (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -744,6 +796,8 @@ const LABS = [
       { text: 'Select interface Gi0/2', hint: 'interface GigabitEthernet0/2', check: d => d.currentInterface === 'GigabitEthernet0/2' || (d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/2')) },
       { text: 'Add Gi0/2 to channel-group 1 mode active', hint: 'channel-group 1 mode active', check: d => d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/2') },
       { text: 'Verify with show etherchannel summary', hint: 'show etherchannel summary', check: d => d.custom.ecVerified === true },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const ecMatch = raw.match(/^channel-group\s+(\d+)\s+mode\s+(active|passive|on)/i);
@@ -782,6 +836,8 @@ const LABS = [
       { text: 'Apply DHCP relay on Gi0/0.20 (ip helper-address 10.10.10.50)', hint: 'interface Gi0/0.20 → ip helper-address 10.10.10.50', check: d => { const i = d.interfaces['GigabitEthernet0/0.20']; return i && i.helperAddress === '10.10.10.50'; } },
     
       { text: 'Verify DHCP pool — run: show ip dhcp pool', hint: 'end → show ip dhcp pool', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+dhcp/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const encMatch = raw.match(/^encapsulation\s+dot1q\s+(\d+)(\s+native)?/i);
@@ -838,6 +894,8 @@ const LABS = [
       { text: 'Apply MD5 key 1 "cisco" on Gi0/1', hint: 'interface Gi0/1 → ip ospf message-digest-key 1 md5 cisco', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.ospfMd5KeyId === 1 && i.ospfMd5Key === 'cisco'; } },
     
       { text: 'Verify OSPF — run: show ip ospf neighbor', hint: 'end → show ip ospf neighbor', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+ospf/i.test(c.cmd)) },
+    
+      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
       const netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+area\s+(\S+)/i);

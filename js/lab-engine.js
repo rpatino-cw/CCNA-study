@@ -569,6 +569,18 @@
       return '';
     }
 
+    // Save config: wr / write / write memory / copy run start / copy running-config startup-config
+    if (lower === 'wr' || lower === 'write' || lower === 'write memory' || lower === 'write mem' ||
+        lower === 'copy run start' || lower === 'copy running-config startup-config' ||
+        lower === 'copy running startup' || lower === 'copy running-config startup' ||
+        (lower === 'do wr' || lower === 'do write' || lower.startsWith('do copy run'))) {
+      if (dev.mode === 'user') return '% Incomplete command';
+      if (!dev.custom) dev.custom = {};
+      dev.custom.configSaved = true;
+      this.checkObjectives();
+      return 'Building configuration...\n[OK]';
+    }
+
     // Interface selection
     var ifMatch = raw.match(/^interface\s+(.+)/i);
     if (ifMatch && (dev.mode === 'config' || dev.mode === 'config-if' || dev.mode === 'config-subif')) {
