@@ -103,7 +103,7 @@
 <script defer src="js/store.js"></script>
 <script defer src="js/sync.js"></script>
 <script defer src="js/group-chat.js?v=4"></script>
-<script defer src="js/lab-engine.js?v=4"></script>
+<script defer src="js/lab-engine.js?v=5"></script>
 <script defer src="js/pt-bridge.js"></script>
 <script defer src="js/nav.js"></script>
 <script>document.addEventListener('DOMContentLoaded',function(){
@@ -118,6 +118,8 @@ const LABS = [
       { text: 'Enter privileged EXEC mode', hint: 'Type: enable', check: d => d.mode === 'priv' || d.mode === 'config' },
       { text: 'Enter global configuration mode', hint: 'Type: configure terminal', check: d => d.mode === 'config' || d.mode.startsWith('config-') },
       { text: 'Exit back to privileged EXEC', hint: 'Type: end', check: (d, log) => log.some(c => c.cmd.toLowerCase() === 'end' || c.cmd.toLowerCase() === 'exit') && d.mode === 'priv' },
+    
+      { text: 'Verify modes — run: show running-config', hint: 'end → show running-config', check: (d, log) => log.some(c => /^(do\s+)?show\s+run/i.test(c.cmd)) },
     ]
   },
   {
@@ -127,6 +129,8 @@ const LABS = [
     objectives: [
       { text: 'Enter global config mode', hint: 'enable → configure terminal', check: d => d.mode === 'config' || d.mode.startsWith('config-') },
       { text: 'Hostname: SW-FLOOR1', hint: 'Type: hostname SW-FLOOR1', check: d => d.hostname === 'SW-FLOOR1' },
+    
+      { text: 'Verify hostname — run: show running-config', hint: 'end → show running-config | include hostname', check: (d, log) => log.some(c => /^(do\s+)?show\s+run/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('hostname ') && (dev.mode === 'config' || dev.mode.startsWith('config-'))) {
@@ -144,6 +148,8 @@ const LABS = [
       { text: 'Enter global config mode', hint: 'enable → configure terminal', check: d => d.mode === 'config' || d.mode.startsWith('config-') },
       { text: 'Create VLAN 10', hint: 'vlan 10', check: d => d.vlans[10] !== undefined },
       { text: 'Name it SALES', hint: 'name SALES (in vlan config mode)', check: d => d.vlans[10] && d.vlans[10].name.toUpperCase() === 'SALES' },
+    
+      { text: 'Verify VLAN — run: show vlan brief', hint: 'end → show vlan brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+vl/i.test(c.cmd)) },
     ]
   },
   {
@@ -154,6 +160,8 @@ const LABS = [
       { text: 'Select interface Gi0/1', hint: 'In config: interface GigabitEthernet0/1', check: d => d.currentInterface === 'GigabitEthernet0/1' },
       { text: 'Port mode: access', hint: 'switchport mode access', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.mode === 'access'; } },
       { text: 'Assign it to VLAN 10', hint: 'switchport access vlan 10', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.accessVlan === 10; } },
+    
+      { text: 'Verify port VLAN — run: show vlan brief', hint: 'end → show vlan brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+vl/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'switchport mode access' && dev.mode === 'config-if' && dev.currentInterface) {
@@ -178,6 +186,8 @@ const LABS = [
       { text: 'Select interface Gi0/24', hint: 'interface GigabitEthernet0/24', check: d => d.currentInterface === 'GigabitEthernet0/24' },
       { text: 'Trunk encap: dot1q', hint: 'switchport trunk encapsulation dot1q', check: d => { const i = d.interfaces['GigabitEthernet0/24']; return i && i.trunkEncap === 'dot1q'; } },
       { text: 'Port mode: trunk', hint: 'switchport mode trunk', check: d => { const i = d.interfaces['GigabitEthernet0/24']; return i && i.mode === 'trunk'; } },
+    
+      { text: 'Verify trunk — run: show interfaces trunk', hint: 'end → show interfaces trunk', check: (d, log) => log.some(c => /^(do\s+)?show\s+int(erfaces)?\s+tr(unk)?$/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'switchport trunk encapsulation dot1q' && dev.mode === 'config-if') {
@@ -201,6 +211,8 @@ const LABS = [
       { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface === 'GigabitEthernet0/0' },
       { text: 'IP address: 192.168.1.1 255.255.255.0 (type: ip address …)', hint: 'ip address 192.168.1.1 255.255.255.0', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.ip === '192.168.1.1'; } },
       { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
+    
+      { text: 'Verify IP — run: show ip interface brief', hint: 'end → show ip interface brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+int/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const ipMatch = raw.match(/^ip address (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -224,6 +236,8 @@ const LABS = [
     objectives: [
       { text: 'Enter global config', hint: 'enable → configure terminal', check: d => d.mode === 'config' || d.mode.startsWith('config-') },
       { text: 'Add static route to 10.0.0.0/8 via 192.168.1.2', hint: 'ip route 10.0.0.0 255.0.0.0 192.168.1.2', check: d => d.routes.some(r => r.net === '10.0.0.0' && r.nh === '192.168.1.2') },
+    
+      { text: 'Verify route — run: show ip route', hint: 'end → show ip route', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+route/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const rtMatch = raw.match(/^ip route (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -268,6 +282,8 @@ const LABS = [
       { text: 'Start OSPF process 1', hint: 'router ospf 1', check: d => d.ospf && d.ospf.processId === 1 },
       { text: 'Advertise 10.0.1.0/24 in Area 0', hint: 'network 10.0.1.0 0.0.0.255 area 0', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.1.0' && n.area === '0') },
       { text: 'Advertise 10.0.2.0/24 in Area 0', hint: 'network 10.0.2.0 0.0.0.255 area 0', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.2.0' && n.area === '0') },
+    
+      { text: 'Verify OSPF — run: show ip ospf neighbor', hint: 'end → show ip ospf neighbor', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+ospf/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+area\s+(\S+)/i);
@@ -286,6 +302,8 @@ const LABS = [
     objectives: [
       { text: 'Create ACL 10: permit 192.168.1.0 0.0.0.255', hint: 'access-list 10 permit 192.168.1.0 0.0.0.255', check: d => d.acls['10'] && d.acls['10'].some(a => a.action === 'permit' && a.src === '192.168.1.0') },
       { text: 'Apply ACL 10 inbound on Gi0/0', hint: 'interface Gi0/0 → ip access-group 10 in', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.aclIn === '10'; } },
+    
+      { text: 'Verify ACL — run: show access-lists', hint: 'end → show access-lists', check: (d, log) => log.some(c => /^(do\s+)?show\s+acc/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -313,6 +331,8 @@ const LABS = [
       { text: 'Enable port security', hint: 'switchport port-security', check: d => d.portSecurity['GigabitEthernet0/1'] && d.portSecurity['GigabitEthernet0/1'].enabled },
       { text: 'Max MACs: 2', hint: 'switchport port-security maximum 2', check: d => d.portSecurity['GigabitEthernet0/1'] && d.portSecurity['GigabitEthernet0/1'].max === 2 },
       { text: 'Violation mode: restrict', hint: 'switchport port-security violation restrict', check: d => d.portSecurity['GigabitEthernet0/1'] && d.portSecurity['GigabitEthernet0/1'].violation === 'restrict' },
+    
+      { text: 'Verify port-security — run: show port-security interface Gi0/1', hint: 'end → show port-security interface Gi0/1', check: (d, log) => log.some(c => /^(do\s+)?show\s+port-sec/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const iface = dev.currentInterface;
@@ -346,6 +366,8 @@ const LABS = [
       { text: 'Mark Gi0/0 as NAT inside', hint: 'interface Gi0/0 → ip nat inside', check: d => d.nat.inside.includes('GigabitEthernet0/0') },
       { text: 'Mark Gi0/1 as NAT outside', hint: 'interface Gi0/1 → ip nat outside', check: d => d.nat.outside.includes('GigabitEthernet0/1') },
       { text: 'Enable NAT overload using ACL 1', hint: 'ip nat inside source list 1 interface Gi0/1 overload', check: d => d.nat.overload === true },
+    
+      { text: 'Verify NAT — run: show ip nat translations', hint: 'end → show ip nat translations', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+nat/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -379,6 +401,8 @@ const LABS = [
       { text: 'Pool network: 192.168.1.0/24', hint: 'network 192.168.1.0 255.255.255.0', check: d => d.custom.dhcpNetwork === '192.168.1.0' },
       { text: 'Default router: 192.168.1.1', hint: 'default-router 192.168.1.1', check: d => d.custom.dhcpRouter === '192.168.1.1' },
       { text: 'DNS server: 8.8.8.8', hint: 'dns-server 8.8.8.8', check: d => d.custom.dhcpDns === '8.8.8.8' },
+    
+      { text: 'Verify DHCP — run: show ip dhcp pool', hint: 'end → show ip dhcp pool', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+dhcp/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const exclMatch = raw.match(/^ip dhcp excluded-address\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -409,6 +433,8 @@ const LABS = [
       { text: 'HSRP group 1 VIP: 192.168.1.254', hint: 'standby 1 ip 192.168.1.254', check: d => d.custom.hsrpVip === '192.168.1.254' },
       { text: 'HSRP group 1 priority: 110', hint: 'standby 1 priority 110', check: d => d.custom.hsrpPriority === 110 },
       { text: 'Enable HSRP preempt', hint: 'standby 1 preempt', check: d => d.custom.hsrpPreempt === true },
+    
+      { text: 'Verify HSRP — run: show standby brief', hint: 'end → show standby brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+standby/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const vipMatch = raw.match(/^standby\s+(\d+)\s+ip\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -428,6 +454,8 @@ const LABS = [
       { text: 'Create ACL 1: permit 10.0.0.0/8', hint: 'access-list 1 permit 10.0.0.0 0.255.255.255', check: d => d.acls['1'] && d.acls['1'].some(a => a.action === 'permit' && a.src === '10.0.0.0') },
       { text: 'Define NAT pool INTERNET', hint: 'ip nat pool INTERNET 203.0.113.10 203.0.113.20 netmask 255.255.255.0', check: d => d.custom.natPool === 'INTERNET' },
       { text: 'Apply NAT overload with the pool', hint: 'ip nat inside source list 1 pool INTERNET overload', check: d => d.custom.natPoolOverload === true },
+    
+      { text: 'Verify NAT pool — run: show ip nat statistics', hint: 'end → show ip nat statistics', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+nat/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
@@ -453,6 +481,8 @@ const LABS = [
       { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface === 'GigabitEthernet0/0' },
       { text: 'Assign IPv6 address 2001:db8:1::1/64', hint: 'ipv6 address 2001:db8:1::1/64', check: d => d.custom.ipv6Addr === '2001:db8:1::1/64' },
       { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
+    
+      { text: 'Verify IPv6 — run: show ipv6 interface brief', hint: 'end → show ipv6 interface brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+ipv6\s+int/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'ipv6 unicast-routing' && dev.mode === 'config') { dev.custom.ipv6Routing = true; return ''; }
@@ -505,6 +535,8 @@ const LABS = [
     objectives: [
       { text: 'RO community: public', hint: 'snmp-server community public ro', check: d => d.custom.snmpRo === 'public' },
       { text: 'RW community: private', hint: 'snmp-server community private rw', check: d => d.custom.snmpRw === 'private' },
+    
+      { text: 'Verify SNMP — run: show snmp community', hint: 'end → show snmp community', check: (d, log) => log.some(c => /^(do\s+)?show\s+snmp/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const snmpMatch = raw.match(/^snmp-server community\s+(\S+)\s+(ro|rw)/i);
@@ -525,6 +557,8 @@ const LABS = [
       { text: 'Enable DHCP snooping on VLAN 10', hint: 'ip dhcp snooping vlan 10', check: d => d.custom.dhcpSnoopingVlan === 10 },
       { text: 'Select interface Gi0/1', hint: 'interface GigabitEthernet0/1', check: d => d.currentInterface === 'GigabitEthernet0/1' },
       { text: 'Trust Gi0/1 (snooping)', hint: 'ip dhcp snooping trust', check: d => d.custom.dhcpTrusted === true },
+    
+      { text: 'Verify snooping — run: show ip dhcp snooping', hint: 'end → show ip dhcp snooping', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+dhcp\s+snoop/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'ip dhcp snooping' && dev.mode === 'config') { dev.custom.dhcpSnooping = true; return ''; }
@@ -561,6 +595,8 @@ const LABS = [
       { text: 'Select interface Fa0/1', hint: 'interface FastEthernet0/1', check: d => d.currentInterface === 'FastEthernet0/1' },
       { text: 'Enable PortFast', hint: 'spanning-tree portfast', check: d => d.custom.portfast === true },
       { text: 'Enable BPDU Guard', hint: 'spanning-tree bpduguard enable', check: d => d.custom.bpduguard === true },
+    
+      { text: 'Verify BPDU Guard — run: show spanning-tree summary', hint: 'end → show spanning-tree summary', check: (d, log) => log.some(c => /^(do\s+)?show\s+sp/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower === 'spanning-tree portfast' && dev.mode === 'config-if') {
@@ -580,6 +616,8 @@ const LABS = [
       { text: 'Deny TCP from 10.0.0.0/8 to any eq 80', hint: 'deny tcp 10.0.0.0 0.255.255.255 any eq 80', check: d => d.custom.aclDeny80 === true },
       { text: 'Permit all other IP traffic', hint: 'permit ip any any', check: d => d.custom.aclPermitAny === true },
       { text: 'Apply BLOCK_HTTP inbound on Gi0/0', hint: 'interface Gi0/0 → ip access-group BLOCK_HTTP in', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.aclIn === 'BLOCK_HTTP'; } },
+    
+      { text: 'Verify ACL — run: show access-lists', hint: 'end → show access-lists', check: (d, log) => log.some(c => /^(do\s+)?show\s+acc/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const naclMatch = raw.match(/^ip access-list extended\s+(\S+)/i);
@@ -631,6 +669,8 @@ const LABS = [
     objectives: [
       { text: 'Enter global configuration mode', hint: 'enable → configure terminal', check: d => d.mode === 'config' || d.mode.startsWith('config-') },
       { text: 'MOTD banner configured', hint: 'banner motd # Authorized access only! Disconnect immediately if not authorized. #', check: d => d.custom.bannerSet === true },
+    
+      { text: 'Verify banner — run: show banner motd (or reconnect)', hint: 'end → show banner motd', check: (d, log) => log.some(c => /^(do\s+)?show\s+(banner|run)/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('banner motd') && dev.mode === 'config') { dev.custom.bannerSet = true; dev.custom.bannerText = raw.substring(11).trim(); return ''; }
@@ -646,6 +686,8 @@ const LABS = [
       { text: 'exec-timeout 5 30', hint: 'exec-timeout 5 30', check: d => d.custom.execTimeout === '5 30' },
       { text: 'transport input ssh', hint: 'transport input ssh', check: d => d.custom.vtyTransport === 'ssh' },
       { text: 'login local', hint: 'login local', check: d => d.custom.loginLocal === true },
+    
+      { text: 'Verify VTY — run: show running-config | section vty', hint: 'end → show running-config | section vty', check: (d, log) => log.some(c => /^(do\s+)?show\s+run/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       if (lower.startsWith('line vty') && dev.mode === 'config') { dev.mode = 'config-line'; dev.custom.vtyEntered = true; return ''; }
@@ -729,6 +771,8 @@ const LABS = [
       { text: 'DHCP pool DATA with network 10.10.10.0/24', hint: 'ip dhcp pool DATA → network 10.10.10.0 255.255.255.0', check: d => d.custom.dhcpPool === 'DATA' && d.custom.dhcpNetwork === '10.10.10.0' },
       { text: 'DATA pool default-router: 10.10.10.1', hint: 'default-router 10.10.10.1', check: d => d.custom.dhcpRouter === '10.10.10.1' },
       { text: 'Apply DHCP relay on Gi0/0.20 (ip helper-address 10.10.10.50)', hint: 'interface Gi0/0.20 → ip helper-address 10.10.10.50', check: d => { const i = d.interfaces['GigabitEthernet0/0.20']; return i && i.helperAddress === '10.10.10.50'; } },
+    
+      { text: 'Verify DHCP pool — run: show ip dhcp pool', hint: 'end → show ip dhcp pool', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+dhcp/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const encMatch = raw.match(/^encapsulation\s+dot1q\s+(\d+)(\s+native)?/i);
@@ -783,6 +827,8 @@ const LABS = [
       { text: 'Inject default route into OSPF', hint: 'router ospf 100 → default-information originate', check: d => d.custom.defaultInfoOrig === true },
       { text: 'Enable Area 1 MD5 authentication', hint: 'area 1 authentication message-digest', check: d => d.custom.areaAuth && d.custom.areaAuth['1'] === 'message-digest' },
       { text: 'Apply MD5 key 1 "cisco" on Gi0/1', hint: 'interface Gi0/1 → ip ospf message-digest-key 1 md5 cisco', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.ospfMd5KeyId === 1 && i.ospfMd5Key === 'cisco'; } },
+    
+      { text: 'Verify OSPF — run: show ip ospf neighbor', hint: 'end → show ip ospf neighbor', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+ospf/i.test(c.cmd)) },
     ],
     extraCmds: (dev, raw, lower) => {
       const netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+area\s+(\S+)/i);
