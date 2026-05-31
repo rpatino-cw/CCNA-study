@@ -4,10 +4,15 @@
     "title": "DHCP clients on VLAN 20 not getting IPs",
     "category": "Services",
     "difficulty": "beginner",
-    "topics": ["4.6"],
+    "topics": [
+      "4.6"
+    ],
     "scenario": "NOC reports new PCs plugged into ASW1 ports in VLAN 20 cannot reach the network. They self-assign 169.254.x.x APIPA addresses. The DHCP server lives on R1 in VLAN 10 and is serving VLAN 10 clients just fine.",
     "initialView": [
-      {"cmd": "R1# show ip dhcp binding", "output": "Bindings from all pools not associated with VRF:\nIP address          Client-ID/              Lease expiration        Type\n                    Hardware address/\n                    User name\n192.168.10.11       0100.5056.aa11.22       May 31 2026 04:12 PM    Automatic\n192.168.10.12       0100.5056.aa11.33       May 31 2026 04:18 PM    Automatic\n192.168.10.13       0100.5056.aa11.44       May 31 2026 04:21 PM    Automatic"}
+      {
+        "cmd": "R1# show ip dhcp binding",
+        "output": "Bindings from all pools not associated with VRF:\nIP address          Client-ID/              Lease expiration        Type\n                    Hardware address/\n                    User name\n192.168.10.11       0100.5056.aa11.22       May 31 2026 04:12 PM    Automatic\n192.168.10.12       0100.5056.aa11.33       May 31 2026 04:18 PM    Automatic\n192.168.10.13       0100.5056.aa11.44       May 31 2026 04:21 PM    Automatic"
+      }
     ],
     "showCommands": {
       "show ip dhcp pool": "Pool VLAN10 :\n Utilization mark (high/low)    : 100 / 0\n Subnet size (first/next)       : 0 / 0\n Total addresses                : 254\n Leased addresses               : 3\n Pending event                  : none\n 1 subnet is currently in the pool :\n Current index        IP address range                    Leased addresses\n 192.168.10.14        192.168.10.1     - 192.168.10.254    3\n\nPool VLAN20 :\n Utilization mark (high/low)    : 100 / 0\n Subnet size (first/next)       : 0 / 0\n Total addresses                : 254\n Leased addresses               : 0\n Pending event                  : none\n 1 subnet is currently in the pool :\n Current index        IP address range                    Leased addresses\n 192.168.20.1         192.168.20.1     - 192.168.20.254    0",
@@ -17,10 +22,26 @@
     },
     "question": "What is the root cause that VLAN 20 clients cannot obtain DHCP addresses?",
     "choices": [
-      {"text": "The DHCP pool VLAN20 has no addresses configured.", "correct": false, "explain": "The pool shows 254 total addresses in the 192.168.20.0/24 range — pool is fine."},
-      {"text": "Interface Vlan20 is missing an ip helper-address pointing to the DHCP server.", "correct": true, "explain": "Vlan20 has no helper-address configured. DHCP discovers are broadcasts and must be relayed to reach a DHCP server on a different subnet. Vlan10 (where the server lives) doesn't need it the same way, but Vlan20 does."},
-      {"text": "Interface Vlan20 is administratively down.", "correct": false, "explain": "show ip interface brief shows Vlan20 status up/up."},
-      {"text": "The DHCP server has run out of leases.", "correct": false, "explain": "Pool VLAN20 shows 0 leased of 254 total — plenty of room."}
+      {
+        "text": "The DHCP pool VLAN20 has no addresses configured.",
+        "correct": false,
+        "explain": "The pool shows 254 total addresses in the 192.168.20.0/24 range \u2014 pool is fine."
+      },
+      {
+        "text": "Interface Vlan20 is missing an ip helper-address pointing to the DHCP server.",
+        "correct": true,
+        "explain": "Vlan20 has no helper-address configured. DHCP discovers are broadcasts and must be relayed to reach a DHCP server on a different subnet. Vlan10 (where the server lives) doesn't need it the same way, but Vlan20 does."
+      },
+      {
+        "text": "Interface Vlan20 is administratively down.",
+        "correct": false,
+        "explain": "show ip interface brief shows Vlan20 status up/up."
+      },
+      {
+        "text": "The DHCP server has run out of leases.",
+        "correct": false,
+        "explain": "Pool VLAN20 shows 0 leased of 254 total \u2014 plenty of room."
+      }
     ],
     "rootCause": "Interface Vlan20 lacks an `ip helper-address` statement. DHCP DISCOVER broadcasts from VLAN 20 hosts never reach the DHCP server because the SVI does not forward them. Vlan10 works because the clients and server share that subnet directly.",
     "fixHint": "interface Vlan20 / ip helper-address 192.168.10.1"
@@ -30,10 +51,15 @@
     "title": "SSH refused to management VLAN",
     "category": "Services",
     "difficulty": "beginner",
-    "topics": ["5.3"],
+    "topics": [
+      "5.3"
+    ],
     "scenario": "After a fresh switch deployment, admin Jane cannot SSH into ASW1 from her jump host. Telnet also fails. She is on the management VLAN with reachability confirmed via ping.",
     "initialView": [
-      {"cmd": "Jane@jump:~$ ssh admin@10.0.0.5", "output": "ssh: connect to host 10.0.0.5 port 22: Connection refused"}
+      {
+        "cmd": "Jane@jump:~$ ssh admin@10.0.0.5",
+        "output": "ssh: connect to host 10.0.0.5 port 22: Connection refused"
+      }
     ],
     "showCommands": {
       "show ip ssh": "SSH Disabled - version 2.0\n%Please create RSA keys to enable SSH (and of atleast 768 bits for SSH v2).\nAuthentication timeout: 120 secs; Authentication retries: 3\nMinimum expected Diffie Hellman key size : 1024 bits\nIOS Keys in SECSH format(ssh-rsa, base64 encoded): NONE",
@@ -43,10 +69,26 @@
     },
     "question": "Why is SSH being refused?",
     "choices": [
-      {"text": "No domain name is configured.", "correct": false, "explain": "ip domain name corp.lab IS configured per running-config — domain name is set."},
-      {"text": "RSA crypto keys have never been generated.", "correct": true, "explain": "`show ip ssh` says 'SSH Disabled' and 'Please create RSA keys'. IOS Keys: NONE. SSH cannot run without keys. Telnet also fails because vty has `transport input ssh` only."},
-      {"text": "The vty lines block transport input.", "correct": false, "explain": "transport input ssh is allowed; the issue is the SSH daemon itself isn't running."},
-      {"text": "No local username is configured.", "correct": false, "explain": "username admin privilege 15 secret is present."}
+      {
+        "text": "No domain name is configured.",
+        "correct": false,
+        "explain": "ip domain name corp.lab IS configured per running-config \u2014 domain name is set."
+      },
+      {
+        "text": "RSA crypto keys have never been generated.",
+        "correct": true,
+        "explain": "`show ip ssh` says 'SSH Disabled' and 'Please create RSA keys'. IOS Keys: NONE. SSH cannot run without keys. Telnet also fails because vty has `transport input ssh` only."
+      },
+      {
+        "text": "The vty lines block transport input.",
+        "correct": false,
+        "explain": "transport input ssh is allowed; the issue is the SSH daemon itself isn't running."
+      },
+      {
+        "text": "No local username is configured.",
+        "correct": false,
+        "explain": "username admin privilege 15 secret is present."
+      }
     ],
     "rootCause": "RSA keys have not been generated. `show ip ssh` reports 'SSH Disabled' and 'IOS Keys ... NONE'. Without keys the SSH server never starts listening on TCP 22.",
     "fixHint": "crypto key generate rsa modulus 2048"
@@ -54,12 +96,17 @@
   {
     "id": "ts-svc-03",
     "title": "Trunk link reporting late collisions",
-    "category": "Physical",
+    "category": "Services",
     "difficulty": "beginner",
-    "topics": ["1.3"],
+    "topics": [
+      "1.3"
+    ],
     "scenario": "Users on ASW1 complain of slow file transfers to the server on DSW1. The uplink Gi0/1 is up/up but throughput is poor. SW1 logs show CRC and late collisions on the uplink.",
     "initialView": [
-      {"cmd": "ASW1# show interfaces gi0/1 | include duplex|collisions|errors|input rate|output rate", "output": "  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX\n  5 minute input rate 11000 bits/sec, 8 packets/sec\n  5 minute output rate 14000 bits/sec, 10 packets/sec\n     1245 input errors, 1245 CRC, 0 frame, 0 overrun, 0 ignored\n     0 output errors, 0 collisions, 0 interface resets"}
+      {
+        "cmd": "ASW1# show interfaces gi0/1 | include duplex|collisions|errors|input rate|output rate",
+        "output": "  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX\n  5 minute input rate 11000 bits/sec, 8 packets/sec\n  5 minute output rate 14000 bits/sec, 10 packets/sec\n     1245 input errors, 1245 CRC, 0 frame, 0 overrun, 0 ignored\n     0 output errors, 0 collisions, 0 interface resets"
+      }
     ],
     "showCommands": {
       "show interfaces gi0/1": "GigabitEthernet0/1 is up, line protocol is up\n  Hardware is Gigabit Ethernet, address is aabb.cc00.0101\n  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX\n  input flow-control is off, output flow-control is unsupported\n  ARP type: ARPA, ARP Timeout 04:00:00\n  Last input 00:00:00, output 00:00:00, output hang never",
@@ -69,10 +116,26 @@
     },
     "question": "What is causing the throughput problem on the ASW1-DSW1 uplink?",
     "choices": [
-      {"text": "Cable damage causing CRC errors only.", "correct": false, "explain": "CRCs on one side plus late collisions on the other is the classic duplex mismatch signature, not random cable damage."},
-      {"text": "Duplex mismatch — DSW1 is hard-set half-duplex/100 while ASW1 auto-negotiated full-duplex/1000.", "correct": true, "explain": "DSW1 gi0/24 is hardcoded `duplex half` / `speed 100`. ASW1 auto-negotiated and landed on full/1000. Late collisions on the half-duplex side and CRCs on the full-duplex side are textbook duplex mismatch."},
-      {"text": "MTU mismatch between the two switches.", "correct": false, "explain": "Both interfaces show MTU 1500; no giants are reported."},
-      {"text": "STP is blocking the port.", "correct": false, "explain": "Line protocol is up and traffic is flowing — STP is not blocking."}
+      {
+        "text": "Cable damage causing CRC errors only.",
+        "correct": false,
+        "explain": "CRCs on one side plus late collisions on the other is the classic duplex mismatch signature, not random cable damage."
+      },
+      {
+        "text": "Duplex mismatch \u2014 DSW1 is hard-set half-duplex/100 while ASW1 auto-negotiated full-duplex/1000.",
+        "correct": true,
+        "explain": "DSW1 gi0/24 is hardcoded `duplex half` / `speed 100`. ASW1 auto-negotiated and landed on full/1000. Late collisions on the half-duplex side and CRCs on the full-duplex side are textbook duplex mismatch."
+      },
+      {
+        "text": "MTU mismatch between the two switches.",
+        "correct": false,
+        "explain": "Both interfaces show MTU 1500; no giants are reported."
+      },
+      {
+        "text": "STP is blocking the port.",
+        "correct": false,
+        "explain": "Line protocol is up and traffic is flowing \u2014 STP is not blocking."
+      }
     ],
     "rootCause": "Duplex mismatch. DSW1 Gi0/24 has hardcoded `duplex half speed 100` while ASW1 Gi0/1 auto-negotiated. Half-duplex side sees late collisions; full-duplex side sees CRCs and runts.",
     "fixHint": "DSW1(config-if)# no duplex half / no speed 100  (let both sides auto-negotiate)"
@@ -82,10 +145,15 @@
     "title": "HSRP keeps flapping between R1 and R2",
     "category": "Services",
     "difficulty": "intermediate",
-    "topics": ["3.5"],
+    "topics": [
+      "3.5"
+    ],
     "scenario": "Users on the 192.168.50.0/24 LAN report 2-3 seconds of dropped traffic every few minutes. HSRP group 50 between R1 and R2 keeps changing active. Both routers stay reachable.",
     "initialView": [
-      {"cmd": "R1# show standby brief", "output": "                     P indicates configured to preempt.\n                     |\nInterface   Grp  Pri P State    Active          Standby         Virtual IP\nGi0/1       50   110   Active   local           192.168.50.3    192.168.50.1\n\n*Mar  1 14:22:11.012: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Standby -> Active\n*Mar  1 14:23:48.901: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Active -> Speak\n*Mar  1 14:23:51.014: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Speak -> Standby\n*Mar  1 14:24:02.778: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Standby -> Active"}
+      {
+        "cmd": "R1# show standby brief",
+        "output": "                     P indicates configured to preempt.\n                     |\nInterface   Grp  Pri P State    Active          Standby         Virtual IP\nGi0/1       50   110   Active   local           192.168.50.3    192.168.50.1\n\n*Mar  1 14:22:11.012: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Standby -> Active\n*Mar  1 14:23:48.901: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Active -> Speak\n*Mar  1 14:23:51.014: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Speak -> Standby\n*Mar  1 14:24:02.778: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp 50 state Standby -> Active"
+      }
     ],
     "showCommands": {
       "R1# show standby gi0/1": "GigabitEthernet0/1 - Group 50\n  State is Active\n  Virtual IP address is 192.168.50.1\n  Active virtual MAC address is 0000.0c07.ac32\n  Local virtual MAC address is 0000.0c07.ac32 (v1 default)\n  Hello time 3 sec, hold time 10 sec\n  Preemption enabled\n  Active router is local\n  Standby router is 192.168.50.3, priority 110 (expires in 8.512 sec)\n  Priority 110 (configured 110)\n  Group name is \"hsrp-Gi0/1-50\" (default)",
@@ -95,12 +163,28 @@
     },
     "question": "Why is HSRP flapping?",
     "choices": [
-      {"text": "HSRP version mismatch between R1 and R2.", "correct": false, "explain": "Both show v1 default virtual MAC 0000.0c07.ac32 — same version."},
-      {"text": "R1's tracked uplink Gi0/0 is flapping, lowering R1's effective priority below R2's, then recovering and preempting back.", "correct": true, "explain": "R1 tracks Gi0/0 with decrement 20. Gi0/0 line protocol is down — when it drops, R1 priority falls to 90 (below R2's 110), R2 preempts. When Gi0/0 comes back, R1 preempts again. Both routers have `preempt` set so they fight."},
-      {"text": "Identical priority 110 on both routers causes a tie loop.", "correct": false, "explain": "Equal priority resolves by highest IP and stays stable — it doesn't oscillate."},
-      {"text": "Virtual IP 192.168.50.1 is already used by a host.", "correct": false, "explain": "Nothing in the output points to an IP conflict; the state changes correlate with tracking events."}
+      {
+        "text": "HSRP version mismatch between R1 and R2.",
+        "correct": false,
+        "explain": "Both show v1 default virtual MAC 0000.0c07.ac32 \u2014 same version."
+      },
+      {
+        "text": "R1's tracked uplink Gi0/0 is flapping, lowering R1's effective priority below R2's, then recovering and preempting back.",
+        "correct": true,
+        "explain": "R1 tracks Gi0/0 with decrement 20. Gi0/0 line protocol is down \u2014 when it drops, R1 priority falls to 90 (below R2's 110), R2 preempts. When Gi0/0 comes back, R1 preempts again. Both routers have `preempt` set so they fight."
+      },
+      {
+        "text": "Identical priority 110 on both routers causes a tie loop.",
+        "correct": false,
+        "explain": "Equal priority resolves by highest IP and stays stable \u2014 it doesn't oscillate."
+      },
+      {
+        "text": "Virtual IP 192.168.50.1 is already used by a host.",
+        "correct": false,
+        "explain": "Nothing in the output points to an IP conflict; the state changes correlate with tracking events."
+      }
     ],
-    "rootCause": "R1 tracks Gi0/0 (decrement 20). Gi0/0 protocol is down — R1's effective priority drops to 90, R2 preempts. When Gi0/0 returns up, R1 climbs back to 110 and preempts R2. Repeat.",
+    "rootCause": "R1 tracks Gi0/0 (decrement 20). Gi0/0 protocol is down \u2014 R1's effective priority drops to 90, R2 preempts. When Gi0/0 returns up, R1 climbs back to 110 and preempts R2. Repeat.",
     "fixHint": "Fix the underlying Gi0/0 flap (cable/transceiver/SP circuit) or remove the track if uplink instability is expected."
   },
   {
@@ -108,10 +192,15 @@
     "title": "HSRP neighbors stuck in Speak/Init",
     "category": "Services",
     "difficulty": "intermediate",
-    "topics": ["3.5"],
+    "topics": [
+      "3.5"
+    ],
     "scenario": "R1 and R2 should form HSRP group 10 for the user LAN. Both routers come up, but neither becomes Active for the virtual IP 192.168.10.1. Users have no default gateway.",
     "initialView": [
-      {"cmd": "R1# show standby brief", "output": "                     P indicates configured to preempt.\n                     |\nInterface   Grp  Pri P State    Active          Standby         Virtual IP\nGi0/1       10   100   Speak    unknown         unknown         192.168.10.1\n\n*Jun  1 09:01:11: %HSRP-4-BADAUTH: Bad authentication from 192.168.10.3, group 10, remote state Speak"}
+      {
+        "cmd": "R1# show standby brief",
+        "output": "                     P indicates configured to preempt.\n                     |\nInterface   Grp  Pri P State    Active          Standby         Virtual IP\nGi0/1       10   100   Speak    unknown         unknown         192.168.10.1\n\n*Jun  1 09:01:11: %HSRP-4-BADAUTH: Bad authentication from 192.168.10.3, group 10, remote state Speak"
+      }
     ],
     "showCommands": {
       "R1# show standby gi0/1": "GigabitEthernet0/1 - Group 10\n  State is Speak\n  Virtual IP address is 192.168.10.1\n  Active virtual MAC address is unknown\n  Local virtual MAC address is 0000.0c07.ac0a (v1 default)\n  Hello time 3 sec, hold time 10 sec\n  Authentication MD5, key-string \"CISCO123\"\n  Preemption disabled\n  Active router is unknown\n  Standby router is unknown\n  Priority 100 (default 100)",
@@ -121,12 +210,28 @@
     },
     "question": "Why are R1 and R2 stuck in Speak with no Active router?",
     "choices": [
-      {"text": "HSRP version mismatch between v1 and v2.", "correct": false, "explain": "Both sides show identical default v1 vMAC 0000.0c07.ac0a."},
-      {"text": "Priority tie of 100 prevents election.", "correct": false, "explain": "HSRP breaks priority ties by IP — it does not deadlock."},
-      {"text": "MD5 authentication key strings differ in case (CISCO123 vs cisco123).", "correct": true, "explain": "Logs show '%HSRP-4-BADAUTH'. R1 key is 'CISCO123' uppercase, R2 is 'cisco123' lowercase. HSRP MD5 keys are case-sensitive — auth fails, hellos are dropped, neither side ever sees a valid peer."},
-      {"text": "Virtual IP 192.168.10.1 is on the wrong subnet.", "correct": false, "explain": "Interfaces and virtual IP all sit in 192.168.10.0/24 (R1=.2, R2=.3, VIP=.1)."}
+      {
+        "text": "HSRP version mismatch between v1 and v2.",
+        "correct": false,
+        "explain": "Both sides show identical default v1 vMAC 0000.0c07.ac0a."
+      },
+      {
+        "text": "Priority tie of 100 prevents election.",
+        "correct": false,
+        "explain": "HSRP breaks priority ties by IP \u2014 it does not deadlock."
+      },
+      {
+        "text": "MD5 authentication key strings differ in case (CISCO123 vs cisco123).",
+        "correct": true,
+        "explain": "Logs show '%HSRP-4-BADAUTH'. R1 key is 'CISCO123' uppercase, R2 is 'cisco123' lowercase. HSRP MD5 keys are case-sensitive \u2014 auth fails, hellos are dropped, neither side ever sees a valid peer."
+      },
+      {
+        "text": "Virtual IP 192.168.10.1 is on the wrong subnet.",
+        "correct": false,
+        "explain": "Interfaces and virtual IP all sit in 192.168.10.0/24 (R1=.2, R2=.3, VIP=.1)."
+      }
     ],
-    "rootCause": "HSRP MD5 authentication key mismatch — R1 uses 'CISCO123' and R2 uses 'cisco123'. The %HSRP-4-BADAUTH log message confirms it. Hellos are dropped, neither neighbor is discovered, both stay in Speak.",
+    "rootCause": "HSRP MD5 authentication key mismatch \u2014 R1 uses 'CISCO123' and R2 uses 'cisco123'. The %HSRP-4-BADAUTH log message confirms it. Hellos are dropped, neither neighbor is discovered, both stay in Speak.",
     "fixHint": "Make both sides identical: standby 10 authentication md5 key-string CISCO123"
   },
   {
@@ -134,23 +239,44 @@
     "title": "NTP client stuck at stratum 16",
     "category": "Services",
     "difficulty": "intermediate",
-    "topics": ["4.2"],
-    "scenario": "R1 is configured to pull time from internal NTP server 10.0.0.250. Clock looks correct but TACACS auth on R1 is failing intermittently because timestamps drift. NMS says R1 is 'unsynchronized'.",
+    "topics": [
+      "4.2"
+    ],
+    "scenario": "R1 is configured to pull time from internal NTP server 10.0.0.250. NMS reports R1 as \"unsynchronized\" and TACACS auth on R1 is failing intermittently because timestamps drift. The server admin confirms the corporate NTP server signs with key id 2 (string CORPNTPKEY).",
     "initialView": [
-      {"cmd": "R1# show ntp status", "output": "Clock is unsynchronized, stratum 16, no reference clock\nnominal freq is 250.0000 Hz, actual freq is 250.0000 Hz, precision is 2**18\nreference time is 00000000.00000000 (00:00:00.000 UTC Mon Jan 1 1900)\nclock offset is 0.0000 msec, root delay is 0.00 msec\nroot dispersion is 0.00 msec, peer dispersion is 0.00 msec\nloopfilter state is 'FSET' (Drift set from file), drift is 0.000000000 s/s\nsystem poll interval is 64, never updated."}
+      {
+        "cmd": "R1# show ntp status",
+        "output": "Clock is unsynchronized, stratum 16, no reference clock\nnominal freq is 250.0000 Hz, actual freq is 250.0000 Hz, precision is 2**18\nreference time is 00000000.00000000 (00:00:00.000 UTC Mon Jan 1 1900)\nclock offset is 0.0000 msec, root delay is 0.00 msec\nroot dispersion is 0.00 msec, peer dispersion is 0.00 msec\nloopfilter state is 'FSET' (Drift set from file), drift is 0.000000000 s/s\nsystem poll interval is 64, never updated."
+      }
     ],
     "showCommands": {
       "show ntp associations": "  address         ref clock       st   when   poll reach  delay  offset    disp\n ~10.0.0.250     .INIT.          16      -     64    0  0.000   0.000  15937.\n * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured",
       "show running-config | include ntp": "ntp authenticate\nntp authentication-key 1 md5 0822455D0A16 7\nntp trusted-key 1\nntp server 10.0.0.250 key 1",
       "ping 10.0.0.250 source gi0/0": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 10.0.0.250, timeout is 2 seconds:\nPacket sent with a source address of 10.10.10.1\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 1/1/2 ms",
-      "show ntp server detail (server 10.0.0.250)": "remote: 10.0.0.250\nrefid: .GPS.\nstratum: 2\nauth: trusted-key 2  md5  CORPNTPKEY\nflags: enabled, monitor, ntp, kod"
+      "debug ntp authentication": "NTP: authentication failed for packet from 10.0.0.250\nNTP: Crypto-NAK rcvd from 10.0.0.250 \u2014 key id mismatch (rcvd key 2, configured trusted-key 1)\nNTP: dropping packet, MD5 digest verification failed"
     },
     "question": "Why won't R1 synchronize with NTP server 10.0.0.250?",
     "choices": [
-      {"text": "The NTP server is unreachable.", "correct": false, "explain": "Ping from R1 to 10.0.0.250 is 5/5 successful."},
-      {"text": "The NTP server is itself stratum 16.", "correct": false, "explain": "Server-side detail shows stratum 2 with .GPS. reference."},
-      {"text": "NTP authentication key mismatch — R1 uses key 1, server uses key 2.", "correct": true, "explain": "R1 is configured `ntp server 10.0.0.250 key 1` and trusts key 1. The server uses key 2 'CORPNTPKEY'. With authenticate enabled, R1 rejects unauthenticated/wrong-key replies. associations shows reach=0 and refid .INIT. — never authenticated."},
-      {"text": "ntp authenticate is not enabled on R1.", "correct": false, "explain": "Running-config shows `ntp authenticate` is enabled."}
+      {
+        "text": "The NTP server is unreachable.",
+        "correct": false,
+        "explain": "Ping from R1 to 10.0.0.250 is 5/5 successful."
+      },
+      {
+        "text": "The NTP server is itself stratum 16.",
+        "correct": false,
+        "explain": "Server admin confirmed server is stratum 2 with GPS reference. The scenario rules this out before the lab begins."
+      },
+      {
+        "text": "NTP authentication key mismatch \u2014 R1 uses key 1, server uses key 2.",
+        "correct": true,
+        "explain": "R1 is configured with `ntp server 10.0.0.250 key 1` and trusts key 1. Server admin confirms server signs with key 2 (CORPNTPKEY). `debug ntp authentication` shows \"Crypto-NAK rcvd ... key id mismatch (rcvd key 2, configured trusted-key 1)\". `show ntp associations` confirms reach=0 and refid `.INIT.` \u2014 never authenticated."
+      },
+      {
+        "text": "ntp authenticate is not enabled on R1.",
+        "correct": false,
+        "explain": "Running-config shows `ntp authenticate` is enabled."
+      }
     ],
     "rootCause": "NTP authentication key mismatch. R1 trusts key 1, but the corporate NTP server signs with key 2. Because `ntp authenticate` is on and the server is bound to `key 1`, replies fail the MD5 check; association stays in .INIT. with reach 0.",
     "fixHint": "ntp authentication-key 2 md5 CORPNTPKEY / ntp trusted-key 2 / ntp server 10.0.0.250 key 2"
@@ -158,12 +284,17 @@
   {
     "id": "ts-svc-07",
     "title": "Port stuck in err-disabled after PC connect",
-    "category": "Physical",
+    "category": "Services",
     "difficulty": "intermediate",
-    "topics": ["5.7"],
+    "topics": [
+      "5.7"
+    ],
     "scenario": "User reports their PC on ASW1 Gi0/5 lost link 30 seconds after they plugged in a small unmanaged desk switch to share with a phone. Port LED is amber.",
     "initialView": [
-      {"cmd": "ASW1# show interfaces gi0/5 status", "output": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/5     User-Desk-PC       err-disabled 20         auto    auto  10/100/1000BaseTX"}
+      {
+        "cmd": "ASW1# show interfaces gi0/5 status",
+        "output": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/5     User-Desk-PC       err-disabled 20         auto    auto  10/100/1000BaseTX"
+      }
     ],
     "showCommands": {
       "show interfaces gi0/5": "GigabitEthernet0/5 is down, line protocol is down (err-disabled)\n  Hardware is Gigabit Ethernet, address is aabb.cc00.0105\n  Description: User-Desk-PC\n  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec",
@@ -173,23 +304,44 @@
     },
     "question": "What put Gi0/5 into err-disabled?",
     "choices": [
-      {"text": "BPDU guard tripped because the unmanaged switch sent BPDUs.", "correct": false, "explain": "Logs explicitly say `psecure-violation`, not BPDU guard. Also no bpduguard line in the interface config."},
-      {"text": "Port-security violation: a second MAC appeared with max=1 and violation=shutdown.", "correct": true, "explain": "Port-security max is 1 with sticky learning. When the user added a desk switch, a second MAC reached the port. Logs show PSECURE_VIOLATION and the port is in Secure-shutdown."},
-      {"text": "Duplex mismatch caused the port to disable.", "correct": false, "explain": "Duplex mismatch produces errors but does not err-disable a port."},
-      {"text": "Storm control threshold exceeded.", "correct": false, "explain": "No storm-control configuration is present and the log line names psecure-violation."}
+      {
+        "text": "BPDU guard tripped because the unmanaged switch sent BPDUs.",
+        "correct": false,
+        "explain": "Logs explicitly say `psecure-violation`, not BPDU guard. Also no bpduguard line in the interface config."
+      },
+      {
+        "text": "Port-security violation: a second MAC appeared with max=1 and violation=shutdown.",
+        "correct": true,
+        "explain": "Port-security max is 1 with sticky learning. When the user added a desk switch, a second MAC reached the port. Logs show PSECURE_VIOLATION and the port is in Secure-shutdown."
+      },
+      {
+        "text": "Duplex mismatch caused the port to disable.",
+        "correct": false,
+        "explain": "Duplex mismatch produces errors but does not err-disable a port."
+      },
+      {
+        "text": "Storm control threshold exceeded.",
+        "correct": false,
+        "explain": "No storm-control configuration is present and the log line names psecure-violation."
+      }
     ],
-    "rootCause": "Port-security violation. Gi0/5 had max 1 MAC with violation `shutdown`. When the user attached a desk switch, a second MAC (the phone) arrived — the switch err-disabled the port. `%PORT_SECURITY-2-PSECURE_VIOLATION` confirms it.",
+    "rootCause": "Port-security violation. Gi0/5 had max 1 MAC with violation `shutdown`. When the user attached a desk switch, a second MAC (the phone) arrived \u2014 the switch err-disabled the port. `%PORT_SECURITY-2-PSECURE_VIOLATION` confirms it.",
     "fixHint": "Remove the extra device or raise maximum: switchport port-security maximum 2 / then shut + no shut to recover."
   },
   {
     "id": "ts-svc-08",
     "title": "Admin's SSH session works locally but fails from corp jump host",
-    "category": "Management",
+    "category": "Services",
     "difficulty": "intermediate",
-    "topics": ["5.3"],
+    "topics": [
+      "5.3"
+    ],
     "scenario": "Admin can SSH into DSW1 from a laptop on the management VLAN (10.0.0.0/24), but the corporate jump host at 172.16.5.10 always gets 'Connection closed by remote host' on the SSH banner. DSW1 reachability is fine.",
     "initialView": [
-      {"cmd": "jump@corp:~$ ssh -v admin@10.0.0.6", "output": "OpenSSH_8.9p1, OpenSSL 3.0.2\ndebug1: Connecting to 10.0.0.6 port 22.\ndebug1: Connection established.\ndebug1: identifying host key... ssh-rsa\ndebug1: ssh_exchange_identification: Connection closed by remote host\nConnection closed by 10.0.0.6 port 22"}
+      {
+        "cmd": "jump@corp:~$ ssh -v admin@10.0.0.6",
+        "output": "OpenSSH_8.9p1, OpenSSL 3.0.2\ndebug1: Connecting to 10.0.0.6 port 22.\ndebug1: Connection established.\ndebug1: identifying host key... ssh-rsa\ndebug1: ssh_exchange_identification: Connection closed by remote host\nConnection closed by 10.0.0.6 port 22"
+      }
     ],
     "showCommands": {
       "show ip ssh": "SSH Enabled - version 2.0\nAuthentication timeout: 120 secs; Authentication retries: 3\nMinimum expected Diffie Hellman key size : 1024 bits\nIOS Keys in SECSH format(ssh-rsa, base64 encoded): ssh-rsa AAAA...",
@@ -199,23 +351,44 @@
     },
     "question": "Why is SSH from the jump host (172.16.5.10) being closed?",
     "choices": [
-      {"text": "SSH keys are not generated on DSW1.", "correct": false, "explain": "show ip ssh shows 'SSH Enabled - version 2.0' with an RSA key listed."},
-      {"text": "vty access-class MGMT-IN only permits 10.0.0.0/24; 172.16.5.10 hits the deny any.", "correct": true, "explain": "ACL MGMT-IN permits only 10.0.0.0 0.0.0.255. The jump host at 172.16.5.10 falls into the explicit `deny any` (27 matches). The SSH server accepts the TCP connection then closes it because vty filter denies the session."},
-      {"text": "vty transport input doesn't include ssh.", "correct": false, "explain": "transport input ssh is configured on all vty lines."},
-      {"text": "No local user accounts exist on DSW1.", "correct": false, "explain": "show users shows admin already logged in via 10.0.0.55 — local auth works."}
+      {
+        "text": "SSH keys are not generated on DSW1.",
+        "correct": false,
+        "explain": "show ip ssh shows 'SSH Enabled - version 2.0' with an RSA key listed."
+      },
+      {
+        "text": "vty access-class MGMT-IN only permits 10.0.0.0/24; 172.16.5.10 hits the deny any.",
+        "correct": true,
+        "explain": "ACL MGMT-IN permits only 10.0.0.0 0.0.0.255. The jump host at 172.16.5.10 falls into the explicit `deny any` (27 matches). The SSH server accepts the TCP connection then closes it because vty filter denies the session."
+      },
+      {
+        "text": "vty transport input doesn't include ssh.",
+        "correct": false,
+        "explain": "transport input ssh is configured on all vty lines."
+      },
+      {
+        "text": "No local user accounts exist on DSW1.",
+        "correct": false,
+        "explain": "show users shows admin already logged in via 10.0.0.55 \u2014 local auth works."
+      }
     ],
-    "rootCause": "The vty access-class MGMT-IN only permits 10.0.0.0/24. The corporate jump host (172.16.5.10) is denied by the implicit deny — the connection is opened and immediately torn down at the vty filter.",
+    "rootCause": "The vty access-class MGMT-IN only permits 10.0.0.0/24. The corporate jump host (172.16.5.10) is denied by the implicit deny \u2014 the connection is opened and immediately torn down at the vty filter.",
     "fixHint": "ip access-list standard MGMT-IN / permit 172.16.5.0 0.0.0.255"
   },
   {
     "id": "ts-svc-09",
     "title": "Syslog server seeing nothing from R2",
-    "category": "Management",
+    "category": "Services",
     "difficulty": "advanced",
-    "topics": ["4.5"],
+    "topics": [
+      "4.5"
+    ],
     "scenario": "The central syslog server (10.0.0.20) is collecting logs from R1, R3, and most switches, but R2 has been silent for a week. The NOC needs R2 events for change auditing. R2 reachability to 10.0.0.20 is verified.",
     "initialView": [
-      {"cmd": "R2# show logging | include Trap|Logging to|Console|Buffer|Monitor", "output": "    Console logging: level debugging, 1421 messages logged, xml disabled,\n    Monitor logging: level debugging, 0 messages logged, xml disabled,\n    Buffer logging:  level debugging, 1421 messages logged, xml disabled\n    Logging to 10.0.0.20  (udp port 514, audit disabled,\n      authentication disabled, encryption disabled, link up),\n     0 message lines logged,\n     1421 message lines rate-limited,\n     0 message lines dropped-by-MD,\n    Trap logging: level emergencies, 0 message lines logged"}
+      {
+        "cmd": "R2# show logging | include Trap|Logging to|Console|Buffer|Monitor",
+        "output": "    Console logging: level debugging, 1421 messages logged, xml disabled,\n    Monitor logging: level debugging, 0 messages logged, xml disabled,\n    Buffer logging:  level debugging, 1421 messages logged, xml disabled\n    Logging to 10.0.0.20  (udp port 514, audit disabled,\n      authentication disabled, encryption disabled, link up),\n     0 message lines logged,\n     1421 message lines rate-limited,\n     0 message lines dropped-by-MD,\n    Trap logging: level emergencies, 0 message lines logged"
+      }
     ],
     "showCommands": {
       "show running-config | include logging": "logging trap emergencies\nlogging host 10.0.0.20\nlogging buffered 16384 debugging",
@@ -225,10 +398,26 @@
     },
     "question": "Why is the syslog server receiving nothing from R2?",
     "choices": [
-      {"text": "logging host 10.0.0.20 is missing from the config.", "correct": false, "explain": "It is present in running-config."},
-      {"text": "Reachability to the syslog server is broken.", "correct": false, "explain": "Ping is 5/5 to 10.0.0.20 and the logging session shows link up."},
-      {"text": "logging trap is set to emergencies, so only severity-0 messages are sent — the rest are ignored.", "correct": true, "explain": "`Trap logging: level emergencies, 0 message lines logged`. R2 only sends syslogs of severity 0 (emergencies) to the host. Routine events (LINK, LINEPROTO, OSPF notifications) are severity 5 and never get sent."},
-      {"text": "logging buffer is full so the host buffer is starved.", "correct": false, "explain": "Buffered logging is independent of host logging."}
+      {
+        "text": "logging host 10.0.0.20 is missing from the config.",
+        "correct": false,
+        "explain": "It is present in running-config."
+      },
+      {
+        "text": "Reachability to the syslog server is broken.",
+        "correct": false,
+        "explain": "Ping is 5/5 to 10.0.0.20 and the logging session shows link up."
+      },
+      {
+        "text": "logging trap is set to emergencies, so only severity-0 messages are sent \u2014 the rest are ignored.",
+        "correct": true,
+        "explain": "`Trap logging: level emergencies, 0 message lines logged`. R2 only sends syslogs of severity 0 (emergencies) to the host. Routine events (LINK, LINEPROTO, OSPF notifications) are severity 5 and never get sent."
+      },
+      {
+        "text": "logging buffer is full so the host buffer is starved.",
+        "correct": false,
+        "explain": "Buffered logging is independent of host logging."
+      }
     ],
     "rootCause": "`logging trap emergencies` filters everything above severity 0. R2 generates plenty of events but only severity-0 messages ever leave the box. The 'Trap logging ... 0 message lines logged' counter confirms it.",
     "fixHint": "logging trap informational  (or debugging if NOC wants everything)"
@@ -236,12 +425,17 @@
   {
     "id": "ts-svc-10",
     "title": "Inter-switch trunk dropping large packets, small ping works",
-    "category": "Physical",
+    "category": "Services",
     "difficulty": "advanced",
-    "topics": ["2.2"],
+    "topics": [
+      "2.2"
+    ],
     "scenario": "After migrating storage to a new VLAN, backups across the DSW1-DSW2 trunk fail with timeouts. Small pings between the switches and end hosts succeed. Users say file transfers hang at random sizes. The trunk is up/up with no CRC errors.",
     "initialView": [
-      {"cmd": "DSW1# show interfaces gi0/24 | include MTU|input errors|giants|runts", "output": "  MTU 9216 bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     0 runts, 0 giants, 0 throttles\n     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored"}
+      {
+        "cmd": "DSW1# show interfaces gi0/24 | include MTU|input errors|giants|runts",
+        "output": "  MTU 9216 bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     0 runts, 0 giants, 0 throttles\n     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored"
+      }
     ],
     "showCommands": {
       "DSW2# show interfaces gi0/24 | include MTU|input errors|giants|runts": "  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     0 runts, 0 giants, 0 throttles\n     14872 input errors, 0 CRC, 0 frame, 14872 overrun, 0 ignored",
@@ -252,10 +446,26 @@
     },
     "question": "Why do large backup frames fail while small frames succeed?",
     "choices": [
-      {"text": "CRC errors caused by a damaged cable.", "correct": false, "explain": "Both sides report 0 CRC errors. Only DSW2 shows overruns on oversized frames."},
-      {"text": "MTU mismatch — DSW1 trunk is set to 9216 (jumbo), DSW2 trunk left at default 1500.", "correct": true, "explain": "DSW1 Gi0/24 has `mtu 9216`. DSW2 Gi0/24 is default 1500. Frames bigger than 1500 sent by DSW1 are dropped/overrun at DSW2. The DF-bit ping at 4000 bytes confirms the path can't pass that size."},
-      {"text": "STP is blocking large frames.", "correct": false, "explain": "STP forwards or blocks, it doesn't filter by size."},
-      {"text": "Native VLAN mismatch on the trunk.", "correct": false, "explain": "Output gives no indication of a CDP/STP native VLAN mismatch; the problem is purely size-related."}
+      {
+        "text": "CRC errors caused by a damaged cable.",
+        "correct": false,
+        "explain": "Both sides report 0 CRC errors. Only DSW2 shows overruns on oversized frames."
+      },
+      {
+        "text": "MTU mismatch \u2014 DSW1 trunk is set to 9216 (jumbo), DSW2 trunk left at default 1500.",
+        "correct": true,
+        "explain": "DSW1 Gi0/24 has `mtu 9216`. DSW2 Gi0/24 is default 1500. Frames bigger than 1500 sent by DSW1 are dropped/overrun at DSW2. The DF-bit ping at 4000 bytes confirms the path can't pass that size."
+      },
+      {
+        "text": "STP is blocking large frames.",
+        "correct": false,
+        "explain": "STP forwards or blocks, it doesn't filter by size."
+      },
+      {
+        "text": "Native VLAN mismatch on the trunk.",
+        "correct": false,
+        "explain": "Output gives no indication of a CDP/STP native VLAN mismatch; the problem is purely size-related."
+      }
     ],
     "rootCause": "MTU mismatch on the inter-switch trunk. DSW1 is configured for jumbo frames (9216) while DSW2 is at the 1500 default. Frames sized between 1501 and 9216 succeed only one direction and get dropped at DSW2 (visible as overruns).",
     "fixHint": "DSW2(config)# interface gi0/24 / mtu 9216  (and ensure all switches in the L2 storage path match)"
