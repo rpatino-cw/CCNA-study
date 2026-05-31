@@ -1,0 +1,308 @@
+[
+  {
+    "id": "ts-l3-01",
+    "title": "OSPF neighbor stuck in EXSTART",
+    "category": "L3",
+    "difficulty": "intermediate",
+    "topics": ["3.4"],
+    "scenario": "R1 and R2 are OSPF neighbors over Gi0/0. The neighbor relationship climbs to EXSTART and never reaches FULL. Routes are missing on both sides. NOC noticed after a switch port-channel was rebuilt last night.",
+    "initialView": [
+      {
+        "cmd": "R1# show ip ospf neighbor",
+        "output": "Neighbor ID     Pri   State           Dead Time   Address         Interface\n2.2.2.2           1   EXSTART/DR      00:00:34    10.0.12.2       GigabitEthernet0/0"
+      }
+    ],
+    "showCommands": {
+      "show ip ospf interface gi0/0": "GigabitEthernet0/0 is up, line protocol is up\n  Internet Address 10.0.12.1/24, Area 0, Attached via Network Statement\n  Process ID 1, Router ID 1.1.1.1, Network Type BROADCAST, Cost: 1\n  Topology-MTID    Cost    Disabled    Shutdown      Topology Name\n        0           1        no          no            Base\n  Transmit Delay is 1 sec, State BDR, Priority 1\n  Designated Router (ID) 2.2.2.2, Interface address 10.0.12.2\n  Backup Designated router (ID) 1.1.1.1, Interface address 10.0.12.1\n  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5\n    Hello due in 00:00:03\n  Supports Link-local Signaling (LLS)\n  Index 1/1, flood queue length 0\n  Next 0x0(0)/0x0(0)\n  Last flood scan length is 0, maximum is 0\n  Last flood scan time is 0 msec, maximum is 0 msec\n  Neighbor Count is 1, Adjacent neighbor count is 0\n  Suppress hello for 0 neighbor(s)",
+      "show interfaces gi0/0": "GigabitEthernet0/0 is up, line protocol is up\n  Hardware is iGbE, address is 0050.7966.6800 (bia 0050.7966.6800)\n  Internet address is 10.0.12.1/24\n  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     reliability 255/255, txload 1/255, rxload 1/255\n  Encapsulation ARPA, loopback not set\n  Keepalive set (10 sec)\n  Full Duplex, 1Gbps, link type is auto, media type is RJ45",
+      "show interfaces gi0/0 | include MTU": "  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,",
+      "show ip ospf neighbor detail": "Neighbor 2.2.2.2, interface address 10.0.12.2\n    In the area 0 via interface GigabitEthernet0/0\n    Neighbor priority is 1, State is EXSTART, 12 state changes\n    DR is 10.0.12.2 BDR is 10.0.12.1\n    Options is 0x12 in Hello (E-bit L-bit)\n    Options is 0x52 in DBD (E-bit L-bit O-bit)\n    Dead timer due in 00:00:34\n    Neighbor is up for 00:02:14\n    Index 1/1, retransmission queue length 1, number of retransmission 7\n    First 0x7F1E48 next 0x7F1E48\n    Last retransmission scan length is 1, maximum is 1\n    Last retransmission scan time is 0 msec, maximum is 0 msec",
+      "show interfaces gi0/0 | include MTU|line protocol": "GigabitEthernet0/0 is up, line protocol is up\n  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,",
+      "show log | include OSPF|MTU": "%OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet0/0 from EXCHANGE to EXSTART, MTU mismatch with neighbor: my MTU 1500, nbr MTU 9216\n%OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet0/0 from EXSTART to DOWN"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "OSPF area mismatch between R1 and R2", "correct": false, "explain": "Area mismatch would prevent neighbor from forming at all — state would never leave INIT/DOWN, not climb to EXSTART."},
+      {"text": "MTU mismatch on Gi0/0 (R1=1500, R2=9216)", "correct": true, "explain": "Syslog clearly shows 'MTU mismatch with neighbor: my MTU 1500, nbr MTU 9216'. OSPF refuses to leave EXSTART when MTUs differ."},
+      {"text": "OSPF hello/dead timer mismatch", "correct": false, "explain": "Timer mismatch prevents the neighbor from forming at all — state would not reach EXSTART. Hello/Dead show 10/40 here."},
+      {"text": "OSPF authentication mismatch", "correct": false, "explain": "Auth mismatch would log 'mismatch authentication key' and stay DOWN. No auth errors in log."}
+    ],
+    "rootCause": "Syslog `%OSPF-5-ADJCHG: ... MTU mismatch with neighbor: my MTU 1500, nbr MTU 9216` confirms the MTUs differ between R1's Gi0/0 (1500) and R2's interface (9216). OSPF won't transition past EXSTART until MTUs match.",
+    "fixHint": "On R2: interface Gi0/0 → `mtu 1500` (or set R1 to 9216). Alternatively `ip ospf mtu-ignore` on the interface as a workaround."
+  },
+  {
+    "id": "ts-l3-02",
+    "title": "OSPF area mismatch — no neighbor",
+    "category": "L3",
+    "difficulty": "beginner",
+    "topics": ["3.4"],
+    "scenario": "R1 and R2 share subnet 10.0.12.0/24 on Gi0/0 but no OSPF neighbor ever forms. Both routers' OSPF processes are running and interfaces are up.",
+    "initialView": [
+      {
+        "cmd": "R1# show ip ospf neighbor",
+        "output": ""
+      }
+    ],
+    "showCommands": {
+      "show ip ospf interface gi0/0": "GigabitEthernet0/0 is up, line protocol is up\n  Internet Address 10.0.12.1/24, Area 0, Attached via Network Statement\n  Process ID 1, Router ID 1.1.1.1, Network Type BROADCAST, Cost: 1\n  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5\n    Hello due in 00:00:02\n  Neighbor Count is 0, Adjacent neighbor count is 0",
+      "show running-config | section router ospf": "router ospf 1\n router-id 1.1.1.1\n network 10.0.12.0 0.0.0.255 area 0",
+      "show ip ospf interface gi0/0 brief": "Interface    PID   Area    IP Address/Mask    Cost  State Nbrs F/C\nGi0/0          1     0       10.0.12.1/24        1   DR    0/0",
+      "show ip ospf neighbor": "",
+      "show log | include OSPF": "%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID, from backbone area must be virtual-link but not found from 10.0.12.2, GigabitEthernet0/0\n%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID, from backbone area must be virtual-link but not found from 10.0.12.2, GigabitEthernet0/0",
+      "show running-config interface gi0/0": "interface GigabitEthernet0/0\n ip address 10.0.12.1 255.255.255.0\n duplex auto\n speed auto\nend"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "MTU mismatch", "correct": false, "explain": "MTU mismatch lets neighbor form to EXSTART. Here neighbor count is 0 — never formed. Also no MTU log."},
+      {"text": "OSPF area mismatch (R1 area 0, R2 area 1)", "correct": true, "explain": "Syslog shows 'mismatched area ID, from backbone area' — R2 is sending hellos from a non-backbone area. R1's interface is in area 0; the hellos are dropped."},
+      {"text": "OSPF process not running on R2", "correct": false, "explain": "If process were down, R1 wouldn't receive any packets and there'd be no error logs. R1 IS receiving R2's hellos."},
+      {"text": "IP subnet mismatch", "correct": false, "explain": "Both routers are on 10.0.12.0/24 (10.0.12.1 and 10.0.12.2 visible). No subnet mismatch."}
+    ],
+    "rootCause": "`%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID` log proves R2's hellos arrive but advertise a different area. R1 is in area 0 (per `show ip ospf interface`), R2 is in another area.",
+    "fixHint": "On R2: `router ospf 1` → `no network 10.0.12.0 0.0.0.255 area X` then `network 10.0.12.0 0.0.0.255 area 0`."
+  },
+  {
+    "id": "ts-l3-03",
+    "title": "OSPF hello/dead timer mismatch",
+    "category": "L3",
+    "difficulty": "intermediate",
+    "topics": ["3.4"],
+    "scenario": "R1 reports no OSPF neighbor over Gi0/1 to R3. Both routers are in area 0, interfaces are up, subnet matches. Logs scroll constantly.",
+    "initialView": [
+      {
+        "cmd": "R1# show ip ospf neighbor",
+        "output": ""
+      }
+    ],
+    "showCommands": {
+      "show ip ospf interface gi0/1": "GigabitEthernet0/1 is up, line protocol is up\n  Internet Address 10.0.13.1/24, Area 0, Attached via Network Statement\n  Process ID 1, Router ID 1.1.1.1, Network Type BROADCAST, Cost: 1\n  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5\n    Hello due in 00:00:04\n  Neighbor Count is 0, Adjacent neighbor count is 0",
+      "show ip ospf interface gi0/1 | include Timer|Hello|Dead": "  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5\n    Hello due in 00:00:04",
+      "show log | include OSPF": "%OSPF-4-ERRRCV: Received invalid packet: mismatched hello parameters from 10.0.13.3, GigabitEthernet0/1\n%OSPF-4-ERRRCV: Received invalid packet: mismatched hello parameters from 10.0.13.3, GigabitEthernet0/1\n%OSPF-4-ERRRCV: Received invalid packet: mismatched hello parameters from 10.0.13.3, GigabitEthernet0/1",
+      "show running-config | section router ospf": "router ospf 1\n router-id 1.1.1.1\n network 10.0.13.0 0.0.0.255 area 0\n network 10.0.12.0 0.0.0.255 area 0",
+      "show running-config interface gi0/1": "interface GigabitEthernet0/1\n ip address 10.0.13.1 255.255.255.0\n duplex auto\n speed auto\nend",
+      "debug ip ospf hello": "OSPF-1 HELLO Gi0/1: Rcv hello from 3.3.3.3 area 0 from 10.0.13.3\nOSPF-1 HELLO Gi0/1: Mismatched hello parameters from 10.0.13.3\nOSPF-1 HELLO Gi0/1: Dead R 30 C 40, Hello R 5 C 10  Mask R 255.255.255.0 C 255.255.255.0"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "OSPF area mismatch", "correct": false, "explain": "Debug shows R3 is sending area 0 — matches R1. The mismatch is timers, not area."},
+      {"text": "Hello/dead timer mismatch (R1: 10/40, R3: 5/30)", "correct": true, "explain": "debug output shows 'Dead R 30 C 40, Hello R 5 C 10' — Received (R3) timers are 5/30, Configured (R1) are 10/40. Timers must match for adjacency."},
+      {"text": "MTU mismatch", "correct": false, "explain": "MTU mismatch allows neighbor to reach EXSTART. Here neighbor never appears. The 'mismatched hello parameters' log is timer-specific."},
+      {"text": "Subnet mask mismatch", "correct": false, "explain": "Debug shows 'Mask R 255.255.255.0 C 255.255.255.0' — masks match."}
+    ],
+    "rootCause": "Debug shows `Dead R 30 C 40, Hello R 5 C 10` — R3 sends hello-interval 5, dead-interval 30; R1 has 10/40. OSPF drops hellos with mismatched timers and never forms adjacency.",
+    "fixHint": "On R3 Gi0/x: `ip ospf hello-interval 10` and `ip ospf dead-interval 40` (or change R1 to match)."
+  },
+  {
+    "id": "ts-l3-04",
+    "title": "OSPF authentication key mismatch",
+    "category": "L3",
+    "difficulty": "advanced",
+    "topics": ["3.4"],
+    "scenario": "After enabling OSPF authentication on R1's Gi0/0, the neighbor to R2 dropped and won't re-form. Subnet, area, timers all match.",
+    "initialView": [
+      {
+        "cmd": "R1# show ip ospf neighbor",
+        "output": ""
+      }
+    ],
+    "showCommands": {
+      "show ip ospf interface gi0/0": "GigabitEthernet0/0 is up, line protocol is up\n  Internet Address 10.0.12.1/24, Area 0, Attached via Network Statement\n  Process ID 1, Router ID 1.1.1.1, Network Type BROADCAST, Cost: 1\n  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5\n    Hello due in 00:00:01\n  Neighbor Count is 0, Adjacent neighbor count is 0\n  Message digest authentication enabled\n    Youngest key id is 1",
+      "show running-config interface gi0/0": "interface GigabitEthernet0/0\n ip address 10.0.12.1 255.255.255.0\n ip ospf message-digest-key 1 md5 CISCO123\n ip ospf authentication message-digest\n duplex auto\n speed auto\nend",
+      "show log | include OSPF": "%OSPF-4-ERRRCV: Received invalid packet: mismatch authentication key, from 10.0.12.2, GigabitEthernet0/0\n%OSPF-4-ERRRCV: Received invalid packet: mismatch authentication key, from 10.0.12.2, GigabitEthernet0/0",
+      "show ip ospf": "Routing Process \"ospf 1\" with ID 1.1.1.1\n Start time: 00:00:32.776, Time elapsed: 00:18:45.123\n Supports only single TOS(TOS0) routes\n Supports opaque LSA\n Supports Link-local Signaling (LLS)\n Supports area transit capability\n Router is not originating router-LSAs with maximum metric\n Initial SPF schedule delay 5000 msecs\n Number of areas in this router is 1. 1 normal 0 stub 0 nssa",
+      "show running-config | section router ospf": "router ospf 1\n router-id 1.1.1.1\n area 0 authentication message-digest\n network 10.0.12.0 0.0.0.255 area 0"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "OSPF authentication is enabled on R1 but R2 has a different/missing key", "correct": true, "explain": "Syslog 'mismatch authentication key, from 10.0.12.2' confirms R2 is sending hellos but the MD5 digest doesn't match. R1's config shows md5 key CISCO123."},
+      {"text": "OSPF area 0 not enabled on R1's Gi0/0", "correct": false, "explain": "`show ip ospf interface` confirms area 0 on Gi0/0 — area is fine."},
+      {"text": "Timer mismatch", "correct": false, "explain": "No 'mismatched hello parameters' log; auth-specific error is present."},
+      {"text": "R2 stopped sending hellos", "correct": false, "explain": "R1 is logging packets received from 10.0.12.2 — R2 IS sending. The packets are just rejected by auth."}
+    ],
+    "rootCause": "`%OSPF-4-ERRRCV: ... mismatch authentication key, from 10.0.12.2` shows R2 is sending OSPF packets but MD5 authentication fails. R1 has key 1 = `CISCO123`; R2's key differs or is missing.",
+    "fixHint": "On R2 Gi0/x: `ip ospf message-digest-key 1 md5 CISCO123` and `ip ospf authentication message-digest`."
+  },
+  {
+    "id": "ts-l3-05",
+    "title": "EIGRP K-value mismatch",
+    "category": "L3",
+    "difficulty": "advanced",
+    "topics": ["3.5"],
+    "scenario": "R1 and R2 are configured for EIGRP AS 100 over Gi0/0. The neighbor flapped after R2 was reloaded with a new template config. R1's neighbor table is empty.",
+    "initialView": [
+      {
+        "cmd": "R1# show ip eigrp neighbors",
+        "output": "EIGRP-IPv4 Neighbors for AS(100)\nH   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq\n                                                   (sec)         (ms)       Cnt Num"
+      }
+    ],
+    "showCommands": {
+      "show ip eigrp interfaces": "EIGRP-IPv4 Interfaces for AS(100)\n                              Xmit Queue   PeerQ        Mean   Pacing Time   Multicast    Pending\nInterface              Peers  Un/Reliable  Un/Reliable  SRTT   Un/Reliable   Flow Timer   Routes\nGi0/0                    0      0/0          0/0           0    0/0             0           0",
+      "show running-config | section router eigrp": "router eigrp 100\n network 10.0.12.0 0.0.0.255\n metric weights 0 2 0 1 0 0",
+      "show log | include EIGRP|DUAL": "%DUAL-5-NBRCHANGE: EIGRP-IPv4 100: Neighbor 10.0.12.2 (GigabitEthernet0/0) is down: K-value mismatch\n%DUAL-5-NBRCHANGE: EIGRP-IPv4 100: Neighbor 10.0.12.2 (GigabitEthernet0/0) is down: K-value mismatch",
+      "show ip protocols": "*** IP Routing is NSF aware ***\n\nRouting Protocol is \"eigrp 100\"\n  Outgoing update filter list for all interfaces is not set\n  Incoming update filter list for all interfaces is not set\n  Default networks flagged in outgoing updates\n  Default networks accepted from incoming updates\n  EIGRP-IPv4 Protocol for AS(100)\n    Metric weight K1=2, K2=0, K3=1, K4=0, K5=0\n    NSF-aware route hold timer is 240\n    Router-ID: 1.1.1.1\n    Topology : 0 (base)\n      Active Timer: 3 min\n      Distance: internal 90 external 170",
+      "show running-config interface gi0/0": "interface GigabitEthernet0/0\n ip address 10.0.12.1 255.255.255.0\n duplex auto\n speed auto\nend"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "EIGRP AS number mismatch", "correct": false, "explain": "AS mismatch produces no log entry — packets are silently dropped because the AS doesn't match. Here R1 explicitly logs 'K-value mismatch'."},
+      {"text": "R1 has non-default K-values (K1=2,K3=1) — R2 likely uses defaults (K1=K3=1)", "correct": true, "explain": "Syslog shows 'K-value mismatch'. `show ip protocols` confirms R1's K-values are K1=2, K3=1 (non-default). R2 with default K1=1,K3=1 won't peer."},
+      {"text": "Interface Gi0/0 is shut", "correct": false, "explain": "`show ip eigrp interfaces` lists Gi0/0 as active — the interface is enabled in EIGRP."},
+      {"text": "Authentication mismatch", "correct": false, "explain": "No 'authentication mismatch' log. The specific error is K-value mismatch."}
+    ],
+    "rootCause": "`%DUAL-5-NBRCHANGE: ... K-value mismatch` plus `metric weights 0 2 0 1 0 0` in R1's running-config shows R1 has K1=2, K3=1 — non-default. R2 still has defaults (1,0,1,0,0), so EIGRP refuses adjacency.",
+    "fixHint": "On R1: `router eigrp 100` → `no metric weights 0 2 0 1 0 0` to return to defaults (or set R2 to match)."
+  },
+  {
+    "id": "ts-l3-06",
+    "title": "Static route with unreachable next-hop",
+    "category": "L3",
+    "difficulty": "beginner",
+    "topics": ["3.3"],
+    "scenario": "R1 has a static route to 192.168.50.0/24 via 10.0.99.1. Users on R1's LAN report no connectivity to the 192.168.50.0/24 server farm. R1's RIB shows the route is present.",
+    "initialView": [
+      {
+        "cmd": "R1# show ip route 192.168.50.0",
+        "output": "Routing entry for 192.168.50.0/24\n  Known via \"static\", distance 1, metric 0\n  Routing Descriptor Blocks:\n  * 10.0.99.1\n      Route metric is 0, traffic share count is 1"
+      }
+    ],
+    "showCommands": {
+      "show ip route": "Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP\n       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area\n\nGateway of last resort is not set\n\n      10.0.0.0/8 is variably subnetted, 4 subnets, 2 masks\nC        10.0.12.0/24 is directly connected, GigabitEthernet0/0\nL        10.0.12.1/32 is directly connected, GigabitEthernet0/0\nC        10.0.13.0/24 is directly connected, GigabitEthernet0/1\nL        10.0.13.1/32 is directly connected, GigabitEthernet0/1\nS     192.168.50.0/24 [1/0] via 10.0.99.1",
+      "show running-config | include ip route": "ip route 192.168.50.0 255.255.255.0 10.0.99.1",
+      "ping 10.0.99.1": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 10.0.99.1, timeout is 2 seconds:\n.....\nSuccess rate is 0 percent (0/5)",
+      "show ip route 10.0.99.1": "% Subnet not in table",
+      "show ip cef 192.168.50.0": "192.168.50.0/24\n  nexthop 10.0.99.1\n  unresolved (nexthop not in routing table)"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "ACL is blocking the traffic", "correct": false, "explain": "No ACL evidence. Also `ping 10.0.99.1` returns 0% — the issue is reachability of next-hop itself, not ACL."},
+      {"text": "Static route next-hop 10.0.99.1 is not reachable — recursion fails", "correct": true, "explain": "`show ip route 10.0.99.1` returns 'Subnet not in table' and `show ip cef` says 'unresolved (nexthop not in routing table)'. R1 has no route to its own next-hop."},
+      {"text": "The destination 192.168.50.0/24 server is down", "correct": false, "explain": "If only the server were down, R1 would still forward packets out the correct interface. Here R1 can't resolve next-hop at all."},
+      {"text": "NAT is missing on R1", "correct": false, "explain": "NAT isn't involved in pure L3 forwarding through an existing static route. The CEF entry is 'unresolved' before NAT would apply."}
+    ],
+    "rootCause": "`show ip cef 192.168.50.0` returns 'unresolved (nexthop not in routing table)' and `show ip route 10.0.99.1` returns 'Subnet not in table'. The static points at a next-hop R1 cannot recursively reach.",
+    "fixHint": "Either fix the next-hop to a reachable address (e.g. `ip route 192.168.50.0 255.255.255.0 10.0.12.2`) or add a route toward 10.0.99.0/24."
+  },
+  {
+    "id": "ts-l3-07",
+    "title": "Routing loop — two static routes pointing at each other",
+    "category": "L3",
+    "difficulty": "intermediate",
+    "topics": ["3.3"],
+    "scenario": "Users complain 192.168.77.0/24 is unreachable from R1 and R2. Traceroute shows ping bouncing between R1 and R2 until TTL expires. CPU on R1 climbing.",
+    "initialView": [
+      {
+        "cmd": "R1# traceroute 192.168.77.5",
+        "output": "Type escape sequence to abort.\nTracing the route to 192.168.77.5\nVRF info: (vrf in name/id, vrf out name/id)\n  1 10.0.12.2 4 msec 0 msec 0 msec\n  2 10.0.12.1 4 msec 0 msec 0 msec\n  3 10.0.12.2 4 msec 0 msec 0 msec\n  4 10.0.12.1 4 msec 0 msec 0 msec\n  5 10.0.12.2 4 msec 0 msec 4 msec\n  ...\n 30 10.0.12.1 4 msec 0 msec 4 msec"
+      }
+    ],
+    "showCommands": {
+      "show ip route 192.168.77.0": "Routing entry for 192.168.77.0/24\n  Known via \"static\", distance 1, metric 0\n  Routing Descriptor Blocks:\n  * 10.0.12.2\n      Route metric is 0, traffic share count is 1",
+      "show running-config | include ip route": "ip route 192.168.77.0 255.255.255.0 10.0.12.2",
+      "show ip route 10.0.12.2": "Routing entry for 10.0.12.0/24\n  Known via \"connected\", distance 0, metric 0 (connected, via interface)\n  Routing Descriptor Blocks:\n  * directly connected, via GigabitEthernet0/0\n      Route metric is 0, traffic share count is 1",
+      "R2# show running-config | include ip route": "ip route 192.168.77.0 255.255.255.0 10.0.12.1",
+      "R2# show ip route 192.168.77.0": "Routing entry for 192.168.77.0/24\n  Known via \"static\", distance 1, metric 0\n  Routing Descriptor Blocks:\n  * 10.0.12.1\n      Route metric is 0, traffic share count is 1",
+      "show processes cpu sorted | exclude 0.00": "CPU utilization for five seconds: 78%/72%; one minute: 65%; five minutes: 41%\n PID Runtime(ms)   Invoked   uSecs   5Sec   1Min   5Min TTY Process\n  86       12345      4321    2856  18.3%  12.1%   8.4%   0 IP Input"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "192.168.77.0/24 host is offline", "correct": false, "explain": "Host offline would produce no traceroute — packet would reach last router and fail. Here packets ping-pong between R1 and R2, classic loop."},
+      {"text": "Routing loop: R1 points 192.168.77.0/24 at R2, R2 points it at R1", "correct": true, "explain": "R1's static: `ip route 192.168.77.0 255.255.255.0 10.0.12.2`; R2's static: `ip route 192.168.77.0 255.255.255.0 10.0.12.1`. Neither owns the network — they bounce forever."},
+      {"text": "MTU black hole", "correct": false, "explain": "MTU issues drop fragmented packets silently; they don't cause alternating hops in traceroute. The traceroute clearly shows R1↔R2 loop."},
+      {"text": "OSPF area mismatch", "correct": false, "explain": "OSPF isn't even shown in use here — these are static routes. Loop is caused by static config, not protocol."}
+    ],
+    "rootCause": "R1's static `ip route 192.168.77.0 255.255.255.0 10.0.12.2` and R2's `ip route 192.168.77.0 255.255.255.0 10.0.12.1` send packets in a circle — neither router has a connected/specific route to 192.168.77.0/24.",
+    "fixHint": "Remove the wrong static. Whichever router actually borders 192.168.77.0/24 should be the only one with that static (or use a dynamic protocol)."
+  },
+  {
+    "id": "ts-l3-08",
+    "title": "ACL deny shadows specific permit",
+    "category": "L3",
+    "difficulty": "intermediate",
+    "topics": ["5.6"],
+    "scenario": "Branch user 192.168.10.50 cannot reach internal server 172.16.20.10. NOC added an ACL last week that was supposed to allow this exact host. Pings fail with U.U.U.",
+    "initialView": [
+      {
+        "cmd": "R1# show access-lists 110",
+        "output": "Extended IP access list 110\n    10 permit ip 192.168.10.0 0.0.0.255 172.16.0.0 0.0.255.255\n    20 deny ip any any (1247 matches)\n    30 permit ip host 192.168.10.50 host 172.16.20.10"
+      }
+    ],
+    "showCommands": {
+      "show ip interface gi0/1 | include access list": "  Outgoing access list is not set\n  Inbound  access list is 110",
+      "show running-config | include access-list 110": "access-list 110 permit ip 192.168.10.0 0.0.0.255 172.16.0.0 0.0.255.255\naccess-list 110 deny ip any any\naccess-list 110 permit ip host 192.168.10.50 host 172.16.20.10",
+      "show access-lists 110": "Extended IP access list 110\n    10 permit ip 192.168.10.0 0.0.0.255 172.16.0.0 0.0.255.255\n    20 deny ip any any (1247 matches)\n    30 permit ip host 192.168.10.50 host 172.16.20.10 (0 matches)",
+      "ping 172.16.20.10 source 192.168.10.50": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 172.16.20.10, timeout is 2 seconds:\nPacket sent with a source address of 192.168.10.50\nU.U.U\nSuccess rate is 0 percent (0/5)",
+      "show running-config interface gi0/1": "interface GigabitEthernet0/1\n ip address 192.168.10.1 255.255.255.0\n ip access-group 110 in\n duplex auto\n speed auto\nend"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "ACL is applied in the wrong direction", "correct": false, "explain": "It's applied inbound on the LAN-facing interface — correct direction for filtering source 192.168.10.50 from its own subnet."},
+      {"text": "Static route is missing", "correct": false, "explain": "`U.U.U` from ping means 'destination unreachable from filter' — ACL drop, not routing failure."},
+      {"text": "Line 30 permit is shadowed by line 20 deny", "correct": true, "explain": "ACLs are processed top-down. Line 10 doesn't match host 192.168.10.50 to 172.16.20.10 (wildcard mismatch on dest)? Actually it does — but line 20 explicit deny is hit first if line 10 misses. Line 30 (specific permit) sits AFTER deny ip any any so it's never evaluated — '0 matches' confirms."},
+      {"text": "Source 192.168.10.50 is not on the connected subnet", "correct": false, "explain": "192.168.10.50 IS in 192.168.10.0/24 (R1's Gi0/1 LAN). Subnet is fine."}
+    ],
+    "rootCause": "ACL 110 line 20 is `deny ip any any` with 1247 matches; line 30 `permit ip host 192.168.10.50 host 172.16.20.10` shows 0 matches. The deny shadows the specific permit. Also, line 10 only permits dest 172.16.0.0/16 but the host probably falls in this range — investigate why 10 isn't matching, but line 30 is provably unreachable.",
+    "fixHint": "Reorder: `no access-list 110` then rebuild with the specific permit before the deny — or use sequence numbers to insert: `ip access-list extended 110` → `15 permit ip host 192.168.10.50 host 172.16.20.10`."
+  },
+  {
+    "id": "ts-l3-09",
+    "title": "NAT not translating — missing ip nat inside",
+    "category": "L3",
+    "difficulty": "intermediate",
+    "topics": ["4.1"],
+    "scenario": "R-EDGE was configured for PAT overload to the internet. LAN hosts on 192.168.1.0/24 (off Gi0/0) cannot reach 8.8.8.8. The translation table is empty.",
+    "initialView": [
+      {
+        "cmd": "R-EDGE# show ip nat translations",
+        "output": ""
+      }
+    ],
+    "showCommands": {
+      "show running-config | section nat": "ip nat inside source list 1 interface GigabitEthernet0/1 overload",
+      "show running-config | include access-list 1": "access-list 1 permit 192.168.1.0 0.0.0.255",
+      "show running-config interface gi0/0": "interface GigabitEthernet0/0\n description LAN\n ip address 192.168.1.1 255.255.255.0\n duplex auto\n speed auto\nend",
+      "show running-config interface gi0/1": "interface GigabitEthernet0/1\n description WAN\n ip address 203.0.113.2 255.255.255.252\n ip nat outside\n duplex auto\n speed auto\nend",
+      "show ip nat statistics": "Total active translations: 0 (0 static, 0 dynamic; 0 extended)\nPeak translations: 0\nOutside interfaces:\n  GigabitEthernet0/1\nInside interfaces:\nHits: 0  Misses: 0\nExpired translations: 0\nDynamic mappings:\n-- Inside Source\n[Id: 1] access-list 1 interface GigabitEthernet0/1 refcount 0",
+      "ping 8.8.8.8 source 192.168.1.1": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 8.8.8.8, timeout is 2 seconds:\nPacket sent with a source address of 192.168.1.1\n.....\nSuccess rate is 0 percent (0/5)"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "ACL 1 doesn't permit 192.168.1.0/24", "correct": false, "explain": "ACL 1 explicitly permits 192.168.1.0 0.0.0.255 — correct match."},
+      {"text": "Gi0/0 (LAN) is missing `ip nat inside`", "correct": true, "explain": "`show ip nat statistics` shows 'Inside interfaces:' line is empty. Gi0/0 config has no `ip nat inside` statement. NAT only translates traffic flowing inside→outside; without inside, nothing matches."},
+      {"text": "Default route is missing", "correct": false, "explain": "Cannot verify from output but NAT statistics shows 0 hits / 0 misses — packets aren't even reaching NAT evaluation, which points to missing inside, not routing."},
+      {"text": "Outside interface needs to be a loopback", "correct": false, "explain": "Outside interface can be any physical interface — Gi0/1 with `ip nat outside` is fine."}
+    ],
+    "rootCause": "`show ip nat statistics` shows `Inside interfaces:` line empty. Gi0/0 (LAN) running-config has `ip nat outside` missing AND no `ip nat inside`. Without `ip nat inside` on the LAN, the router never tags packets for translation.",
+    "fixHint": "On R-EDGE: `interface Gi0/0` → `ip nat inside`."
+  },
+  {
+    "id": "ts-l3-10",
+    "title": "Asymmetric routing breaks stateful NAT",
+    "category": "L3",
+    "difficulty": "advanced",
+    "topics": ["4.1", "3.3"],
+    "scenario": "After adding R-CORE as a backup egress, internal users complain external HTTPS sessions to 198.51.100.10 hang halfway through page loads. Pings succeed. Traffic is hashing per-flow across R-EDGE and R-CORE.",
+    "initialView": [
+      {
+        "cmd": "R-EDGE# show ip nat translations | include 198.51.100.10",
+        "output": "Pro Inside global         Inside local          Outside local         Outside global\ntcp 203.0.113.2:51234     192.168.1.50:51234    198.51.100.10:443     198.51.100.10:443"
+      }
+    ],
+    "showCommands": {
+      "show ip route 198.51.100.10": "Routing entry for 198.51.100.0/24\n  Known via \"ospf 1\", distance 110, metric 2, type intra area\n  Last update from 10.0.99.2 on GigabitEthernet0/2, 00:05:12 ago\n  Routing Descriptor Blocks:\n  * 10.0.99.2, from 4.4.4.4, 00:05:12 ago, via GigabitEthernet0/2\n      Route metric is 2, traffic share count is 1\n    10.0.88.2, from 5.5.5.5, 00:05:12 ago, via GigabitEthernet0/3\n      Route metric is 2, traffic share count is 1",
+      "R-CORE# show ip nat translations": "",
+      "R-CORE# show running-config | section nat": "ip nat inside source list 1 interface GigabitEthernet0/1 overload",
+      "show running-config | section nat": "ip nat inside source list 1 interface GigabitEthernet0/1 overload",
+      "show ip cef 198.51.100.10 internal": "198.51.100.10/32, epoch 0, flags [rib only nolabel, rib defined all labels]\n  recursive via 10.0.99.2\n  attached to GigabitEthernet0/2\n  per-destination sharing\n  share-count 1, 2 paths",
+      "show log | include NAT|TCP": "%NAT-6-LOG_TRANSLATION: protocol TCP src 192.168.1.50 dst 198.51.100.10 [Outbound] src 203.0.113.2 dst 198.51.100.10\n%TCP-6-BADAUTH: Invalid MD5 digest from 198.51.100.10(443) to 192.168.1.50(51234) tableid - 0"
+    },
+    "question": "What is the root cause?",
+    "choices": [
+      {"text": "ACL is blocking return traffic", "correct": false, "explain": "No ACL drop log present. Pings work, which means basic L3 reachability is fine."},
+      {"text": "Asymmetric routing — outbound via R-EDGE, return via R-CORE — NAT state only on R-EDGE", "correct": true, "explain": "Both R-EDGE and R-CORE do `ip nat inside source ... overload` but R-CORE's translation table is empty. Outbound flow created NAT on R-EDGE; return packet arrives at R-CORE which has no matching state, drops or mis-translates. TCP-6-BADAUTH is the resulting symptom."},
+      {"text": "MTU mismatch on WAN", "correct": false, "explain": "MTU issues affect large packets but pings (small) and translation (visible) succeed. Half-loading pages with hangs match stateful drop, not MTU."},
+      {"text": "Default route is missing", "correct": false, "explain": "Default/specific route exists per `show ip route` — outbound is forwarding."}
+    ],
+    "rootCause": "ECMP between Gi0/2 (R-CORE) and Gi0/3 means flows hash differently. R-EDGE has the NAT translation (`tcp 203.0.113.2:51234 ...`) but R-CORE's `show ip nat translations` is empty. When return path picks R-CORE, the stateful NAT lookup fails and the session drops.",
+    "fixHint": "Force symmetric routing (PBR or remove ECMP), or use HSRP/VRRP with a single NAT exit, or move NAT to a single shared device (e.g. firewall cluster with state sync)."
+  }
+]

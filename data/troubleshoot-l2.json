@@ -1,0 +1,263 @@
+[
+  {
+    "id": "ts-l2-01",
+    "title": "STP root in wrong place",
+    "category": "L2",
+    "difficulty": "beginner",
+    "topics": ["2.5"],
+    "scenario": "Users in VLAN 10 report slow file shares. NOC notices traffic from SW1 to DSW1 is taking a non-optimal path. The distribution switch DSW1 should be root for VLAN 10, but it isn't.",
+    "initialView": [
+      {"cmd": "SW1# show spanning-tree vlan 10", "output": "VLAN0010\n  Spanning tree enabled protocol ieee\n  Root ID    Priority    4106\n             Address     aabb.cc00.0a01\n             Cost        4\n             Port        25 (GigabitEthernet0/1)\n             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec\n\n  Bridge ID  Priority    32778  (priority 32768 sys-id-ext 10)\n             Address     aabb.cc00.0b01\n             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec\n             Aging Time  300 sec\n\nInterface           Role Sts Cost      Prio.Nbr Type\n------------------- ---- --- --------- -------- --------------------------------\nGi0/1               Root FWD 4         128.25   P2p\nGi0/2               Altn BLK 4         128.26   P2p\nGi0/24              Desg FWD 4         128.48   P2p Edge"}
+    ],
+    "showCommands": {
+      "show spanning-tree summary": "Switch is in pvst mode\nRoot bridge for: none\nExtended system ID           is enabled\nPortfast Default            is disabled\nPortFast BPDU Guard Default is enabled\nPortfast BPDU Filter Default is disabled\nLoopguard Default           is disabled\nUplinkFast                  is disabled\nBackboneFast                is disabled\nConfigured Pathcost method used is short\n\nName                   Blocking Listening Learning Forwarding STP Active\n---------------------- -------- --------- -------- ---------- ----------\nVLAN0010                      1         0        0          2          3\nVLAN0020                      0         0        0          3          3",
+      "show spanning-tree vlan 10 bridge": "                                                   Hello  Max  Fwd\nVlan                         Bridge ID                Time  Age  Dly  Protocol\n---------------- --------------------------------------- ----  ---  ---  --------\nVLAN0010         32778 (32768,  10) aabb.cc00.0b01         2   20   15  ieee",
+      "show spanning-tree vlan 10 root": "                                        Root    Hello Max Fwd\nVlan                   Root ID          Cost    Time  Age Dly  Root Port\n---------------- -------------------- --------- ----- --- ---  ------------\nVLAN0010          4106 aabb.cc00.0a01         4     2  20  15  Gi0/1",
+      "show cdp neighbors": "Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge\n                  S - Switch, H - Host, I - IGMP, r - Repeater\n\nDevice ID        Local Intrfce     Holdtme    Capability  Platform  Port ID\nDSW1             Gig 0/1            165         R S I       WS-C3850  Gig 1/0/1\nSW2              Gig 0/2            178         S I         WS-C2960  Gig 0/2\nAP-2F            Gig 0/24           135         T           AIR-CAP   Gig 0"
+    },
+    "question": "Why is DSW1 not the root bridge for VLAN 10?",
+    "choices": [
+      {"text": "DSW1 is unreachable — SW1 sees no CDP neighbor on Gi0/1", "correct": false, "explain": "CDP output shows DSW1 is the neighbor on Gi0/1 — it is reachable."},
+      {"text": "Some other switch with MAC aabb.cc00.0a01 has a lower priority (4106) than DSW1, making it root", "correct": true, "explain": "Root ID priority is 4106 with MAC aabb.cc00.0a01 — that is not DSW1 (DSW1 should be lower than 4106 to win). A non-distribution switch has been configured with priority 4096 (4096+10=4106) and is winning the election."},
+      {"text": "VLAN 10 is pruned from the trunk to DSW1", "correct": false, "explain": "If VLAN 10 were pruned, SW1 wouldn't be receiving BPDUs and would think itself root."},
+      {"text": "BPDU Guard is err-disabling the path to DSW1", "correct": false, "explain": "BPDU Guard would shut the port; Gi0/1 is Root FWD (forwarding), so BPDUs are flowing fine."}
+    ],
+    "rootCause": "Root ID priority is 4106 (4096 + sys-id-ext 10) with MAC aabb.cc00.0a01. Distribution switch DSW1 should own root, but a different switch has been manually set with a lower priority and is winning the election.",
+    "fixHint": "On DSW1: spanning-tree vlan 10 root primary  (or  spanning-tree vlan 10 priority 0)"
+  },
+  {
+    "id": "ts-l2-02",
+    "title": "BPDU Guard err-disabled an access port",
+    "category": "L2",
+    "difficulty": "beginner",
+    "topics": ["2.5"],
+    "scenario": "A user in conference room 2F reports their laptop has no network. The access port Gi0/15 has been working fine for months. Cable looks plugged in but the switch port shows down.",
+    "initialView": [
+      {"cmd": "SW1# show interfaces Gi0/15 status", "output": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/15    conf-room-2F       err-disabled 10         auto    auto 10/100/1000BaseTX"}
+    ],
+    "showCommands": {
+      "show interfaces Gi0/15": "GigabitEthernet0/15 is down, line protocol is down (err-disabled)\n  Hardware is Gigabit Ethernet, address is aabb.cc00.0b0f (bia aabb.cc00.0b0f)\n  Description: conf-room-2F\n  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     reliability 255/255, txload 1/255, rxload 1/255\n  Encapsulation ARPA, loopback not set\n  Keepalive set (10 sec)\n  Auto-duplex, Auto-speed, link type is auto, media type is 10/100/1000BaseTX",
+      "show errdisable recovery": "ErrDisable Reason            Timer Status\n-----------------            --------------\nbpduguard                    Disabled\ndtp-flap                     Disabled\nlink-flap                    Disabled\npsecure-violation            Disabled\nsecurity-violation           Disabled\nudld                         Disabled\n\nTimer interval: 300 seconds\n\nInterfaces that will be enabled at the next timeout:\n(none)",
+      "show logging | inc Gi0/15": "May 30 14:02:11.221: %SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port Gi0/15 with BPDU Guard enabled. Disabling port.\nMay 30 14:02:11.225: %PM-4-ERR_DISABLE: bpduguard error detected on Gi0/15, putting Gi0/15 in err-disable state\nMay 30 14:02:13.110: %LINK-3-UPDOWN: Interface GigabitEthernet0/15, changed state to down",
+      "show running-config interface Gi0/15": "interface GigabitEthernet0/15\n description conf-room-2F\n switchport mode access\n switchport access vlan 10\n spanning-tree portfast\n spanning-tree bpduguard enable\nend"
+    },
+    "question": "What caused Gi0/15 to err-disable?",
+    "choices": [
+      {"text": "Port-security MAC violation", "correct": false, "explain": "Logs show bpduguard, not psecure-violation. No switchport port-security config on the interface."},
+      {"text": "BPDU Guard tripped — a BPDU was received on a PortFast edge port", "correct": true, "explain": "Log line %SPANTREE-2-BLOCK_BPDUGUARD shows a BPDU arrived on Gi0/15. The port is configured with portfast + bpduguard, so receiving any BPDU shuts it down. A user likely plugged in an unmanaged switch or another bridge."},
+      {"text": "Cable is bad — physical layer failure", "correct": false, "explain": "Status is err-disabled (administrative shutdown by IOS), not down/down. Cable is fine."},
+      {"text": "VLAN 10 was deleted, leaving the port orphaned", "correct": false, "explain": "If VLAN 10 were missing, the port would be inactive, not err-disabled."}
+    ],
+    "rootCause": "Log line %SPANTREE-2-BLOCK_BPDUGUARD confirms a BPDU arrived on Gi0/15. PortFast + BPDU Guard policy err-disables the port when any BPDU is received — likely a user plugged a hub/switch into the access port.",
+    "fixHint": "Remove the rogue device, then: interface Gi0/15 / shutdown / no shutdown   (or enable errdisable recovery cause bpduguard)"
+  },
+  {
+    "id": "ts-l2-03",
+    "title": "VLAN missing from trunk allowed list",
+    "category": "L2",
+    "difficulty": "beginner",
+    "topics": ["2.2"],
+    "scenario": "VLAN 30 (GUEST) hosts on SW2 cannot reach the guest gateway on DSW1. VLAN 10 and 20 work fine across the same trunk. The trunk to DSW1 looks up and healthy.",
+    "initialView": [
+      {"cmd": "SW2# show interfaces trunk", "output": "Port        Mode             Encapsulation  Status        Native vlan\nGi0/1       on               802.1q         trunking      1\n\nPort        Vlans allowed on trunk\nGi0/1       1,10,20,99\n\nPort        Vlans allowed and active in management domain\nGi0/1       1,10,20,99\n\nPort        Vlans in spanning tree forwarding state and not pruned\nGi0/1       1,10,20,99"}
+    ],
+    "showCommands": {
+      "show vlan brief": "VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n1    default                          active    Gi0/5, Gi0/6\n10   SALES                            active    Gi0/10, Gi0/11\n20   ENG                              active    Gi0/12, Gi0/13\n30   GUEST                            active    Gi0/14, Gi0/15\n99   MGMT                             active\n1002 fddi-default                     act/unsup",
+      "show interfaces Gi0/1 switchport": "Name: Gi0/1\nSwitchport: Enabled\nAdministrative Mode: trunk\nOperational Mode: trunk\nAdministrative Trunking Encapsulation: dot1q\nOperational Trunking Encapsulation: dot1q\nNegotiation of Trunking: On\nAccess Mode VLAN: 1 (default)\nTrunking Native Mode VLAN: 1 (default)\nAdministrative Native VLAN tagging: enabled\nVoice VLAN: none\nTrunking VLANs Enabled: 1,10,20,99\nPruning VLANs Enabled: 2-1001",
+      "show running-config interface Gi0/1": "interface GigabitEthernet0/1\n description trunk-to-DSW1\n switchport trunk encapsulation dot1q\n switchport trunk allowed vlan 1,10,20,99\n switchport mode trunk\nend",
+      "ping 192.168.30.1 source vlan 30": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 192.168.30.1, timeout is 2 seconds:\n.....\nSuccess rate is 0 percent (0/5)"
+    },
+    "question": "Why can VLAN 30 hosts not reach DSW1?",
+    "choices": [
+      {"text": "VLAN 30 does not exist on SW2", "correct": false, "explain": "show vlan brief lists VLAN 30 GUEST active with assigned ports Gi0/14 and Gi0/15."},
+      {"text": "Trunk encapsulation mismatch — DSW1 expects ISL", "correct": false, "explain": "Operational Trunking Encapsulation is dot1q on both sides and the trunk is up."},
+      {"text": "VLAN 30 is not in the trunk's allowed list (only 1,10,20,99 are allowed)", "correct": true, "explain": "show interfaces trunk shows 'Vlans allowed on trunk: 1,10,20,99'. VLAN 30 is missing. The trunk drops VLAN 30 tagged frames."},
+      {"text": "Native VLAN mismatch is blocking VLAN 30", "correct": false, "explain": "Native VLAN affects untagged traffic only. VLAN 30 traffic is tagged, so native VLAN is not the issue."}
+    ],
+    "rootCause": "Trunk allowed list is 1,10,20,99. VLAN 30 is excluded, so guest traffic is dropped at the trunk. Hosts in VLAN 30 are isolated to SW2.",
+    "fixHint": "interface Gi0/1 / switchport trunk allowed vlan add 30"
+  },
+  {
+    "id": "ts-l2-04",
+    "title": "Trunk native VLAN mismatch",
+    "category": "L2",
+    "difficulty": "intermediate",
+    "topics": ["2.2"],
+    "scenario": "NOC dashboard is flooded with CDP native VLAN mismatch syslogs every minute on SW1 Gi0/2. The trunk is up and most VLANs forward fine, but untagged management traffic from VLAN 99 isn't reaching the other side reliably.",
+    "initialView": [
+      {"cmd": "SW1# show interfaces Gi0/2 trunk", "output": "Port        Mode             Encapsulation  Status        Native vlan\nGi0/2       on               802.1q         trunking      99\n\nPort        Vlans allowed on trunk\nGi0/2       1,10,20,30,99\n\nPort        Vlans allowed and active in management domain\nGi0/2       1,10,20,30,99\n\nPort        Vlans in spanning tree forwarding state and not pruned\nGi0/2       1,10,20,30,99"}
+    ],
+    "showCommands": {
+      "show logging | inc MISMATCH": "May 30 09:15:02.110: %CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/2 (99), with SW2 GigabitEthernet0/1 (1).\nMay 30 09:16:02.118: %CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/2 (99), with SW2 GigabitEthernet0/1 (1).\nMay 30 09:17:02.121: %CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/2 (99), with SW2 GigabitEthernet0/1 (1).",
+      "show cdp neighbors detail | begin SW2": "-------------------------\nDevice ID: SW2\nEntry address(es):\n  IP address: 192.168.99.12\nPlatform: cisco WS-C2960-24TT-L,  Capabilities: Switch IGMP\nInterface: GigabitEthernet0/2,  Port ID (outgoing port): GigabitEthernet0/1\nHoldtime : 167 sec\nNative VLAN: 1",
+      "show running-config interface Gi0/2": "interface GigabitEthernet0/2\n description trunk-to-SW2\n switchport trunk encapsulation dot1q\n switchport trunk native vlan 99\n switchport trunk allowed vlan 1,10,20,30,99\n switchport mode trunk\nend",
+      "show spanning-tree vlan 99": "VLAN0099\n  Spanning tree enabled protocol ieee\n  Root ID    Priority    32867\n             Address     aabb.cc00.0b01\n             This bridge is the root\n\nInterface           Role Sts Cost      Prio.Nbr Type\n------------------- ---- --- --------- -------- --------------------------------\nGi0/2               Desg FWD 4         128.26   P2p"
+    },
+    "question": "What is the root cause of the syslog flood and untagged VLAN 99 issues?",
+    "choices": [
+      {"text": "VLAN 99 is missing from the allowed list", "correct": false, "explain": "Allowed list explicitly includes 99."},
+      {"text": "Native VLAN is 99 on SW1 but 1 on SW2 — untagged frames land in different VLANs on each side", "correct": true, "explain": "CDP log %CDP-4-NATIVE_VLAN_MISMATCH and 'show cdp neighbors detail' confirm SW2 native VLAN is 1 while SW1 is 99. Untagged frames sent by SW1 (in VLAN 99) are received into VLAN 1 by SW2."},
+      {"text": "Trunk encapsulation is ISL on one side", "correct": false, "explain": "Both sides show dot1q in the trunk encapsulation."},
+      {"text": "STP is blocking VLAN 99 on Gi0/2", "correct": false, "explain": "show spanning-tree vlan 99 shows Gi0/2 in Desg FWD state."}
+    ],
+    "rootCause": "CDP %CDP-4-NATIVE_VLAN_MISMATCH and CDP neighbor detail confirm SW1 native VLAN 99, SW2 native VLAN 1. Untagged management traffic leaks between VLANs.",
+    "fixHint": "On SW2 Gi0/1: switchport trunk native vlan 99   (must match on both ends)"
+  },
+  {
+    "id": "ts-l2-05",
+    "title": "DTP mode mismatch (no trunk forms)",
+    "category": "L2",
+    "difficulty": "intermediate",
+    "topics": ["2.2"],
+    "scenario": "After a switch swap, the trunk between SW1 and SW3 is no longer carrying VLAN 20. Hosts on VLAN 20 attached to SW3 can only reach VLAN 1. Both interfaces look up/up.",
+    "initialView": [
+      {"cmd": "SW1# show interfaces Gi0/3 switchport", "output": "Name: Gi0/3\nSwitchport: Enabled\nAdministrative Mode: dynamic desirable\nOperational Mode: static access\nAdministrative Trunking Encapsulation: negotiate\nOperational Trunking Encapsulation: native\nNegotiation of Trunking: On\nAccess Mode VLAN: 1 (default)\nTrunking Native Mode VLAN: 1 (default)\nAdministrative Native VLAN tagging: enabled\nVoice VLAN: none\nTrunking VLANs Enabled: ALL\nPruning VLANs Enabled: 2-1001"}
+    ],
+    "showCommands": {
+      "show interfaces trunk": "(no trunks)",
+      "show interfaces Gi0/3 status": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/3     to-SW3             connected    1          a-full a-1000 10/100/1000BaseTX",
+      "show cdp neighbors detail | begin SW3": "-------------------------\nDevice ID: SW3\nPlatform: cisco WS-C2960-24TT-L,  Capabilities: Switch IGMP\nInterface: GigabitEthernet0/3,  Port ID (outgoing port): GigabitEthernet0/1\nHoldtime : 175 sec\nNative VLAN: 1",
+      "SW3# show interfaces Gi0/1 switchport": "Name: Gi0/1\nSwitchport: Enabled\nAdministrative Mode: static access\nOperational Mode: static access\nAdministrative Trunking Encapsulation: dot1q\nOperational Trunking Encapsulation: native\nNegotiation of Trunking: Off\nAccess Mode VLAN: 1 (default)"
+    },
+    "question": "Why is the link an access port instead of a trunk?",
+    "choices": [
+      {"text": "Trunk allowed list is empty", "correct": false, "explain": "There is no operational trunk at all — 'show interfaces trunk' returns nothing."},
+      {"text": "STP is blocking the trunk negotiation", "correct": false, "explain": "STP does not influence DTP negotiation. The link is up and forwarding as access."},
+      {"text": "SW1 is dynamic desirable but SW3 is static access — DTP cannot negotiate a trunk when one side is access", "correct": true, "explain": "SW1 Admin Mode is dynamic desirable. SW3 Admin Mode is static access with Negotiation: Off. Two access/no-negotiate sides cannot form a trunk. Operational Mode on SW1 falls back to static access."},
+      {"text": "Native VLAN mismatch is preventing the trunk", "correct": false, "explain": "Native VLAN is the same (1) and only matters once a trunk forms."}
+    ],
+    "rootCause": "SW1 is dynamic desirable; SW3 is static access with negotiation off. DTP cannot pull SW3 into a trunk, so SW1 operationally falls back to access in VLAN 1.",
+    "fixHint": "On SW3 Gi0/1: switchport mode trunk / switchport trunk encapsulation dot1q  (or set both ends to a deterministic trunk config)"
+  },
+  {
+    "id": "ts-l2-06",
+    "title": "Port-security sticky MAC violation",
+    "category": "L2",
+    "difficulty": "intermediate",
+    "topics": ["4.6"],
+    "scenario": "A user swapped laptops over the weekend. Monday morning they have no link. Port Gi0/10 shows err-disabled. The user insists 'nothing changed'.",
+    "initialView": [
+      {"cmd": "SW1# show interfaces Gi0/10 status", "output": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/10    user-jdoe          err-disabled 10         auto    auto 10/100/1000BaseTX"}
+    ],
+    "showCommands": {
+      "show port-security interface Gi0/10": "Port Security              : Enabled\nPort Status                : Secure-shutdown\nViolation Mode             : Shutdown\nAging Time                 : 0 mins\nAging Type                 : Absolute\nSecureStatic Address Aging : Disabled\nMaximum MAC Addresses      : 1\nTotal MAC Addresses        : 1\nConfigured MAC Addresses   : 0\nSticky MAC Addresses       : 1\nLast Source Address:Vlan   : aabb.cc00.beef:10\nSecurity Violation Count   : 1",
+      "show port-security address": "          Secure Mac Address Table\n-----------------------------------------------------------------------\nVlan    Mac Address       Type                          Ports   Remaining Age\n----    -----------       ----                          -----   -------------\n  10    aabb.cc00.1234    SecureSticky                  Gi0/10        -",
+      "show running-config interface Gi0/10": "interface GigabitEthernet0/10\n description user-jdoe\n switchport mode access\n switchport access vlan 10\n switchport port-security\n switchport port-security maximum 1\n switchport port-security mac-address sticky\n switchport port-security mac-address sticky aabb.cc00.1234\n switchport port-security violation shutdown\n spanning-tree portfast\nend",
+      "show logging | inc Gi0/10": "Jun 01 08:12:44.225: %PORT_SECURITY-2-PSECURE_VIOLATION: Security violation occurred, caused by MAC address aabb.cc00.beef on port GigabitEthernet0/10.\nJun 01 08:12:44.230: %PM-4-ERR_DISABLE: psecure-violation error detected on Gi0/10, putting Gi0/10 in err-disable state\nJun 01 08:12:46.110: %LINK-3-UPDOWN: Interface GigabitEthernet0/10, changed state to down"
+    },
+    "question": "Why is Gi0/10 err-disabled?",
+    "choices": [
+      {"text": "BPDU Guard tripped — the new laptop is sending BPDUs", "correct": false, "explain": "Log shows psecure-violation, not bpduguard. No bpduguard in running-config."},
+      {"text": "STP put the port in blocking", "correct": false, "explain": "err-disabled is not an STP state. The port is administratively shut by IOS."},
+      {"text": "Sticky MAC pinned aabb.cc00.1234 to Gi0/10; the new laptop's MAC aabb.cc00.beef triggered a violation with violation mode shutdown", "correct": true, "explain": "show port-security shows 'Last Source Address: aabb.cc00.beef' and 'Configured Sticky: aabb.cc00.1234'. Violation mode shutdown err-disables on mismatch. The 'nothing changed' was actually a laptop swap."},
+      {"text": "VLAN 10 was removed and the port has no VLAN", "correct": false, "explain": "Port still shows VLAN 10 in the status output."}
+    ],
+    "rootCause": "Sticky MAC aabb.cc00.1234 is locked to Gi0/10. New laptop MAC aabb.cc00.beef triggered %PORT_SECURITY-2-PSECURE_VIOLATION; violation mode shutdown err-disabled the port.",
+    "fixHint": "interface Gi0/10 / no switchport port-security mac-address sticky aabb.cc00.1234 / shutdown / no shutdown  (or clear port-security sticky interface Gi0/10)"
+  },
+  {
+    "id": "ts-l2-07",
+    "title": "Access port in wrong VLAN",
+    "category": "L2",
+    "difficulty": "intermediate",
+    "topics": ["2.1"],
+    "scenario": "Marketing intern's PC pulls a DHCP address but it's on the ENG subnet, not SALES. The patch panel label says VLAN 10 (SALES). Cable test passes.",
+    "initialView": [
+      {"cmd": "SW1# show interfaces Gi0/11 status", "output": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/11    intern-marketing   connected    20         a-full a-1000 10/100/1000BaseTX"}
+    ],
+    "showCommands": {
+      "show vlan brief": "VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n1    default                          active    Gi0/5, Gi0/6\n10   SALES                            active    Gi0/10\n20   ENG                              active    Gi0/11, Gi0/12, Gi0/13\n30   GUEST                            active    Gi0/14, Gi0/15\n99   MGMT                             active",
+      "show running-config interface Gi0/11": "interface GigabitEthernet0/11\n description intern-marketing\n switchport mode access\n switchport access vlan 20\n spanning-tree portfast\nend",
+      "show mac address-table interface Gi0/11": "          Mac Address Table\n-------------------------------------------\n\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n  20    aabb.cc00.2222    DYNAMIC     Gi0/11\nTotal Mac Addresses for this criterion: 1",
+      "show ip dhcp binding | inc aabb.cc00.2222": "IP address          Client-ID/              Lease expiration        Type\n                    Hardware address\n192.168.20.55       0100.aabb.cc00.2222     Jun 02 2026 08:14 AM    Automatic"
+    },
+    "question": "Why is the intern landing on the ENG subnet?",
+    "choices": [
+      {"text": "VLAN 10 doesn't exist — DHCP fell back to VLAN 20", "correct": false, "explain": "show vlan brief shows VLAN 10 SALES active."},
+      {"text": "DHCP scope on the SALES server is exhausted, so the PC fell back to ENG", "correct": false, "explain": "There is no fallback between scopes; DHCP requests don't cross VLANs without a relay decision. The port is simply in VLAN 20."},
+      {"text": "Gi0/11 is configured as access VLAN 20 — the port itself is on ENG, not SALES, despite the patch panel label", "correct": true, "explain": "show running-config interface Gi0/11 has 'switchport access vlan 20'. The MAC table and DHCP binding confirm traffic is in VLAN 20. Patch panel label is misleading; the config is the truth."},
+      {"text": "Trunk allowed list excludes VLAN 10", "correct": false, "explain": "This is an access port (not a trunk). Trunk allowed list does not apply."}
+    ],
+    "rootCause": "Interface Gi0/11 is hard-coded 'switchport access vlan 20' even though the patch panel label says VLAN 10. MAC table and DHCP binding confirm the host is in VLAN 20.",
+    "fixHint": "interface Gi0/11 / switchport access vlan 10"
+  },
+  {
+    "id": "ts-l2-08",
+    "title": "Orphan VLAN — defined but no ports",
+    "category": "L2",
+    "difficulty": "intermediate",
+    "topics": ["2.1"],
+    "scenario": "New GUEST WiFi controller plugged in for VLAN 30. Controller boots, sees the trunk, but no guest clients ever appear on SW2. The trunk allows VLAN 30 end-to-end. VLAN exists on every switch.",
+    "initialView": [
+      {"cmd": "SW2# show vlan brief", "output": "VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n1    default                          active    Gi0/5, Gi0/6, Gi0/16, Gi0/17,\n                                                Gi0/18, Gi0/19, Gi0/20, Gi0/21,\n                                                Gi0/22, Gi0/23, Gi0/24\n10   SALES                            active    Gi0/10, Gi0/11\n20   ENG                              active    Gi0/12, Gi0/13\n30   GUEST                            active\n99   MGMT                             active\n1002 fddi-default                     act/unsup"}
+    ],
+    "showCommands": {
+      "show interfaces trunk": "Port        Mode             Encapsulation  Status        Native vlan\nGi0/1       on               802.1q         trunking      99\n\nPort        Vlans allowed on trunk\nGi0/1       1,10,20,30,99\n\nPort        Vlans allowed and active in management domain\nGi0/1       1,10,20,30,99\n\nPort        Vlans in spanning tree forwarding state and not pruned\nGi0/1       1,10,20,99",
+      "show interfaces Gi0/14 status": "Port      Name               Status       Vlan       Duplex  Speed Type\nGi0/14    guest-WLC          connected    1          a-full a-1000 10/100/1000BaseTX",
+      "show running-config interface Gi0/14": "interface GigabitEthernet0/14\n description guest-WLC\n switchport mode access\n spanning-tree portfast\nend",
+      "show spanning-tree vlan 30": "Spanning tree instance(s) for vlan 30 does not exist."
+    },
+    "question": "Why are guest clients not appearing on VLAN 30?",
+    "choices": [
+      {"text": "VLAN 30 doesn't exist on SW2", "correct": false, "explain": "show vlan brief lists VLAN 30 GUEST as active."},
+      {"text": "Trunk is blocking VLAN 30", "correct": false, "explain": "Trunk allowed list includes 30. (STP doesn't forward 30 only because no access port is using it locally — symptom, not cause.)"},
+      {"text": "The WLC port Gi0/14 has no 'switchport access vlan 30' — it defaulted to VLAN 1. VLAN 30 has no member ports.", "correct": true, "explain": "show vlan brief: VLAN 30 row has no listed ports. show interfaces Gi0/14 status shows the WLC sitting in VLAN 1. Running-config confirms 'switchport mode access' but no 'switchport access vlan 30' command. The intent never made it to the port."},
+      {"text": "VTP pruning removed VLAN 30", "correct": false, "explain": "VLAN 30 is still active in the database; pruning would just stop flooding across the trunk, not remove the entry."}
+    ],
+    "rootCause": "VLAN 30 row in show vlan brief has no member ports. WLC port Gi0/14 is access but missing the 'switchport access vlan 30' line and defaulted to VLAN 1.",
+    "fixHint": "interface Gi0/14 / switchport access vlan 30"
+  },
+  {
+    "id": "ts-l2-09",
+    "title": "EtherChannel mode mismatch (LACP vs PAgP)",
+    "category": "L2",
+    "difficulty": "advanced",
+    "topics": ["2.3"],
+    "scenario": "Po1 between SW1 and DSW1 is supposed to be a 2x1G LACP bundle. After a maintenance window, Po1 is down. Both physical links are up/up individually.",
+    "initialView": [
+      {"cmd": "SW1# show etherchannel summary", "output": "Flags:  D - down        P - bundled in port-channel\n        I - stand-alone s - suspended\n        H - Hot-standby (LACP only)\n        R - Layer3      S - Layer2\n        U - in use      f - failed to allocate aggregator\n        M - not in use, minimum links not met\n        u - unsuitable for bundling\n        w - waiting to be aggregated\n        d - default port\n\nNumber of channel-groups in use: 1\nNumber of aggregators:           1\n\nGroup  Port-channel  Protocol    Ports\n------+-------------+-----------+-----------------------------------------------\n1      Po1(SD)         LACP      Gi0/23(I)  Gi0/24(I)"}
+    ],
+    "showCommands": {
+      "show running-config interface Gi0/23": "interface GigabitEthernet0/23\n description po1-member-to-DSW1\n switchport trunk encapsulation dot1q\n switchport mode trunk\n channel-group 1 mode active\nend",
+      "DSW1# show etherchannel summary": "Group  Port-channel  Protocol    Ports\n------+-------------+-----------+-----------------------------------------------\n1      Po1(SD)         PAgP      Gi1/0/23(I)  Gi1/0/24(I)",
+      "DSW1# show running-config interface Gi1/0/23": "interface GigabitEthernet1/0/23\n description po1-member-to-SW1\n switchport trunk encapsulation dot1q\n switchport mode trunk\n channel-group 1 mode desirable\nend",
+      "show logging | inc EC-5": "May 30 11:02:14.221: %EC-5-CANNOT_BUNDLE2: Gi0/23 is not compatible with Po1 and will be suspended (flag mismatch).\nMay 30 11:02:14.225: %EC-5-CANNOT_BUNDLE2: Gi0/24 is not compatible with Po1 and will be suspended (flag mismatch)."
+    },
+    "question": "Why is Po1 down?",
+    "choices": [
+      {"text": "VLAN 1 is not in the trunk allowed list", "correct": false, "explain": "Trunk allowed list is not the issue — the bundle never forms in the first place, so allowed list is moot."},
+      {"text": "SW1 is using LACP (channel-group mode active); DSW1 is using PAgP (channel-group mode desirable). Protocols cannot mix — neither side bundles.", "correct": true, "explain": "SW1 'show etherchannel summary' shows Protocol LACP, DSW1 shows Protocol PAgP. Running-configs confirm 'mode active' (LACP) vs 'mode desirable' (PAgP). The two protocols are incompatible. Logs show %EC-5-CANNOT_BUNDLE2."},
+      {"text": "STP is blocking both member ports", "correct": false, "explain": "Member ports show (I) standalone, not blocking. The bundle itself never formed."},
+      {"text": "MTU mismatch between the two ports", "correct": false, "explain": "No MTU configuration is shown in running-config — both default to 1500."}
+    ],
+    "rootCause": "SW1 uses LACP (channel-group mode active); DSW1 uses PAgP (mode desirable). The two protocols are incompatible and members suspend with %EC-5-CANNOT_BUNDLE2.",
+    "fixHint": "On DSW1: interface range Gi1/0/23-24 / no channel-group 1 mode desirable / channel-group 1 mode active   (match LACP on both sides)"
+  },
+  {
+    "id": "ts-l2-10",
+    "title": "MAC flapping — Layer 2 loop between two ports",
+    "category": "L2",
+    "difficulty": "advanced",
+    "topics": ["2.5"],
+    "scenario": "Intermittent reachability across an entire floor. Console of SW1 is constantly printing MAC move messages. CPU on SW1 is at 80%. Users report random short outages every few seconds.",
+    "initialView": [
+      {"cmd": "SW1# show logging | inc MACFLAP", "output": "Jun 01 14:22:01.110: %SW_MATM-4-MACFLAP_NOTIF: Host aabb.cc00.dead in vlan 10 is flapping between port Gi0/5 and port Gi0/6\nJun 01 14:22:04.118: %SW_MATM-4-MACFLAP_NOTIF: Host aabb.cc00.dead in vlan 10 is flapping between port Gi0/5 and port Gi0/6\nJun 01 14:22:07.121: %SW_MATM-4-MACFLAP_NOTIF: Host aabb.cc00.dead in vlan 10 is flapping between port Gi0/5 and port Gi0/6\nJun 01 14:22:10.125: %SW_MATM-4-MACFLAP_NOTIF: Host aabb.cc00.beef in vlan 10 is flapping between port Gi0/5 and port Gi0/6"}
+    ],
+    "showCommands": {
+      "show spanning-tree vlan 10": "VLAN0010\n  Spanning tree enabled protocol ieee\n  Root ID    Priority    32778\n             Address     aabb.cc00.0b01\n             This bridge is the root\n\nInterface           Role Sts Cost      Prio.Nbr Type\n------------------- ---- --- --------- -------- --------------------------------\nGi0/5               Desg FWD 4         128.5    P2p Edge\nGi0/6               Desg FWD 4         128.6    P2p Edge",
+      "show running-config interface Gi0/5": "interface GigabitEthernet0/5\n description user-port\n switchport mode access\n switchport access vlan 10\n spanning-tree portfast\nend",
+      "show running-config interface Gi0/6": "interface GigabitEthernet0/6\n description user-port\n switchport mode access\n switchport access vlan 10\n spanning-tree portfast\nend",
+      "show interfaces Gi0/5 counters": "Port            InOctets    InUcastPkts    InMcastPkts    InBcastPkts\nGi0/5         812441250         122441        4422180         998120\n\nPort           OutOctets   OutUcastPkts   OutMcastPkts   OutBcastPkts\nGi0/5         845112301         118220        4581992        1011223",
+      "show mac address-table | inc Gi0/5": "  10    aabb.cc00.dead    DYNAMIC     Gi0/5\n  10    aabb.cc00.beef    DYNAMIC     Gi0/5\n  10    aabb.cc00.0a12    DYNAMIC     Gi0/5"
+    },
+    "question": "What is the root cause of the MAC flapping and outages?",
+    "choices": [
+      {"text": "STP is broken — both ports should be blocking", "correct": false, "explain": "STP is healthy on this switch; the issue is that both Gi0/5 and Gi0/6 are PortFast edge ports with no BPDU Guard, so a downstream loop is not being detected as a topology change."},
+      {"text": "Port-security is moving MACs between ports", "correct": false, "explain": "No port-security on either interface."},
+      {"text": "A cable or unmanaged hub bridges Gi0/5 and Gi0/6 downstream, creating a Layer 2 loop. Frames return to SW1 on both ports — MACs flap and broadcasts multiply (high mcast/bcast counters).", "correct": true, "explain": "%SW_MATM-4-MACFLAP_NOTIF logs show multiple MACs flapping between Gi0/5 and Gi0/6. Multicast/broadcast counters on Gi0/5 are abnormally high. Both ports are PortFast edge with no BPDU Guard, so a downstream hub or patch loop is invisible to STP."},
+      {"text": "VLAN 10 is missing on the trunk", "correct": false, "explain": "These are access ports; trunk allowed list is irrelevant. The flap is between two local access ports."}
+    ],
+    "rootCause": "%SW_MATM-4-MACFLAP_NOTIF logs show host MACs flapping between Gi0/5 and Gi0/6. Both ports are PortFast access with no BPDU Guard — a downstream hub or duplicate patch cord is bridging them, creating a Layer 2 loop.",
+    "fixHint": "Locate the rogue patch / unmanaged switch and remove it. Add: spanning-tree bpduguard enable on all access ports (and consider spanning-tree loopguard / storm-control)."
+  }
+]

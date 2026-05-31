@@ -56,6 +56,8 @@
       { text: 'Wireless Channels Drill', href: 'wireless-channels-drill.html' },
       { text: 'DHCP Drill', href: 'dhcp-drill.html' },
       { text: 'HTTP Status Code Drill', href: 'http-status-drill.html' },
+      { text: 'Console Labs', href: 'console-labs.html' },
+      { text: 'Troubleshoot Labs', href: 'troubleshoot-labs.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
     { text: '3rd Party Apps', children: [
@@ -104,6 +106,7 @@
       { text: 'Flashcards', href: 'netplus-flashcards.html' },
       { text: 'Diagnostic', href: 'netplus-diagnostic.html' },
       { text: 'Console Labs', href: 'console-labs.html' },
+      { text: 'Troubleshoot Labs', href: 'troubleshoot-labs.html' },
       { text: 'IP Address Game', href: 'netplus-ip-game.html' },
       { text: 'Mini Labs', href: 'netplus-minilab.html' },
       { text: 'Troubleshooting', href: 'netplus-troubleshoot.html' },
