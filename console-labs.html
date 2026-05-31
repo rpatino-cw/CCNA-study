@@ -929,6 +929,8 @@ LABS.forEach((lab, idx) => {
           ${lab.objectives.map((o, i) => `<li id="obj-${lab.id}-${i}" class="${isDone ? 'done' : ''}"><span class="obj-check">&#10003;</span>${o.text}</li>`).join('')}
         </ul>
         <button class="hint-btn" onclick="showHint('${lab.id}')">Show Hint</button>
+        <button class="hint-btn" onclick="resetLab('${lab.id}', false)" style="margin-left:6px">↻ Reset</button>
+        <button class="hint-btn" onclick="resetLab('${lab.id}', true)" style="margin-left:6px;border-color:#B45309;color:#B45309" title="Reset + hide hints — recall from memory">⚡ Challenge</button>
         <div class="hint-text" id="hint-${lab.id}"></div>
       </div>
       <div class="term-wrap" id="term-${lab.id}">
@@ -1146,6 +1148,46 @@ function showHint(id) {
   el.style.whiteSpace = 'pre-wrap';
   el.style.display = 'block';
   // No auto-hide — learner closes with second click
+}
+
+// ── Reset / Challenge ───────────────────────────────────────────
+function resetLab(id, challenge) {
+  const lab = LABS.find(l => l.id === id);
+  if (!lab) return;
+  // Tear down old instance
+  delete labInstances[id];
+  // Clear completion state in localStorage
+  try {
+    const completed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const i = completed.indexOf(id);
+    if (i >= 0) { completed.splice(i, 1); localStorage.setItem(STORAGE_KEY, JSON.stringify(completed)); }
+  } catch (e) {}
+  // Clear DOM state
+  const card = document.getElementById(`lab-${id}`);
+  if (card) card.classList.remove('completed');
+  const objList = document.getElementById(`obj-${id}`);
+  if (objList) objList.querySelectorAll('li').forEach(li => li.classList.remove('done'));
+  const out = document.getElementById(`out-${id}`);
+  if (out) out.innerHTML = '';
+  const banner = document.getElementById(`banner-${id}`);
+  if (banner) banner.classList.remove('show');
+  const hintEl = document.getElementById(`hint-${id}`);
+  if (hintEl) { hintEl.style.display = 'none'; hintEl.textContent = ''; }
+  // Challenge mode — hide hint button
+  const hintBtns = card ? card.querySelectorAll('.hint-btn') : [];
+  hintBtns.forEach(b => {
+    if (b.textContent.includes('Show Hint')) {
+      b.style.display = challenge ? 'none' : '';
+    }
+  });
+  // Re-init lab instance with fresh device state
+  const labIdx = LABS.findIndex(l => l.id === id);
+  initLab(lab, labIdx);
+  // Surface a small toast in terminal
+  const inst = labInstances[id];
+  if (inst && inst.terminal) {
+    inst.terminal.writeLine(challenge ? '⚡ Challenge mode — hints hidden. Reset complete. Recall from memory.' : '↻ Reset. Try again from the top.');
+  }
 }
 
 // ── Tutor integration on wrong commands ───────────────────────
