@@ -362,6 +362,148 @@
       if (c2.vtyTransport === 'ssh') lines2.push(' transport input ssh');
       return lines2.join('\n');
     }
+    // show ip ospf neighbor — reads dev.ospf
+    if (lower === 'show ip ospf neighbor' || lower === 'show ip ospf nei') {
+      if (!dev.ospf || !dev.ospf.processId) return '';
+      var nbrs = (dev.ospf.networks || []).length;
+      if (nbrs === 0) return '';
+      return 'Neighbor ID     Pri   State           Dead Time   Address         Interface\n2.2.2.2           1   FULL/DR         00:00:38    10.0.12.2       GigabitEthernet0/0';
+    }
+    // show ip protocols
+    if (lower === 'show ip protocols' || lower === 'show ip prot') {
+      if (!dev.ospf) return '';
+      var ls = ['*** IP Routing is NSF aware ***', '', 'Routing Protocol is "ospf ' + dev.ospf.processId + '"'];
+      if (dev.ospf.routerId) ls.push('  Router ID ' + dev.ospf.routerId);
+      ls.push('  Number of areas in this router is 1. 1 normal 0 stub 0 nssa');
+      ls.push('  Routing for Networks:');
+      (dev.ospf.networks || []).forEach(function(n) { ls.push('    ' + n.net + ' ' + n.wildcard + ' area ' + n.area); });
+      ls.push('  Distance: (default is 110)');
+      return ls.join('\n');
+    }
+    // show access-lists — reads dev.acls
+    if (lower === 'show access-lists' || lower === 'show acc' || lower === 'show ip access-lists') {
+      var acls = dev.acls || {};
+      var cust = dev.custom || {};
+      var lines3 = [];
+      Object.keys(acls).forEach(function(id) {
+        var entries = acls[id];
+        if (!entries.length) return;
+        var num = parseInt(id);
+        if (num < 100) lines3.push('Standard IP access list ' + id);
+        else lines3.push('Extended IP access list ' + id);
+        entries.forEach(function(e, i) {
+          var seq = (i + 1) * 10;
+          if (e.dst) lines3.push('    ' + seq + ' ' + e.action + ' ip ' + e.src + ' ' + e.wildcard + ' ' + e.dst + ' ' + (e.dstWild || '0.0.0.0'));
+          else lines3.push('    ' + seq + ' ' + e.action + ' ' + e.src + ' ' + e.wildcard);
+        });
+      });
+      if (cust.namedAcl) {
+        lines3.push('Extended IP access list ' + cust.namedAcl);
+        if (cust.aclDeny80) lines3.push('    10 deny tcp 10.0.0.0 0.255.255.255 any eq 80');
+        if (cust.aclPermitAny) lines3.push('    20 permit ip any any');
+      }
+      return lines3.join('\n') || '(no access-lists configured)';
+    }
+    // show ip nat translations / statistics — reads dev.nat
+    if (lower === 'show ip nat translations' || lower === 'show ip nat tr') {
+      if (!dev.nat || (!dev.nat.overload && !dev.nat.poolName)) return '';
+      return 'Pro Inside global         Inside local          Outside local         Outside global\nicmp 203.0.113.1:1     192.168.1.10:1        8.8.8.8:1             8.8.8.8:1';
+    }
+    if (lower === 'show ip nat statistics' || lower === 'show ip nat stat') {
+      if (!dev.nat) return '';
+      var ins = (dev.nat.inside || []).join(', ');
+      var out = (dev.nat.outside || []).join(', ');
+      return 'Total active translations: 1 (0 static, 1 dynamic; 1 extended)\nOutside interfaces:\n  ' + out + '\nInside interfaces:\n  ' + ins + '\nHits: 142  Misses: 3\n' + (dev.nat.overload ? 'Dynamic mappings:\n-- Inside Source\n[Id: 1] access-list 1 interface ' + (dev.nat.outside || ['Gi0/1'])[0] + ' refcount 1' : '');
+    }
+    // show ip dhcp pool / binding — reads custom dhcp*
+    if (lower === 'show ip dhcp pool') {
+      var c3 = dev.custom || {};
+      if (!c3.dhcpPool && !c3.dhcpNetwork) return '';
+      return 'Pool ' + (c3.dhcpPool || 'POOL1') + ' :\n Utilization mark (high/low)    : 100 / 0\n Subnet size (first/next)       : 0 / 0\n Total addresses                : 254\n Leased addresses               : 0\n Pending event                  : none\n 1 subnet is currently in the pool :\n Current index        IP address range                    Leased addresses\n ' + (c3.dhcpNetwork || '0.0.0.0') + '       ' + (c3.dhcpNetwork || '0.0.0.0').replace(/\.0$/, '.1') + '      - ' + (c3.dhcpNetwork || '0.0.0.0').replace(/\.0$/, '.254') + '       0';
+    }
+    if (lower === 'show ip dhcp binding') {
+      return 'Bindings from all pools not associated with VRF:\nIP address          Client-ID/              Lease expiration        Type\n                    Hardware address/\n                    User name\n(none active in lab simulation)';
+    }
+    // show standby brief — reads custom hsrp*
+    if (lower === 'show standby brief' || lower === 'show standby br') {
+      var c4 = dev.custom || {};
+      if (!c4.hsrpVip) return '';
+      return '                     P indicates configured to preempt.\n                     |\nInterface   Grp  Pri P State    Active          Standby         Virtual IP\n' + (dev.currentInterface || 'Gi0/0').replace('GigabitEthernet', 'Gi') + '       1    ' + (c4.hsrpPriority || 100) + ' ' + (c4.hsrpPreempt ? 'P' : ' ') + ' Active   local           unknown         ' + c4.hsrpVip;
+    }
+    // show ipv6 interface brief — reads dev.interfaces ipv6
+    if (lower === 'show ipv6 interface brief' || lower === 'show ipv6 int br') {
+      var c5 = dev.custom || {};
+      var ls5 = [];
+      Object.keys(dev.interfaces).forEach(function(n) {
+        var i = dev.interfaces[n];
+        ls5.push(n + '   [' + (i.up ? 'up/up' : 'administratively down/down') + ']');
+        if (c5.ipv6Addr) ls5.push('    FE80::1');
+        if (c5.ipv6Addr) ls5.push('    ' + c5.ipv6Addr);
+      });
+      return ls5.join('\n');
+    }
+    // show interfaces trunk
+    if (lower === 'show interfaces trunk' || lower === 'show int trunk' || lower === 'show int tr') {
+      var ls6 = ['Port      Mode             Encapsulation  Status        Native vlan'];
+      Object.keys(dev.interfaces).forEach(function(n) {
+        var i = dev.interfaces[n];
+        if (i.mode === 'trunk') ls6.push(n.replace('GigabitEthernet', 'Gi').padEnd(9) + ' on               ' + (i.trunkEncap || '802.1q').padEnd(15) + 'trunking      1');
+      });
+      if (ls6.length === 1) return '(no trunk interfaces)';
+      return ls6.join('\n');
+    }
+    // show spanning-tree / vlan X / summary
+    if (lower.startsWith('show spanning-tree')) {
+      var c6 = dev.custom || {};
+      var vlanMatch = lower.match(/vlan\s+(\d+)/);
+      var vid = vlanMatch ? parseInt(vlanMatch[1]) : 1;
+      var pri = (c6.stpPriority || 32768) + vid;
+      return 'VLAN' + String(vid).padStart(4, '0') + '\n  Spanning tree enabled protocol ieee\n  Root ID    Priority    ' + pri + '\n             Address     aabb.cc00.0100\n             This bridge is the root\n             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec\n\n  Bridge ID  Priority    ' + pri + ' (priority ' + (c6.stpPriority || 32768) + ' sys-id-ext ' + vid + ')\n             Address     aabb.cc00.0100\n             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec\n             Aging Time  300 sec';
+    }
+    // show port-security interface
+    if (lower.match(/^show port-security/)) {
+      var ps = dev.portSecurity || {};
+      var ifMatch = lower.match(/interface\s+(\S+)/);
+      if (ifMatch) {
+        var ifName = ifMatch[1].toLowerCase().replace('gi', 'GigabitEthernet').replace('fa', 'FastEthernet');
+        var pInfo = ps[ifName] || ps[ifMatch[1]];
+        if (!pInfo || !pInfo.enabled) return 'Port Security              : Disabled';
+        return 'Port Security              : Enabled\nPort Status                : Secure-up\nViolation Mode             : ' + (pInfo.violation || 'shutdown') + '\nAging Time                 : 0 mins\nAging Type                 : Absolute\nSecureStatic Address Aging : Disabled\nMaximum MAC Addresses      : ' + (pInfo.max || 1) + '\nTotal MAC Addresses        : 0\nConfigured MAC Addresses   : 0\nSticky MAC Addresses       : 0\nLast Source Address:Vlan   : 0000.0000.0000:0\nSecurity Violation Count   : 0';
+      }
+      var anyEnabled = Object.values(ps).some(function(p) { return p.enabled; });
+      if (!anyEnabled) return 'Secure Port  MaxSecureAddr  CurrentAddr  SecurityViolation  Security Action\n(none)';
+      var rows = ['Secure Port  MaxSecureAddr  CurrentAddr  SecurityViolation  Security Action'];
+      Object.keys(ps).forEach(function(n) {
+        var p = ps[n];
+        if (p.enabled) rows.push(n.replace('GigabitEthernet', 'Gi') + '          ' + (p.max || 1) + '              0            0                  ' + (p.violation || 'shutdown'));
+      });
+      return rows.join('\n');
+    }
+    // show logging
+    if (lower === 'show logging' || lower === 'show log') {
+      var c7 = dev.custom || {};
+      var ls7 = ['Syslog logging: enabled', 'No Active Message Discriminator.', ''];
+      if (c7.logHost) ls7.push('Trap logging: level ' + (c7.logTrap || 'informational') + ', ' + c7.logHost + ' (udp port 514)');
+      else ls7.push('Trap logging: level informational, no logging host configured');
+      return ls7.join('\n');
+    }
+    // show ip dhcp snooping
+    if (lower === 'show ip dhcp snooping' || lower === 'show ip dhcp snoop') {
+      var c8 = dev.custom || {};
+      if (!c8.dhcpSnooping) return 'Switch DHCP snooping is disabled';
+      return 'Switch DHCP snooping is enabled\nDHCP snooping is configured on following VLANs:\n' + (c8.dhcpSnoopingVlan || 'none') + '\nDHCP snooping is operational on following VLANs:\n' + (c8.dhcpSnoopingVlan || 'none') + '\nInterface                  Trusted    Allow option    Rate limit (pps)\n------------------------   -------    ------------    ----------------\nGigabitEthernet0/1         ' + (c8.dhcpTrusted ? 'yes' : 'no') + '        yes             unlimited';
+    }
+    // show ntp associations / status
+    if (lower === 'show ntp associations' || lower === 'show ntp ass') {
+      var c9 = dev.custom || {};
+      if (!c9.ntpServer) return '';
+      return '  address         ref clock       st   when   poll reach  delay  offset    disp\n*~' + c9.ntpServer + '   .GPS.            2     12     64  377  1.234   0.123   0.456\n * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured';
+    }
+    if (lower === 'show ntp status' || lower === 'show ntp stat') {
+      var c10 = dev.custom || {};
+      if (!c10.ntpServer) return 'Clock is unsynchronized, stratum 16, no reference clock';
+      return 'Clock is synchronized, stratum 3, reference is ' + c10.ntpServer + '\nnominal freq is 250.0000 Hz, actual freq is 249.9974 Hz, precision is 2**18';
+    }
     return undefined;
   };
 
