@@ -346,7 +346,7 @@
       this.checkObjectives();
       return '';
     }
-    if (lower === 'configure terminal' || lower === 'conf t') {
+    if (lower.match(/^(configure|conf)(\s+(terminal|term|t))?$/)) {
       if (dev.mode === 'priv') { dev.mode = 'config'; this.checkObjectives(); return 'Enter configuration commands, one per line. End with CNTL/Z.'; }
       return '% Invalid input detected';
     }
