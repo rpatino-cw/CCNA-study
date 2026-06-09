@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCNA — The Engine Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  :root{
+    --paper:#F7F3EB; --paper-2:#FBF8F2;
+    --ink:#21262C; --ink-soft:#525a62; --ink-faint:#8b9098;
+    --hair:#e2dccf; --hair-2:#d8d1c0;
+    /* domain colors */
+    --d1:#0E7C86; --d1-bg:#e6f2f2;   /* Network Fundamentals */
+    --d2:#A9791F; --d2-bg:#f7eed6;   /* Network Access */
+    --d3:#BC4329; --d3-bg:#fbe9e3;   /* IP Connectivity */
+    --d4:#3F7E63; --d4-bg:#e9f1ec;   /* IP Services */
+    --d5:#7A4FA3; --d5-bg:#efe7f5;   /* Security */
+    --d6:#2F6FB0; --d6-bg:#e6eef7;   /* Automation */
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'Lexend',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;background:var(--paper);
+    background-image:radial-gradient(circle at 16% -8%, #fdfbf6 0%, rgba(253,251,246,0) 40%);
+    color:var(--ink);font-family:var(--sans);line-height:1.55;letter-spacing:.004em;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+
+  /* ---------- shared site nav (fixed overlay, paper theme) ---------- */
+  nav.top-nav{position:fixed!important;top:0;left:0;right:0;z-index:200;margin:0!important;
+    min-height:46px;background:rgba(251,248,242,.94)!important;backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--hair)!important;}
+
+  /* ---------- top bar (sits below the shared nav) ---------- */
+  .topbar{
+    position:fixed;top:46px;left:0;right:0;z-index:30;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:12px 20px;background:rgba(247,243,235,.86);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--hair);
+  }
+  .brand{display:flex;flex-direction:column;line-height:1.1;}
+  .brand .kick{font-family:var(--mono);font-size:.6rem;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint);}
+  .brand .ttl{font-weight:800;font-size:1.18rem;letter-spacing:-.02em;}
+  .brand .ttl span{color:var(--d1);}
+
+  .legend{display:flex;gap:5px 14px;flex-wrap:wrap;align-items:center;margin-left:6px;}
+  .lg{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.66rem;color:var(--ink-soft);cursor:pointer;user-select:none;padding:2px 4px;border-radius:6px;transition:.12s;}
+  .lg:hover{background:rgba(33,38,44,.05);}
+  .lg.off{opacity:.32;}
+  .lg .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto;}
+
+  .controls{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .btn{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.04em;
+    background:var(--paper-2);color:var(--ink);border:1px solid var(--hair-2);border-radius:8px;
+    padding:7px 11px;cursor:pointer;transition:.12s;}
+  .btn:hover{background:#fff;border-color:var(--ink-faint);}
+  .btn.dark{background:var(--ink);color:var(--paper-2);border-color:var(--ink);}
+  .zoomwrap{display:flex;align-items:center;gap:0;border:1px solid var(--hair-2);border-radius:8px;overflow:hidden;background:var(--paper-2);}
+  .zoomwrap button{border:none;background:none;font-family:var(--mono);font-size:.95rem;font-weight:600;color:var(--ink);width:30px;height:32px;cursor:pointer;}
+  .zoomwrap button:hover{background:#fff;}
+  .zoomwrap .zval{font-family:var(--mono);font-size:.7rem;color:var(--ink-soft);width:46px;text-align:center;border-left:1px solid var(--hair);border-right:1px solid var(--hair);height:32px;line-height:32px;}
+
+  /* ---------- viewport / stage ---------- */
+  #viewport{position:fixed;inset:0;top:0;cursor:grab;overflow:hidden;}
+  #viewport.dragging{cursor:grabbing;}
+  #stage{position:absolute;top:0;left:0;width:1760px;height:1760px;transform-origin:0 0;}
+  #stage.animed{transition:transform .5s cubic-bezier(.2,.7,.3,1);}
+  #edges{position:absolute;top:0;left:0;width:1760px;height:1760px;pointer-events:none;overflow:visible;}
+  .ring{fill:none;stroke:var(--hair-2);stroke-dasharray:3 7;opacity:.6;}
+  .ringlbl{font-family:var(--mono);font-size:13px;letter-spacing:.18em;fill:var(--ink-faint);text-transform:uppercase;font-weight:600;}
+  .edge{stroke:#cfc7b6;stroke-width:1.4;opacity:.45;transition:stroke .18s,opacity .18s,stroke-width .18s;}
+  .edge.lit{stroke-width:2.6;opacity:.95;}
+  .edge.dim{opacity:.08;}
+
+  .node{position:absolute;transform:translate(-50%,-50%);width:auto;min-width:122px;max-width:164px;
+    background:var(--paper-2);border:1px solid var(--hair);border-left:5px solid var(--nc,#999);
+    border-radius:11px;padding:10px 14px 11px;cursor:pointer;overflow-wrap:break-word;word-break:break-word;hyphens:auto;
+    box-shadow:0 1px 0 #fff inset, 0 8px 20px -16px rgba(33,38,44,.5);
+    transition:transform .16s cubic-bezier(.2,.7,.3,1),box-shadow .16s,opacity .16s,border-color .16s;}
+  .node:hover{transform:translate(-50%,-50%) scale(1.06);box-shadow:0 12px 26px -14px rgba(33,38,44,.55);z-index:5;}
+  .node.dim{opacity:.16;}
+  .node.t1{min-width:134px;max-width:174px;}
+  .node .tag{font-family:var(--mono);font-size:.58rem;letter-spacing:.05em;color:var(--nc,#777);font-weight:600;display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;padding-right:15px;}
+  .node .lbl{font-weight:700;font-size:.92rem;line-height:1.26;letter-spacing:-.005em;}
+  .node .mc{position:absolute;top:8px;right:9px;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--nc,#999);background:transparent;transition:.15s;}
+  .node.done .mc{background:var(--nc,#999);}
+  .node.done .lbl{color:var(--ink-faint);}
+
+  /* center hub */
+  .hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:190px;height:190px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #20323a 0%, #14202a 80%);
+    color:#eaf3f3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    box-shadow:0 0 0 8px rgba(14,124,134,.10), 0 24px 60px -30px rgba(0,0,0,.7);z-index:6;}
+  .hub .k{font-family:var(--mono);font-size:.58rem;letter-spacing:.28em;color:#79c4cc;text-transform:uppercase;}
+  .hub .big{font-weight:800;font-size:2.5rem;line-height:.95;margin:5px 0 3px;letter-spacing:-.02em;}
+  .hub .sub{font-size:.66rem;color:#9fb3b6;max-width:130px;line-height:1.35;}
+
+  .hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:25;
+    font-family:var(--mono);font-size:.68rem;color:var(--ink-faint);background:rgba(251,248,242,.8);
+    border:1px solid var(--hair);border-radius:100px;padding:6px 16px;letter-spacing:.03em;}
+
+  /* ---------- overlay (pillar map) ---------- */
+  .overlay{position:fixed;inset:0;z-index:60;display:none;background:rgba(20,24,28,.55);backdrop-filter:blur(4px);}
+  .overlay.open{display:block;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .sheet{position:absolute;inset:3.2vh 3vw;background:var(--paper);border-radius:18px;overflow:hidden;
+    display:flex;flex-direction:column;box-shadow:0 40px 100px -30px rgba(0,0,0,.6);
+    animation:pop .26s cubic-bezier(.2,.7,.3,1);}
+  @keyframes pop{from{transform:scale(.97);opacity:0;}to{transform:none;opacity:1;}}
+  .sheethead{display:flex;align-items:flex-start;gap:14px;padding:18px 22px 14px;border-bottom:1px solid var(--hair);background:var(--paper-2);}
+  .sheethead .ob{font-family:var(--mono);font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--oc,#777);font-weight:600;margin-bottom:4px;}
+  .sheethead h2{margin:0;font-weight:800;font-size:1.55rem;letter-spacing:-.02em;}
+  .sheethead .dchip{font-family:var(--mono);font-size:.62rem;font-weight:600;color:#fff;background:var(--oc,#777);border-radius:100px;padding:3px 10px;align-self:center;}
+  .closeb{margin-left:auto;font-family:var(--mono);font-size:.8rem;font-weight:600;background:var(--ink);color:var(--paper-2);border:none;border-radius:8px;padding:8px 13px;cursor:pointer;align-self:center;}
+  .closeb:hover{background:#000;}
+  .sheetbody{flex:1;display:flex;min-height:0;}
+  @media(max-width:780px){.sheetbody{flex-direction:column;}}
+
+  .pmap{flex:0 0 46%;position:relative;border-right:1px solid var(--hair);overflow:hidden;min-height:280px;}
+  @media(max-width:780px){.pmap{flex:0 0 240px;border-right:none;border-bottom:1px solid var(--hair);}}
+  .pmap svg{position:absolute;inset:0;width:100%;height:100%;}
+  .pedge{stroke:#cfc7b6;stroke-width:1.6;opacity:.6;}
+  .pcenter{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:96px;height:96px;border-radius:50%;
+    background:var(--oc,#555);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;
+    font-weight:700;font-size:.74rem;padding:10px;line-height:1.15;box-shadow:0 14px 30px -16px rgba(0,0,0,.5);z-index:3;}
+  .pnode{position:absolute;transform:translate(-50%,-50%);min-width:74px;max-width:104px;text-align:center;
+    background:var(--paper-2);border:1px solid var(--hair);border-bottom:3px solid var(--oc,#777);border-radius:9px;
+    padding:7px 9px;cursor:pointer;font-size:.72rem;font-weight:600;line-height:1.18;
+    box-shadow:0 6px 16px -12px rgba(33,38,44,.5);transition:transform .14s,box-shadow .14s;}
+  .pnode:hover{transform:translate(-50%,-50%) scale(1.07);}
+  .pnode.active{background:var(--oc,#777);color:#fff;border-color:var(--oc,#777);}
+  .pnode .pn{font-family:var(--mono);font-size:.58rem;opacity:.7;display:block;}
+
+  .pdetail{flex:1;overflow-y:auto;padding:20px 24px 30px;}
+  .spine{background:var(--d2-bg);border:1px solid #e7d4a6;border-left:5px solid var(--d2);border-radius:11px;padding:14px 16px;margin:0 0 18px;}
+  .spine .sl{font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--d2);margin-bottom:5px;}
+  .spine .flow{font-weight:600;font-size:.96rem;letter-spacing:-.01em;}
+  .spine p{margin:6px 0 0;font-size:.86rem;color:#6a5418;}
+
+  .pcard{display:none;}
+  .pcard.show{display:block;animation:rise .3s ease;}
+  @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .pcard h3{font-weight:700;font-size:1.22rem;letter-spacing:-.015em;margin:0 0 4px;display:flex;align-items:center;gap:10px;}
+  .pcard h3 .num{font-family:var(--mono);color:var(--oc,#777);font-size:1.1rem;}
+  .pcard .ref{font-family:var(--mono);font-size:.6rem;font-weight:600;color:var(--oc);background:rgba(0,0,0,.04);border:1px solid var(--hair);border-radius:5px;padding:2px 7px;margin-left:auto;}
+  ul.must{list-style:none;margin:12px 0 0;padding:0;}
+  ul.must li{display:flex;gap:10px;padding:4px 0;font-size:.95rem;line-height:1.5;}
+  ul.must li::before{content:"";flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:var(--oc,#777);margin-top:8px;}
+  .cli,.must code{font-family:var(--mono);font-size:.84em;background:#eee7d8;padding:1px 6px;border-radius:4px;color:var(--ink-soft);}
+  .trap{margin-top:13px;background:var(--d3-bg);border:1px solid #eec3b6;border-radius:9px;padding:11px 14px;font-size:.9rem;color:#7c2d18;line-height:1.5;}
+  .trap .lbl{font-family:var(--mono);font-size:.6rem;font-weight:600;letter-spacing:.12em;color:#fff;background:var(--d3);border-radius:4px;padding:2px 7px;margin-right:8px;}
+  .cfg{margin-top:13px;background:#1d2228;border-radius:9px;padding:13px 15px;font-family:var(--mono);font-size:.8rem;line-height:1.6;color:#d7e0e6;overflow-x:auto;white-space:pre-wrap;}
+  .cfg .lbl{display:block;color:#8b9098;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px;}
+  .cfg .c{color:#7f8a93;} .cfg .k{color:#6fcad4;} .cfg .v{color:#e7c87a;}
+  .pickme{color:var(--ink-faint);font-size:.92rem;font-style:italic;}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<script defer src="js/nav.js"></script>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="kick">CCNA 200-301 v1.1 · concept map</span>
+    <span class="ttl">The <span>Engine</span> Map</span>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="controls">
+    <div class="zoomwrap">
+      <button id="zout">−</button><span class="zval" id="zval">100%</span><button id="zin">+</button>
+    </div>
+    <button class="btn" id="fit">Fit</button>
+    <button class="btn dark" id="reset">Reset</button>
+  </div>
+</div>
+
+<div id="viewport">
+  <div id="stage">
+    <svg id="edges" viewBox="0 0 1760 1760"></svg>
+    <div class="hub">
+      <span class="k">Priority 1 · the core</span>
+      <span class="big">P1</span>
+      <span class="sub">Routing · switching · subnetting. Master the engine and ~80% of the exam bolts on.</span>
+    </div>
+  </div>
+</div>
+
+<div class="hint">drag to pan · scroll to zoom · click a topic to open its pillar map · click ○ to mark mastered</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheethead">
+      <div>
+        <div class="ob" id="ovob"></div>
+        <h2 id="ovtitle"></h2>
+      </div>
+      <span class="dchip" id="ovdom"></span>
+      <button class="closeb" id="closeov">✕ close</button>
+    </div>
+    <div class="sheetbody">
+      <div class="pmap" id="pmap"><svg id="pedges"></svg><div class="pcenter" id="pcenter"></div></div>
+      <div class="pdetail" id="pdetail"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================ DATA ============================ */
+const DOMAINS = {
+  1:{n:'Network Fundamentals', c:'#0E7C86'},
+  2:{n:'Network Access',       c:'#A9791F'},
+  3:{n:'IP Connectivity',      c:'#BC4329'},
+  4:{n:'IP Services',          c:'#3F7E63'},
+  5:{n:'Security',             c:'#7A4FA3'},
+  6:{n:'Automation',           c:'#2F6FB0'},
+};
+
+/* p = title pillar; b = bullets (html ok); trap; cfg (html ok) */
+const T = {
+  /* ===== TIER 1 — THE ENGINE ===== */
+  subnet:{label:'Subnetting / IPv4', tier:1, dom:1, ob:'1.6',
+    spine:'Mask sets the boundary → host bits give the count → magic number finds the ranges.',
+    spinep:'Every addressing question is the same skill: read the mask, count the hosts, walk the blocks.',
+    pillars:[
+      {p:'Mask → hosts', b:['<b>Host bits</b> = 32 − prefix. Usable hosts = <b>2^hostbits − 2</b> (network + broadcast are reserved).','/24 = 254 · /25 = 126 · /26 = 62 · /27 = 30 · /28 = 14 · /30 = 2.']},
+      {p:'Magic number', b:['Block size = <b>256 − the interesting octet</b> of the mask.','/26 → mask 192 → block 64 → subnets 0, 64, 128, 192.'],trap:'The address itself is rarely the answer — they want the <b>network</b> or <b>broadcast</b> of its block. Find the block, then the edges.'},
+      {p:'Wildcard mask', b:['Inverse of the subnet mask (255.255.255.255 − mask). <b>0 = must match, 1 = ignore.</b>','Same number you feed OSPF <span class="cli">network</span> and ACLs — learn it once.']},
+      {p:'CIDR / summarize', b:['Combine contiguous blocks into one shorter prefix (a summary/supernet).','Find the common leading bits → that prefix length covers all of them.']},
+    ]},
+  ospf:{label:'OSPF v2', tier:1, dom:3, ob:'3.4',
+    spine:'Neighbor discovery → Adjacency → LSDB sync → SPF → routing table.',
+    spinep:'Link-state: every router floods LSAs, all build the SAME map, each runs SPF (Dijkstra) for its own shortest path. Single area = everything in area 0.',
+    pillars:[
+      {p:'Router ID (RID)', b:['32-bit dotted-decimal name. Pick order: manual <span class="cli">router-id</span> > highest <b>loopback</b> > highest active <b>physical</b> IP.','Loopback wins because it never goes down → RID stays stable.'],trap:'RID is <b>sticky</b> — set it and nothing changes until <span class="cli">clear ip ospf process</span> or reload.'},
+      {p:'Adjacency · Hello + TASA', b:['Hello = heartbeat. Ethernet: <b>Hello 10s / Dead 40s</b> (4×).','To neighbor, <b>TASA</b> must match: <b>T</b>imers · <b>A</b>rea ID · <b>S</b>ubnet/mask · <b>A</b>uth. To go FULL, <b>MTU</b> too.','Multicast 224.0.0.5 = all OSPF · 224.0.0.6 = DR/BDR.'],trap:'A TASA mismatch <b>fails silently</b> — no neighbor, no log error. A <b>passive interface</b> sends no Hellos.'},
+      {p:'Neighbor states', b:['Down → Init → <b>2-Way</b> → Exstart → Exchange → Loading → <b>Full</b>.','Only two matter: <b>2-WAY</b> = we see each other · <b>FULL</b> = synced.'],trap:'On broadcast you stay <b>2-WAY on purpose</b> with other DROthers — only go FULL with DR/BDR. Most-tested OSPF fact.'},
+      {p:'Network types', b:['<b>Broadcast</b> (Ethernet default) → elects DR/BDR.','<b>Point-to-point</b> → no DR/BDR, simpler, faster (two routers only).']},
+      {p:'DR / BDR election', b:['Broadcast only. Cuts flooding — DR is the relay hub.','Highest <b>priority</b> wins → tie broken by highest <b>RID</b>. Default priority 1.','<b>Priority 0 = never DR.</b> Election is <b>non-preemptive</b>.']},
+      {p:'Cost / metric', b:['Cost = <b>reference BW (100 Mbps) ÷ interface BW</b>. Lower = better. Path cost adds up.','10M=10 · 100M=1 · 1G=1 · 10G=1.'],trap:'Gig and faster all <b>collapse to 1</b>. Fix with <span class="cli">auto-cost reference-bandwidth</span> — must be identical on every router.'},
+      {p:'Config + verify', b:['Two ways to enable: <span class="cli">network</span> + wildcard under the process, OR <span class="cli">ip ospf 1 area 0</span> on the interface.','<span class="cli">passive-interface</span> stops Hellos but still advertises the subnet.'],cfg:'<span class="lbl">config + verify</span><span class="k">router ospf</span> <span class="v">1</span>\n <span class="k">network</span> <span class="v">10.0.0.0 0.0.0.255</span> <span class="k">area</span> <span class="v">0</span>\n<span class="c">! must read FULL</span>\n<span class="k">show ip ospf neighbor</span>'},
+    ]},
+  vlan:{label:'VLANs', tier:1, dom:2, ob:'2.1',
+    spine:'One switch → many broadcast domains. A port lives in exactly one access VLAN.',
+    spinep:'A VLAN is a logical broadcast domain. Traffic between VLANs needs a router/L3 device.',
+    pillars:[
+      {p:'What a VLAN is', b:['Segments one physical switch into separate <b>broadcast domains</b>. ID range 1–4094.','Devices in different VLANs cannot talk without L3 routing.']},
+      {p:'Access port', b:['Carries <b>one</b> VLAN, untagged, toward a host.'],cfg:'<span class="k">interface</span> <span class="v">g0/1</span>\n <span class="k">switchport mode access</span>\n <span class="k">switchport access vlan</span> <span class="v">10</span>'},
+      {p:'Voice VLAN', b:['One access port can carry a <b>data</b> VLAN + a <b>voice</b> VLAN for an IP phone.']},
+      {p:'Default / verify', b:['VLAN 1 is the default (don\'t use it for data — security).'],cfg:'<span class="k">show vlan brief</span> <span class="c">! ports per VLAN</span>'},
+    ]},
+  trunk:{label:'Trunking (802.1Q)', tier:1, dom:2, ob:'2.2',
+    spine:'One link, many VLANs — 802.1Q tags every frame except the native VLAN.',
+    spinep:'A trunk carries multiple VLANs between switches by tagging frames with a 4-byte 802.1Q header.',
+    pillars:[
+      {p:'802.1Q tag', b:['Inserts a 4-byte tag carrying the <b>VLAN ID</b>. Lets one link carry many VLANs.']},
+      {p:'Native VLAN', b:['Sent <b>untagged</b>. Default VLAN 1.'],trap:'Native VLAN <b>must match on both ends</b> or you get a mismatch (and CDP warns). Mismatched native = VLAN hopping risk.'},
+      {p:'Config', b:['Force trunk; prune to only needed VLANs.'],cfg:'<span class="k">interface</span> <span class="v">g0/1</span>\n <span class="k">switchport mode trunk</span>\n <span class="k">switchport trunk allowed vlan</span> <span class="v">10,20</span>'},
+      {p:'DTP', b:['Dynamic Trunking Protocol auto-negotiates trunks. Disable with <span class="cli">switchport nonegotiate</span> for safety.'],cfg:'<span class="k">show interfaces trunk</span>'},
+    ]},
+  ivr:{label:'Inter-VLAN routing', tier:1, dom:3, ob:'2.x',
+    spine:'VLANs can\'t talk on their own — give them a router or L3 switch.',
+    spinep:'Three ways to route between VLANs: router-on-a-stick (subinterfaces), SVIs on an L3 switch, or routed ports.',
+    pillars:[
+      {p:'Router-on-a-stick', b:['One trunk to a router, one <b>subinterface per VLAN</b> with an 802.1Q tag = that VLAN\'s gateway.'],cfg:'<span class="k">interface</span> <span class="v">g0/0.10</span>\n <span class="k">encapsulation dot1Q</span> <span class="v">10</span>\n <span class="k">ip address</span> <span class="v">10.0.10.1 255.255.255.0</span>'},
+      {p:'SVI (L3 switch)', b:['<span class="cli">interface vlan 10</span> + <span class="cli">ip routing</span>. Faster, no external router.']},
+      {p:'Routed port', b:['<span class="cli">no switchport</span> turns a switch port into a real L3 routed interface.'],cfg:'<span class="k">show ip route</span> <span class="c">! confirm connected nets</span>'},
+    ]},
+  stp:{label:'STP / RSTP', tier:1, dom:2, ob:'2.5',
+    spine:'Loops are deadly → elect a Root → set port roles → climb to Forwarding → guard the edges.',
+    spinep:'Layer 2 has no TTL, so a loop = a broadcast storm forever. STP blocks redundant paths to leave one loop-free tree.',
+    pillars:[
+      {p:'Why STP exists', b:['No TTL at L2 → a single broadcast loops and <b>multiplies forever</b> (storm + MAC flapping).','STP blocks redundant links, keeps them as backup.']},
+      {p:'Root election', b:['Lowest <b>BID</b> wins. BID = priority (default 32768) + sys-id-ext + MAC.','Tie on priority → lowest MAC.'],trap:'<span class="cli">spanning-tree vlan 10 root primary</span> sets priority <b>24576</b>; secondary = 28672. Lower BID = root.'},
+      {p:'Port roles', b:['<b>Root Port</b> — best path toward root (one per non-root switch).','<b>Designated Port</b> — forwarding, one per segment.','<b>Alternate/Blocked</b> — the link STP turned off.']},
+      {p:'Port states', b:['RSTP: <b>Discarding → Learning → Forwarding</b>. (Legacy added Listening.)','Learning builds the MAC table but passes no data yet.']},
+      {p:'PortFast', b:['Edge/host ports skip the wait → <b>instant forwarding</b>.'],trap:'Never put PortFast on a switch-to-switch link — instant loop. Pair it with BPDU Guard.'},
+      {p:'Guards', b:['<b>BPDU Guard</b>: BPDU on a PortFast port → err-disable.','<b>Root Guard</b>: superior BPDU where root shouldn\'t be → root-inconsistent.','<b>Loop Guard</b>: blocked port stops hearing BPDUs → stays blocked.','<b>BPDU Filter</b>: suppresses BPDUs (use with care).'],cfg:'<span class="k">spanning-tree portfast</span>\n<span class="k">spanning-tree bpduguard enable</span>'},
+    ]},
+  ec:{label:'EtherChannel', tier:1, dom:2, ob:'2.4',
+    spine:'Bundle parallel links into one logical pipe STP sees as a single port.',
+    spinep:'EtherChannel aggregates 2–8 links so STP doesn\'t block them — more bandwidth, one logical interface.',
+    pillars:[
+      {p:'The bundle', b:['Combines links into one <b>Port-Channel</b>. STP treats it as a single link (no blocking).']},
+      {p:'Negotiation', b:['<b>LACP</b> (open, modes active/passive) · <b>PAgP</b> (Cisco) · <b>on</b> (static, no negotiation).','One side active + one passive = forms. Two passive = never forms.']},
+      {p:'Must match', b:['Speed, duplex, mode, and allowed VLANs must be identical on all member ports.'],cfg:'<span class="k">show etherchannel summary</span>'},
+    ]},
+  static:{label:'Static routing', tier:1, dom:3, ob:'3.3',
+    spine:'You type the path by hand. No adaptation, but exact control.',
+    spinep:'Static routes are manually configured. Default route = the "everything else" route.',
+    pillars:[
+      {p:'Syntax', b:['<span class="cli">ip route NET MASK NEXT-HOP</span> (or exit interface).'],cfg:'<span class="k">ip route</span> <span class="v">10.2.0.0 255.255.255.0 192.168.1.2</span>'},
+      {p:'Default route', b:['<span class="cli">ip route 0.0.0.0 0.0.0.0 NEXT-HOP</span> = gateway of last resort.']},
+      {p:'Floating static', b:['AD of a static is <b>1</b>. Raise it (e.g. 200) so it only activates if the dynamic route dies.'],trap:'Longest-prefix match still beats AD — a /32 static wins over a /24 from any protocol.'},
+    ]},
+  nat:{label:'NAT', tier:1, dom:4, ob:'4.1',
+    spine:'Translate private inside addresses to public outside ones — static, pool, or PAT.',
+    spinep:'NAT rewrites IP addresses at the border. PAT (overload) is what your home router does — many hosts to one public IP via ports.',
+    pillars:[
+      {p:'Static NAT', b:['One private ↔ one public, fixed. For servers reachable from outside.']},
+      {p:'Dynamic pool', b:['A pool of public IPs handed out as needed, matched by an ACL.'],cfg:'<span class="k">ip nat pool</span> <span class="v">P 1.1.1.1 1.1.1.4 netmask 255.255.255.0</span>\n<span class="k">ip nat inside source list</span> <span class="v">1 pool P</span>'},
+      {p:'PAT / overload', b:['Many inside hosts → <b>one</b> public IP, distinguished by source port.'],cfg:'<span class="k">ip nat inside source list</span> <span class="v">1 interface g0/0 overload</span>'},
+      {p:'Inside / outside', b:['Mark interfaces <span class="cli">ip nat inside</span> / <span class="cli">ip nat outside</span> or nothing translates.'],cfg:'<span class="k">show ip nat translations</span>'},
+    ]},
+  acl:{label:'ACLs', tier:1, dom:5, ob:'5.6',
+    spine:'Ordered list → top-down → first match wins → stop → invisible deny any.',
+    spinep:'A sequence of permit/deny rules read top to bottom. Does nothing until applied to an interface in a direction. Near-guaranteed sim.',
+    pillars:[
+      {p:'Standard vs Extended', b:['<b>Standard</b> = source IP only. Ranges <b>1–99</b>.','<b>Extended</b> = 5-tuple (src/dst IP, protocol, ports). Ranges <b>100–199</b>.']},
+      {p:'Placement', b:['<b>Standard → near destination</b> (sees source only, would over-block at source).','<b>Extended → near source</b> (precise, kill it early). Hook: <b>S→D, E→S</b>.'],trap:'Most "where do I apply it" questions are really testing this. Standard near source over-blocks = wrong answer.'},
+      {p:'Wildcard masks', b:['Inverse of subnet mask. <b>0 = match, 1 = ignore.</b>','<span class="cli">host x</span> = 0.0.0.0 · <span class="cli">any</span> = 0.0.0.0 255.255.255.255.'],trap:'The classic points-loser. /24 → 0.0.0.255 · /26 → 0.0.0.63 · /30 → 0.0.0.3.'},
+      {p:'Order + implicit deny', b:['Top-down, first match wins, then stop. Specific before general.','Invisible <span class="cli">deny any</span> at the end drops everything not permitted.'],trap:'"Traffic dropped, nothing explicitly denied" → <b>implicit deny any</b>.'},
+      {p:'Apply it', b:['<span class="cli">ip access-group N in|out</span> on the interface. One per int/dir/protocol.'],cfg:'<span class="k">interface</span> <span class="v">g0/0</span>\n <span class="k">ip access-group</span> <span class="v">100</span> <span class="k">in</span>'},
+      {p:'VTY lockdown', b:['Protect SSH/Telnet with <span class="cli">access-class N in</span> on the VTY lines.'],trap:'On VTY it\'s <span class="cli">access-class</span>, NOT <span class="cli">ip access-group</span>.'},
+    ]},
+  rtable:{label:'Routing table logic', tier:1, dom:3, ob:'3.1·3.2',
+    spine:'Longest prefix → then AD → then metric. In that exact order.',
+    spinep:'When multiple routes could match, the router picks the most specific first. AD and metric only break ties between equally specific routes.',
+    pillars:[
+      {p:'Decision order', b:['1. <b>Longest prefix match</b> (most specific) always wins.','2. Same prefix from different sources → lowest <b>AD</b>.','3. Same source → lowest <b>metric</b>.'],trap:'Longest prefix beats a lower AD. A /32 static loses to nothing more specific.'},
+      {p:'AD table', b:['Connected 0 · Static 1 · EIGRP 90 · OSPF 110 · RIP 120.','Lower AD = more trusted source.']},
+      {p:'Route-line anatomy', b:['<span class="cli">O 10.0.0.0/24 [110/2] via 192.168.1.1</span>: code · prefix · <b>[AD/metric]</b> · next-hop.','Code: C=connected, S=static, O=OSPF, D=EIGRP.']},
+    ]},
+  ipv6:{label:'IPv6 addressing', tier:1, dom:1, ob:'1.8·1.9',
+    spine:'128 bits in hex, compress the zeros, know the address types.',
+    spinep:'IPv6 ends NAT-by-default. Know how to write/compress an address and recognize the scopes.',
+    pillars:[
+      {p:'Format', b:['128-bit, 8 hextets. Drop leading zeros; <b>:: replaces one run of all-zero groups (once)</b>.']},
+      {p:'Address types', b:['<b>GUA</b> 2000::/3 (public) · <b>Link-local</b> fe80::/10 (always present) · <b>Unique local</b> fc00::/7 (private).']},
+      {p:'SLAAC / EUI-64', b:['Host auto-builds its own address from the router\'s prefix (RA) + interface ID.'],cfg:'<span class="k">ipv6 unicast-routing</span>\n<span class="k">interface</span> <span class="v">g0/0</span>\n <span class="k">ipv6 address</span> <span class="v">2001:db8::1/64</span>'},
+    ]},
+  portsec:{label:'Port security', tier:1, dom:5, ob:'5.7',
+    spine:'Lock a switch port to known MACs — too many = violation.',
+    spinep:'Limits which/how many MAC addresses can use an access port. A first line of L2 defense.',
+    pillars:[
+      {p:'What it does', b:['Caps the number of MACs on a port; can pin specific MACs.']},
+      {p:'Violation modes', b:['<b>shutdown</b> (default) → err-disable · <b>restrict</b> → drop + log · <b>protect</b> → drop silently.']},
+      {p:'Sticky MAC', b:['<span class="cli">switchport port-security mac-address sticky</span> learns and saves the MAC automatically.'],cfg:'<span class="k">switchport port-security</span>\n<span class="k">show port-security</span>'},
+    ]},
+
+  /* ===== TIER 2 ===== */
+  dhcp:{label:'DHCP', tier:2, dom:4, ob:'4.3·4.6',
+    spine:'DORA hands out IPs; a relay carries the broadcast across subnets.',
+    spinep:'Discover, Offer, Request, Ack. Clients broadcast, so cross-subnet needs a relay.',
+    pillars:[
+      {p:'DORA', b:['<b>D</b>iscover → <b>O</b>ffer → <b>R</b>equest → <b>A</b>ck. Client broadcasts, server leases an IP.']},
+      {p:'Relay', b:['DHCP is broadcast; a router on the client subnet relays to a remote server.'],cfg:'<span class="k">interface</span> <span class="v">g0/0</span>\n <span class="k">ip helper-address</span> <span class="v">10.0.0.10</span>'},
+      {p:'Pool + exclude', b:['Define scope; exclude the gateway/static range.'],cfg:'<span class="k">ip dhcp excluded-address</span> <span class="v">10.0.0.1 10.0.0.9</span>\n<span class="k">ip dhcp pool</span> <span class="v">LAN</span>'},
+    ]},
+  ssh:{label:'SSH / device access', tier:2, dom:5, ob:'2.8',
+    spine:'Encrypted remote admin — replaces Telnet.',
+    spinep:'Five prerequisites generate the key; then lock VTY to SSH only.',
+    pillars:[
+      {p:'Why SSH', b:['Encrypts the management session. Telnet is cleartext — never use it.']},
+      {p:'The 5 requirements', b:['hostname · ip domain-name · <b>crypto key generate rsa</b> · local username · enable SSH on VTY.'],cfg:'<span class="k">ip domain-name</span> <span class="v">lab.net</span>\n<span class="k">crypto key generate rsa</span>\n<span class="k">username</span> <span class="v">admin secret cisco</span>'},
+      {p:'Lock the VTY', b:['Force login + SSH-only transport.'],cfg:'<span class="k">line vty</span> <span class="v">0 4</span>\n <span class="k">login local</span>\n <span class="k">transport input ssh</span>'},
+    ]},
+  fhrp:{label:'FHRP (HSRP)', tier:2, dom:3, ob:'3.5',
+    spine:'One virtual gateway IP shared by two routers — survives a failure.',
+    spinep:'Hosts point at a virtual IP/MAC. If the active router dies, standby takes over invisibly.',
+    pillars:[
+      {p:'Purpose', b:['Gateway redundancy. Hosts use a <b>virtual IP + virtual MAC</b>, not a real router\'s.']},
+      {p:'HSRP roles', b:['<b>Active</b> forwards, <b>Standby</b> waits. Cisco proprietary.','Highest <b>priority</b> wins; <b>preempt</b> lets a recovered higher-priority router retake active.']},
+      {p:'Cousins', b:['<b>VRRP</b> = open-standard equivalent · <b>GLBP</b> = Cisco, load-balances across routers.']},
+    ]},
+  comp:{label:'Network components', tier:2, dom:1, ob:'1.1',
+    spine:'Know what each box does and where it sits.',
+    spinep:'Recognition points: match the device/role to its job.',
+    pillars:[
+      {p:'Infrastructure', b:['Router (L3, between networks) · L2 switch (within VLAN) · L3 switch (SVIs route).']},
+      {p:'Security + edge', b:['NGFW / IPS (inspect + block) · AP (wireless) · WLC (manages APs).']},
+      {p:'Endpoints', b:['Endpoints/servers = the hosts. <b>PoE</b> = switch powers the AP/phone over the data cable.']},
+    ]},
+  macsw:{label:'Switching concepts', tier:2, dom:2, ob:'2.x',
+    spine:'Learn the source, forward to the known, flood the unknown.',
+    spinep:'A switch builds its MAC table from source addresses and forwards by destination.',
+    pillars:[
+      {p:'Learn', b:['Records <b>source MAC</b> + port in the MAC address table.']},
+      {p:'Forward / flood', b:['Known unicast → out the one port. Unknown unicast/broadcast → <b>flood</b> all but the inbound.']},
+      {p:'Frame handling', b:['Store-and-forward is the default switching mode (checks FCS).'],cfg:'<span class="k">show mac address-table</span>'},
+    ]},
+  wlc:{label:'Wireless arch / WLC', tier:2, dom:2, ob:'2.7-2.9',
+    spine:'Lightweight APs are dumb radios; the WLC is the brain over CAPWAP.',
+    spinep:'Autonomous APs are standalone; lightweight APs split-MAC with a WLC. This silo does NOT inherit from P1 — give it its own reps.',
+    pillars:[
+      {p:'Autonomous vs lightweight', b:['<b>Autonomous</b> = self-contained AP. <b>Lightweight</b> = controlled by a WLC (split-MAC).']},
+      {p:'CAPWAP', b:['Tunnels <b>control</b> + <b>data</b> between AP and WLC across the network.']},
+      {p:'AP modes', b:['local (normal) · FlexConnect (survives WAN drop) · monitor · sniffer.']},
+      {p:'Management access', b:['Configure the WLC via its GUI/HTTPS, SSH, or console.']},
+    ]},
+
+  /* ===== TIER 3 — recognize ===== */
+  discovery:{label:'CDP / LLDP', tier:3, dom:2, ob:'2.3',
+    spinep:'Discover directly-connected neighbors.',
+    pillars:[
+      {p:'CDP vs LLDP', b:['<b>CDP</b> = Cisco proprietary (<span class="cli">show cdp neighbors</span>). <b>LLDP</b> = open standard (<span class="cli">lldp run</span>).','Both reveal directly-connected device, port, platform.']},
+    ]},
+  ntp:{label:'NTP', tier:3, dom:4, ob:'4.2',
+    spinep:'Sync clocks so logs and certs line up.',
+    pillars:[
+      {p:'Time sync', b:['<span class="cli">ntp server x.x.x.x</span> points at a source; <span class="cli">ntp master</span> makes the device a source.','<b>Stratum</b> = distance from the authoritative clock (lower = better).']},
+    ]},
+  dns:{label:'DNS', tier:3, dom:4, ob:'4.3',
+    spinep:'Name → IP resolution.',
+    pillars:[
+      {p:'Name resolution', b:['Resolves hostnames to IPs. <span class="cli">ip name-server</span> sets the resolver; <span class="cli">ip domain-lookup</span> enables it.']},
+    ]},
+  snmp:{label:'SNMP', tier:3, dom:4, ob:'4.4',
+    spinep:'Monitor and poll devices.',
+    pillars:[
+      {p:'Versions + messages', b:['<b>v2c</b> = community string (weak) · <b>v3</b> = auth + encryption.','<b>get/set</b> = manager polls. <b>Trap</b> = device alerts (no ack) · <b>Inform</b> = trap with ack.']},
+    ]},
+  syslog:{label:'Syslog', tier:3, dom:4, ob:'4.5',
+    spinep:'Centralized event logging by severity.',
+    pillars:[
+      {p:'Severity + facility', b:['Severity <b>0–7</b>: Emergency, Alert, Critical, Error, Warning, Notice, Info, <b>Debug</b>. (0 = worst.)','Mnemonic: <b>Every Awesome Cisco Engineer Will Need Ice cream Daily.</b> Facility = the source/category.'],cfg:'<span class="k">logging host</span> <span class="v">10.0.0.20</span>'},
+    ]},
+  qos:{label:'QoS', tier:3, dom:4, ob:'4.7',
+    spinep:'Prioritize traffic when the link is full.',
+    pillars:[
+      {p:'Classify + act', b:['Classify/mark with <b>DSCP</b> (voice = EF / 46).','<b>Policing</b> drops/remarks excess · <b>Shaping</b> buffers it for later. Queuing serves priority traffic first.']},
+    ]},
+  aaa:{label:'AAA', tier:3, dom:5, ob:'5.8',
+    spinep:'Who you are, what you can do, what you did.',
+    pillars:[
+      {p:'The three As', b:['<b>Authentication</b> = who · <b>Authorization</b> = what · <b>Accounting</b> = what you did.']},
+      {p:'TACACS+ vs RADIUS', b:['<b>TACACS+</b>: Cisco, <b>TCP 49</b>, encrypts the whole packet, <b>splits</b> the three As (device admin).','<b>RADIUS</b>: open, UDP, encrypts password only, <b>combines</b> authN+authZ (network access).']},
+    ]},
+  wsec:{label:'Wireless security', tier:3, dom:5, ob:'5.9·5.10',
+    spinep:'Lock the WLAN. Part of the wireless silo.',
+    pillars:[
+      {p:'WPA2 / WPA3', b:['<b>WPA2</b> = AES/CCMP. <b>WPA3</b> = SAE (stronger handshake, forward secrecy).','<b>PSK</b> = shared password · <b>Enterprise</b> = 802.1X + RADIUS per-user.']},
+    ]},
+  threats:{label:'Threats / vuln', tier:3, dom:5, ob:'5.1',
+    spinep:'Name the weakness, the danger, the fix.',
+    pillars:[
+      {p:'The vocabulary', b:['<b>Vulnerability</b> = weakness · <b>Exploit</b> = the thing that uses it · <b>Threat</b> = the danger · <b>Mitigation</b> = the fix.','Common: spoofing, MITM, DoS/DDoS, reconnaissance, social engineering.']},
+    ]},
+  iptypes:{label:'IPv4 address types', tier:3, dom:1, ob:'1.7',
+    spinep:'Recognize the ranges.',
+    pillars:[
+      {p:'Ranges', b:['<b>Private</b>: 10/8 · 172.16/12 · 192.168/16.','<b>APIPA</b> 169.254/16 (DHCP failed) · <b>Loopback</b> 127/8 · the rest is public.']},
+    ]},
+
+  /* ===== TIER 4 — one fact ===== */
+  topo:{label:'Topology architectures', tier:4, dom:1, ob:'1.2',
+    pillars:[{p:'Designs', b:['<b>Spine-leaf</b> = data center · <b>2-tier</b> (collapsed core) / <b>3-tier</b> (core-distribution-access) = campus · plus WAN/SOHO.']}]},
+  cable:{label:'Cabling', tier:4, dom:1, ob:'1.3',
+    pillars:[{p:'Media', b:['<b>SMF</b> = long-haul · <b>MMF</b> = shorter runs · <b>Copper UTP</b> = 100 m max. Straight-through (unlike) vs crossover (like).']}]},
+  virt:{label:'Virtualization / VRF', tier:4, dom:1, ob:'1.12',
+    pillars:[{p:'Containers vs VMs vs VRF', b:['<b>VM</b> = full guest OS on a hypervisor · <b>Container</b> = shares the host kernel (lighter) · <b>VRF</b> = a virtual routing table on one router.']}]},
+  ftp:{label:'TFTP / FTP', tier:4, dom:4, ob:'file xfer',
+    pillars:[{p:'Two file movers', b:['<b>FTP</b> = TCP, authenticated, two channels · <b>TFTP</b> = UDP 69, no auth, tiny (IOS upgrades / config backup).']}]},
+  vpn:{label:'IPsec VPN', tier:4, dom:5, ob:'5.x',
+    pillars:[{p:'VPN types', b:['<b>Site-to-site</b> = gateway ↔ gateway (always on) · <b>Remote-access</b> = client → gateway. IPsec gives confidentiality + integrity; GRE tunnels carry it.']}]},
+  sdn:{label:'SDN / controller', tier:4, dom:6, ob:'6.1·6.2',
+    spinep:'Separate the brain from the muscle. Automation silo — own reps required.',
+    pillars:[{p:'Planes + APIs', b:['<b>Control plane</b> = the brain (decides paths) · <b>Data plane</b> = forwards packets.','Controller centralizes control. <b>Northbound</b> API → apps · <b>Southbound</b> API → devices.']}]},
+  rest:{label:'REST APIs', tier:4, dom:6, ob:'6.3',
+    pillars:[{p:'CRUD over HTTP', b:['<b>POST</b>=create · <b>GET</b>=read · <b>PUT</b>=update · <b>DELETE</b>=delete. Stateless, usually JSON payloads.']}]},
+  iac:{label:'Ansible / Terraform', tier:4, dom:6, ob:'6.5·6.6',
+    pillars:[{p:'Config mgmt tools', b:['<b>Ansible</b> = agentless, push, YAML playbooks · <b>Terraform</b> = declarative IaC · <b>Puppet/Chef</b> = agent-based, pull.']}]},
+  json:{label:'JSON', tier:4, dom:6, ob:'6.4',
+    pillars:[{p:'Syntax', b:['<b>{}</b> = object · <b>[]</b> = array · <b>"key": value</b> pairs. Values: string, number, boolean, null, object, array.']}]},
+  aiml:{label:'AI / ML in netops', tier:4, dom:6, ob:'6.7',
+    pillars:[{p:'AI vs ML', b:['<b>Predictive</b> AI = forecasts/anomaly detection · <b>Generative</b> AI = creates content. <b>ML</b> = pattern detection from data (AIOps).']}]},
+};
+
+/* connections — most-relevant pairs */
+const EDGES = [
+  ['subnet','ospf'],['subnet','acl'],['subnet','ipv6'],['subnet','rtable'],
+  ['vlan','trunk'],['trunk','ivr'],['vlan','stp'],['vlan','portsec'],['stp','ec'],['trunk','ec'],
+  ['ospf','rtable'],['static','rtable'],['nat','rtable'],['ospf','static'],
+  ['acl','nat'],['acl','ssh'],
+  ['ivr','fhrp'],['ivr','dhcp'],['dhcp','dns'],
+  ['ssh','aaa'],['aaa','threats'],['portsec','threats'],
+  ['wlc','wsec'],['wlc','comp'],['wlc','discovery'],
+  ['macsw','vlan'],['macsw','discovery'],['comp','topo'],
+  ['ntp','syslog'],['snmp','syslog'],
+  ['nat','vpn'],['static','ipv6'],
+  ['sdn','rest'],['rest','json'],['sdn','iac'],['sdn','comp'],
+];
+
+/* ============================ LAYOUT ============================ */
+const CX=880, CY=880;
+const RING={1:300,2:490,3:655,4:810};
+const stage=document.getElementById('stage');
+const edgesSvg=document.getElementById('edges');
+const pos={};   // id -> {x,y}
+const nodeEl={};
+
+function layout(){
+  // group ids by tier, in declared order
+  const byTier={1:[],2:[],3:[],4:[]};
+  for(const id in T) byTier[T[id].tier].push(id);
+  // rotation offsets so rings don't align spokes
+  const off={1:-Math.PI/2, 2:-Math.PI/2+0.35, 3:-Math.PI/2+0.16, 4:-Math.PI/2+0.30};
+  for(const tier of [1,2,3,4]){
+    const ids=byTier[tier], n=ids.length, r=RING[tier];
+    ids.forEach((id,i)=>{
+      const a=off[tier]+ i*(2*Math.PI/n);
+      pos[id]={x:CX+r*Math.cos(a), y:CY+r*Math.sin(a)};
+    });
+  }
+}
+
+function drawRings(){
+  const labels={1:'P1 · CORE',2:'P2',3:'P3',4:'P4'};
+  let svg='';
+  for(const t of [1,2,3,4]){
+    svg+=`<circle class="ring" cx="${CX}" cy="${CY}" r="${RING[t]}"></circle>`;
+    svg+=`<text class="ringlbl" x="${CX}" y="${CY-RING[t]-9}" text-anchor="middle">${labels[t]}</text>`;
+  }
+  edgesSvg.insertAdjacentHTML('beforeend', svg);
+}
+
+function drawEdges(){
+  EDGES.forEach((e,i)=>{
+    const a=pos[e[0]], b=pos[e[1]]; if(!a||!b) return;
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',a.x);ln.setAttribute('y1',a.y);ln.setAttribute('x2',b.x);ln.setAttribute('y2',b.y);
+    ln.setAttribute('class','edge');ln.dataset.a=e[0];ln.dataset.b=e[1];
+    edgesSvg.appendChild(ln);
+  });
+}
+
+function drawNodes(){
+  for(const id in T){
+    const t=T[id], p=pos[id], c=DOMAINS[t.dom].c;
+    const el=document.createElement('div');
+    el.className='node t'+t.tier;
+    el.style.left=p.x+'px'; el.style.top=p.y+'px'; el.style.setProperty('--nc',c);
+    el.dataset.id=id;
+    el.innerHTML=`<span class="mc" title="mark mastered"></span>
+      <div class="tag"><span>P${t.tier}</span><span>${t.ob}</span></div>
+      <div class="lbl">${t.label}</div>`;
+    stage.appendChild(el);
+    nodeEl[id]=el;
+    // restore mastered
+    if(localStorage.getItem('ccna-map-'+id)==='1') el.classList.add('done');
+    // interactions
+    el.addEventListener('mouseenter',(e)=>onHoverEnter(id,e));
+    el.addEventListener('mouseleave',onHoverLeave);
+    el.addEventListener('mousedown',(ev)=>{
+      if(ev.target.classList.contains('mc')){
+        el.classList.toggle('done');
+        localStorage.setItem('ccna-map-'+id, el.classList.contains('done')?'1':'0');
+        ev.stopPropagation(); armed=null; return;
+      }
+      armed=id; armX=ev.clientX; armY=ev.clientY; ev.stopPropagation();
+    });
+  }
+}
+
+const neighbors={};
+function buildNeighbors(){ EDGES.forEach(e=>{ (neighbors[e[0]]=neighbors[e[0]]||new Set()).add(e[1]); (neighbors[e[1]]=neighbors[e[1]]||new Set()).add(e[0]); }); }
+
+function highlight(id){
+  const keep=new Set([id, ...(neighbors[id]||[])]);
+  for(const nid in nodeEl) nodeEl[nid].classList.toggle('dim', !keep.has(nid));
+  edgesSvg.querySelectorAll('.edge').forEach(ln=>{
+    const on=(ln.dataset.a===id||ln.dataset.b===id);
+    ln.classList.toggle('lit',on); ln.classList.toggle('dim',!on);
+    if(on) ln.setAttribute('stroke', DOMAINS[T[id].dom].c);
+  });
+}
+function clearHighlight(){
+  for(const nid in nodeEl) nodeEl[nid].classList.remove('dim');
+  edgesSvg.querySelectorAll('.edge').forEach(ln=>{ln.classList.remove('lit','dim');ln.setAttribute('stroke','#cfc7b6');});
+}
+
+/* ---- hover = highlight only (instant, no camera motion) ---- */
+let leaveTimer=null;
+function onHoverEnter(id){ clearTimeout(leaveTimer); stage.classList.remove('animed'); highlight(id); }
+function onHoverLeave(){ clearTimeout(leaveTimer); leaveTimer=setTimeout(clearHighlight,90); }
+
+/* ============================ PAN / ZOOM ============================ */
+const vp=document.getElementById('viewport');
+let scale=1, tx=0, ty=0;
+function apply(){ stage.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`; document.getElementById('zval').textContent=Math.round(scale*100)+'%'; }
+function fit(animate){
+  if(animate) stage.classList.add('animed'); else stage.classList.remove('animed');
+  const w=vp.clientWidth, h=vp.clientHeight, pad=70, topbarH=98;
+  const s=Math.min((w-pad*2)/1760,(h-topbarH-pad*2)/1760);
+  scale=s; tx=(w-1760*s)/2; ty=topbarH+(h-topbarH-1760*s)/2; apply();
+}
+function center(animate){ if(animate) stage.classList.add('animed'); else stage.classList.remove('animed'); const w=vp.clientWidth,h=vp.clientHeight; scale=1; tx=w/2-CX; ty=h/2-CY; apply(); }
+document.getElementById('zin').onclick=()=>{stage.classList.add('animed');scale=Math.min(scale*1.2,3);apply();};
+document.getElementById('zout').onclick=()=>{stage.classList.add('animed');scale=Math.max(scale/1.2,.2);apply();};
+document.getElementById('fit').onclick=()=>fit(true);
+document.getElementById('reset').onclick=()=>{clearHighlight();center(true);};
+vp.addEventListener('wheel',e=>{
+  e.preventDefault();
+  stage.classList.remove('animed');
+  const r=vp.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const ns=Math.min(Math.max(scale*(e.deltaY<0?1.1:0.9),.2),3);
+  tx=mx-(mx-tx)*(ns/scale); ty=my-(my-ty)*(ns/scale); scale=ns; apply();
+},{passive:false});
+let drag=false,sx,sy,stx,sty;
+let armed=null,armX=0,armY=0;
+vp.addEventListener('mousedown',e=>{ if(e.target.closest('.node'))return; stage.classList.remove('animed'); drag=true;vp.classList.add('dragging');sx=e.clientX;sy=e.clientY;stx=tx;sty=ty; });
+window.addEventListener('mousemove',e=>{ if(!drag)return; tx=stx+(e.clientX-sx); ty=sty+(e.clientY-sy); apply(); });
+window.addEventListener('mouseup',(e)=>{
+  drag=false;vp.classList.remove('dragging');
+  if(armed!=null){ const moved=Math.hypot(e.clientX-armX,e.clientY-armY); const id=armed; armed=null; if(moved<7) openTopic(id); }
+});
+
+/* ============================ OVERLAY ============================ */
+const overlay=document.getElementById('overlay');
+const pmap=document.getElementById('pmap'), pedges=document.getElementById('pedges'), pcenter=document.getElementById('pcenter');
+const pdetail=document.getElementById('pdetail');
+
+function openTopic(id){
+  const t=T[id], c=DOMAINS[t.dom].c;
+  document.querySelectorAll('.sheet').forEach(s=>s.style.setProperty('--oc',c));
+  document.getElementById('ovob').textContent='Objective '+t.ob+' · Domain '+t.dom;
+  document.getElementById('ovtitle').textContent=t.label;
+  const dc=document.getElementById('ovdom'); dc.textContent='Domain '+t.dom+' · '+DOMAINS[t.dom].n;
+  // show first so the panel has real dimensions to measure
+  overlay.classList.add('open');
+  // build mini pillar map
+  pcenter.textContent=t.label;
+  pmap.querySelectorAll('.pnode').forEach(n=>n.remove());
+  pedges.innerHTML='';
+  const W=pmap.clientWidth||500, H=pmap.clientHeight||400, cx=W/2, cy=H/2;
+  const R=Math.min(W,H)*0.36;
+  const n=t.pillars.length;
+  t.pillars.forEach((pl,i)=>{
+    const a=-Math.PI/2 + i*(2*Math.PI/n);
+    const x=cx+R*Math.cos(a), y=cy+R*Math.sin(a);
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',cx);ln.setAttribute('y1',cy);ln.setAttribute('x2',x);ln.setAttribute('y2',y);
+    ln.setAttribute('class','pedge');ln.setAttribute('stroke',c);ln.style.opacity=.4;
+    pedges.appendChild(ln);
+    const pn=document.createElement('div');
+    pn.className='pnode';pn.style.left=x+'px';pn.style.top=y+'px';pn.style.setProperty('--oc',c);
+    pn.innerHTML=`<span class="pn">${i+1}</span>${pl.p}`;
+    pn.addEventListener('click',()=>showPillar(id,i));
+    pmap.appendChild(pn);
+  });
+  // detail = spine + prompt
+  renderSpine(t);
+  // size svg
+  pedges.setAttribute('viewBox',`0 0 ${W} ${H}`);
+}
+
+function renderSpine(t){
+  let html='';
+  if(t.spine){
+    html+=`<div class="spine"><div class="sl">the spine — get this first</div><div class="flow">${t.spine}</div>`;
+    if(t.spinep) html+=`<p>${t.spinep}</p>`;
+    html+=`</div>`;
+  } else if(t.spinep){
+    html+=`<div class="spine"><div class="sl">in one line</div><div class="flow">${t.spinep}</div></div>`;
+  }
+  html+=`<p class="pickme">Click a pillar node on the left to open it. ${t.pillars.length} pillar${t.pillars.length>1?'s':''} — master these and you own ${t.label} for the exam.</p>`;
+  pdetail.innerHTML=html;
+}
+
+function showPillar(id,i){
+  const t=T[id], pl=t.pillars[i], c=DOMAINS[t.dom].c;
+  pmap.querySelectorAll('.pnode').forEach((n,j)=>n.classList.toggle('active',j===i));
+  let html=`<div class="pcard show"><h3><span class="num">${i+1}</span>${pl.p}<span class="ref">${t.ob}</span></h3>`;
+  html+='<ul class="must">'+pl.b.map(x=>`<li><span>${x}</span></li>`).join('')+'</ul>';
+  if(pl.trap) html+=`<div class="trap"><span class="lbl">TRAP</span>${pl.trap}</div>`;
+  if(pl.cfg) html+=`<div class="cfg">${pl.cfg}</div>`;
+  html+='</div>';
+  pdetail.innerHTML=html;
+  pdetail.scrollTop=0;
+}
+
+document.getElementById('closeov').onclick=()=>overlay.classList.remove('open');
+overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.classList.remove('open'); });
+window.addEventListener('keydown',e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
+
+/* ============================ LEGEND ============================ */
+function buildLegend(){
+  const lg=document.getElementById('legend');
+  for(const d in DOMAINS){
+    const el=document.createElement('div');
+    el.className='lg';el.dataset.dom=d;
+    el.innerHTML=`<span class="sw" style="background:${DOMAINS[d].c}"></span>${d} · ${DOMAINS[d].n}`;
+    el.addEventListener('click',()=>{
+      el.classList.toggle('off');
+      const on=!el.classList.contains('off');
+      for(const id in T){ if(String(T[id].dom)===d) nodeEl[id].style.display=on?'':'none'; }
+    });
+    lg.appendChild(el);
+  }
+}
+
+/* ============================ BOOT ============================ */
+layout(); drawRings(); drawEdges(); drawNodes(); buildNeighbors(); buildLegend();
+fit();
+window.addEventListener('resize',()=>{ if(!overlay.classList.contains('open')) fit(); });
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
