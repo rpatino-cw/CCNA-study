@@ -194,6 +194,22 @@
   @media(prefers-reduced-motion:reduce){
     .reading-visual svg .viz-flow,.reading-visual svg .viz-pulse{animation:none}
   }
+
+  /* TOC: clean clickable rows — one look with the reading view */
+  .toc-ch-main{gap:12px}
+  .toc-ch-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .toc-obj{font-family:var(--font-mono);font-size:.62rem;font-weight:600;background:var(--bg-recessed);color:var(--ink-muted);padding:1px 6px;border-radius:3px}
+  .toc-go{font-family:var(--font-display);font-weight:700;color:rgba(180,83,9,.55);font-size:1.1rem;line-height:1}
+  .toc-ch-row.toc-ch-clickable:hover .toc-ch-name,.toc-ch-row.toc-ch-clickable:hover .toc-go{color:var(--accent,#B45309)}
+  /* retire the old floating "Read" hint — the chevron is the new affordance */
+  .toc-ch-row.toc-ch-clickable .toc-ch-main::after,.toc-ch.toc-ch-clickable::after{content:none}
+
+  /* Reading view: practice footer (relocated quick links) */
+  .reading-practice{margin-top:32px;padding-top:20px;border-top:1px solid var(--border)}
+  .reading-practice-label{font-family:var(--font-display);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);display:block;margin-bottom:10px}
+  .reading-practice-links{display:flex;gap:6px;flex-wrap:wrap}
+  .reading-practice-links a{font-family:var(--font-mono);font-size:.72rem;background:var(--bg-recessed);color:var(--ink-secondary);padding:5px 12px;border-radius:100px;text-decoration:none;border:1px solid var(--border);transition:all .15s}
+  .reading-practice-links a:hover{background:var(--accent-light,rgba(180,83,9,.1));color:var(--accent,#B45309);border-color:var(--accent,#B45309)}
 </style>
 </head>
 <body>
@@ -828,6 +844,13 @@ function openChapterReading(bookId, chId, chTitle) {
     readingHtml += '</div>'; // close reading-topic
   });
 
+  // Practice footer — quick links (relocated here from the TOC list)
+  readingHtml += '<div class="reading-practice"><span class="reading-practice-label">Practice this chapter</span><div class="reading-practice-links">';
+  topicIds.forEach(function(tid) { readingHtml += '<a href="core.html#' + tid + '">CORE ' + tid + '</a>'; });
+  readingHtml += '<a href="mini-lab.html?topic=' + topicIds[0] + '">Mini Lab</a>';
+  readingHtml += '<a href="quiz.html?learn=' + topicIds[0] + '">Quiz</a>';
+  readingHtml += '</div></div>';
+
   readingHtml += '</div>'; // close reading-view
   var rv = document.getElementById('chapterReadingView');
   rv.innerHTML = readingHtml;
@@ -918,33 +941,18 @@ function buildSimpleToc(toc, bookId) {
     var clickable = hasMapped ? ' toc-ch-clickable' : '';
     var topics = hasMapped ? topicMap[item.ch] : [];
 
+    // Clean, clickable title row. The full core-concept view opens on click.
     html += '<div id="ch-' + item.ch + '" class="toc-ch-row' + (isRead ? ' ch-read' : '') + clickable + '" data-ch="' + item.ch + '" data-book="' + bookId + '" data-title="' + item.title.replace(/"/g, '&quot;') + '" data-page="' + item.page + '" data-mapped="' + (hasMapped ? '1' : '0') + '">';
     html += '<div class="toc-ch-check-wrap"><input type="checkbox" class="ch-check" data-chid="' + chId + '" data-book="' + bookId + '"' + (isRead ? ' checked' : '') + ' onclick="event.stopPropagation(); toggleBookChapterRead(this)"></div>';
     html += '<div class="toc-ch-main">';
     html += '<span class="toc-ch-name">Ch ' + item.ch + ' — ' + item.title + '</span>';
+    html += '<span class="toc-ch-right">';
+    if (topics.length) { topics.forEach(function(t) { html += '<span class="toc-obj">' + t + '</span>'; }); }
     html += '<span class="toc-ch-page">p.' + item.page + '</span>';
+    if (hasMapped) { html += '<span class="toc-go" aria-hidden="true">&#8250;</span>'; }
+    html += '</span>';
     html += '</div>';
     html += '</div>';
-
-    // Auto-generate summary from study-content if available
-    if (topics.length && window.studyContent) {
-      var summaries = topics.map(function(t) { return window.studyContent[t]; }).filter(Boolean);
-      if (summaries.length) {
-        html += '<div class="ch-summary">' + summaries.map(function(s) { return s.summary; }).join(' ') + '</div>';
-        var allPoints = [];
-        summaries.forEach(function(s) { if (s.keyPoints) allPoints = allPoints.concat(s.keyPoints.slice(0, 3)); });
-        if (allPoints.length) {
-          html += '<details class="ch-details"><summary>Key Exam Points</summary><ul>';
-          allPoints.forEach(function(pt) { html += '<li>' + pt + '</li>'; });
-          html += '</ul></details>';
-        }
-        html += '<div class="ch-links">';
-        topics.forEach(function(t) { html += '<a href="core.html#' + t + '">CORE ' + t + '</a>'; });
-        html += '<a href="mini-lab.html?topic=' + topics[0] + '">Mini Lab</a>';
-        html += '<a href="quiz.html?learn=' + topics[0] + '">Quiz</a>';
-        html += '</div>';
-      }
-    }
   });
   return html;
 }
