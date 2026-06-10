@@ -21,6 +21,7 @@
     { text: 'Core v2 ✦', href: 'core-v2.html' },
     { text: 'P1 Deep Dives ✦', children: [
       { text: 'Pillars Trainer', href: 'pillars-trainer.html' },
+      { text: 'Pillar Value (ROI)', href: 'pillar-value.html' },
       { text: 'Config Bootcamp', href: 'config-bootcamp.html' },
       { text: 'Config Visualizer', href: 'config-visualizer.html' },
       { text: 'Port & Numbers Flash', href: 'port-flash.html' },
