@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>IPv4 Subnetting + VLSM (Deep)</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress ───────────────────────────────────────────── */
+.sb-overall{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg)}
+.sb-ostat{display:flex;flex-direction:column}
+.sb-ostat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.sb-ostat .val.green{color:var(--prof-strong)}
+.sb-ostat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.sb-obar-wrap{flex:1;min-width:160px}
+.sb-obar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.sb-obar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.sb-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.sb-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+.sb-reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Beat rail ──────────────────────────────────────────────────── */
+.sb-rail{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+.sb-pip{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:.7rem;font-weight:600;padding:5px 9px;border:1px solid var(--border);border-radius:100px;background:var(--bg-surface);color:var(--ink-muted);cursor:pointer;transition:all .15s}
+.sb-pip:hover{border-color:var(--accent);color:var(--accent)}
+.sb-pip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sb-pip[disabled]{cursor:not-allowed;opacity:.45}
+.sb-pip[disabled]:hover{border-color:var(--border);color:var(--ink-muted)}
+.sb-pip.current{border-color:var(--accent);color:var(--accent);background:rgba(180,83,9,.06)}
+.sb-pip.done{border-color:var(--prof-strong);color:var(--prof-strong);background:rgba(22,163,74,.06)}
+.sb-pip .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.sb-beat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-lg);margin-bottom:var(--s-lg)}
+.sb-beat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-sm)}
+.sb-beat-num{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.sb-beat-head h2{font-family:var(--font-display);font-size:1.4rem;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.2}
+.sb-gist{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.6;margin:0 0 var(--s-md)}
+.sb-gist code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* WHY / CORE callouts */
+.sb-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media(max-width:640px){.sb-meta-grid{grid-template-columns:1fr}}
+.sb-meta{padding:13px 15px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.sb-meta .mh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:5px}
+.sb-meta .mb{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.5}
+.sb-meta .mb code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* diagrams + tables in mono */
+.sb-diagram{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:var(--s-md);overflow-x:auto}
+.sb-diagram pre{margin:0;font-family:var(--font-mono);font-size:.8rem;line-height:1.5;color:#FAFAF9;white-space:pre}
+.sb-diagram .hl{color:#FBBF24}
+.sb-diagram .dim{color:#A8A29E}
+.sb-diagram .ok{color:#86EFAC}
+.sb-svg-wrap{margin-bottom:var(--s-md);border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px}
+.sb-svg-wrap svg{display:block;width:100%;height:auto}
+.sb-cap{font-family:var(--font-body);font-size:.8rem;color:var(--ink-muted);margin-top:8px;line-height:1.45;text-align:center}
+
+/* magic-number table */
+.sb-mask-tbl{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.82rem;margin-bottom:var(--s-md)}
+.sb-mask-tbl th,.sb-mask-tbl td{border:1px solid var(--border);padding:6px 9px;text-align:center}
+.sb-mask-tbl th{background:var(--bg);font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-secondary);font-weight:600}
+.sb-mask-tbl td{color:var(--ink)}
+.sb-mask-tbl tr:nth-child(even) td{background:var(--bg)}
+.sb-mask-tbl .accent{color:var(--accent);font-weight:700}
+
+/* CLI block (config beats) */
+.sb-cli-block{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.sb-line{padding:0 16px;border-left:3px solid transparent}
+.sb-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word;display:block}
+.sb-cmd .pmt{color:#A8A29E}
+.sb-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.sb-line:last-child .sb-ann{border-bottom:none}
+
+.sb-verify{padding:14px 16px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.sb-verify .vh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:7px}
+.sb-verify code{display:block;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);padding:4px 0}
+.sb-verify .vn{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary);margin-top:4px;line-height:1.5}
+
+.sb-traps{padding:14px 16px;border:1px solid var(--prof-weak);border-radius:var(--radius-lg);background:rgba(220,38,38,.04);margin-bottom:var(--s-md)}
+.sb-traps .th{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-weak);font-weight:700;margin-bottom:7px}
+.sb-traps ul{margin:0;padding-left:18px}
+.sb-traps li{font-family:var(--font-body);font-size:.87rem;color:var(--ink);line-height:1.55;margin-bottom:5px}
+.sb-traps code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── Recall block ───────────────────────────────────────────────── */
+.sb-recall{border-top:2px dashed var(--rule);padding-top:var(--s-md);margin-top:var(--s-md)}
+.sb-recall-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:10px}
+.sb-recall-tag .lock{font-size:.9rem}
+.sb-q{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.6;margin-bottom:10px}
+.sb-q code{font-family:var(--font-mono);font-size:.86em;padding:1px 5px;background:var(--bg-input);border-radius:3px;font-weight:600}
+.sb-q b{color:var(--accent)}
+
+/* numeric / text inputs */
+.sb-field-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.sb-field{display:flex;flex-direction:column;gap:4px}
+.sb-field label{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-secondary);font-weight:600}
+.sb-field input{font-family:var(--font-mono);font-size:.92rem;padding:9px 11px;width:190px;max-width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--ink);outline:none}
+.sb-field input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(180,83,9,.15)}
+.sb-field input.ok{border-color:var(--prof-strong);background:rgba(22,163,74,.06)}
+.sb-field input.bad{border-color:var(--prof-weak);background:rgba(220,38,38,.06)}
+
+/* type-the-command terminal */
+.sb-term{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px}
+.sb-term label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:7px;letter-spacing:.04em}
+.sb-termline{width:100%;background:transparent;border:none;font-family:var(--font-mono);font-size:.9rem;line-height:1.6;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.sb-termline::placeholder{color:#57534E}
+.sb-termarea{width:100%;min-height:120px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.sb-termarea::placeholder{color:#57534E}
+
+/* MCQ */
+.sb-choices{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.sb-choice{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;transition:border-color .15s,background .15s;text-align:left;font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.45;width:100%}
+.sb-choice:hover{border-color:var(--accent)}
+.sb-choice:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sb-choice .ltr{font-family:var(--font-mono);font-size:.78rem;font-weight:700;color:var(--ink-muted);flex-shrink:0;border:1px solid var(--border);border-radius:4px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center}
+.sb-choice.sel{border-color:var(--accent);background:rgba(180,83,9,.06)}
+.sb-choice.sel .ltr{border-color:var(--accent);color:var(--accent)}
+.sb-choice.right{border-color:var(--prof-strong);background:rgba(22,163,74,.07)}
+.sb-choice.right .ltr{border-color:var(--prof-strong);color:var(--prof-strong)}
+.sb-choice.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.07)}
+.sb-choice.wrong .ltr{border-color:var(--prof-weak);color:var(--prof-weak)}
+.sb-choice[disabled]{cursor:default}
+
+/* recall actions + feedback */
+.sb-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.sb-btn{padding:11px 22px;font-family:var(--font-display);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s,transform .15s var(--ease-out)}
+.sb-btn-primary{background:var(--accent);color:#fff}
+.sb-btn-primary:hover{filter:brightness(1.06)}
+.sb-btn-primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sb-btn-sec{background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);font-weight:600}
+.sb-btn-sec:hover{border-color:var(--accent);color:var(--accent)}
+.sb-btn-sec:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sb-btn[disabled]{opacity:.5;cursor:not-allowed}
+.sb-next{display:inline-flex;align-items:center;gap:8px;background:var(--prof-strong);color:#fff}
+.sb-next:hover{filter:brightness(1.06)}
+
+.sb-feedback{margin-top:12px;padding:13px 15px;border-radius:var(--radius);font-family:var(--font-body);font-size:.9rem;line-height:1.55;display:none}
+.sb-feedback.show{display:block}
+.sb-feedback.pass{background:rgba(22,163,74,.07);border:1px solid var(--prof-strong);color:var(--ink)}
+.sb-feedback.fail{background:rgba(220,38,38,.06);border:1px solid var(--prof-weak);color:var(--ink)}
+.sb-feedback b{font-family:var(--font-display)}
+.sb-feedback code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.sb-feedback .work{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:8px;white-space:pre-wrap;line-height:1.6}
+
+.sb-attempts{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-left:auto;align-self:center}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.sb-cap-gate{background:var(--bg-surface);border:1px dashed var(--border);border-radius:var(--radius-lg);padding:var(--s-lg);text-align:center;margin-bottom:var(--s-lg)}
+.sb-cap-gate.open{border-style:solid;border-color:var(--prof-strong)}
+.sb-cap-gate h2{font-family:var(--font-display);font-size:1.3rem;margin:0 0 8px}
+.sb-cap-gate p{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.55;margin:0 auto var(--s-md);max-width:52ch}
+.sb-scenario{padding:16px 18px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md);text-align:left}
+.sb-scenario .sh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.sb-scenario .sb-body{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.6}
+.sb-scenario code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+.sb-results{display:none;margin:var(--s-md) 0}
+.sb-results.show{display:block}
+.sb-score{display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-sm)}
+.sb-score .sv{font-family:var(--font-mono);font-size:2.2rem;font-weight:700;line-height:1}
+.sb-score .sv.green{color:var(--prof-strong)}
+.sb-score .sv.amber{color:var(--prof-mid)}
+.sb-score .sv.red{color:var(--prof-weak)}
+.sb-score .sl{font-family:var(--font-display);font-size:.9rem;font-weight:600;color:var(--ink-secondary)}
+.sb-diff{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.sb-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.sb-diff-row:first-child{border-top:none}
+.sb-diff-row .icon{flex-shrink:0;width:18px;text-align:center;font-weight:700}
+.sb-diff-row.ok{background:rgba(22,163,74,.05)}
+.sb-diff-row.ok .icon{color:var(--prof-strong)}
+.sb-diff-row.miss{background:rgba(220,38,38,.05)}
+.sb-diff-row.miss .icon{color:var(--prof-weak)}
+.sb-diff-row.extra .icon{color:var(--prof-mid)}
+.sb-diff-row .ctext{color:var(--ink);word-break:break-word}
+.sb-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.sb-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.sb-exam-q{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-surface);padding:16px 18px;margin-bottom:var(--s-sm)}
+.sb-exam-q .qn{font-family:var(--font-mono);font-size:.72rem;color:var(--accent);font-weight:700;margin-bottom:6px}
+.sb-done-banner{display:none;padding:18px;border-radius:var(--radius-lg);background:rgba(22,163,74,.08);border:1px solid var(--prof-strong);text-align:center;margin-top:var(--s-md)}
+.sb-done-banner.show{display:block}
+.sb-done-banner h3{font-family:var(--font-display);font-size:1.15rem;margin:0 0 6px;color:var(--prof-strong)}
+.sb-done-banner p{font-family:var(--font-body);font-size:.9rem;color:var(--ink-secondary);margin:0}
+
+.sb-hidden{display:none}
+
+@media(max-width:640px){
+  .sb-beat{padding:var(--s-md)}
+  .sb-beat-head h2{font-size:1.15rem}
+  .sb-field input{width:100%}
+  .sb-field{width:100%}
+  .sb-score .sv{font-size:1.8rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .sb-pip,.sb-obar>span,.sb-btn,.sb-choice{transition:none}
+  .sb-btn:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">LEARN THEN PROVE · LIVE SUBNETTING DRILL</div>
+    <h1>IPv4 Subnetting + VLSM (Deep)</h1>
+    <p class="subtitle">One beat at a time. Each idea is taught, then you must solve a fresh problem on it before the next beat unlocks. Numbers change every visit, so you learn the method, not the answer.</p>
+  </header>
+
+  <p class="intro">This is the math-heavy objective 1.6. We build it from the bit up: how a mask carves a block, the magic number shortcut, network and broadcast and usable hosts, the host and subnet counts, the /31 and /30 special cases, then full VLSM. Every recall is a live problem the page generates. You cannot advance a beat until you get it right, but you always get a retry and a worked answer.</p>
+
+  <div class="sb-overall" id="sbOverall"></div>
+  <div class="sb-rail" id="sbRail"></div>
+
+  <div id="sbBeats"></div>
+
+  <div class="sb-cap-gate" id="sbCapGate">
+    <h2>Capstone locked</h2>
+    <p>Master all the beats above to unlock the capstone: a full VLSM design from a blank sheet, plus exam-style trigger questions.</p>
+  </div>
+
+  <div id="sbCapstone" class="sb-hidden"></div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var PREFIX = 'ccna_p1-subnetting_';
+
+  // ── Canonical reference tables (CCNA 200-301 v1.1) ──────────────────
+  // mask octet -> CIDR for a single-octet borrow, magic = 256 - octet
+  var MASK_OCTETS = [128, 192, 224, 240, 248, 252, 254, 255]; // /25.. within an octet
+  // full /CIDR -> dotted mask, lookup
+  var CIDR_MASK = {
+    8:'255.0.0.0', 16:'255.255.0.0', 24:'255.255.255.0',
+    25:'255.255.255.128', 26:'255.255.255.192', 27:'255.255.255.224',
+    28:'255.255.255.240', 29:'255.255.255.248', 30:'255.255.255.252',
+    31:'255.255.255.254', 32:'255.255.255.255'
+  };
+
+  // ── Subnet math (the engine the recall problems use) ────────────────
+  function ipToInt(ip){
+    var p = ip.split('.').map(Number);
+    return ((p[0]<<24)>>>0) + (p[1]<<16) + (p[2]<<8) + p[3];
+  }
+  function intToIp(n){
+    n = n >>> 0;
+    return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+  }
+  function maskInt(cidr){ return cidr === 0 ? 0 : (0xFFFFFFFF << (32 - cidr)) >>> 0; }
+  function cidrToDotted(cidr){
+    var m = maskInt(cidr);
+    return intToIp(m);
+  }
+  // The interesting octet value for a /25../31 inside the 4th octet, or general
+  function interestingOctet(cidr){
+    var dotted = cidrToDotted(cidr).split('.').map(Number);
+    for (var i = 0; i < 4; i++){ if (dotted[i] !== 255 && dotted[i] !== 0) return {val:dotted[i], idx:i}; }
+    // /8 /16 /24 etc: interesting octet is the last 255 boundary, block = 256
+    for (var j = 3; j >= 0; j--){ if (dotted[j] === 255) return {val:0, idx:j}; }
+    return {val:0, idx:3};
+  }
+  function blockSize(cidr){
+    var io = interestingOctet(cidr);
+    return io.val === 0 ? 256 : 256 - io.val;
+  }
+  function hostBits(cidr){ return 32 - cidr; }
+  function usableHosts(cidr){
+    if (cidr >= 31) return cidr === 31 ? 2 : (cidr === 32 ? 1 : 0); // /31 = 2 usable (p2p), /32 = 1
+    return Math.pow(2, 32 - cidr) - 2;
+  }
+  function subnetInfo(ip, cidr){
+    var ipi = ipToInt(ip);
+    var m = maskInt(cidr);
+    var net = (ipi & m) >>> 0;
+    var bcast = (net | (~m >>> 0)) >>> 0;
+    var firstHost, lastHost;
+    if (cidr <= 30){ firstHost = (net + 1) >>> 0; lastHost = (bcast - 1) >>> 0; }
+    else if (cidr === 31){ firstHost = net; lastHost = bcast; } // p2p: both addresses usable
+    else { firstHost = net; lastHost = net; }
+    return {
+      network: intToIp(net),
+      broadcast: intToIp(bcast),
+      firstHost: intToIp(firstHost),
+      lastHost: intToIp(lastHost),
+      hosts: usableHosts(cidr),
+      mask: cidrToDotted(cidr),
+      block: blockSize(cidr)
+    };
+  }
+  function wildcard(cidr){ return intToIp((~maskInt(cidr)) >>> 0); }
+
+  // pick a random ip whose host portion is non-zero so the question has bite
+  function randInt(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
+  function genHostInSubnet(baseOctets, cidr){
+    // baseOctets: [a,b,c,?] in the first three octets fixed, randomize within mask
+    var ip = baseOctets.slice();
+    var block = blockSize(cidr);
+    var io = interestingOctet(cidr);
+    if (cidr >= 25){
+      // 4th octet is the interesting one
+      var subStart = block * randInt(0, Math.floor(256 / block) - 1);
+      var off = randInt(1, Math.max(1, block - 2));
+      ip[3] = Math.min(255, subStart + off);
+    } else {
+      ip[3] = randInt(1, 254);
+    }
+    return ip.join('.');
+  }
+
+  // ── Beat definitions ────────────────────────────────────────────────
+  // type: 'concept-mcq' | 'magic' | 'subnet' | 'count' | 'trap-mcq' | 'fill-cli' | 'type-cmd'
+  // Each beat: teach{...} + a recall generator gen() -> problem object the renderer uses.
+  var BEATS = [
+    {
+      slug:'mask-carves', title:'The mask carves the block',
+      gist:'An IPv4 address is 32 bits split into a <b>network</b> part and a <b>host</b> part. The subnet mask is the dividing line: every <code>1</code> bit is network, every <code>0</code> bit is host. <b>Borrowing host bits</b> (making the mask longer) carves one big block into several smaller subnets.',
+      why:'You rarely get a tidy /24. You get a block and a host count, and you have to slice it so each LAN, each WAN link, each loopback fits with no waste.',
+      core:'The mask says <b>where the network ends</b>. Make the mask longer (borrow host bits) and you trade host space for more subnets. /24 is 256 addresses; /25 splits it into two /25 blocks of 128.',
+      diagram:
+        '<div class="sb-svg-wrap"><svg viewBox="0 0 520 120" role="img" aria-label="32-bit address split into network and host portions by the mask">'+
+        '<rect x="10" y="30" width="300" height="34" fill="#B45309" opacity="0.18" stroke="#B45309"/>'+
+        '<rect x="310" y="30" width="200" height="34" fill="#16A34A" opacity="0.15" stroke="#16A34A"/>'+
+        '<text x="160" y="52" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#1C1917">NETWORK bits (mask = 1)</text>'+
+        '<text x="410" y="52" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#1C1917">HOST bits (mask = 0)</text>'+
+        '<line x1="310" y1="18" x2="310" y2="76" stroke="#1C1917" stroke-width="2" stroke-dasharray="4 3"/>'+
+        '<text x="310" y="92" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#57534E">the mask boundary moves right when you borrow</text>'+
+        '<text x="10" y="22" font-family="JetBrains Mono,monospace" font-size="10" fill="#A8A29E">bit 0</text>'+
+        '<text x="490" y="22" font-family="JetBrains Mono,monospace" font-size="10" fill="#A8A29E">bit 31</text>'+
+        '</svg><div class="sb-cap">Longer mask = boundary slides right = more network bits, fewer host bits.</div></div>',
+      traps:[
+        'A longer mask does NOT mean more hosts. It means more subnets and FEWER hosts each.',
+        'The mask is contiguous 1s then 0s. You never get <code>255.0.255.0</code>.'
+      ],
+      gen:function(){
+        var opts = [
+          {t:'It marks where the network portion ends and the host portion begins.', ok:true},
+          {t:'It sets the default gateway for the subnet.', ok:false},
+          {t:'It is the broadcast address of the subnet.', ok:false},
+          {t:'It assigns the DNS server handed to hosts.', ok:false}
+        ];
+        return {type:'mcq', q:'What does the subnet mask actually tell a device?', choices:shuffle(opts),
+          explainPass:'Right. Mask 1 bits = network, mask 0 bits = host. That boundary is the whole game.',
+          explainFail:'The mask only marks the network/host boundary. Gateways, broadcast, and DNS are separate.'};
+      }
+    },
+    {
+      slug:'magic', title:'The magic number',
+      gist:'The fast way to subnet by hand. Take the <b>interesting octet</b> (the last mask octet that is not 255) and compute <code>256 - that octet</code>. That is the <b>block size</b>: subnets step by it, starting at 0.',
+      why:'On the exam you have no calculator. The magic number turns "where does the next subnet start" into one subtraction.',
+      core:'<code>block size = 256 - interesting mask octet</code>. Mask octets you will ever see: <code>128, 192, 224, 240, 248, 252, 254, 255</code>. Subnets begin at multiples of the block: 0, block, 2&times;block, ...',
+      maskTable:true,
+      diagram:
+        '<div class="sb-diagram"><pre>mask <span class="hl">255.255.255.224</span>  ->  interesting octet = <span class="hl">224</span>\n'+
+        'magic = 256 - 224 = <span class="ok">32</span>\n'+
+        'subnets in the 4th octet step by 32:\n'+
+        '  .0   .32   .64   .96   .128   .160   .192   .224</pre></div>',
+      traps:[
+        'The magic number is <code>256 - mask octet</code>, NOT <code>mask octet - 256</code>.',
+        'Use the LAST non-255 octet. For <code>255.255.255.0</code> there is no non-255 host octet, the block is the full 256.'
+      ],
+      gen:function(){
+        // pick a mask octet from /25../30 (the ones with a real magic number)
+        var cidr = randInt(25, 30);
+        var io = interestingOctet(cidr);
+        return {type:'numeric', q:'Mask <code>'+cidrToDotted(cidr)+'</code> (/'+cidr+'). The interesting octet is <b>'+io.val+'</b>. What is the block size (magic number)?',
+          fields:[{label:'block size', key:'block', answer:String(256 - io.val)}],
+          work:function(){return 'block = 256 - '+io.val+' = '+(256-io.val);},
+          explainPass:'Block size = 256 - '+io.val+' = '+(256-io.val)+'. Subnets step by '+(256-io.val)+'.',
+          explainFail:'Magic number = 256 - '+io.val+' = '+(256-io.val)+'.'};
+      }
+    },
+    {
+      slug:'net-bcast', title:'Network, broadcast, and the range',
+      gist:'Inside any subnet: the <b>first address is the network</b> (all host bits 0), the <b>last address is the broadcast</b> (all host bits 1). Everything strictly between them is a <b>usable host</b>.',
+      why:'Every "which subnet is this IP in" and "what is the broadcast" question on the exam is this one skill.',
+      core:'Find the block, round the IP down to the nearest block multiple = network. Network + block - 1 = broadcast. First host = network + 1, last host = broadcast - 1.',
+      diagram:
+        '<div class="sb-diagram"><pre>10.0.0.<span class="hl">70</span> /26   block = 64\n'+
+        '  network   = .<span class="ok">64</span>     (round 70 down to a multiple of 64)\n'+
+        '  broadcast = .<span class="ok">127</span>    (64 + 64 - 1)\n'+
+        '  hosts     = .65 <span class="dim">..</span> .126</pre></div>',
+      traps:[
+        'The network and broadcast addresses are NOT usable hosts.',
+        'Round the IP DOWN to the block multiple for the network. Do not round up.'
+      ],
+      gen:function(){
+        var cidr = randInt(25, 30);
+        var ip = genHostInSubnet([10, randInt(0,30), randInt(0,30)], cidr);
+        var info = subnetInfo(ip, cidr);
+        return {type:'numeric', q:'Host <code>'+ip+'/'+cidr+'</code>. Give the <b>network</b> and <b>broadcast</b> addresses of its subnet.',
+          fields:[
+            {label:'network address', key:'net', answer:info.network},
+            {label:'broadcast address', key:'bc', answer:info.broadcast}
+          ],
+          work:function(){return 'block = '+info.block+'\nnetwork '+info.network+'  ->  broadcast '+info.broadcast;},
+          explainPass:'Network '+info.network+', broadcast '+info.broadcast+'. Block size was '+info.block+'.',
+          explainFail:'Block = '+info.block+'. Network = '+info.network+' (round down), broadcast = '+info.broadcast+' (network + block - 1).'};
+      }
+    },
+    {
+      slug:'first-last', title:'First and last usable host',
+      gist:'Usable hosts are everything between network and broadcast. <b>First host = network + 1</b>. <b>Last host = broadcast - 1</b>. These are the addresses you can actually assign to devices.',
+      why:'The router gateway and the host range come straight off this. Off-by-one here loses you points.',
+      core:'First usable = network + 1. Last usable = broadcast - 1. The gateway is conventionally the first usable, but the exam only cares about the range.',
+      diagram:
+        '<div class="sb-diagram"><pre>172.16.5.<span class="hl">200</span> /28   block = 16\n'+
+        '  network    = .192\n'+
+        '  <span class="ok">first host</span> = .193   (network + 1)\n'+
+        '  <span class="ok">last host</span>  = .206   (broadcast - 1)\n'+
+        '  broadcast  = .207</pre></div>',
+      traps:[
+        'First host is network <b>+1</b>, not the network address itself.',
+        'Last host is broadcast <b>-1</b>, not the broadcast itself.'
+      ],
+      gen:function(){
+        var cidr = randInt(26, 30);
+        var ip = genHostInSubnet([172, 16, randInt(0,30)], cidr);
+        var info = subnetInfo(ip, cidr);
+        return {type:'numeric', q:'Host <code>'+ip+'/'+cidr+'</code>. Give the <b>first</b> and <b>last usable host</b> in this subnet.',
+          fields:[
+            {label:'first usable host', key:'fh', answer:info.firstHost},
+            {label:'last usable host', key:'lh', answer:info.lastHost}
+          ],
+          work:function(){return 'network '+info.network+' / broadcast '+info.broadcast+'\nfirst = network+1 = '+info.firstHost+'\nlast = broadcast-1 = '+info.lastHost;},
+          explainPass:'First '+info.firstHost+', last '+info.lastHost+'. Network was '+info.network+', broadcast '+info.broadcast+'.',
+          explainFail:'Network '+info.network+', broadcast '+info.broadcast+'. So first = '+info.firstHost+' (net+1), last = '+info.lastHost+' (bcast-1).'};
+      }
+    },
+    {
+      slug:'host-count', title:'Counting hosts: 2^n - 2',
+      gist:'Usable hosts in a subnet = <code>2^(host bits) - 2</code>. The <b>-2</b> removes the network and broadcast addresses, which cannot be assigned to a device.',
+      why:'"I need 50 hosts, what mask?" is a top-tier exam question. You size the mask by host count.',
+      core:'Host bits = 32 - prefix. Hosts = 2^(host bits) - 2. To FIT a host requirement, pick the smallest host-bit count whose 2^n - 2 is big enough.',
+      diagram:
+        '<div class="sb-diagram"><pre>/26  host bits = 32 - 26 = 6   ->  2^6 - 2 = <span class="ok">62</span>\n'+
+        '/28  host bits = 32 - 28 = 4   ->  2^4 - 2 = <span class="ok">14</span>\n'+
+        '/30  host bits = 32 - 30 = 2   ->  2^2 - 2 = <span class="ok">2</span>\n'+
+        'need 50 hosts? 2^6-2=62 fits, 2^5-2=30 does not  ->  <span class="hl">/26</span></pre></div>',
+      traps:[
+        'It is <code>2^n - 2</code>, never just <code>2^n</code>. The network and broadcast eat two addresses.',
+        'Subnet COUNT is <code>2^(borrowed bits)</code> with no minus two. Do not confuse hosts with subnets.'
+      ],
+      gen:function(){
+        var cidr = randInt(25, 30);
+        var hb = 32 - cidr;
+        return {type:'numeric', q:'A <code>/'+cidr+'</code> subnet. How many <b>host bits</b>, and how many <b>usable hosts</b>?',
+          fields:[
+            {label:'host bits', key:'hb', answer:String(hb)},
+            {label:'usable hosts', key:'uh', answer:String(usableHosts(cidr))}
+          ],
+          work:function(){return 'host bits = 32 - '+cidr+' = '+hb+'\nusable = 2^'+hb+' - 2 = '+usableHosts(cidr);},
+          explainPass:'Host bits = '+hb+', usable = 2^'+hb+' - 2 = '+usableHosts(cidr)+'.',
+          explainFail:'Host bits = 32 - '+cidr+' = '+hb+'. Usable = 2^'+hb+' - 2 = '+usableHosts(cidr)+' (the -2 drops network + broadcast).'};
+      }
+    },
+    {
+      slug:'fit-mask', title:'Sizing the mask to a host requirement',
+      gist:'Given a host count, find the smallest subnet that holds it. Walk the common sizes: /30 = 2, /29 = 6, /28 = 14, /27 = 30, /26 = 62, /25 = 126. Pick the first one that is big enough.',
+      why:'VLSM is just this skill applied repeatedly. Master "N hosts -> which prefix" and VLSM falls out.',
+      core:'Find the smallest host-bit count where <code>2^n - 2 >= required</code>. Then prefix = 32 - n.',
+      maskTable:true,
+      diagram:
+        '<div class="sb-diagram"><pre>need 26 hosts:\n'+
+        '  /28 = 14  too small\n'+
+        '  /27 = 30  <span class="ok">fits</span>   ->  use <span class="hl">/27</span> (mask 255.255.255.224)\n\n'+
+        'need 2 hosts (a WAN link):  /30 = 2  <span class="ok">exact fit</span></pre></div>',
+      traps:[
+        'Always round UP to the next size that fits. /27 holds 30; do not try to cram 30 hosts into a /28.',
+        'A point-to-point link needs only 2 hosts: that is a /30 (or a /31).'
+      ],
+      gen:function(){
+        // pick a target host count, answer is the smallest fitting prefix
+        var targets = [2, 6, 10, 14, 25, 30, 50, 60, 100, 120];
+        var need = targets[randInt(0, targets.length-1)];
+        var cidr = 30;
+        while (cidr > 24 && usableHosts(cidr) < need) cidr--;
+        return {type:'numeric', q:'A LAN needs to hold <b>'+need+' usable hosts</b>. What is the smallest prefix (just the number after the slash) that fits, and how many hosts does it actually give?',
+          fields:[
+            {label:'prefix (/n)', key:'pfx', answer:String(cidr), accept:['/'+cidr]},
+            {label:'usable hosts it gives', key:'uh', answer:String(usableHosts(cidr))}
+          ],
+          work:function(){return 'smallest fit for '+need+' = /'+cidr+' (gives '+usableHosts(cidr)+')';},
+          explainPass:'/'+cidr+' gives '+usableHosts(cidr)+' usable, the smallest that holds '+need+'.',
+          explainFail:'Smallest prefix that holds '+need+' is /'+cidr+', which gives '+usableHosts(cidr)+' usable hosts.'};
+      }
+    },
+    {
+      slug:'subnet-count', title:'Counting subnets: 2^borrowed',
+      gist:'When you extend a mask, the number of subnets you create = <code>2^(bits borrowed)</code>. Borrow from the parent prefix to the new prefix; the difference is the borrowed bits.',
+      why:'"How many /26 subnets fit in a /24" is a classic. It is just 2 raised to the bits you added.',
+      core:'Subnets = 2^(new prefix - old prefix). No minus two here. That minus two is only for hosts.',
+      diagram:
+        '<div class="sb-diagram"><pre>/24 carved into /26:\n'+
+        '  borrowed = 26 - 24 = 2 bits\n'+
+        '  subnets  = 2^2 = <span class="ok">4</span>   (.0/26  .64/26  .128/26  .192/26)\n\n'+
+        '/16 carved into /20:  borrowed = 4  ->  2^4 = 16 subnets</pre></div>',
+      traps:[
+        'Subnet count has NO minus two. Only host count subtracts the 2.',
+        'Borrowed bits = new prefix minus old prefix, not 32 minus prefix.'
+      ],
+      gen:function(){
+        var old = [24, 16, 24, 20][randInt(0,3)];
+        var add = randInt(2, 4);
+        var nw = old + add;
+        return {type:'numeric', q:'You carve a <code>/'+old+'</code> into <code>/'+nw+'</code> subnets. How many <b>bits are borrowed</b>, and how many <b>subnets</b> result?',
+          fields:[
+            {label:'bits borrowed', key:'bb', answer:String(add)},
+            {label:'number of subnets', key:'ns', answer:String(Math.pow(2, add))}
+          ],
+          work:function(){return 'borrowed = '+nw+' - '+old+' = '+add+'\nsubnets = 2^'+add+' = '+Math.pow(2,add);},
+          explainPass:'Borrowed '+add+' bits, so 2^'+add+' = '+Math.pow(2,add)+' subnets.',
+          explainFail:'Borrowed = '+nw+' - '+old+' = '+add+'. Subnets = 2^'+add+' = '+Math.pow(2,add)+' (no minus two).'};
+      }
+    },
+    {
+      slug:'p2p', title:'/30 and /31 point-to-point links',
+      gist:'Router-to-router links carry exactly two endpoints. A <b>/30</b> gives 4 addresses, 2 usable. A <b>/31</b> is special: it gives 2 addresses and CCNA treats BOTH as usable, designed for point-to-point links with no broadcast waste.',
+      why:'WAN and inter-router links are everywhere. Using a /24 for a two-host link wastes 252 addresses.',
+      core:'/30 = block 4, 2 usable (network + broadcast still consumed). /31 = 2 addresses, both usable on a p2p link (RFC 3021). Use them for serial and routed links.',
+      diagram:
+        '<div class="sb-diagram"><pre>/30  .0 .1 .2 .3   network=.0  usable=.1,.2  broadcast=.3   <span class="ok">2 usable</span>\n'+
+        '/31  .0 .1         both .0 and .1 usable (point-to-point)        <span class="ok">2 usable</span></pre></div>',
+      traps:[
+        'A <code>/31</code> is point-to-point: it does NOT follow the usual minus-two rule, both addresses are usable.',
+        'A <code>/30</code> still has a network and broadcast, so only 2 of its 4 addresses are usable.'
+      ],
+      gen:function(){
+        var which = randInt(0,1) === 0 ? 30 : 31;
+        return {type:'numeric', q:'A point-to-point router link is a <code>/'+which+'</code>. How many <b>usable hosts</b> does it provide?',
+          fields:[{label:'usable hosts', key:'uh', answer:String(usableHosts(which))}],
+          work:function(){return which===30 ? '/30 = 4 addresses, minus net + bcast = 2 usable' : '/31 = 2 addresses, both usable on p2p';},
+          explainPass:'/'+which+' gives '+usableHosts(which)+' usable. '+(which===31?'/31 is the p2p exception, both addresses count.':'/30 keeps network + broadcast, so 2 of 4 are usable.'),
+          explainFail:'/'+which+' = '+usableHosts(which)+' usable. '+(which===31?'/31 is the point-to-point exception (both usable).':'/30 keeps a network and broadcast, so 2 of 4.')};
+      }
+    },
+    {
+      slug:'wildcard', title:'Wildcard masks: the inverse',
+      gist:'ACLs and OSPF <code>network</code> statements use a <b>wildcard mask</b>, not a subnet mask. The wildcard is the bit-inverse of the mask: <code>0 = must match</code>, <code>1 = ignore</code>.',
+      why:'A single trap that costs people the OSPF and ACL questions: they type the subnet mask where a wildcard belongs.',
+      core:'Wildcard = 255.255.255.255 minus the subnet mask, octet by octet. /24 mask 255.255.255.0 becomes wildcard 0.0.0.255.',
+      diagram:
+        '<div class="sb-diagram"><pre>mask     255.255.255.<span class="hl">192</span>   (/26)\n'+
+        'wildcard   0.  0.  0.<span class="ok">63</span>    (255 - 192 = 63)\n\n'+
+        'rule: subnet for IP config, WILDCARD for ACL + OSPF network</pre></div>',
+      traps:[
+        'Wildcard is the INVERSE of the mask, not the mask itself. <code>access-list</code> and OSPF <code>network</code> want the wildcard.',
+        'Compute each octet as <code>255 - mask octet</code>.'
+      ],
+      gen:function(){
+        var cidr = randInt(25, 30);
+        return {type:'numeric', q:'For mask <code>'+cidrToDotted(cidr)+'</code> (/'+cidr+'), what is the <b>wildcard mask</b> (used in ACLs and OSPF)?',
+          fields:[{label:'wildcard mask', key:'wc', answer:wildcard(cidr)}],
+          work:function(){return 'wildcard = 255.255.255.255 - '+cidrToDotted(cidr)+' = '+wildcard(cidr);},
+          explainPass:'Wildcard = '+wildcard(cidr)+'. Each octet is 255 minus the mask octet.',
+          explainFail:'Invert the mask: 255 - each octet. '+cidrToDotted(cidr)+' -> '+wildcard(cidr)+'.'};
+      }
+    },
+    {
+      slug:'vlsm-order', title:'VLSM: largest block first',
+      gist:'Variable Length Subnet Masking means using different masks inside one block to fit different sized needs. The rule that makes it work: <b>allocate the LARGEST subnet first</b>, then the next, down to the smallest.',
+      why:'Allocate small-to-large and you fragment the block: the big LAN no longer has a contiguous space to land in. Large-first packs cleanly.',
+      core:'Sort needs descending by host count. Carve the biggest first from the start of the block, then place each next-smaller need in the next free block. WAN /30 links go last.',
+      diagram:
+        '<div class="sb-diagram"><pre>192.168.1.0/24, needs: 60, 28, 12, 2(WAN)\n'+
+        '  60 -> /26  .0   .. .63\n'+
+        '  28 -> /27  .64  .. .95\n'+
+        '  12 -> /28  .96  .. .111\n'+
+        '   2 -> /30  .112 .. .115   <span class="ok">largest first, no waste</span></pre></div>',
+      traps:[
+        'VLSM = allocate the LARGEST subnet FIRST. Smallest-first fragments the address space.',
+        'Each subnet still obeys block-size boundaries: the next subnet starts where the last one ended.'
+      ],
+      gen:function(){
+        var opts = [
+          {t:'Allocate the largest subnet first, then descend to the smallest.', ok:true},
+          {t:'Allocate the smallest subnet first to save room.', ok:false},
+          {t:'Give every subnet the same mask as the parent block.', ok:false},
+          {t:'Allocate point-to-point links before any LAN.', ok:false}
+        ];
+        return {type:'mcq', q:'When designing with VLSM, in what order do you allocate subnets?', choices:shuffle(opts),
+          explainPass:'Right. Largest first. It keeps the address space contiguous and waste-free.',
+          explainFail:'Largest subnet first. Smallest-first fragments the block so the big LAN cannot land.'};
+      }
+    },
+    {
+      slug:'vlsm-carve', title:'VLSM in action: carve a block',
+      gist:'Now do it. Given a parent block and a single largest requirement, find the prefix that fits and the network plus broadcast of that first carved subnet.',
+      why:'This is the exact motion of a VLSM exam item: take the requirement, size the mask, place the subnet.',
+      core:'Size the prefix to the largest need (2^n - 2 rule), start it at the parent network address, then network + block - 1 is its broadcast. The NEXT subnet starts at broadcast + 1.',
+      diagram:
+        '<div class="sb-diagram"><pre>parent 10.20.0.0/24, biggest LAN needs 50 hosts\n'+
+        '  50 fits in /26 (62 usable)\n'+
+        '  first subnet: 10.20.0.<span class="ok">0</span> /26  ->  broadcast 10.20.0.<span class="ok">63</span>\n'+
+        '  next free block starts at 10.20.0.64</pre></div>',
+      traps:[
+        'Size the mask to the LARGEST need first.',
+        'The next subnet starts at the previous broadcast + 1, on the block boundary.'
+      ],
+      gen:function(){
+        var need = [50, 60, 25, 28, 12, 100][randInt(0,5)];
+        var c = randInt(0, 30);
+        var base = [10, 20, c];
+        var cidr = 30;
+        while (cidr > 24 && usableHosts(cidr) < need) cidr--;
+        var ip = base.concat([0]).join('.');
+        var info = subnetInfo(ip, cidr);
+        return {type:'numeric', q:'Parent block <code>'+base.join('.')+'.0/24</code>. The largest LAN needs <b>'+need+' hosts</b>. Carve the first subnet from the start of the block. Give the <b>prefix</b>, the <b>broadcast</b>, and the <b>next free address</b>.',
+          fields:[
+            {label:'prefix (/n)', key:'pfx', answer:String(cidr), accept:['/'+cidr]},
+            {label:'broadcast of subnet 1', key:'bc', answer:info.broadcast},
+            {label:'next free address', key:'nf', answer:intToIp((ipToInt(info.broadcast)+1)>>>0)}
+          ],
+          work:function(){return need+' hosts -> /'+cidr+' (block '+info.block+')\nsubnet 1: '+info.network+' .. '+info.broadcast+'\nnext free: '+intToIp((ipToInt(info.broadcast)+1)>>>0);},
+          explainPass:'/'+cidr+' fits '+need+'. Subnet 1 broadcast '+info.broadcast+', next free '+intToIp((ipToInt(info.broadcast)+1)>>>0)+'.',
+          explainFail:need+' needs /'+cidr+' (block '+info.block+'). Subnet starts at '+info.network+', broadcast '+info.broadcast+', next free '+intToIp((ipToInt(info.broadcast)+1)>>>0)+'.'};
+      }
+    },
+    {
+      slug:'private-apipa', title:'Private ranges and APIPA',
+      gist:'RFC 1918 private space (never routed on the public internet): <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>. <b>APIPA</b> is <code>169.254.0.0/16</code>: a host self-assigns from it when DHCP fails.',
+      why:'Recognizing a private address and spotting an APIPA address (a sign DHCP failed) are direct exam recall and real troubleshooting.',
+      core:'Private: 10/8, 172.16-172.31/12, 192.168/16. APIPA 169.254/16 means "I could not reach DHCP." Loopback is 127.0.0.0/8.',
+      diagram:
+        '<div class="sb-diagram"><pre>10.0.0.0       /8    private  (10.0.0.0  - 10.255.255.255)\n'+
+        '172.16.0.0     /12   private  (172.16.0.0 - 172.31.255.255)\n'+
+        '192.168.0.0    /16   private  (192.168.0.0 - 192.168.255.255)\n'+
+        '<span class="hl">169.254.0.0</span>    /16   APIPA    (DHCP failed, self-assigned)</pre></div>',
+      traps:[
+        'The 172 private range is <code>172.16.0.0/12</code>, which is 172.16 through 172.31, NOT all of 172.',
+        'A host showing a <code>169.254.x.x</code> address did not get DHCP. It is not a valid LAN address.'
+      ],
+      gen:function(){
+        var pool = [
+          {ip:'10.45.12.9', a:'private'},
+          {ip:'172.20.5.1', a:'private'},
+          {ip:'192.168.4.7', a:'private'},
+          {ip:'169.254.10.2', a:'apipa'},
+          {ip:'172.32.0.1', a:'public'},
+          {ip:'8.8.8.8', a:'public'}
+        ];
+        var pick = pool[randInt(0, pool.length-1)];
+        var opts = [
+          {t:'RFC 1918 private', ok:pick.a==='private'},
+          {t:'APIPA (DHCP failed)', ok:pick.a==='apipa'},
+          {t:'Public / routable', ok:pick.a==='public'}
+        ];
+        return {type:'mcq', q:'Classify the address <code>'+pick.ip+'</code>:', choices:shuffle(opts),
+          explainPass:'Correct. '+(pick.a==='apipa'?'169.254/16 is APIPA, a DHCP failure sign.':pick.a==='private'?'Falls inside an RFC 1918 block.':'Outside every private/APIPA block, so it is public.'),
+          explainFail:pick.a==='apipa'?'169.254.x.x is APIPA: the host failed to reach DHCP.':pick.a==='private'?'This is inside an RFC 1918 private block (10/8, 172.16-31, or 192.168/16).':'172.32 is outside 172.16-172.31/12, and 8.8.8.8 is public. Neither is private or APIPA.'};
+      }
+    }
+  ];
+
+  // Beats already ordered highest-yield first: the math core (mask, magic, net/bcast,
+  // first/last, counts) front-loaded and reinforced, then specials, wildcard trap, VLSM, ranges.
+
+  // ── localStorage ────────────────────────────────────────────────────
+  function loadState(){
+    try { return JSON.parse(localStorage.getItem(PREFIX + 'mastery') || '{}'); }
+    catch(e){ return {}; }
+  }
+  function saveState(s){
+    try { localStorage.setItem(PREFIX + 'mastery', JSON.stringify(s)); } catch(e){}
+  }
+  var state = loadState(); // { beats:{slug:true}, capstone:0-100 }
+  state.beats = state.beats || {};
+
+  function beatDone(slug){ return !!state.beats[slug]; }
+  function masteredCount(){ var n=0; BEATS.forEach(function(b){ if(beatDone(b.slug)) n++; }); return n; }
+  function allMastered(){ return masteredCount() === BEATS.length; }
+
+  // ── Utilities ───────────────────────────────────────────────────────
+  function shuffle(a){ a = a.slice(); for (var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function normNum(s){ return String(s||'').toLowerCase().replace(/\s+/g,'').replace(/^\//,''); }
+  // lenient IP / number / interface compare
+  function answerOk(field, val){
+    var v = normNum(val);
+    if (!v) return false;
+    if (v === normNum(field.answer)) return true;
+    if (field.accept){ for (var i=0;i<field.accept.length;i++){ if (normNum(field.accept[i])===v) return true; } }
+    return false;
+  }
+
+  // ── Render scaffolding ──────────────────────────────────────────────
+  var overallEl = document.getElementById('sbOverall');
+  var railEl = document.getElementById('sbRail');
+  var beatsEl = document.getElementById('sbBeats');
+  var capGate = document.getElementById('sbCapGate');
+  var capWrap = document.getElementById('sbCapstone');
+
+  // current furthest unlocked beat index = first unmastered, or last
+  function unlockedIndex(){
+    for (var i=0;i<BEATS.length;i++){ if(!beatDone(BEATS[i].slug)) return i; }
+    return BEATS.length - 1;
+  }
+  var openIdx = unlockedIndex();
+
+  function renderOverall(){
+    var done = masteredCount(), total = BEATS.length;
+    var pct = Math.round((done/total)*100);
+    overallEl.innerHTML =
+      '<div class="sb-ostat"><span class="val '+(done===total?'green':'')+'">'+done+'/'+total+'</span><span class="lbl">Beats mastered</span></div>'+
+      '<div class="sb-ostat"><span class="val">'+pct+'%</span><span class="lbl">Course progress</span></div>'+
+      '<div class="sb-obar-wrap"><div class="sb-obar"><span style="width:'+pct+'%"></span></div></div>'+
+      '<button class="sb-reset" id="sbReset" type="button">Reset progress</button>';
+    document.getElementById('sbReset').addEventListener('click', function(){
+      if (window.confirm('Reset all subnetting progress?')){
+        state = { beats:{} }; saveState(state); openIdx = 0; renderAll();
+      }
+    });
+  }
+
+  function renderRail(){
+    railEl.innerHTML = '';
+    BEATS.forEach(function(b, i){
+      var done = beatDone(b.slug);
+      var locked = i > openIdx && !done;
+      var pip = document.createElement('button');
+      pip.type = 'button';
+      pip.className = 'sb-pip' + (done?' done':'') + (i===openIdx?' current':'');
+      if (locked){ pip.disabled = true; }
+      pip.setAttribute('aria-label', 'Beat '+(i+1)+': '+b.title + (done?' (mastered)':locked?' (locked)':''));
+      pip.innerHTML = '<span class="dot"></span>'+(i+1);
+      pip.addEventListener('click', function(){ if(!locked){ openIdx = i; renderAll(); window.scrollTo({top:0,behavior:'smooth'}); } });
+      railEl.appendChild(pip);
+    });
+  }
+
+  // ── Render one beat (the open one) ──────────────────────────────────
+  function maskTableHtml(){
+    var rows = '';
+    var cidrs = [25,26,27,28,29,30,31];
+    cidrs.forEach(function(c){
+      var io = interestingOctet(c);
+      rows += '<tr><td class="accent">/'+c+'</td><td>'+cidrToDotted(c)+'</td><td>'+io.val+'</td><td>'+blockSize(c)+'</td><td>'+(c===31?'2 (p2p)':usableHosts(c))+'</td></tr>';
+    });
+    return '<table class="sb-mask-tbl"><thead><tr><th>CIDR</th><th>Mask</th><th>Interesting octet</th><th>Block (magic)</th><th>Usable hosts</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+
+  var activeProblem = null; // the generated problem for the open beat
+  var beatPassedThisView = false;
+
+  function renderBeat(){
+    var b = BEATS[openIdx];
+    var done = beatDone(b.slug);
+    activeProblem = b.gen();
+    beatPassedThisView = false;
+
+    var trapsHtml = (b.traps && b.traps.length)
+      ? '<div class="sb-traps"><div class="th">Traps</div><ul>'+b.traps.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul></div>'
+      : '';
+    var maskTbl = b.maskTable ? maskTableHtml() : '';
+
+    var recallHtml = renderRecallHtml(activeProblem);
+
+    beatsEl.innerHTML =
+      '<div class="sb-beat">'+
+        '<div class="sb-beat-head"><span class="sb-beat-num">Beat '+(openIdx+1)+' of '+BEATS.length+(done?' · mastered':'')+'</span><h2>'+escapeHtml(b.title)+'</h2></div>'+
+        '<p class="sb-gist">'+b.gist+'</p>'+
+        '<div class="sb-meta-grid">'+
+          '<div class="sb-meta"><div class="mh">Why it matters</div><div class="mb">'+b.why+'</div></div>'+
+          '<div class="sb-meta"><div class="mh">Core truth</div><div class="mb">'+b.core+'</div></div>'+
+        '</div>'+
+        (b.diagram||'')+
+        maskTbl+
+        trapsHtml+
+        '<div class="sb-recall" id="sbRecall">'+
+          '<div class="sb-recall-tag"><span class="lock">&#128274;</span> Recall to unlock the next beat</div>'+
+          recallHtml+
+        '</div>'+
+      '</div>';
+
+    wireRecall(b, activeProblem);
+  }
+
+  function renderRecallHtml(p){
+    if (p.type === 'mcq'){
+      var choices = p.choices.map(function(c, i){
+        var ltr = String.fromCharCode(65+i);
+        return '<button class="sb-choice" type="button" data-ok="'+(c.ok?'1':'0')+'" data-i="'+i+'"><span class="ltr">'+ltr+'</span><span>'+escapeHtml(c.t)+'</span></button>';
+      }).join('');
+      return '<p class="sb-q">'+p.q+'</p>'+
+        '<div class="sb-choices" id="sbChoices" role="group" aria-label="answer choices">'+choices+'</div>'+
+        '<div class="sb-actions">'+
+          '<button class="sb-btn sb-btn-primary" type="button" id="sbSubmit" disabled>Check answer</button>'+
+          '<span class="sb-attempts" id="sbAttempts"></span>'+
+        '</div>'+
+        '<div class="sb-feedback" id="sbFeedback" aria-live="polite"></div>';
+    }
+    // numeric
+    var fields = p.fields.map(function(f){
+      return '<div class="sb-field"><label for="f_'+f.key+'">'+escapeHtml(f.label)+'</label>'+
+        '<input type="text" id="f_'+f.key+'" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="..."></div>';
+    }).join('');
+    return '<p class="sb-q">'+p.q+'</p>'+
+      '<div class="sb-field-row">'+fields+'</div>'+
+      '<div class="sb-actions">'+
+        '<button class="sb-btn sb-btn-primary" type="button" id="sbSubmit">Check answer</button>'+
+        '<button class="sb-btn sb-btn-sec" type="button" id="sbReveal">Show working</button>'+
+        '<button class="sb-btn sb-btn-sec" type="button" id="sbNew">New problem</button>'+
+        '<span class="sb-attempts" id="sbAttempts"></span>'+
+      '</div>'+
+      '<div class="sb-feedback" id="sbFeedback" aria-live="polite"></div>';
+  }
+
+  var attempts = 0;
+
+  function wireRecall(beat, p){
+    attempts = 0;
+    var fb = document.getElementById('sbFeedback');
+    var att = document.getElementById('sbAttempts');
+
+    function markPassed(){
+      if (!beatDone(beat.slug)){
+        state.beats[beat.slug] = true;
+        saveState(state);
+      }
+      beatPassedThisView = true;
+      // inject Next button
+      if (!document.getElementById('sbNext')){
+        var actions = document.querySelector('#sbRecall .sb-actions');
+        var nextBtn = document.createElement('button');
+        nextBtn.className = 'sb-btn sb-next';
+        nextBtn.id = 'sbNext';
+        nextBtn.type = 'button';
+        var last = openIdx === BEATS.length - 1;
+        nextBtn.innerHTML = last ? 'All beats done &#8594;' : 'Next beat &#8594;';
+        nextBtn.addEventListener('click', function(){
+          if (openIdx < BEATS.length - 1){ openIdx++; renderAll(); window.scrollTo({top:0,behavior:'smooth'}); }
+          else { renderAll(); maybeScrollCapstone(); }
+        });
+        actions.insertBefore(nextBtn, actions.firstChild);
+      }
+      renderRail(); renderOverall();
+    }
+
+    if (p.type === 'mcq'){
+      var choices = Array.prototype.slice.call(document.querySelectorAll('#sbChoices .sb-choice'));
+      var submit = document.getElementById('sbSubmit');
+      var selected = null;
+      choices.forEach(function(ch){
+        ch.addEventListener('click', function(){
+          if (beatPassedThisView) return;
+          choices.forEach(function(c){ c.classList.remove('sel'); });
+          ch.classList.add('sel');
+          selected = ch; submit.disabled = false;
+        });
+      });
+      submit.addEventListener('click', function(){
+        if (!selected || beatPassedThisView) return;
+        attempts++;
+        var ok = selected.getAttribute('data-ok') === '1';
+        choices.forEach(function(c){ c.disabled = true; c.classList.remove('sel'); });
+        if (ok){
+          selected.classList.add('right');
+          fb.className = 'sb-feedback pass show';
+          fb.innerHTML = '<b>Correct.</b> '+p.explainPass;
+          submit.disabled = true;
+          markPassed();
+        } else {
+          selected.classList.add('wrong');
+          choices.forEach(function(c){ if (c.getAttribute('data-ok')==='1') c.classList.add('right'); });
+          fb.className = 'sb-feedback fail show';
+          fb.innerHTML = '<b>Not quite.</b> '+p.explainFail+' Read the beat again, then press New problem.';
+          // allow retry with a fresh problem
+          submit.disabled = true;
+          addRetry();
+        }
+        att.textContent = 'attempt '+attempts;
+      });
+    } else {
+      var submitN = document.getElementById('sbSubmit');
+      var reveal = document.getElementById('sbReveal');
+      var newP = document.getElementById('sbNew');
+      var inputs = {};
+      p.fields.forEach(function(f){ inputs[f.key] = document.getElementById('f_'+f.key); });
+
+      function grade(){
+        if (beatPassedThisView) return;
+        attempts++;
+        var allOk = true, lines = [];
+        p.fields.forEach(function(f){
+          var el = inputs[f.key];
+          var ok = answerOk(f, el.value);
+          el.classList.remove('ok','bad');
+          el.classList.add(ok ? 'ok' : 'bad');
+          if (!ok) allOk = false;
+        });
+        att.textContent = 'attempt '+attempts;
+        if (allOk){
+          fb.className = 'sb-feedback pass show';
+          fb.innerHTML = '<b>Correct.</b> '+p.explainPass+'<div class="work">'+escapeHtml(p.work())+'</div>';
+          submitN.disabled = true;
+          markPassed();
+        } else {
+          fb.className = 'sb-feedback fail show';
+          fb.innerHTML = '<b>Not yet.</b> '+p.explainFail+' Fix the red fields, or press Show working.';
+        }
+      }
+      submitN.addEventListener('click', grade);
+      Object.keys(inputs).forEach(function(k){
+        inputs[k].addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); grade(); } });
+      });
+      reveal.addEventListener('click', function(){
+        fb.className = 'sb-feedback fail show';
+        fb.innerHTML = '<b>Working:</b><div class="work">'+escapeHtml(p.work())+'</div>Now press New problem and solve a fresh one yourself to unlock the next beat.';
+      });
+      newP.addEventListener('click', function(){ renderBeat(); });
+    }
+
+    function addRetry(){
+      // for MCQ wrong answer: offer a fresh problem
+      var actions = document.querySelector('#sbRecall .sb-actions');
+      if (document.getElementById('sbRetry')) return;
+      var r = document.createElement('button');
+      r.className = 'sb-btn sb-btn-sec';
+      r.id = 'sbRetry'; r.type = 'button';
+      r.textContent = 'New problem';
+      r.addEventListener('click', function(){ renderBeat(); });
+      actions.insertBefore(r, document.getElementById('sbAttempts'));
+    }
+  }
+
+  // ── Capstone ────────────────────────────────────────────────────────
+  var CAP_EXAM = [
+    {
+      q:'A host is configured <code>10.10.10.130/26</code>. Which is its default-gateway-eligible first usable host?',
+      choices:[
+        {t:'10.10.10.129', ok:true},
+        {t:'10.10.10.128', ok:false},
+        {t:'10.10.10.130', ok:false},
+        {t:'10.10.10.191', ok:false}
+      ],
+      ex:'/26 block is 64. 130 lands in the .128 subnet: network .128, first host .129, broadcast .191.'
+    },
+    {
+      q:'You must connect two routers over a serial link with no wasted addresses and the broadest CCNA support. Which prefix?',
+      choices:[
+        {t:'/30', ok:true},
+        {t:'/24', ok:false},
+        {t:'/28', ok:false},
+        {t:'/32', ok:false}
+      ],
+      ex:'A point-to-point link needs 2 usable hosts. /30 gives exactly 2 and is universally supported. (/31 also works but /30 is the safe pick.)'
+    },
+    {
+      q:'An OSPF <code>network</code> statement must advertise 192.168.50.0/24. What goes after the address?',
+      choices:[
+        {t:'0.0.0.255 (wildcard)', ok:true},
+        {t:'255.255.255.0 (subnet mask)', ok:false},
+        {t:'0.0.255.255', ok:false},
+        {t:'255.255.255.255', ok:false}
+      ],
+      ex:'OSPF network statements take a WILDCARD mask, the inverse of the subnet mask. /24 -> 0.0.0.255.'
+    },
+    {
+      q:'A workstation shows IP <code>169.254.18.7</code>. What does this indicate?',
+      choices:[
+        {t:'It failed to reach a DHCP server (APIPA).', ok:true},
+        {t:'It is on the public internet.', ok:false},
+        {t:'It received a valid RFC 1918 lease.', ok:false},
+        {t:'It is the loopback address.', ok:false}
+      ],
+      ex:'169.254.0.0/16 is APIPA. The host self-assigned because DHCP did not answer.'
+    },
+    {
+      q:'How many usable host addresses are in a /28 subnet?',
+      choices:[
+        {t:'14', ok:true},
+        {t:'16', ok:false},
+        {t:'30', ok:false},
+        {t:'62', ok:false}
+      ],
+      ex:'/28 has 4 host bits: 2^4 - 2 = 14 usable (the -2 removes network and broadcast).'
+    }
+  ];
+
+  function renderCapstone(){
+    if (!allMastered()){
+      capGate.className = 'sb-cap-gate';
+      capGate.innerHTML = '<h2>Capstone locked</h2><p>Master all '+BEATS.length+' beats above to unlock the capstone: a full VLSM design from a blank sheet, plus exam-style trigger questions. '+masteredCount()+' of '+BEATS.length+' done.</p>';
+      capWrap.className = 'sb-hidden';
+      return;
+    }
+    capGate.className = 'sb-cap-gate open';
+    capGate.innerHTML = '<h2>Capstone unlocked</h2><p>You have mastered every beat. Now reproduce a full VLSM plan from a blank sheet, then clear the exam-style questions.</p>';
+    capWrap.className = '';
+
+    // Build a deterministic capstone scenario (so the line-by-line answer is fixed)
+    // 172.16.8.0/24 with needs: 60, 25, 12, 2, 2  -> /26 /27 /28 /30 /30
+    var examHtml = CAP_EXAM.map(function(e, i){
+      var ch = e.choices.map(function(c, j){
+        var ltr = String.fromCharCode(65+j);
+        return '<button class="sb-choice" type="button" data-ok="'+(c.ok?'1':'0')+'"><span class="ltr">'+ltr+'</span><span>'+c.t+'</span></button>';
+      }).join('');
+      return '<div class="sb-exam-q" data-qi="'+i+'"><div class="qn">Exam Q'+(i+1)+'</div><p class="sb-q">'+e.q+'</p><div class="sb-choices">'+ch+'</div><div class="sb-feedback" aria-live="polite"></div></div>';
+    }).join('');
+
+    capWrap.innerHTML =
+      '<div class="sb-beat">'+
+        '<div class="sb-beat-head"><span class="sb-beat-num">Capstone</span><h2>Design the whole block, then prove the theory</h2></div>'+
+        '<div class="sb-scenario"><div class="sh">Scenario brief</div><div class="sb-body">'+
+          'You own <code>172.16.8.0/24</code>. Subnet it with VLSM for these needs, <b>largest first</b>: '+
+          'a <b>60-host</b> LAN, a <b>25-host</b> LAN, a <b>12-host</b> LAN, and <b>two point-to-point WAN links</b> of 2 hosts each. '+
+          'Type one allocation per line in the form <code>network/prefix</code> (for example <code>172.16.8.0/26</code>), in allocation order. Then check.'+
+        '</div></div>'+
+        '<div class="sb-term">'+
+          '<label for="sbCapArea">VLSM allocation plan (largest first, one per line)</label>'+
+          '<textarea class="sb-termarea" id="sbCapArea" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="172.16.8.0/26&#10;172.16.8.64/27&#10;..."></textarea>'+
+        '</div>'+
+        '<div class="sb-actions">'+
+          '<button class="sb-btn sb-btn-primary" type="button" id="sbCapCheck">Check plan</button>'+
+          '<button class="sb-btn sb-btn-sec" type="button" id="sbCapClear">Clear</button>'+
+          '<button class="sb-btn sb-btn-sec" type="button" id="sbCapReveal">Show answer</button>'+
+        '</div>'+
+        '<div class="sb-results" id="sbCapResults"></div>'+
+        '<h2 style="font-family:var(--font-display);font-size:1.1rem;margin:24px 0 12px">Exam-style trigger questions</h2>'+
+        examHtml+
+        '<div class="sb-done-banner" id="sbDoneBanner"><h3>Objective 1.6 locked in.</h3><p>You taught yourself the method and proved it on fresh problems. This is exam-ready subnetting.</p></div>'+
+      '</div>';
+
+    wireCapstone();
+  }
+
+  // The fixed correct VLSM plan for 172.16.8.0/24, largest first
+  function capstoneAnswer(){
+    // 60 -> /26, 25 -> /27, 12 -> /28, 2 -> /30, 2 -> /30
+    var plan = [];
+    var start = ipToInt('172.16.8.0');
+    [26,27,28,30,30].forEach(function(cidr){
+      plan.push({net:intToIp(start), cidr:cidr, line:intToIp(start)+'/'+cidr});
+      start = (start + blockSize_full(cidr)) >>> 0;
+    });
+    return plan;
+  }
+  function blockSize_full(cidr){ return Math.pow(2, 32 - cidr); }
+
+  function wireCapstone(){
+    var area = document.getElementById('sbCapArea');
+    var results = document.getElementById('sbCapResults');
+    var plan = capstoneAnswer();
+
+    document.getElementById('sbCapClear').addEventListener('click', function(){
+      area.value=''; results.classList.remove('show'); area.focus();
+    });
+    document.getElementById('sbCapReveal').addEventListener('click', function(){
+      area.value = plan.map(function(p){ return p.line; }).join('\n');
+      results.classList.remove('show');
+    });
+    document.getElementById('sbCapCheck').addEventListener('click', function(){
+      var lines = area.value.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length; });
+      var rows = [], got = 0;
+      plan.forEach(function(p, i){
+        var user = lines[i] ? normNum(lines[i].replace(/\s+/g,'')) : '';
+        var want = normNum(p.line);
+        if (user === want){ got++; rows.push({cls:'ok',icon:'✓',text:p.line,note:'subnet '+(i+1)}); }
+        else { rows.push({cls:'miss',icon:'✕',text:p.line,note:'expected here'+(lines[i]?', you wrote '+lines[i]:'')}); }
+      });
+      if (lines.length > plan.length){
+        for (var k = plan.length; k < lines.length; k++){ rows.push({cls:'extra',icon:'~',text:lines[k],note:'extra line'}); }
+      }
+      var pct = Math.round((got/plan.length)*100);
+      state.capstone = Math.max(state.capstone||0, pct);
+      saveState(state);
+      var rowsHtml = rows.map(function(r){
+        return '<div class="sb-diff-row '+r.cls+'"><span class="icon">'+r.icon+'</span><span class="ctext">'+escapeHtml(r.text)+'<span class="cnote">'+escapeHtml(r.note)+'</span></span></div>';
+      }).join('');
+      var cls = pct>=100?'green':pct>=60?'amber':'red';
+      var label = pct>=100?'Perfect VLSM plan. Largest first, no gaps.':pct>=60?'Close. Check the block boundaries.':'Re-read VLSM beats: largest first, next subnet starts at previous broadcast + 1.';
+      results.innerHTML = '<div class="sb-score"><span class="sv '+cls+'">'+pct+'%</span><span class="sl">'+got+' of '+plan.length+' subnets. '+label+'</span></div><div class="sb-diff">'+rowsHtml+'</div>';
+      results.classList.add('show');
+      results.scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+
+    // exam MCQs
+    Array.prototype.slice.call(capWrap.querySelectorAll('.sb-exam-q')).forEach(function(qEl){
+      var qi = parseInt(qEl.getAttribute('data-qi'), 10);
+      var fb = qEl.querySelector('.sb-feedback');
+      var choices = Array.prototype.slice.call(qEl.querySelectorAll('.sb-choice'));
+      choices.forEach(function(ch){
+        ch.addEventListener('click', function(){
+          if (qEl.getAttribute('data-answered')) return;
+          qEl.setAttribute('data-answered','1');
+          var ok = ch.getAttribute('data-ok')==='1';
+          choices.forEach(function(c){ c.disabled = true; if (c.getAttribute('data-ok')==='1') c.classList.add('right'); });
+          if (!ok) ch.classList.add('wrong');
+          fb.className = 'sb-feedback '+(ok?'pass':'fail')+' show';
+          fb.innerHTML = (ok?'<b>Correct.</b> ':'<b>Not quite.</b> ')+CAP_EXAM[qi].ex;
+          checkExamDone();
+        });
+      });
+    });
+
+    function checkExamDone(){
+      var all = Array.prototype.slice.call(capWrap.querySelectorAll('.sb-exam-q'));
+      var answered = all.filter(function(q){ return q.getAttribute('data-answered'); });
+      if (answered.length === all.length){
+        document.getElementById('sbDoneBanner').classList.add('show');
+      }
+    }
+  }
+
+  function maybeScrollCapstone(){
+    if (allMastered()){ capGate.scrollIntoView({behavior:'smooth',block:'start'}); }
+  }
+
+  // ── Master render ───────────────────────────────────────────────────
+  function renderAll(){
+    openIdx = Math.min(openIdx, BEATS.length - 1);
+    renderOverall();
+    renderRail();
+    renderBeat();
+    renderCapstone();
+  }
+
+  renderAll();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

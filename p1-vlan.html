@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>VLANs + Trunking + Inter-VLAN (Deep): CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress rail ──────────────────────────────────────── */
+.vl-overall{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg)}
+.vl-ostat{display:flex;flex-direction:column}
+.vl-ostat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.vl-ostat .val.green{color:var(--prof-strong)}
+.vl-ostat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.vl-obar-wrap{flex:1;min-width:160px}
+.vl-obar{height:6px;background:var(--bg-recessed,#EEE9E1);border-radius:3px;overflow:hidden}
+.vl-obar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.vl-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.vl-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+
+/* ── Beat rail (the map of beats) ───────────────────────────────── */
+.vl-rail{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+.vl-pip{display:flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:6px 11px;border:1px solid var(--border);border-radius:100px;background:var(--bg-surface);color:var(--ink-muted);cursor:pointer;transition:all .15s}
+.vl-pip:hover{border-color:var(--accent);color:var(--accent)}
+.vl-pip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.vl-pip.current{border-color:var(--accent);color:var(--accent);background:rgba(180,83,9,.06)}
+.vl-pip.locked{opacity:.5;cursor:not-allowed}
+.vl-pip.locked:hover{border-color:var(--border);color:var(--ink-muted)}
+.vl-pip .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-muted);flex-shrink:0}
+.vl-pip.mastered .dot{background:var(--prof-strong)}
+.vl-pip.mastered{color:var(--prof-strong);border-color:rgba(22,163,74,.35)}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.vl-beat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-lg);margin-bottom:var(--s-lg)}
+.vl-beat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-sm)}
+.vl-beat-num{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:#fff;background:var(--accent);padding:3px 9px;border-radius:100px;letter-spacing:.03em}
+.vl-beat-head h2{font-family:var(--font-display);font-size:1.35rem;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.2}
+.vl-beat-obj{font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted)}
+
+/* teaching blocks */
+.vl-gist{font-family:var(--font-body);font-size:1.02rem;color:var(--ink);line-height:1.6;margin:0 0 var(--s-md)}
+.vl-gist strong{font-weight:600}
+.vl-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media(max-width:640px){.vl-meta-grid{grid-template-columns:1fr}}
+.vl-meta{padding:13px 15px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.vl-meta .mh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:5px}
+.vl-meta .mb{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.5}
+.vl-meta code,.vl-gist code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input,#F1EDE6);border-radius:3px}
+
+/* diagram */
+.vl-diagram{margin:0 0 var(--s-md);padding:var(--s-md);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow-x:auto}
+.vl-diagram svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.vl-ascii{font-family:var(--font-mono);font-size:.78rem;line-height:1.45;color:var(--ink);white-space:pre;margin:0}
+.vl-dcap{font-family:var(--font-body);font-size:.8rem;color:var(--ink-muted);margin-top:8px;text-align:center}
+
+/* guided CLI */
+.vl-cli-block{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.vl-line{display:grid;grid-template-columns:1fr;padding:0 16px;border-left:3px solid transparent}
+.vl-line.alt{border-left-color:var(--accent)}
+.vl-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.vl-cmd .pmt{color:#A8A29E}
+.vl-cmd.cmt{color:#86EFAC}
+.vl-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.vl-line:last-child .vl-ann{border-bottom:none}
+
+.vl-verify{padding:14px 16px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.vl-verify .vh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:7px}
+.vl-verify code{display:block;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);padding:4px 0}
+.vl-verify .vn{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary);margin-top:2px;line-height:1.5}
+
+/* ── Recall gate ────────────────────────────────────────────────── */
+.vl-recall{border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));padding:var(--s-md);margin-top:var(--s-md)}
+.vl-recall .rh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.vl-recall .rh .rtype{font-weight:600;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-size:.72rem;font-family:var(--font-body)}
+.vl-q{font-family:var(--font-body);font-size:.98rem;color:var(--ink);line-height:1.55;margin-bottom:var(--s-sm)}
+.vl-q code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input,#F1EDE6);border-radius:3px}
+.vl-passed{display:none;align-items:center;gap:8px;font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--prof-strong);margin-top:6px}
+.vl-passed.show{display:flex}
+
+/* type-the-command + fill */
+.vl-input{width:100%;background:#1C1917;border:1px solid #292524;border-radius:var(--radius);color:#FAFAF9;font-family:var(--font-mono);font-size:.9rem;padding:11px 13px;outline:none;caret-color:var(--accent)}
+.vl-input::placeholder{color:#57534E}
+.vl-input:focus{border-color:var(--accent)}
+.vl-input.ok{border-color:var(--prof-strong)}
+.vl-input.bad{border-color:var(--prof-weak)}
+
+/* MCQ + spot-the-trap options */
+.vl-opts{display:flex;flex-direction:column;gap:7px}
+.vl-opt{display:flex;align-items:flex-start;gap:9px;text-align:left;font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.45;padding:11px 13px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .15s,background .15s}
+.vl-opt:hover{border-color:var(--accent)}
+.vl-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.vl-opt .mark{flex-shrink:0;width:18px;height:18px;border:1.5px solid var(--ink-muted);border-radius:50%;margin-top:1px}
+.vl-opt code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input,#F1EDE6);border-radius:3px}
+.vl-opt.correct{border-color:var(--prof-strong);background:rgba(22,163,74,.07)}
+.vl-opt.correct .mark{border-color:var(--prof-strong);background:var(--prof-strong)}
+.vl-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.06)}
+.vl-opt.wrong .mark{border-color:var(--prof-weak)}
+.vl-opt.disabled{cursor:default;pointer-events:none;opacity:.7}
+.vl-opt.disabled.correct,.vl-opt.disabled.wrong{opacity:1}
+
+.vl-recall-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:var(--s-sm)}
+.vl-checkbtn{padding:10px 20px;font-family:var(--font-display);font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+.vl-checkbtn:hover{filter:brightness(1.06)}
+.vl-checkbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.vl-secbtn{padding:10px 16px;font-family:var(--font-display);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.vl-secbtn:hover{border-color:var(--accent);color:var(--accent)}
+.vl-secbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.vl-fb{font-family:var(--font-body);font-size:.86rem;line-height:1.5;margin-top:10px;padding:9px 12px;border-radius:var(--radius);display:none}
+.vl-fb.show{display:block}
+.vl-fb.good{color:var(--prof-strong);background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.3)}
+.vl-fb.bad{color:var(--prof-weak);background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.3)}
+.vl-fb code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input,#F1EDE6);border-radius:3px}
+
+/* advance */
+.vl-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:var(--s-md);flex-wrap:wrap}
+.vl-nextbtn{display:inline-flex;align-items:center;gap:9px;padding:13px 26px;font-family:var(--font-display);font-size:.92rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-lg);cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s;box-shadow:0 5px 16px rgba(180,83,9,.25)}
+.vl-nextbtn:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(180,83,9,.35)}
+.vl-nextbtn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.vl-nextbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.vl-prevbtn{font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--ink-secondary);background:none;border:none;cursor:pointer;padding:6px 0}
+.vl-prevbtn:hover{color:var(--accent)}
+.vl-prevbtn:disabled{opacity:.35;cursor:not-allowed}
+.vl-gatehint{font-family:var(--font-body);font-size:.8rem;color:var(--ink-muted);text-align:right;flex:1}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.vl-scenario{padding:16px 18px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.vl-scenario .sh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.vl-scenario .sb{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.55}
+.vl-scenario .sb code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input,#F1EDE6);border-radius:3px}
+.vl-term{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:var(--s-sm)}
+.vl-term label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:8px;letter-spacing:.04em}
+.vl-termarea{width:100%;min-height:240px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.vl-termarea::placeholder{color:#57534E}
+.vl-results{display:none;margin:var(--s-md) 0}
+.vl-results.show{display:block}
+.vl-score{display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-md)}
+.vl-score .sv{font-family:var(--font-mono);font-size:2.4rem;font-weight:700;line-height:1}
+.vl-score .sv.green{color:var(--prof-strong)}
+.vl-score .sv.amber{color:var(--prof-mid)}
+.vl-score .sv.red{color:var(--prof-weak)}
+.vl-score .sl{font-family:var(--font-display);font-size:.92rem;font-weight:600;color:var(--ink-secondary)}
+.vl-diff{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.vl-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.vl-diff-row:first-child{border-top:none}
+.vl-diff-row .icon{flex-shrink:0;width:18px;text-align:center;font-weight:700}
+.vl-diff-row.ok{background:rgba(22,163,74,.05)}
+.vl-diff-row.ok .icon{color:var(--prof-strong)}
+.vl-diff-row.miss{background:rgba(220,38,38,.05)}
+.vl-diff-row.miss .icon{color:var(--prof-weak)}
+.vl-diff-row.extra .icon{color:var(--prof-mid)}
+.vl-diff-row .ctext{color:var(--ink);word-break:break-word}
+.vl-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.vl-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.vl-finalq{margin-top:var(--s-lg)}
+.vl-finalq h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin:0 0 var(--s-sm)}
+.vl-qcard{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-md);margin-bottom:var(--s-sm)}
+.vl-qcard .qstem{font-family:var(--font-body);font-size:.96rem;color:var(--ink);line-height:1.55;margin-bottom:10px}
+.vl-qcard .qstem code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input,#F1EDE6);border-radius:3px}
+
+.vl-done{display:none;text-align:center;padding:var(--s-lg);border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-top:var(--s-lg)}
+.vl-done.show{display:block}
+.vl-done h2{font-family:var(--font-display);font-size:1.4rem;color:var(--prof-strong);margin:0 0 6px}
+.vl-done p{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);margin:0}
+
+.vl-stage{display:none}
+.vl-stage.active{display:block}
+
+@media(max-width:640px){
+  .vl-beat{padding:var(--s-md)}
+  .vl-beat-head h2{font-size:1.15rem}
+  .vl-score .sv{font-size:2rem}
+  .vl-nextbtn{width:100%;justify-content:center}
+  .vl-gatehint{text-align:left}
+}
+@media (prefers-reduced-motion: reduce){
+  .vl-nextbtn,.vl-obar>span{transition:none}
+  .vl-nextbtn:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">DEEP COURSE · TEACH THEN PROVE</div>
+    <h1>VLANs + Trunking + Inter-VLAN (Deep)</h1>
+    <p class="subtitle">One topic, taught in small beats. Each beat teaches a chunk, then makes you prove it before you move on. End by rebuilding the whole config from a blank terminal.</p>
+  </header>
+
+  <p class="intro">Objectives 2.1 and 2.2. A VLAN is one broadcast domain. Access ports carry one untagged VLAN to a PC. Trunks carry many VLANs, 802.1Q tagged, between switches. Crossing VLANs needs Layer 3: router on a stick or an L3 switch SVI. Work each beat in order. You cannot advance past a beat until you pass its recall check.</p>
+
+  <div class="vl-overall" id="vlOverall"></div>
+  <div class="vl-rail" id="vlRail" aria-label="Lesson beats"></div>
+
+  <!-- Beat stage -->
+  <div class="vl-stage active" id="vlBeatStage"></div>
+
+  <!-- Capstone stage -->
+  <div class="vl-stage" id="vlCapStage"></div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var PREFIX = 'ccna_p1-vlan_';
+
+  // ── Data: lesson beats. Ordered so the highest-yield trap (native VLAN /
+  //    allowed list) is taught and re-tested most. ─────────────────────────
+  // recall types: 'cmd' (type the command), 'fill' (fill the blank), 'mcq', 'trap'.
+  var BEATS = [
+    {
+      id: 'concept',
+      title: 'What a VLAN actually is',
+      obj: '2.1',
+      gist: 'A <strong>VLAN is one broadcast domain</strong> carved out on a switch. Without VLANs, every port on the switch is in one flat broadcast domain (VLAN 1, the default). Create VLAN 10 and the ports you assign to it can only reach each other at Layer 2. To talk to VLAN 20 they must go up to a router or L3 switch. VLANs do not need a new switch, they split one switch into many.',
+      meta: [
+        {h:'Why', b:'Segment one physical switch into separate broadcast domains for security and smaller failure domains, instead of one flat LAN where every broadcast hits every host.'},
+        {h:'Core truth', b:'One VLAN = one broadcast domain = one subnet. The <strong>default VLAN is 1</strong>. Different VLANs cannot reach each other without a Layer 3 device.'}
+      ],
+      diagram: {type:'ascii', art:
+'        +-------------------- Switch --------------------+\n'+
+'        |                                                |\n'+
+'        |   VLAN 10 (SALES)        VLAN 20 (VOICE)       |\n'+
+'        |   broadcast domain A     broadcast domain B    |\n'+
+'        |   [PC]  [PC]  [PC]       [Phone]  [Phone]      |\n'+
+'        |     \\____|____/             \\___|___/          |\n'+
+'        |      no L2 path between 10 and 20              |\n'+
+'        +------------------------------------------------+\n'+
+'                 to reach across = needs Layer 3',
+        cap:'Two VLANs on one switch are two separate broadcast domains. They cannot talk at Layer 2.'
+      },
+      recall: {
+        type:'mcq',
+        q:'A switch has no VLANs configured. A host sends a broadcast. Which statement is true?',
+        opts:[
+          {t:'Every port on the switch is in VLAN 1 by default, so the broadcast reaches every port.', correct:true},
+          {t:'The broadcast is dropped because no VLAN exists yet.'},
+          {t:'The switch routes the broadcast to other subnets automatically.'},
+          {t:'Each port is its own broadcast domain until a VLAN is created.'}
+        ],
+        explain:'Unconfigured ports all sit in the default VLAN 1, one flat broadcast domain. A VLAN does not route, and a switch never routes broadcasts.'
+      }
+    },
+    {
+      id: 'access',
+      title: 'Access port: one untagged VLAN to a PC',
+      obj: '2.1',
+      gist: 'An <strong>access port carries exactly one VLAN, untagged</strong>. It faces an end device (a PC). The PC has no idea VLANs exist, the frames leave the port with no tag. You first create the VLAN, then force the port to access mode and drop it into the VLAN. A <strong>voice VLAN</strong> is separate: a phone tags its voice traffic into a second VLAN on the same port while the PC behind the phone stays untagged on the data VLAN.',
+      meta: [
+        {h:'Why', b:'Assign a port to a segment for the device plugged into it. Access mode prevents the port from negotiating a trunk.'},
+        {h:'Core truth', b:'Access port = one untagged data VLAN. <code>switchport voice vlan</code> is a SEPARATE VLAN for an IP phone, not the same as the data VLAN.'}
+      ],
+      cli: [
+        {p:'S(config)#', c:'vlan 10', a:'Create VLAN 10 and enter VLAN config mode.'},
+        {p:'S(config-vlan)#', c:'name SALES', a:'Label it for humans. Cosmetic, but expected on the exam.'},
+        {p:'S(config)#', c:'interface g0/1', a:'Move to the access port facing the PC.'},
+        {p:'S(config-if)#', c:'switchport mode access', a:'Force access mode: one untagged VLAN, no trunk negotiation.'},
+        {p:'S(config-if)#', c:'switchport access vlan 10', a:'Assign the data VLAN for the attached PC.'},
+        {p:'S(config-if)#', c:'switchport voice vlan 20', a:'Let an IP phone tag voice into VLAN 20 on the same port. Separate from the data VLAN.'}
+      ],
+      verify: {c:'show vlan brief', n:'Lists every VLAN and which access ports are assigned to it.'},
+      recall: {
+        type:'cmd',
+        q:'You are on the access port in interface config. Type the command that <strong>assigns the data VLAN 10</strong> to this port.',
+        accept:['switchport access vlan 10'],
+        answer:'switchport access vlan 10',
+        explain:'<code>switchport access vlan 10</code> sets the untagged data VLAN. Do not confuse it with <code>switchport voice vlan</code>, which is the separate phone VLAN.'
+      }
+    },
+    {
+      id: 'trunk',
+      title: 'Trunk: many VLANs on one link, 802.1Q tagged',
+      obj: '2.2',
+      gist: 'A <strong>trunk carries many VLANs over one link</strong>, switch to switch. To keep them apart, 802.1Q inserts a 4 byte tag into each frame stamping its VLAN ID. The receiving switch reads the tag and puts the frame back in the right VLAN. You set the encapsulation to dot1q (on switches that support more than one type), then force trunk mode. Access port = untagged, one VLAN. Trunk = tagged, many VLANs.',
+      meta: [
+        {h:'Why', b:'Carry every VLAN across one cable between switches instead of running one physical link per VLAN.'},
+        {h:'Core truth', b:'802.1Q <strong>tags each frame with its VLAN ID</strong>. The tag is how the far switch knows which VLAN the frame belongs to.'}
+      ],
+      diagram: {type:'svg', svg:
+'<svg viewBox="0 0 520 150" role="img" aria-label="Two switches joined by an 802.1Q trunk carrying VLANs 10, 20, 30">'+
+'<rect x="20" y="50" width="110" height="48" rx="5" fill="#FFFFFF" stroke="#B45309" stroke-width="1.5"/>'+
+'<text x="75" y="79" font-family="JetBrains Mono, monospace" font-size="13" fill="#1C1917" text-anchor="middle">SW1</text>'+
+'<rect x="390" y="50" width="110" height="48" rx="5" fill="#FFFFFF" stroke="#B45309" stroke-width="1.5"/>'+
+'<text x="445" y="79" font-family="JetBrains Mono, monospace" font-size="13" fill="#1C1917" text-anchor="middle">SW2</text>'+
+'<line x1="130" y1="74" x2="390" y2="74" stroke="#1C1917" stroke-width="2.5"/>'+
+'<text x="260" y="42" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="600" fill="#B45309" text-anchor="middle">802.1Q TRUNK</text>'+
+'<rect x="180" y="62" width="46" height="22" rx="3" fill="#FEF3C7" stroke="#CA8A04"/><text x="203" y="77" font-family="JetBrains Mono, monospace" font-size="10" fill="#92400E" text-anchor="middle">tag 10</text>'+
+'<rect x="237" y="62" width="46" height="22" rx="3" fill="#FEF3C7" stroke="#CA8A04"/><text x="260" y="77" font-family="JetBrains Mono, monospace" font-size="10" fill="#92400E" text-anchor="middle">tag 20</text>'+
+'<rect x="294" y="62" width="46" height="22" rx="3" fill="#FEF3C7" stroke="#CA8A04"/><text x="317" y="77" font-family="JetBrains Mono, monospace" font-size="10" fill="#92400E" text-anchor="middle">tag 30</text>'+
+'<text x="260" y="118" font-family="Source Serif 4, serif" font-size="11" fill="#57534E" text-anchor="middle">Each frame stamped with its VLAN ID as it crosses the link</text>'+
+'</svg>',
+        cap:'A trunk tags every VLAN frame with 802.1Q so the far switch can sort them back into the right VLAN.'
+      },
+      cli: [
+        {p:'S(config-if)#', c:'switchport trunk encapsulation dot1q', a:'Set the tagging method to 802.1Q. Needed only on switches that support more than one type.'},
+        {p:'S(config-if)#', c:'switchport mode trunk', a:'Force the port to trunk mode so it carries multiple tagged VLANs.'}
+      ],
+      verify: {c:'show interfaces trunk', n:'Shows trunk mode, the native VLAN, and the allowed and active VLANs.'},
+      recall: {
+        type:'mcq',
+        q:'What does 802.1Q do to a frame as it crosses a trunk?',
+        opts:[
+          {t:'Inserts a tag carrying the frame’s VLAN ID so the far switch can place it in the right VLAN.', correct:true},
+          {t:'Encrypts the frame so other VLANs cannot read it.'},
+          {t:'Strips the source MAC and replaces it with the trunk’s MAC.'},
+          {t:'Routes the frame to the correct subnet.'}
+        ],
+        explain:'802.1Q adds a VLAN tag (the VLAN ID) to the frame. It does not encrypt or route. Tagging is purely how VLAN membership survives the trunk.'
+      }
+    },
+    {
+      id: 'native',
+      title: 'The native VLAN trap (highest yield)',
+      obj: '2.2',
+      gist: 'On a trunk, <strong>one VLAN travels untagged</strong>: the <strong>native VLAN</strong>. By default it is VLAN 1. Everything else is tagged, the native VLAN is not. Here is the exam trap: the <strong>native VLAN must match on BOTH ends</strong> of the trunk. If SW1 calls it 99 and SW2 calls it 1, untagged frames land in the wrong VLAN, traffic leaks between VLANs, and CDP throws a native VLAN mismatch. Set it the same on both sides, every time.',
+      meta: [
+        {h:'Why', b:'Some legacy or management traffic rides untagged. The native VLAN defines where untagged frames go on a trunk.'},
+        {h:'Core truth', b:'The native VLAN is sent <strong>UNTAGGED</strong>. It must be identical on both ends or untagged traffic leaks into the wrong VLAN.'}
+      ],
+      cli: [
+        {p:'S(config-if)#', c:'switchport trunk native vlan 99', a:'Carry VLAN 99 untagged. This number MUST match the far end or you get a native VLAN mismatch and traffic leaks.'}
+      ],
+      verify: {c:'show interfaces trunk', n:'The Native vlan column must read the same value on both switches.'},
+      recall: {
+        type:'trap',
+        q:'SW1 trunk has <code>switchport trunk native vlan 99</code>. SW2 left the default. Spot the problem.',
+        opts:[
+          {t:'Native VLAN mismatch: SW1 native is 99, SW2 native is 1. Untagged frames land in the wrong VLAN and traffic leaks.', correct:true},
+          {t:'No problem. The native VLAN only matters on access ports.'},
+          {t:'The trunk will not form at all because encapsulation is missing.'},
+          {t:'VLAN 99 is invalid as a native VLAN.'}
+        ],
+        explain:'The default native VLAN is 1. SW1 says 99, SW2 says 1, so the natives do not match. Untagged frames cross into the wrong VLAN and CDP logs a native VLAN mismatch. Set both ends to 99.'
+      }
+    },
+    {
+      id: 'allowed',
+      title: 'The allowed list controls what crosses',
+      obj: '2.2',
+      gist: 'A trunk does not have to carry every VLAN. The <strong>allowed list</strong> is the gate: only VLANs on the list cross the trunk. The trap: if a VLAN is <strong>not in the allowed list, its traffic is silently dropped</strong> at the trunk, even though the VLAN exists and the ports are configured. If hosts in VLAN 30 cannot reach the other switch, check the allowed list before anything else.',
+      meta: [
+        {h:'Why', b:'Limit a trunk to only the VLANs that actually need to cross it, for security and to shrink broadcast scope.'},
+        {h:'Core truth', b:'A VLAN <strong>not in the allowed list is dropped</strong> at the trunk. The list is an explicit whitelist of VLAN IDs.'}
+      ],
+      cli: [
+        {p:'S(config-if)#', c:'switchport trunk allowed vlan 10,20,30', a:'Restrict the trunk to VLANs 10, 20, and 30. Any VLAN not listed is dropped at this trunk.'}
+      ],
+      verify: {c:'show interfaces trunk', n:'The Vlans allowed on trunk column lists exactly the VLAN IDs that can cross.'},
+      recall: {
+        type:'fill',
+        q:'Allow only VLANs 10, 20, and 30 across this trunk. Fill the blank: <code>switchport trunk allowed vlan ____</code>',
+        prefix:'switchport trunk allowed vlan ',
+        accept:['10,20,30'],
+        answer:'10,20,30',
+        explain:'<code>switchport trunk allowed vlan 10,20,30</code> whitelists exactly those three. A VLAN left off the list, say VLAN 40, is dropped at the trunk even if it exists.'
+      }
+    },
+    {
+      id: 'ros',
+      title: 'Inter-VLAN routing: router on a stick',
+      obj: '2.1',
+      gist: 'Crossing VLANs needs Layer 3. <strong>Router on a stick</strong> uses one physical router link, broken into <strong>subinterfaces</strong>, one per VLAN. Each subinterface tags itself for its VLAN with <code>encapsulation dot1q</code>, and its IP becomes that VLAN’s default gateway. The router link to the switch must be a trunk. The trap: the dot1q number must match the VLAN ID, and you use a real <strong>subnet mask here</strong>, not a wildcard.',
+      meta: [
+        {h:'Why', b:'Route between VLANs with one router interface instead of a separate physical link per VLAN.'},
+        {h:'Core truth', b:'Each subinterface carries one VLAN. The <code>encapsulation dot1q 10</code> number must match the VLAN ID, and the subinterface IP is that VLAN’s gateway.'}
+      ],
+      cli: [
+        {p:'R(config)#', c:'interface g0/0.10', a:'Create subinterface .10. The number is convention; the VLAN binding comes from the next line.'},
+        {p:'R(config-subif)#', c:'encapsulation dot1q 10', a:'Tag this subinterface for VLAN 10. THIS number is what binds it to the VLAN.'},
+        {p:'R(config-subif)#', c:'ip address 10.0.10.1 255.255.255.0', a:'This becomes the default gateway for hosts in VLAN 10. Subnet mask here, not a wildcard.'}
+      ],
+      verify: {c:'show ip route', n:'The connected subnet should appear via the subinterface (C 10.0.10.0/24).'},
+      recall: {
+        type:'cmd',
+        q:'You just created subinterface <code>g0/0.10</code>. Type the command that <strong>tags it for VLAN 10</strong>.',
+        accept:['encapsulation dot1q 10','encap dot1q 10'],
+        answer:'encapsulation dot1q 10',
+        explain:'<code>encapsulation dot1q 10</code> binds the subinterface to VLAN 10. The number must equal the VLAN ID, not just the subinterface suffix.'
+      }
+    },
+    {
+      id: 'svi',
+      title: 'Inter-VLAN routing: L3 switch SVI',
+      obj: '2.1',
+      gist: 'The other way to route between VLANs is an <strong>L3 switch with SVIs</strong> (switched virtual interfaces). You must <strong>enable <code>ip routing</code> first</strong>, or the SVIs will not route at all. Then build an <code>interface vlan 10</code>, give it the gateway IP, and <strong><code>no shutdown</code></strong> it, because SVIs come up administratively down. This routes in hardware on the switch, no hairpin up to a router.',
+      meta: [
+        {h:'Why', b:'Route between VLANs in hardware on the switch itself instead of hairpinning traffic up to a separate router.'},
+        {h:'Core truth', b:'Turn on <code>ip routing</code> FIRST. Each <code>interface vlan</code> SVI is that VLAN’s gateway and needs <code>no shutdown</code>.'}
+      ],
+      cli: [
+        {p:'S(config)#', c:'ip routing', a:'Enable Layer 3 routing on the switch. Without this the SVIs do not route.'},
+        {p:'S(config)#', c:'interface vlan 10', a:'Create the SVI for VLAN 10.'},
+        {p:'S(config-if)#', c:'ip address 10.0.10.1 255.255.255.0', a:'Gateway IP for VLAN 10 hosts.'},
+        {p:'S(config-if)#', c:'no shutdown', a:'SVIs come up administratively down. Bring it up.'}
+      ],
+      verify: {c:'show ip route', n:'The VLAN subnets show as connected and routable.'},
+      recall: {
+        type:'mcq',
+        q:'You built <code>interface vlan 10</code> with an IP and <code>no shutdown</code>, but VLANs still will not route on the L3 switch. What did you forget?',
+        opts:[
+          {t:'The global command <code>ip routing</code>, which must be enabled first or SVIs do not route.', correct:true},
+          {t:'<code>encapsulation dot1q 10</code> on the SVI.'},
+          {t:'A native VLAN on the SVI.'},
+          {t:'Nothing. SVIs route as soon as they have an IP.'}
+        ],
+        explain:'On an L3 switch, <code>ip routing</code> is off by default. Without it, an SVI is just a management interface and will not route between VLANs. SVIs never use <code>encapsulation dot1q</code>; that belongs to router subinterfaces.'
+      }
+    }
+  ];
+
+  // Capstone exam-style questions
+  var CAPSTONE_Q = [
+    {
+      stem:'A trunk between SW1 and SW2 logs a native VLAN mismatch and some VLANs leak. SW1 has <code>switchport trunk native vlan 99</code>. What is the fix?',
+      opts:[
+        {t:'Set <code>switchport trunk native vlan 99</code> on SW2 so both ends match.', correct:true},
+        {t:'Remove the native VLAN command from SW1.'},
+        {t:'Change the encapsulation to ISL on both ends.'},
+        {t:'Add VLAN 99 to the access port on SW1.'}
+      ],
+      explain:'The native VLAN must match on both ends. SW2 is still on the default (VLAN 1), so set it to 99 to match SW1.'
+    },
+    {
+      stem:'Hosts in VLAN 30 cannot reach the other switch, but VLANs 10 and 20 work fine across the trunk. The VLAN exists and ports are correct. First thing to check?',
+      opts:[
+        {t:'The trunk allowed list. VLAN 30 may not be in <code>switchport trunk allowed vlan</code>.', correct:true},
+        {t:'The native VLAN, which must be 30.'},
+        {t:'Whether <code>ip routing</code> is enabled.'},
+        {t:'The voice VLAN on the access port.'}
+      ],
+      explain:'If a VLAN is not in the trunk allowed list, its traffic is dropped at the trunk even though everything else is configured. Add VLAN 30 to the allowed list.'
+    },
+    {
+      stem:'On a router-on-a-stick subinterface for VLAN 20, which command binds the subinterface to VLAN 20?',
+      opts:[
+        {t:'<code>encapsulation dot1q 20</code>', correct:true},
+        {t:'<code>switchport access vlan 20</code>'},
+        {t:'<code>switchport trunk native vlan 20</code>'},
+        {t:'<code>ip routing</code>'}
+      ],
+      explain:'<code>encapsulation dot1q 20</code> on the subinterface is what binds it to VLAN 20. Switchport commands do not exist on a router subinterface.'
+    },
+    {
+      stem:'On an L3 switch you configured <code>interface vlan 10</code> with an address and <code>no shutdown</code>, but inter-VLAN routing fails. What is missing?',
+      opts:[
+        {t:'<code>ip routing</code> must be enabled globally first.', correct:true},
+        {t:'<code>encapsulation dot1q 10</code> under the SVI.'},
+        {t:'A trunk allowed list on the SVI.'},
+        {t:'The native VLAN on the SVI.'}
+      ],
+      explain:'<code>ip routing</code> is off by default on an L3 switch. Without it the SVIs do not route.'
+    },
+    {
+      stem:'Which statement about an access port is correct?',
+      opts:[
+        {t:'It carries one untagged data VLAN, with an optional separate voice VLAN.', correct:true},
+        {t:'It tags every frame with 802.1Q.'},
+        {t:'It carries every VLAN on the switch by default.'},
+        {t:'It requires <code>encapsulation dot1q</code> to work.'}
+      ],
+      explain:'An access port carries a single untagged data VLAN. A voice VLAN is a separate VLAN for an IP phone. Tagging and encapsulation belong to trunks and router subinterfaces.'
+    }
+  ];
+
+  // The full config the capstone makes you reproduce, in order.
+  var CAPSTONE_CONFIG = [
+    {cmds:['vlan 10'], note:'create the VLAN'},
+    {cmds:['name SALES'], note:'label it'},
+    {cmds:['interface g0/1','interface gigabitethernet0/1'], note:'select the access port'},
+    {cmds:['switchport mode access'], note:'force access mode'},
+    {cmds:['switchport access vlan 10'], note:'data VLAN'},
+    {cmds:['switchport voice vlan 20'], note:'voice VLAN (separate)'},
+    {cmds:['switchport trunk encapsulation dot1q'], note:'tagging method on the trunk'},
+    {cmds:['switchport mode trunk'], note:'force trunk mode'},
+    {cmds:['switchport trunk native vlan 99'], note:'native must match both ends'},
+    {cmds:['switchport trunk allowed vlan 10,20,30'], note:'whitelist what crosses'},
+    {cmds:['interface g0/0.10','interface gigabitethernet0/0.10'], note:'router subinterface'},
+    {cmds:['encapsulation dot1q 10','encap dot1q 10'], note:'tag matches the VLAN ID'},
+    {cmds:['ip address 10.0.10.1 255.255.255.0'], note:'VLAN gateway, subnet mask'},
+    {cmds:['ip routing'], note:'enable L3 routing on the switch'},
+    {cmds:['interface vlan 10'], note:'create the SVI'},
+    {cmds:['ip address 10.0.10.1 255.255.255.0'], note:'SVI gateway'},
+    {cmds:['no shutdown','no shut'], note:'SVIs start down'}
+  ];
+  var CAPSTONE_VERIFY = ['show vlan brief','show interfaces trunk','show ip route'];
+
+  // ── localStorage ────────────────────────────────────────────────────
+  function load(key, dflt) {
+    try { return JSON.parse(localStorage.getItem(PREFIX + key) || dflt); }
+    catch (e) { return JSON.parse(dflt); }
+  }
+  function save(key, val) {
+    try { localStorage.setItem(PREFIX + key, JSON.stringify(val)); } catch (e) {}
+  }
+  var mastered = load('beats', '{}');      // { beatId: true }
+  var capState = load('capstone', '{}');   // { best: pct, quiz: pct, done: bool }
+  var cur = 0;                              // current beat index
+
+  // ── Normalization (lenient line matching, copied pattern) ────────────
+  var IFACE = [
+    [/\bgigabitethernet\b/g, 'g'], [/\bgigethernet\b/g, 'g'], [/\bgig\b/g, 'g'], [/\bge\b/g, 'g'],
+    [/\bfastethernet\b/g, 'f'], [/\bfa\b/g, 'f'],
+    [/\btengigabitethernet\b/g, 'te'], [/\bethernet\b/g, 'e'],
+    [/\bport-channel\b/g, 'po'], [/\bportchannel\b/g, 'po'],
+    [/\binterface\b/g, 'int'], [/\bint\b/g, 'int']
+  ];
+  function normalize(line) {
+    var s = (line || '').toLowerCase().trim();
+    if (!s) return '';
+    s = s.replace(/[ \t]+/g, ' ');
+    IFACE.forEach(function (r) { s = s.replace(r[0], r[1]); });
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  }
+  function canon(line) {
+    var s = normalize(line);
+    s = s.replace(/^int /, 'interface ');
+    s = s.replace(/\bencap dot1q\b/, 'encapsulation dot1q');
+    s = s.replace(/\bno shut$/, 'no shutdown');
+    return s;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── DOM refs ─────────────────────────────────────────────────────────
+  var overall = document.getElementById('vlOverall');
+  var rail = document.getElementById('vlRail');
+  var beatStage = document.getElementById('vlBeatStage');
+  var capStage = document.getElementById('vlCapStage');
+
+  function masteredCount() {
+    var n = 0; BEATS.forEach(function (b) { if (mastered[b.id]) n++; }); return n;
+  }
+  function allBeatsDone() { return masteredCount() === BEATS.length; }
+
+  // ── Render the progress rail + overall ───────────────────────────────
+  function renderOverall() {
+    var done = masteredCount();
+    var total = BEATS.length;
+    var capDone = capState.done ? 1 : 0;
+    var grand = total + 1; // beats + capstone
+    var doneGrand = done + capDone;
+    var pct = Math.round((doneGrand / grand) * 100);
+    overall.innerHTML =
+      '<div class="vl-ostat"><span class="val ' + (doneGrand === grand ? 'green' : '') + '">' + done + '/' + total + '</span><span class="lbl">Beats mastered</span></div>' +
+      '<div class="vl-ostat"><span class="val">' + (capState.best || 0) + '%</span><span class="lbl">Capstone best</span></div>' +
+      '<div class="vl-obar-wrap"><div class="vl-obar"><span style="width:' + pct + '%"></span></div></div>' +
+      '<button class="vl-reset" id="vlReset" type="button">Reset progress</button>';
+    document.getElementById('vlReset').addEventListener('click', function () {
+      if (window.confirm('Reset all progress on this topic?')) {
+        mastered = {}; capState = {}; cur = 0;
+        save('beats', mastered); save('capstone', capState);
+        showBeats(); openBeat(0);
+      }
+    });
+  }
+
+  function renderRail() {
+    rail.innerHTML = '';
+    BEATS.forEach(function (b, i) {
+      var unlocked = i === 0 || mastered[BEATS[i - 1].id] || mastered[b.id];
+      var pip = document.createElement('button');
+      pip.type = 'button';
+      pip.className = 'vl-pip' + (i === cur ? ' current' : '') + (mastered[b.id] ? ' mastered' : '') + (unlocked ? '' : ' locked');
+      pip.setAttribute('aria-label', 'Beat ' + (i + 1) + ': ' + b.title + (mastered[b.id] ? ', mastered' : unlocked ? '' : ', locked'));
+      pip.innerHTML = '<span class="dot"></span>' + (i + 1);
+      if (unlocked) pip.addEventListener('click', function () { showBeats(); openBeat(i); });
+      rail.appendChild(pip);
+    });
+    // capstone pip
+    var capUnlocked = allBeatsDone();
+    var cp = document.createElement('button');
+    cp.type = 'button';
+    cp.className = 'vl-pip' + (capState.done ? ' mastered' : '') + (capUnlocked ? '' : ' locked');
+    cp.setAttribute('aria-label', 'Capstone' + (capUnlocked ? '' : ', locked until all beats are mastered'));
+    cp.innerHTML = '<span class="dot"></span>⚑';
+    if (capUnlocked) cp.addEventListener('click', openCapstone);
+    rail.appendChild(cp);
+  }
+
+  // ── Teaching block builders ──────────────────────────────────────────
+  function buildDiagram(d) {
+    if (!d) return '';
+    var inner = d.type === 'svg'
+      ? d.svg
+      : '<pre class="vl-ascii">' + escapeHtml(d.art) + '</pre>';
+    return '<div class="vl-diagram">' + inner + '<div class="vl-dcap">' + escapeHtml(d.cap) + '</div></div>';
+  }
+  function buildCli(cli) {
+    if (!cli || !cli.length) return '';
+    var lines = cli.map(function (ln) {
+      var cls = 'vl-line' + (ln.cls === 'alt' ? ' alt' : '');
+      return '<div class="' + cls + '">' +
+        '<span class="vl-cmd"><span class="pmt">' + escapeHtml(ln.p) + ' </span>' + escapeHtml(ln.c) + '</span>' +
+        (ln.a ? '<span class="vl-ann">' + escapeHtml(ln.a) + '</span>' : '') +
+      '</div>';
+    }).join('');
+    return '<div class="vl-cli-block">' + lines + '</div>';
+  }
+  function buildVerify(v) {
+    if (!v) return '';
+    return '<div class="vl-verify"><div class="vh">Verify</div><code>' + escapeHtml(v.c) + '</code><div class="vn">' + escapeHtml(v.n) + '</div></div>';
+  }
+  function buildMeta(meta) {
+    return '<div class="vl-meta-grid">' + meta.map(function (m) {
+      return '<div class="vl-meta"><div class="mh">' + escapeHtml(m.h) + '</div><div class="mb">' + m.b + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  // ── Recall block builder (varies by type) ────────────────────────────
+  var RTYPE_LABEL = {cmd:'Type the command', fill:'Fill the blank', mcq:'Concept check', trap:'Spot the trap'};
+
+  function buildRecall(b) {
+    var r = b.recall;
+    var body = '';
+    if (r.type === 'cmd') {
+      body = '<input class="vl-input" id="vlRInput" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type the command...">' +
+        '<div class="vl-recall-actions">' +
+          '<button class="vl-checkbtn" type="button" id="vlRCheck">Check</button>' +
+          '<button class="vl-secbtn" type="button" id="vlRReveal">Show answer</button>' +
+        '</div>';
+    } else if (r.type === 'fill') {
+      body = '<div class="vl-input" style="display:flex;align-items:center;gap:4px;padding:0 0 0 13px">' +
+          '<span style="color:#A8A29E;white-space:nowrap">' + escapeHtml(r.prefix) + '</span>' +
+          '<input id="vlRInput" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="..." style="flex:1;background:transparent;border:none;color:#FAFAF9;font-family:var(--font-mono);font-size:.9rem;padding:11px 13px 11px 0;outline:none">' +
+        '</div>' +
+        '<div class="vl-recall-actions">' +
+          '<button class="vl-checkbtn" type="button" id="vlRCheck">Check</button>' +
+          '<button class="vl-secbtn" type="button" id="vlRReveal">Show answer</button>' +
+        '</div>';
+    } else { // mcq or trap
+      body = '<div class="vl-opts" id="vlROpts">' + r.opts.map(function (o, i) {
+        return '<button class="vl-opt" type="button" data-i="' + i + '"><span class="mark"></span><span>' + o.t + '</span></button>';
+      }).join('') + '</div>';
+    }
+    return '<div class="vl-recall">' +
+        '<div class="rh">Prove it <span class="rtype">' + RTYPE_LABEL[r.type] + '</span></div>' +
+        '<div class="vl-q">' + r.q + '</div>' +
+        body +
+        '<div class="vl-fb" id="vlRFb"></div>' +
+        '<div class="vl-passed" id="vlRPassed">✓ Beat mastered. You may advance.</div>' +
+      '</div>';
+  }
+
+  // ── Open a beat ──────────────────────────────────────────────────────
+  function openBeat(idx) {
+    cur = idx;
+    var b = BEATS[idx];
+    window.scrollTo(0, 0);
+    beatStage.innerHTML =
+      '<div class="vl-beat">' +
+        '<div class="vl-beat-head">' +
+          '<span class="vl-beat-num">Beat ' + (idx + 1) + ' / ' + BEATS.length + '</span>' +
+          '<h2>' + escapeHtml(b.title) + '</h2>' +
+          '<span class="vl-beat-obj">obj ' + b.obj + '</span>' +
+        '</div>' +
+        '<p class="vl-gist">' + b.gist + '</p>' +
+        buildMeta(b.meta) +
+        buildDiagram(b.diagram) +
+        buildCli(b.cli) +
+        buildVerify(b.verify) +
+        buildRecall(b) +
+        '<div class="vl-nav">' +
+          '<button class="vl-prevbtn" type="button" id="vlPrev"' + (idx === 0 ? ' disabled' : '') + '>&larr; Previous beat</button>' +
+          '<span class="vl-gatehint" id="vlGateHint"></span>' +
+          '<button class="vl-nextbtn" type="button" id="vlNext" disabled>' + (idx === BEATS.length - 1 ? 'To the capstone' : 'Next beat') + ' &rarr;</button>' +
+        '</div>' +
+      '</div>';
+
+    renderRail();
+
+    var nextBtn = document.getElementById('vlNext');
+    var gateHint = document.getElementById('vlGateHint');
+    var already = !!mastered[b.id];
+
+    function unlock() {
+      mastered[b.id] = true;
+      save('beats', mastered);
+      nextBtn.disabled = false;
+      document.getElementById('vlRPassed').classList.add('show');
+      gateHint.textContent = '';
+      renderRail();
+      renderOverall();
+    }
+    if (already) { nextBtn.disabled = false; document.getElementById('vlRPassed').classList.add('show'); }
+    else { gateHint.textContent = 'Pass the check to unlock the next beat.'; }
+
+    wireRecall(b, unlock);
+
+    document.getElementById('vlPrev').addEventListener('click', function () {
+      if (idx > 0) openBeat(idx - 1);
+    });
+    nextBtn.addEventListener('click', function () {
+      if (idx === BEATS.length - 1) { openCapstone(); }
+      else { openBeat(idx + 1); }
+    });
+  }
+
+  // ── Wire the recall widget for a beat ────────────────────────────────
+  function wireRecall(b, onPass) {
+    var r = b.recall;
+    var fb = document.getElementById('vlRFb');
+    function good(msg) { fb.className = 'vl-fb good show'; fb.innerHTML = msg; }
+    function bad(msg) { fb.className = 'vl-fb bad show'; fb.innerHTML = msg; }
+
+    if (r.type === 'cmd' || r.type === 'fill') {
+      var input = document.getElementById('vlRInput');
+      var accepts = r.accept.map(canon);
+      function check() {
+        var val = (r.type === 'fill') ? (r.prefix + input.value) : input.value;
+        var c = canon(val);
+        var hit = accepts.indexOf(c) >= 0;
+        // for fill, also allow just the suffix to be matched against accept suffixes
+        if (!hit && r.type === 'fill') {
+          hit = r.accept.map(function (a) { return a.replace(/\s+/g, ''); }).indexOf(input.value.trim().replace(/\s+/g, '')) >= 0;
+        }
+        if (hit) {
+          if (input.classList) input.classList.remove('bad'), input.classList.add('ok');
+          good('Correct. ' + r.explain);
+          onPass();
+        } else {
+          if (input.classList) input.classList.remove('ok'), input.classList.add('bad');
+          bad(r.type === 'fill'
+            ? 'Not quite. Try again, or reveal the answer. Hint: match the exact VLAN IDs from the lesson, comma separated, no spaces.'
+            : 'Not quite. Try again, or reveal the answer. Hint: it starts with the verb you saw in the lesson.');
+        }
+      }
+      document.getElementById('vlRCheck').addEventListener('click', check);
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); check(); } });
+      var rev = document.getElementById('vlRReveal');
+      if (rev) rev.addEventListener('click', function () {
+        if (r.type === 'fill') { input.value = r.accept[0]; }
+        else { input.value = r.answer; }
+        fb.className = 'vl-fb good show';
+        fb.innerHTML = 'Answer: <code>' + escapeHtml(r.answer) + '</code>. ' + r.explain + ' Now clear it and type it yourself, then Check.';
+      });
+      setTimeout(function () { try { input.focus(); } catch (e) {} }, 30);
+    } else { // mcq / trap
+      var opts = document.getElementById('vlROpts');
+      var btns = opts.querySelectorAll('.vl-opt');
+      var answered = false;
+      btns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var i = parseInt(btn.getAttribute('data-i'), 10);
+          var opt = r.opts[i];
+          if (opt.correct) {
+            btn.classList.add('correct');
+            btns.forEach(function (x) { x.classList.add('disabled'); });
+            good('Correct. ' + r.explain);
+            answered = true;
+            onPass();
+          } else {
+            btn.classList.add('wrong', 'disabled');
+            bad('Not that one. ' + (answered ? '' : 'Read the options again and pick the one that matches the lesson.'));
+          }
+        });
+      });
+    }
+  }
+
+  // ── Capstone ─────────────────────────────────────────────────────────
+  function showBeats() {
+    beatStage.classList.add('active');
+    capStage.classList.remove('active');
+  }
+  function showCap() {
+    beatStage.classList.remove('active');
+    capStage.classList.add('active');
+  }
+
+  function openCapstone() {
+    if (!allBeatsDone()) { return; }
+    cur = -1;
+    window.scrollTo(0, 0);
+    showCap();
+    renderRail();
+
+    var quizHtml = CAPSTONE_Q.map(function (q, qi) {
+      return '<div class="vl-qcard" data-qi="' + qi + '">' +
+          '<div class="qstem"><strong>Q' + (qi + 1) + '.</strong> ' + q.stem + '</div>' +
+          '<div class="vl-opts">' + q.opts.map(function (o, oi) {
+            return '<button class="vl-opt" type="button" data-qi="' + qi + '" data-oi="' + oi + '"><span class="mark"></span><span>' + o.t + '</span></button>';
+          }).join('') + '</div>' +
+          '<div class="vl-fb" data-fb="' + qi + '"></div>' +
+        '</div>';
+    }).join('');
+
+    capStage.innerHTML =
+      '<div class="vl-beat">' +
+        '<div class="vl-beat-head"><span class="vl-beat-num">Capstone</span><h2>Rebuild the whole config from memory</h2></div>' +
+        '<div class="vl-scenario"><div class="sh">Scenario brief</div><div class="sb">' +
+          'Build VLAN 10 named SALES. Put <code>g0/1</code> in access mode on VLAN 10 with voice VLAN 20. ' +
+          'Turn the uplink into an 802.1Q trunk: native VLAN 99, allow only VLANs 10, 20, 30. ' +
+          'Then provide inter-VLAN routing for VLAN 10 two ways: a router-on-a-stick subinterface <code>g0/0.10</code> with gateway <code>10.0.10.1/24</code>, ' +
+          'and an L3 switch SVI for VLAN 10 with the same gateway. ' +
+          'Finish with the three verify commands.' +
+        '</div></div>' +
+        '<p class="vl-q" style="margin-bottom:8px">Type every config line in order, one per line, then the verify commands. Abbreviations like <code>int g0/1</code> and <code>no shut</code> are accepted. Press Ctrl+Enter to grade.</p>' +
+        '<div class="vl-term">' +
+          '<label for="vlCapArea">Switch / Router CLI</label>' +
+          '<textarea class="vl-termarea" id="vlCapArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type each config line here..."></textarea>' +
+        '</div>' +
+        '<div class="vl-recall-actions">' +
+          '<button class="vl-checkbtn" type="button" id="vlCapCheck">Grade my config</button>' +
+          '<button class="vl-secbtn" type="button" id="vlCapClear">Clear</button>' +
+          '<button class="vl-secbtn" type="button" id="vlCapReveal">Show answer</button>' +
+        '</div>' +
+        '<div class="vl-results" id="vlCapResults"></div>' +
+
+        '<div class="vl-finalq">' +
+          '<h3>Exam-style questions</h3>' +
+          quizHtml +
+        '</div>' +
+
+        '<div class="vl-done" id="vlDone"><h2>⚑ Topic mastered</h2><p>You rebuilt the config and cleared the exam questions. This is the native VLAN, allowed list, and inter-VLAN routing nailed down. Come back and re-run the capstone cold before exam day.</p></div>' +
+
+        '<div class="vl-nav">' +
+          '<button class="vl-prevbtn" type="button" id="vlCapBack">&larr; Back to beats</button>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('vlCapBack').addEventListener('click', function () { showBeats(); openBeat(BEATS.length - 1); });
+    var area = document.getElementById('vlCapArea');
+    document.getElementById('vlCapCheck').addEventListener('click', gradeCapstone);
+    document.getElementById('vlCapClear').addEventListener('click', function () {
+      area.value = ''; document.getElementById('vlCapResults').classList.remove('show'); area.focus();
+    });
+    document.getElementById('vlCapReveal').addEventListener('click', revealCapstone);
+    area.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); gradeCapstone(); }
+    });
+
+    wireCapstoneQuiz();
+    maybeMarkDone();
+  }
+
+  function lineMatches(userCanon, expected) {
+    for (var i = 0; i < expected.cmds.length; i++) {
+      if (canon(expected.cmds[i]) === userCanon) return true;
+    }
+    return false;
+  }
+
+  function gradeCapstone() {
+    var raw = document.getElementById('vlCapArea').value;
+    var userLinesRaw = raw.split('\n')
+      .map(function (l) { return l.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/, ''); })
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+    var userCanon = userLinesRaw.map(canon);
+    var usedUser = userCanon.map(function () { return false; });
+
+    var rows = [];
+    var gotConfig = 0;
+
+    CAPSTONE_CONFIG.forEach(function (exp) {
+      var found = -1;
+      for (var i = 0; i < userCanon.length; i++) {
+        if (!usedUser[i] && lineMatches(userCanon[i], exp)) { found = i; break; }
+      }
+      if (found >= 0) {
+        usedUser[found] = true; gotConfig++;
+        rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[found], note: exp.note });
+      } else {
+        rows.push({ cls: 'miss', icon: '✕', text: exp.cmds[0], note: 'missing: ' + exp.note });
+      }
+    });
+
+    var gotVerify = 0;
+    CAPSTONE_VERIFY.forEach(function (v) {
+      var vc = canon(v);
+      var found = -1;
+      for (var j = 0; j < userCanon.length; j++) {
+        if (!usedUser[j] && (userCanon[j] === vc || userCanon[j].indexOf(vc) === 0)) { found = j; break; }
+      }
+      if (found >= 0) {
+        usedUser[found] = true; gotVerify++;
+        rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[found], note: 'verify command' });
+      } else {
+        rows.push({ cls: 'miss', icon: '✕', text: v, note: 'missing the verify command' });
+      }
+    });
+
+    userCanon.forEach(function (uc, i) {
+      if (!usedUser[i]) {
+        rows.push({ cls: 'extra', icon: '~', text: userLinesRaw[i], note: 'not expected for this scenario' });
+      }
+    });
+
+    var totalNeeded = CAPSTONE_CONFIG.length + CAPSTONE_VERIFY.length;
+    var got = gotConfig + gotVerify;
+    var pct = Math.round((got / totalNeeded) * 100);
+
+    if (pct > (capState.best || 0)) capState.best = pct;
+    save('capstone', capState);
+
+    renderCapResults(pct, got, totalNeeded, rows);
+    renderOverall();
+    maybeMarkDone();
+  }
+
+  function scoreClass(pct) { return pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red'; }
+  function scoreLabel(pct) {
+    if (pct >= 100) return 'Perfect. That is exam ready.';
+    if (pct >= 70) return 'Passing. Close the gaps and run it again.';
+    if (pct >= 40) return 'Partial. Re-read the beats, then retry.';
+    return 'Keep drilling. Walk the beats again and type it cold.';
+  }
+
+  function renderCapResults(pct, got, total, rows) {
+    var box = document.getElementById('vlCapResults');
+    var rowsHtml = rows.map(function (r) {
+      return '<div class="vl-diff-row ' + r.cls + '">' +
+        '<span class="icon">' + r.icon + '</span>' +
+        '<span class="ctext">' + escapeHtml(r.text) + '<span class="cnote">' + escapeHtml(r.note) + '</span></span>' +
+      '</div>';
+    }).join('');
+    box.innerHTML =
+      '<div class="vl-score"><span class="sv ' + scoreClass(pct) + '">' + pct + '%</span>' +
+        '<span class="sl">' + got + ' of ' + total + ' lines. ' + scoreLabel(pct) + '</span></div>' +
+      '<div class="vl-diff">' + rowsHtml + '</div>';
+    box.classList.add('show');
+    box.setAttribute('aria-live', 'polite');
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function revealCapstone() {
+    var lines = CAPSTONE_CONFIG.map(function (r) { return r.cmds[0]; }).concat(CAPSTONE_VERIFY);
+    document.getElementById('vlCapArea').value = lines.join('\n');
+    var box = document.getElementById('vlCapResults');
+    box.innerHTML = '<div class="vl-score"><span class="sl">Answer shown above. Clear it and type it yourself to score.</span></div>';
+    box.classList.add('show');
+  }
+
+  function wireCapstoneQuiz() {
+    capState.quizDone = capState.quizDone || {};
+    var cards = capStage.querySelectorAll('.vl-qcard');
+    cards.forEach(function (card) {
+      var qi = parseInt(card.getAttribute('data-qi'), 10);
+      var q = CAPSTONE_Q[qi];
+      var fb = card.querySelector('[data-fb="' + qi + '"]');
+      var btns = card.querySelectorAll('.vl-opt');
+      btns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var oi = parseInt(btn.getAttribute('data-oi'), 10);
+          var opt = q.opts[oi];
+          if (opt.correct) {
+            btn.classList.add('correct');
+            btns.forEach(function (x) { x.classList.add('disabled'); });
+            fb.className = 'vl-fb good show';
+            fb.innerHTML = 'Correct. ' + q.explain;
+            capState.quizDone[qi] = true;
+            save('capstone', capState);
+            maybeMarkDone();
+          } else {
+            btn.classList.add('wrong', 'disabled');
+            fb.className = 'vl-fb bad show';
+            fb.innerHTML = 'Not that one. Try again.';
+          }
+        });
+      });
+    });
+  }
+
+  function quizAllCorrect() {
+    if (!capState.quizDone) return false;
+    for (var i = 0; i < CAPSTONE_Q.length; i++) { if (!capState.quizDone[i]) return false; }
+    return true;
+  }
+
+  function maybeMarkDone() {
+    var configPass = (capState.best || 0) >= 70;
+    var quizPass = quizAllCorrect();
+    var done = document.getElementById('vlDone');
+    if (configPass && quizPass) {
+      capState.done = true; save('capstone', capState);
+      if (done) done.classList.add('show');
+      renderRail(); renderOverall();
+    } else if (done) {
+      done.classList.remove('show');
+    }
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────────────
+  renderOverall();
+  renderRail();
+  // resume at first unmastered beat
+  var startIdx = 0;
+  for (var i = 0; i < BEATS.length; i++) { if (!mastered[BEATS[i].id]) { startIdx = i; break; } if (i === BEATS.length - 1) startIdx = i; }
+  openBeat(startIdx);
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>OSPF Single Area (Deep): CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress rail ──────────────────────────────────────── */
+.op-rail{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg);position:sticky;top:0;background:var(--bg);z-index:20}
+.op-rail .op-ostat{display:flex;flex-direction:column}
+.op-rail .op-ostat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.op-rail .op-ostat .val.green{color:var(--prof-strong)}
+.op-rail .op-ostat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.op-obar-wrap{flex:1;min-width:160px}
+.op-obar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.op-obar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.op-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.op-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+
+/* ── Beat track (left dots) + beat body ─────────────────────────── */
+.op-shell{display:grid;grid-template-columns:210px 1fr;gap:var(--s-lg);align-items:start}
+@media(max-width:760px){.op-shell{grid-template-columns:1fr}}
+.op-track{position:sticky;top:84px;display:flex;flex-direction:column;gap:2px}
+@media(max-width:760px){.op-track{position:static;flex-direction:row;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-md)}}
+.op-tnode{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--radius);background:none;border:1px solid transparent;cursor:pointer;text-align:left;font-family:var(--font-display);font-size:.78rem;color:var(--ink-secondary);transition:background .15s,border-color .15s}
+.op-tnode:hover{background:var(--bg-hover)}
+.op-tnode.active{background:var(--accent-dim);border-color:var(--accent)}
+.op-tnode:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.op-tnode .dot{width:11px;height:11px;border-radius:50%;background:var(--bg-recessed);border:2px solid var(--border);flex-shrink:0;transition:background .2s,border-color .2s}
+.op-tnode.taught .dot{border-color:var(--prof-mid);background:var(--prof-mid)}
+.op-tnode.mastered .dot{border-color:var(--prof-strong);background:var(--prof-strong)}
+.op-tnode.locked{opacity:.5;cursor:not-allowed}
+.op-tnode .tlbl{line-height:1.25}
+@media(max-width:760px){.op-tnode{flex:0 0 auto;font-size:.7rem;padding:5px 8px}.op-tnode .tlbl{display:none}.op-tnode.active .tlbl{display:inline}}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.op-beat{display:none}
+.op-beat.active{display:block;animation:opfade .3s var(--ease-out)}
+@keyframes opfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.op-beat-tag{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:4px}
+.op-beat h2{font-family:var(--font-display);font-size:1.45rem;font-weight:700;letter-spacing:-.01em;margin:0 0 4px}
+.op-yield{display:inline-block;font-family:var(--font-mono);font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:100px;letter-spacing:.04em;margin-left:8px;vertical-align:middle;background:rgba(220,38,38,.1);color:var(--prof-weak)}
+
+/* teach blocks */
+.op-gist{font-family:var(--font-body);font-size:1.02rem;color:var(--ink);line-height:1.6;margin:var(--s-sm) 0 var(--s-md);max-width:64ch}
+.op-gist code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+.op-gist strong{font-weight:600}
+.op-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media(max-width:640px){.op-meta-grid{grid-template-columns:1fr}}
+.op-meta{padding:13px 15px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface)}
+.op-meta .mh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:5px}
+.op-meta .mb{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.5}
+.op-meta .mb code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* diagram */
+.op-diagram{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:var(--s-md);overflow-x:auto}
+.op-ascii{font-family:var(--font-mono);font-size:.82rem;line-height:1.5;color:var(--ink);white-space:pre;margin:0}
+.op-diagram svg{display:block;max-width:100%;height:auto}
+.op-dcap{font-family:var(--font-body);font-size:.8rem;color:var(--ink-muted);margin-top:8px;line-height:1.45}
+
+/* guided CLI block */
+.op-cli{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.op-line{display:grid;grid-template-columns:1fr;gap:0;padding:0 16px;border-left:3px solid transparent;transition:background .15s}
+.op-line:hover{background:rgba(255,255,255,.03)}
+.op-line.comment{opacity:.7}
+.op-line.alt{border-left-color:var(--accent)}
+.op-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.op-cmd .pmt{color:#A8A29E}
+.op-cmd.cmt{color:#86EFAC}
+.op-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.op-line:last-child .op-ann{border-bottom:none}
+
+.op-verify{padding:14px 16px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.op-verify .vh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:7px}
+.op-verify code{display:block;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);padding:4px 0}
+.op-verify .vn{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary);margin-top:2px;line-height:1.5}
+
+.op-trap{padding:13px 16px;border:1px solid var(--prof-weak);border-radius:var(--radius-lg);background:rgba(220,38,38,.04);margin-bottom:var(--s-md)}
+.op-trap .th{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-weak);font-weight:700;margin-bottom:7px}
+.op-trap ul{margin:0;padding-left:18px}
+.op-trap li{font-family:var(--font-body);font-size:.87rem;color:var(--ink);line-height:1.55;margin-bottom:5px}
+.op-trap code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── Recall block (per beat) ────────────────────────────────────── */
+.op-recall{border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));padding:16px 18px;margin-top:var(--s-md)}
+.op-recall .rh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.op-rq{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.55;margin-bottom:var(--s-sm)}
+.op-rq code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+.op-rhint{font-family:var(--font-body);font-size:.8rem;color:var(--ink-muted);margin-bottom:8px;line-height:1.5}
+.op-rhint code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+.op-cliline{display:flex;align-items:center;gap:8px;background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:9px 12px;margin-bottom:var(--s-sm)}
+.op-cliline .pmt{font-family:var(--font-mono);font-size:.85rem;color:#A8A29E;flex-shrink:0}
+.op-cliinput{flex:1;background:transparent;border:none;outline:none;font-family:var(--font-mono);font-size:.9rem;color:#FAFAF9;caret-color:var(--accent)}
+.op-cliinput::placeholder{color:#57534E}
+
+.op-termarea{width:100%;min-height:120px;background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:11px 13px;resize:vertical;font-family:var(--font-mono);font-size:.88rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent);margin-bottom:var(--s-sm)}
+.op-termarea::placeholder{color:#57534E}
+.op-termarea:focus{border-color:var(--accent)}
+
+.op-mcq{display:flex;flex-direction:column;gap:7px;margin-bottom:var(--s-sm)}
+.op-opt{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;text-align:left;font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.45;transition:border-color .15s,background .15s;width:100%}
+.op-opt:hover{border-color:var(--accent)}
+.op-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.op-opt .ltr{font-family:var(--font-mono);font-weight:700;color:var(--ink-secondary);flex-shrink:0}
+.op-opt.correct{border-color:var(--prof-strong);background:rgba(22,163,74,.08)}
+.op-opt.correct .ltr{color:var(--prof-strong)}
+.op-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.06)}
+.op-opt.wrong .ltr{color:var(--prof-weak)}
+.op-opt.dim{opacity:.55}
+
+.op-blankinput{font-family:var(--font-mono);font-size:.9rem;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--ink);outline:none;min-width:200px}
+.op-blankinput:focus{border-color:var(--accent)}
+
+.op-ractions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.op-checkbtn{padding:11px 22px;font-family:var(--font-display);font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+.op-checkbtn:hover{filter:brightness(1.06)}
+.op-checkbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.op-secbtn{padding:11px 18px;font-family:var(--font-display);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.op-secbtn:hover{border-color:var(--accent);color:var(--accent)}
+.op-secbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.op-fb{margin-top:var(--s-sm);padding:12px 15px;border-radius:var(--radius);font-family:var(--font-body);font-size:.9rem;line-height:1.55;display:none}
+.op-fb.show{display:block}
+.op-fb.pass{background:rgba(22,163,74,.08);border:1px solid var(--prof-strong);color:var(--ink)}
+.op-fb.fail{background:rgba(220,38,38,.06);border:1px solid var(--prof-weak);color:var(--ink)}
+.op-fb code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+.op-fb b{font-weight:700}
+
+.op-nav{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:var(--s-lg);padding-top:var(--s-md);border-top:1px solid var(--rule)}
+.op-nextbtn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;font-family:var(--font-display);font-size:.92rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-lg);cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s,opacity .15s;box-shadow:0 5px 16px rgba(180,83,9,.25)}
+.op-nextbtn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 9px 24px rgba(180,83,9,.35)}
+.op-nextbtn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.op-nextbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.op-prevbtn{font-family:var(--font-display);font-size:.84rem;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:8px 0}
+.op-prevbtn:hover{text-decoration:underline}
+.op-lockmsg{font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted)}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.op-scenario{padding:16px 18px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.op-scenario .sh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.op-scenario .sb{font-family:var(--font-body);font-size:.96rem;color:var(--ink);line-height:1.55}
+.op-bigterm{min-height:220px}
+.op-results{display:none;margin:var(--s-md) 0}
+.op-results.show{display:block}
+.op-score{display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-sm)}
+.op-score .sv{font-family:var(--font-mono);font-size:2.4rem;font-weight:700;line-height:1}
+.op-score .sv.green{color:var(--prof-strong)}
+.op-score .sv.amber{color:var(--prof-mid)}
+.op-score .sv.red{color:var(--prof-weak)}
+.op-score .sl{font-family:var(--font-display);font-size:.9rem;font-weight:600;color:var(--ink-secondary)}
+.op-diff{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.op-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.op-diff-row:first-child{border-top:none}
+.op-diff-row .icon{flex-shrink:0;width:18px;text-align:center;font-weight:700}
+.op-diff-row.ok{background:rgba(22,163,74,.05)}
+.op-diff-row.ok .icon{color:var(--prof-strong)}
+.op-diff-row.miss{background:rgba(220,38,38,.05)}
+.op-diff-row.miss .icon{color:var(--prof-weak)}
+.op-diff-row.extra .icon{color:var(--prof-mid)}
+.op-diff-row .ctext{color:var(--ink);word-break:break-word}
+.op-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.op-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.op-quiz{margin-top:var(--s-lg)}
+.op-quiz h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin:0 0 var(--s-sm)}
+.op-qcard{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-surface);padding:15px 17px;margin-bottom:var(--s-sm)}
+.op-qcard .qq{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.55;margin-bottom:var(--s-sm)}
+.op-qcard .qq code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+
+.op-done{display:none;text-align:center;padding:var(--s-xl) var(--s-lg);border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-top:var(--s-lg)}
+.op-done.show{display:block}
+.op-done h3{font-family:var(--font-display);font-size:1.3rem;color:var(--prof-strong);margin:0 0 6px}
+.op-done p{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);margin:0;line-height:1.55}
+
+@media(max-width:640px){
+  .op-beat h2{font-size:1.2rem}
+  .op-score .sv{font-size:2rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .op-beat,.op-nextbtn,.op-obar>span{transition:none}
+  .op-beat.active{animation:none}
+  .op-nextbtn:hover:not(:disabled){transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">DEEP COURSE · TEACH THEN RECALL · OBJ 3.4</div>
+    <h1>OSPF Single Area (Deep)</h1>
+    <p class="subtitle">The number one P1 topic, taught in small beats. Each beat teaches one chunk, then makes you prove it before you move on. You cannot advance until you pass.</p>
+  </header>
+
+  <p class="intro">Work one beat at a time. Read the chunk, study the diagram and the CLI, then answer the recall right under it. Pass to unlock the next beat. The course ends with a blank terminal where you rebuild the whole config from memory, plus exam-style triggers.</p>
+
+  <div class="op-rail" id="opRail"></div>
+
+  <div class="op-shell">
+    <div class="op-track" id="opTrack" role="tablist" aria-label="Lesson beats"></div>
+    <div id="opBeats"></div>
+  </div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var PREFIX = 'ccna_p1-ospf_';
+
+  // ── Normalization for lenient CLI matching ──────────────────────────
+  var IFACE = [
+    [/\bgigabitethernet\b/g, 'g'], [/\bgigethernet\b/g, 'g'], [/\bgig\b/g, 'g'], [/\bge\b/g, 'g'],
+    [/\bfastethernet\b/g, 'f'], [/\bfa\b/g, 'f'],
+    [/\btengigabitethernet\b/g, 'te'], [/\bethernet\b/g, 'e'],
+    [/\bloopback\b/g, 'lo'],
+    [/\binterface\b/g, 'int'], [/\bint\b/g, 'int']
+  ];
+  function normalize(line) {
+    var s = (line || '').toLowerCase().trim();
+    if (!s) return '';
+    s = s.replace(/[ \t]+/g, ' ');
+    IFACE.forEach(function (r) { s = s.replace(r[0], r[1]); });
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  }
+  function canon(line) {
+    var s = normalize(line);
+    s = s.replace(/^int /, 'interface ');
+    s = s.replace(/\bno shut$/, 'no shutdown');
+    s = s.replace(/\bpassive-int\b/g, 'passive-interface');
+    return s;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── BEATS: each beat teaches a chunk, then forces recall ────────────
+  // recall.kind: 'cmd' (type one command), 'config' (multi-line config block),
+  //   'mcq' (pick one), 'blank' (fill the blank), 'trap' (spot the trap, an mcq).
+  var BEATS = [
+    {
+      id: 'concept',
+      nav: 'Link-state idea',
+      tag: 'Beat 1 of 10 · Concept',
+      title: 'Link state: everyone holds the same map',
+      yield: '',
+      gist: 'OSPF is a <strong>link-state</strong> protocol. Every router floods a description of its own links, so each router builds the <strong>same</strong> map of the whole area. It then runs the <strong>Dijkstra SPF</strong> algorithm against that map to compute the lowest-cost path to every destination. Because the map is shared, when a link dies OSPF recomputes and <strong>auto-reroutes</strong>. That is the whole reason to run it over static routes, which you have to hand-feed on every router.',
+      diagram: {
+        type: 'ascii',
+        body:
+'   R1 ---- R2          Each router floods its links.\n' +
+'    |       |          All four end up with the\n' +
+'   R4 ---- R3          IDENTICAL map, then each\n' +
+'                       runs SPF from its own spot.',
+        cap: 'Same map everywhere. Different shortest-path tree per router because each computes from where it sits.'
+      },
+      meta: [
+        {h:'Why', b:'Dynamic routing that converges and scales, instead of hand maintaining static routes on every router.'},
+        {h:'Core truth', b:'Build the same map, run SPF, auto-reroute. The AD of OSPF is <code>110</code>.'}
+      ],
+      recall: {
+        kind: 'mcq',
+        q: 'What does every OSPF router in the area share, and what does it do with it?',
+        opts: [
+          'A different map each, then they vote on a winner',
+          'The same map of the area, then each runs SPF to pick lowest-cost paths',
+          'Only their directly connected routes, exchanged once at boot',
+          'A distance vector of hop counts to each network'
+        ],
+        answer: 1,
+        explain: 'Link-state: identical map area-wide, then Dijkstra SPF per router. Hop-count distance vectors are RIP, not OSPF.'
+      }
+    },
+    {
+      id: 'cost',
+      nav: 'Cost & ref-bw',
+      tag: 'Beat 2 of 10 · Cost',
+      title: 'Cost = 100 Mbps / interface bandwidth',
+      yield: 'HIGH YIELD',
+      gist: 'OSPF picks paths by <strong>cost</strong>, and cost is <code>reference-bandwidth / interface-bandwidth</code>. The default reference is <strong>100 Mbps</strong>. So a 100 Mbps link is cost 1, but a 1 Gbps link and a 10 Gbps link are <strong>both cost 1</strong> too, because the formula floors at 1. To tell Gig from 10-Gig you must raise the reference with <code>auto-cost reference-bandwidth</code>, and it <strong>must match on every router</strong> or the totals will not line up. Cost <strong>adds along the path</strong>: OSPF sums the cost of every outgoing link to the destination.',
+      diagram: {
+        type: 'ascii',
+        body:
+'  default ref-bw = 100 Mbps\n' +
+'  ----------------------------------------\n' +
+'  10 Mbps  -> cost 100M / 10M   = 10\n' +
+'  100 Mbps -> cost 100M / 100M  = 1\n' +
+'  1 Gbps   -> cost 100M / 1000M = 1  (floor)\n' +
+'  10 Gbps  -> cost 100M / 10000M = 1  (floor, same!)\n' +
+'  ----------------------------------------\n' +
+'  R1 --1-- R2 --1-- R3   total cost R1->R3 = 2',
+        cap: 'Gig and faster all collapse to 1 by default. Raise reference-bandwidth (the SAME value everywhere) to separate them.'
+      },
+      meta: [
+        {h:'Formula', b:'<code>cost = 100 Mbps / interface bandwidth</code>. Result floors at 1. Costs add along the path.'},
+        {h:'The fix', b:'<code>auto-cost reference-bandwidth 10000</code> gives 10-Gig cost 1, Gig 10, 100M 100. Match the same value on every router.'}
+      ],
+      recall: {
+        kind: 'blank',
+        q: 'With the default reference bandwidth, what is the OSPF cost of a single 1 Gbps interface?',
+        prefix: 'cost =',
+        placeholder: 'a number',
+        accept: ['1'],
+        explain: '100 Mbps / 1000 Mbps is less than 1, so OSPF uses the minimum cost of 1. A 10 Gbps link is also 1 by default, which is why you raise the reference bandwidth.'
+      }
+    },
+    {
+      id: 'rid',
+      nav: 'Router ID order',
+      tag: 'Beat 3 of 10 · Router ID',
+      title: 'Router ID selection order (sticky)',
+      yield: 'HIGH YIELD',
+      gist: 'Every OSPF router needs a unique 32-bit Router ID. It is chosen in this exact order: <strong>(1) manual <code>router-id</code></strong>, else <strong>(2) the highest loopback IP</strong>, else <strong>(3) the highest physical interface IP</strong>. Once chosen, the RID is <strong>sticky</strong>: it does not change just because you add a higher loopback later. To force a new selection you must clear the process with <code>clear ip ospf process</code> (or reload). Loopbacks are preferred because they never go down.',
+      diagram: {
+        type: 'ascii',
+        body:
+'  RID picked in order, first match wins:\n' +
+'   1. router-id 1.1.1.1      (manual)      <- always wins\n' +
+'   2. highest loopback IP\n' +
+'   3. highest physical interface IP\n\n' +
+'  Sticky: set, it stays. Reset with:\n' +
+'   R# clear ip ospf process',
+        cap: 'Manual beats loopback beats physical. Adding a higher loopback later does nothing until you clear the process.'
+      },
+      meta: [
+        {h:'Order', b:'manual <code>router-id</code> &gt; highest loopback &gt; highest physical interface.'},
+        {h:'Reset', b:'The RID is sticky. <code>clear ip ospf process</code> forces a re-selection.'}
+      ],
+      recall: {
+        kind: 'mcq',
+        q: 'A router has no manual router-id, a loopback at 5.5.5.5, and a physical interface at 192.168.1.1. What RID does OSPF use?',
+        opts: [
+          '192.168.1.1, because physical interfaces are checked first',
+          '5.5.5.5, because loopback beats physical when no manual ID is set',
+          '0.0.0.0, because you must always set it manually',
+          'Whichever interface came up first'
+        ],
+        answer: 1,
+        explain: 'No manual ID, so OSPF takes the highest loopback (5.5.5.5) before any physical interface. Loopback beats physical.'
+      }
+    },
+    {
+      id: 'tasa',
+      nav: 'TASA + silent fail',
+      tag: 'Beat 4 of 10 · Adjacency',
+      title: 'Adjacency requirements: TASA, and it fails silently',
+      yield: 'HIGH YIELD',
+      gist: 'Two routers only become neighbors if four things match. Mnemonic <strong>TASA</strong>: matching <strong>T</strong>imers (Hello <code>10</code> / Dead <code>40</code>), same <strong>A</strong>rea, same <strong>S</strong>ubnet (same primary subnet on the link), and matching <strong>A</strong>uth. If any one is off, <strong>no neighbor forms and OSPF gives you NO error message</strong>. It fails silently, which is why exam stems describe a dead adjacency with no log. One special case: an <strong>MTU mismatch</strong> does not block the Hello, it lets the neighbor reach Exstart/Exchange and then <strong>stalls there</strong>.',
+      diagram: {
+        type: 'ascii',
+        body:
+'  T  Timers   Hello 10s / Dead 40s  must match\n' +
+'  A  Area     same area number\n' +
+'  S  Subnet   same primary subnet on the link\n' +
+'  A  Auth     same authentication\n' +
+'  ------------------------------------------------\n' +
+'  Any mismatch -> NO neighbor, SILENT (no error)\n' +
+'  MTU mismatch -> stalls at Exstart / Exchange',
+        cap: 'TASA must all match. Mismatches fail silently. MTU is the oddball that stalls partway instead of blocking outright.'
+      },
+      meta: [
+        {h:'TASA', b:'<b>T</b>imers (Hello 10 / Dead 40), <b>A</b>rea, <b>S</b>ubnet, <b>A</b>uth.'},
+        {h:'The trap', b:'Mismatch = no neighbor, <b>silently</b>. MTU mismatch stalls at <code>Exstart/Exchange</code>.'}
+      ],
+      recall: {
+        kind: 'trap',
+        q: 'Spot the trap. Two directly connected routers will not form an OSPF neighbor and there are no log messages at all. Which explanation fits best?',
+        opts: [
+          'OSPF always logs a clear error on mismatch, so this must be a cabling fault',
+          'A TASA mismatch (timers, area, subnet, or auth) blocks the neighbor and fails silently with no error',
+          'The routers formed a neighbor but it just is not showing',
+          'An MTU mismatch, which always prints a warning'
+        ],
+        answer: 1,
+        explain: 'TASA mismatches fail silently, no error printed. That silence is the tell. MTU mismatch behaves differently: it stalls at Exstart/Exchange rather than blocking the Hello.'
+      }
+    },
+    {
+      id: 'states',
+      nav: 'Neighbor states',
+      tag: 'Beat 5 of 10 · States',
+      title: 'Neighbor states, in order, up to FULL',
+      yield: '',
+      gist: 'A healthy adjacency climbs through states in a fixed order: <strong>Down, Init, 2-Way, Exstart, Exchange, Loading, Full</strong>. At <strong>2-Way</strong> the routers have seen each other (on a broadcast link this is also where DR/BDR is decided). <strong>Full</strong> means databases are fully synced. On a broadcast segment, routers only go Full with the <strong>DR and BDR</strong>; with each other they stay at 2-Way on purpose. A stall at <strong>Exstart/Exchange</strong> points at an <strong>MTU mismatch</strong>.',
+      diagram: {
+        type: 'ascii',
+        body:
+'  Down -> Init -> 2-Way -> Exstart -> Exchange -> Loading -> Full\n' +
+'                   ^                  ^\n' +
+'             DR/BDR elected     MTU mismatch\n' +
+'             on broadcast       stalls HERE',
+        cap: 'Goal is FULL. 2-Way is normal between two DROTHERs. A stall at Exstart/Exchange means MTU mismatch.'
+      },
+      meta: [
+        {h:'Order', b:'Down, Init, 2-Way, Exstart, Exchange, Loading, Full.'},
+        {h:'Note', b:'On broadcast, DROTHERs stay at 2-Way with each other; only Full with DR/BDR.'}
+      ],
+      recall: {
+        kind: 'mcq',
+        q: 'Which sequence of OSPF neighbor states is in the correct order?',
+        opts: [
+          'Down, 2-Way, Init, Exchange, Exstart, Loading, Full',
+          'Init, Down, 2-Way, Exstart, Loading, Exchange, Full',
+          'Down, Init, 2-Way, Exstart, Exchange, Loading, Full',
+          'Down, Init, Exstart, 2-Way, Exchange, Full, Loading'
+        ],
+        answer: 2,
+        explain: 'Down, Init, 2-Way, Exstart, Exchange, Loading, Full. 2-Way comes before Exstart, and Loading comes right before Full.'
+      }
+    },
+    {
+      id: 'nettypes',
+      nav: 'Network types + DR',
+      tag: 'Beat 6 of 10 · DR/BDR',
+      title: 'Broadcast elects a DR/BDR, point-to-point does not',
+      yield: 'HIGH YIELD',
+      gist: 'On a <strong>broadcast</strong> segment (like a LAN switch) OSPF elects a <strong>DR and BDR</strong> to cut down on flooding. On a <strong>point-to-point</strong> link there is <strong>no election</strong>, the two routers just go Full. The election rule: <strong>highest priority wins, ties broken by highest RID</strong>. Priority <code>0</code> means the router can <strong>never</strong> be DR. The election is <strong>non-preemptive</strong>: a new higher-priority router joining does not steal the role; the existing DR keeps it until it drops. OSPF speaks to <code>224.0.0.5</code> (all OSPF routers) and <code>224.0.0.6</code> (DR/BDR).',
+      diagram: {
+        type: 'ascii',
+        body:
+'  BROADCAST (LAN)            POINT-TO-POINT\n' +
+'  elects DR + BDR           no election, both Full\n' +
+'  highest priority wins\n' +
+'  tie -> highest RID\n' +
+'  priority 0 = never DR\n' +
+'  non-preemptive\n' +
+'  -------------------------------------------------\n' +
+'  224.0.0.5 = all OSPF   |  224.0.0.6 = DR/BDR',
+        cap: 'Election only on broadcast. Highest priority, tie to highest RID, 0 never wins, and it never preempts.'
+      },
+      meta: [
+        {h:'Election', b:'Highest priority, tie to highest RID. Default priority is <code>1</code>. Priority <code>0</code> = never DR.'},
+        {h:'Multicast', b:'<code>224.0.0.5</code> all OSPF, <code>224.0.0.6</code> DR/BDR. Election is non-preemptive.'}
+      ],
+      recall: {
+        kind: 'mcq',
+        q: 'Three routers on a broadcast LAN. Priorities: R1=0, R2=1, R3=1. RIDs: R1=9.9.9.9, R2=2.2.2.2, R3=3.3.3.3. Who becomes DR?',
+        opts: [
+          'R1, because it has the highest RID',
+          'R3, because among the non-zero priorities (tied at 1) it has the higher RID',
+          'R2, because it has the lowest RID',
+          'No DR is elected on a broadcast link'
+        ],
+        answer: 1,
+        explain: 'R1 priority 0 can never be DR despite its high RID. R2 and R3 tie at priority 1, so the higher RID wins: R3 (3.3.3.3).'
+      }
+    },
+    {
+      id: 'cfg-process',
+      nav: 'Config: process + RID',
+      tag: 'Beat 7 of 10 · Config',
+      title: 'Config part 1: start the process and pin the RID',
+      yield: 'HIGH YIELD',
+      gist: 'Now the CLI, in order. Enter the OSPF process with <code>router ospf 1</code>. That <strong>1 is a process ID that is only locally significant</strong>, it does NOT have to match the neighbor. Then pin the Router ID so it never drifts.',
+      cli: [
+        {p:'R(config)#', c:'router ospf 1', a:'Enter the OSPF process. The 1 is a locally significant process ID. It does NOT need to match other routers.'},
+        {p:'R(config-router)#', c:'router-id 1.1.1.1', a:'Pin the RID manually. Manual wins over highest loopback over highest physical.'}
+      ],
+      verify: [{c:'show ip protocols', n:'Confirms the process number and the Router ID in use.'}],
+      recall: {
+        kind: 'config',
+        q: 'Type the two commands to start OSPF process 1 and set the router-id to 1.1.1.1.',
+        hint: 'One command per line. The process ID is locally significant.',
+        prompt: 'R(config)#',
+        expected: [
+          {cmds:['router ospf 1'], note:'enter the process'},
+          {cmds:['router-id 1.1.1.1'], note:'pin the RID'}
+        ]
+      }
+    },
+    {
+      id: 'cfg-network',
+      nav: 'Config: network + passive',
+      tag: 'Beat 8 of 10 · Config',
+      title: 'Config part 2: network (WILDCARD) and passive-interface',
+      yield: 'HIGHEST YIELD',
+      gist: 'The <code>network</code> statement matches interfaces into an area, and it takes a <strong>WILDCARD mask, not a subnet mask</strong>. In a wildcard, <strong>0 means match this bit, 1 means ignore it</strong>, so <code>0.0.0.255</code> matches a /24. Then <code>passive-interface</code> stops Hellos out a port that has no OSPF peers (a user LAN) while still advertising its subnet. There is also a per-interface alternative: <code>ip ospf 1 area 0</code> directly on the interface.',
+      cli: [
+        {p:'R(config-router)#', c:'network 10.0.0.0 0.0.0.255 area 0', a:'Match interfaces in 10.0.0.0/24 into area 0. The 0.0.0.255 is a WILDCARD: 0 = match, 1 = ignore. NOT a subnet mask.'},
+        {p:'R(config-router)#', c:'passive-interface g0/1', a:'Stop sending Hellos out g0/1 (a user LAN with no OSPF peers) while still advertising its subnet.'},
+        {p:'R(config-if)#', c:'ip ospf 1 area 0', a:'Per-interface alternative to the network statement. Enables OSPF directly on the interface.', cls:'alt'}
+      ],
+      verify: [{c:'show ip ospf interface', n:'Shows which interfaces run OSPF, their area, cost, and Hello/Dead timers.'}],
+      recall: {
+        kind: 'config',
+        q: 'Advertise 10.0.0.0/24 into area 0, then keep g0/1 from forming adjacencies. Type both lines.',
+        hint: 'The network statement uses a WILDCARD, not a subnet mask. Abbreviations like int g0/1 are fine.',
+        prompt: 'R(config-router)#',
+        expected: [
+          {cmds:['network 10.0.0.0 0.0.0.255 area 0'], note:'WILDCARD mask, area 0'},
+          {cmds:['passive-interface g0/1','passive-interface gigabitethernet0/1'], note:'silence the user LAN'}
+        ]
+      }
+    },
+    {
+      id: 'verify',
+      nav: 'Verify: reach FULL',
+      tag: 'Beat 9 of 10 · Verify',
+      title: 'Verify: the neighbor must reach FULL',
+      yield: '',
+      gist: 'The single most useful verification is <code>show ip ospf neighbor</code>. A healthy adjacency shows the neighbor state as <strong>FULL</strong>. If it sits at <strong>2-Way</strong> between two DROTHERs that is normal, but if it is stuck at <strong>Exstart/Exchange</strong> suspect an <strong>MTU mismatch</strong>, and if there is <strong>no neighbor at all</strong> suspect a silent <strong>TASA</strong> mismatch. Back it up with <code>show ip protocols</code> (process, RID, advertised networks) and <code>show ip ospf interface</code> (per-interface area, cost, timers).',
+      diagram: {
+        type: 'ascii',
+        body:
+'  R# show ip ospf neighbor\n' +
+'  Neighbor ID  Pri  State    Address     Interface\n' +
+'  2.2.2.2       1   FULL/DR  10.0.0.2    Gig0/0\n' +
+'  -------------------------------------------------\n' +
+'  FULL    = healthy\n' +
+'  2-Way   = normal between two DROTHERs\n' +
+'  Exstart = suspect MTU mismatch\n' +
+'  (none)  = suspect silent TASA mismatch',
+        cap: 'Read the State column first. FULL is the target. The state you are stuck at tells you the fault.'
+      },
+      meta: [
+        {h:'Primary check', b:'<code>show ip ospf neighbor</code>. State should reach FULL.'},
+        {h:'Triage', b:'Stuck Exstart = MTU. No neighbor = silent TASA. 2-Way between DROTHERs = fine.'}
+      ],
+      recall: {
+        kind: 'cmd',
+        q: 'Type the single command that lists OSPF neighbors and their state so you can confirm it reached FULL.',
+        prompt: 'R#',
+        placeholder: 'show ...',
+        accept: ['show ip ospf neighbor'],
+        prefixOk: true,
+        explain: 'show ip ospf neighbor. The State column is what you read to confirm FULL or to triage a stall.'
+      }
+    },
+    {
+      id: 'capstone',
+      nav: 'Capstone',
+      tag: 'Beat 10 of 10 · Capstone',
+      title: 'Capstone: rebuild it from memory',
+      yield: 'PROVE IT',
+      isCapstone: true,
+      scenario: 'R1 connects to the OSPF backbone on a 10.0.0.0/24 link. Bring up OSPF process 1, give R1 router id 1.1.1.1, advertise that /24 into area 0, and keep g0/1 (a user LAN) from forming adjacencies. End by typing the command that confirms the neighbor reached FULL.',
+      hint: 'Type the whole config from memory, one command per line. The network statement uses a WILDCARD. Abbreviations like int g0/1 are accepted. Finish with the verify command.',
+      expected: [
+        {cmds:['router ospf 1'], note:'enter the process'},
+        {cmds:['router-id 1.1.1.1'], note:'pin the RID'},
+        {cmds:['network 10.0.0.0 0.0.0.255 area 0'], note:'WILDCARD mask, area 0'},
+        {cmds:['passive-interface g0/1','passive-interface gigabitethernet0/1'], note:'silence the user LAN'}
+      ],
+      verifyCmd: 'show ip ospf neighbor',
+      quiz: [
+        {
+          q: 'You configure <code>network 10.0.0.0 0.0.0.255 area 0</code> but a colleague says it should be a subnet mask. What is correct?',
+          opts: [
+            'It should be 255.255.255.0, OSPF network uses a subnet mask',
+            'The wildcard 0.0.0.255 is correct, the OSPF network statement uses a WILDCARD',
+            'Either form works identically',
+            'It should be 0.0.0.0 to match everything'
+          ],
+          answer: 1,
+          explain: 'The OSPF network statement uses a WILDCARD mask. 0 = match, 1 = ignore.'
+        },
+        {
+          q: 'Two routers on a broadcast LAN refuse to peer and there are zero log messages. Most likely cause?',
+          opts: [
+            'Normal behavior, OSPF only peers point-to-point',
+            'A TASA mismatch (timers, area, subnet, or auth) failing silently',
+            'The reference bandwidth is too low',
+            'Priority 0 on both routers'
+          ],
+          answer: 1,
+          explain: 'TASA mismatches block the neighbor with no error printed. The silence is the diagnostic clue.'
+        },
+        {
+          q: 'A LAN has R1 (priority 0, RID 9.9.9.9), R2 (priority 1, RID 2.2.2.2), R3 (priority 1, RID 3.3.3.3). Which is DR?',
+          opts: ['R1', 'R2', 'R3', 'No DR on a LAN'],
+          answer: 2,
+          explain: 'Priority 0 disqualifies R1. R2/R3 tie at priority 1, so the higher RID (R3, 3.3.3.3) wins.'
+        },
+        {
+          q: 'Two routers are stuck at the Exstart/Exchange state and never reach FULL. What should you check first?',
+          opts: [
+            'The OSPF process ID matches',
+            'The interface MTU on both ends matches',
+            'The administrative distance is 110',
+            'The reference bandwidth is 100 Mbps'
+          ],
+          answer: 1,
+          explain: 'A stall at Exstart/Exchange is the classic MTU mismatch signature. Process IDs are only locally significant.'
+        },
+        {
+          q: 'With the default reference bandwidth, the OSPF cost of a 1 Gbps link and a 10 Gbps link are:',
+          opts: [
+            'Both 1, because cost floors at 1 for anything 100 Mbps or faster',
+            '1 and 10 respectively',
+            '10 and 1 respectively',
+            '110 for both, matching the AD'
+          ],
+          answer: 0,
+          explain: 'Default reference is 100 Mbps, so anything 100 Mbps or faster floors at cost 1. Raise reference-bandwidth (matched everywhere) to separate them.'
+        }
+      ]
+    }
+  ];
+
+  // ── State ────────────────────────────────────────────────────────────
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(PREFIX + 'progress') || '{}'); }
+    catch (e) { return {}; }
+  }
+  function saveState(s) {
+    try { localStorage.setItem(PREFIX + 'progress', JSON.stringify(s)); } catch (e) {}
+  }
+  // state = { beats: { id: 'mastered' }, capScore: number }
+  var state = loadState();
+  if (!state.beats) state.beats = {};
+
+  var current = firstIncomplete();
+  function firstIncomplete() {
+    for (var i = 0; i < BEATS.length; i++) {
+      if (state.beats[BEATS[i].id] !== 'mastered') return i;
+    }
+    return BEATS.length - 1;
+  }
+  function highestUnlocked() {
+    // a beat is unlocked if all earlier beats are mastered, plus the first incomplete
+    var idx = 0;
+    for (var i = 0; i < BEATS.length; i++) {
+      if (state.beats[BEATS[i].id] === 'mastered') idx = i + 1; else break;
+    }
+    return Math.min(idx, BEATS.length - 1);
+  }
+
+  var rail = document.getElementById('opRail');
+  var track = document.getElementById('opTrack');
+  var beatsEl = document.getElementById('opBeats');
+
+  // ── Rail ───────────────────────────────────────────────────────────
+  function renderRail() {
+    var total = BEATS.length;
+    var done = 0;
+    BEATS.forEach(function (b) { if (state.beats[b.id] === 'mastered') done++; });
+    var pct = Math.round((done / total) * 100);
+    rail.innerHTML =
+      '<div class="op-ostat"><span class="val ' + (done === total ? 'green' : '') + '">' + done + '/' + total + '</span><span class="lbl">Beats mastered</span></div>' +
+      '<div class="op-ostat"><span class="val">' + pct + '%</span><span class="lbl">Course progress</span></div>' +
+      '<div class="op-obar-wrap"><div class="op-obar"><span style="width:' + pct + '%"></span></div></div>' +
+      '<button class="op-reset" id="opReset" type="button">Reset progress</button>';
+    document.getElementById('opReset').addEventListener('click', function () {
+      if (window.confirm('Reset all progress on this OSPF course?')) {
+        state = { beats: {} }; saveState(state); current = 0; renderAll();
+      }
+    });
+  }
+
+  // ── Track (beat dots) ──────────────────────────────────────────────
+  function renderTrack() {
+    var unlocked = highestUnlocked();
+    track.innerHTML = '';
+    BEATS.forEach(function (b, i) {
+      var mastered = state.beats[b.id] === 'mastered';
+      var taught = state.beats[b.id] === 'taught';
+      var locked = i > unlocked && !mastered;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'op-tnode' + (i === current ? ' active' : '') +
+        (mastered ? ' mastered' : taught ? ' taught' : '') + (locked ? ' locked' : '');
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', i === current ? 'true' : 'false');
+      btn.setAttribute('aria-label', 'Beat ' + (i + 1) + ': ' + b.nav + (mastered ? ', mastered' : locked ? ', locked' : ''));
+      if (locked) btn.disabled = true;
+      btn.innerHTML = '<span class="dot"></span><span class="tlbl">' + escapeHtml(b.nav) + '</span>';
+      btn.addEventListener('click', function () {
+        if (locked) return;
+        current = i; renderAll(); window.scrollTo(0, 0);
+      });
+      track.appendChild(btn);
+    });
+  }
+
+  // ── Beat body ──────────────────────────────────────────────────────
+  function diagramHtml(d) {
+    if (!d) return '';
+    var inner = '<pre class="op-ascii">' + escapeHtml(d.body) + '</pre>';
+    var cap = d.cap ? '<div class="op-dcap">' + escapeHtml(d.cap) + '</div>' : '';
+    return '<div class="op-diagram">' + inner + cap + '</div>';
+  }
+  function metaHtml(meta) {
+    if (!meta || !meta.length) return '';
+    return '<div class="op-meta-grid">' + meta.map(function (m) {
+      return '<div class="op-meta"><div class="mh">' + m.h + '</div><div class="mb">' + m.b + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function cliHtml(cli) {
+    if (!cli || !cli.length) return '';
+    var lines = cli.map(function (ln) {
+      var rowCls = 'op-line' + (ln.cls === 'alt' ? ' alt' : '') + (ln.cls === 'comment' ? ' comment' : '');
+      var cmd = '<span class="op-cmd"><span class="pmt">' + escapeHtml(ln.p) + ' </span>' + escapeHtml(ln.c) + '</span>';
+      var ann = ln.a ? '<span class="op-ann">' + ln.a + '</span>' : '';
+      return '<div class="' + rowCls + '">' + cmd + ann + '</div>';
+    }).join('');
+    return '<div class="op-cli">' + lines + '</div>';
+  }
+  function verifyHtml(v) {
+    if (!v || !v.length) return '';
+    return '<div class="op-verify"><div class="vh">Verify</div>' +
+      v.map(function (x) { return '<code>' + escapeHtml(x.c) + '</code><div class="vn">' + escapeHtml(x.n) + '</div>'; }).join('') +
+      '</div>';
+  }
+
+  function renderBeats() {
+    beatsEl.innerHTML = '';
+    BEATS.forEach(function (b, i) {
+      var sec = document.createElement('section');
+      sec.className = 'op-beat' + (i === current ? ' active' : '');
+      sec.id = 'beat-' + b.id;
+      sec.setAttribute('role', 'tabpanel');
+      if (b.isCapstone) {
+        sec.innerHTML = capstoneHtml(b);
+      } else {
+        sec.innerHTML = teachBeatHtml(b, i);
+      }
+      beatsEl.appendChild(sec);
+    });
+    wireCurrentBeat();
+  }
+
+  function yieldTag(b) {
+    return b.yield ? '<span class="op-yield">' + escapeHtml(b.yield) + '</span>' : '';
+  }
+
+  function teachBeatHtml(b, i) {
+    var mastered = state.beats[b.id] === 'mastered';
+    return '<div class="op-beat-tag">' + escapeHtml(b.tag) + '</div>' +
+      '<h2>' + escapeHtml(b.title) + yieldTag(b) + '</h2>' +
+      '<div class="op-gist">' + b.gist + '</div>' +
+      diagramHtml(b.diagram) +
+      metaHtml(b.meta) +
+      cliHtml(b.cli) +
+      verifyHtml(b.verify) +
+      recallHtml(b, mastered) +
+      navHtml(b, i, mastered);
+  }
+
+  // ── Recall rendering per kind ──────────────────────────────────────
+  function recallHtml(b, mastered) {
+    var r = b.recall;
+    var inner = '<div class="rh">Recall · prove this beat</div>' +
+      '<div class="op-rq">' + r.q + '</div>';
+
+    if (r.kind === 'mcq' || r.kind === 'trap') {
+      inner += '<div class="op-mcq" id="mcq-' + b.id + '">' +
+        r.opts.map(function (o, idx) {
+          return '<button class="op-opt" type="button" data-idx="' + idx + '">' +
+            '<span class="ltr">' + String.fromCharCode(65 + idx) + '</span><span>' + escapeHtml(o) + '</span></button>';
+        }).join('') + '</div>';
+    } else if (r.kind === 'cmd') {
+      if (r.hint) inner += '<div class="op-rhint">' + r.hint + '</div>';
+      inner += '<div class="op-cliline"><span class="pmt">' + escapeHtml(r.prompt || 'R#') + '</span>' +
+        '<input class="op-cliinput" id="inp-' + b.id + '" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="' + escapeHtml(r.placeholder || '') + '" aria-label="Type the command"></div>' +
+        '<div class="op-ractions"><button class="op-checkbtn" type="button" id="chk-' + b.id + '">Check</button></div>';
+    } else if (r.kind === 'config') {
+      if (r.hint) inner += '<div class="op-rhint">' + r.hint + '</div>';
+      inner += '<textarea class="op-termarea" id="inp-' + b.id + '" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="' + escapeHtml((r.prompt || 'R(config)#') + ' type each line here...') + '" aria-label="Type the config"></textarea>' +
+        '<div class="op-ractions"><button class="op-checkbtn" type="button" id="chk-' + b.id + '">Check recall</button>' +
+        '<button class="op-secbtn" type="button" id="rev-' + b.id + '">Show answer</button></div>';
+    } else if (r.kind === 'blank') {
+      inner += '<div class="op-ractions" style="align-items:center">' +
+        '<span style="font-family:var(--font-mono);color:var(--ink-secondary)">' + escapeHtml(r.prefix || '') + '</span>' +
+        '<input class="op-blankinput" id="inp-' + b.id + '" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="' + escapeHtml(r.placeholder || '') + '" aria-label="Fill the blank">' +
+        '<button class="op-checkbtn" type="button" id="chk-' + b.id + '">Check</button></div>';
+    }
+
+    inner += '<div class="op-fb" id="fb-' + b.id + '" aria-live="polite"></div>';
+    return '<div class="op-recall">' + inner + '</div>';
+  }
+
+  function navHtml(b, i, mastered) {
+    var isLast = i === BEATS.length - 1;
+    var prev = i > 0 ? '<button class="op-prevbtn" type="button" id="prev-' + b.id + '">&larr; Previous beat</button>' : '<span></span>';
+    var nextLabel = isLast ? 'Finish' : 'Next beat &rarr;';
+    var next = '<button class="op-nextbtn" type="button" id="next-' + b.id + '"' + (mastered ? '' : ' disabled') + '>' + nextLabel + '</button>';
+    var lock = mastered ? '' : '<span class="op-lockmsg" id="lock-' + b.id + '">Pass the recall to unlock the next beat.</span>';
+    return '<div class="op-nav">' + prev + lock + next + '</div>';
+  }
+
+  // ── Capstone rendering ─────────────────────────────────────────────
+  function capstoneHtml(b) {
+    var quizHtml = '<div class="op-quiz"><h3>Exam-style triggers</h3>' +
+      b.quiz.map(function (q, qi) {
+        return '<div class="op-qcard" id="qc-' + qi + '"><div class="qq">' + q.q + '</div>' +
+          '<div class="op-mcq" data-q="' + qi + '">' +
+          q.opts.map(function (o, oi) {
+            return '<button class="op-opt" type="button" data-q="' + qi + '" data-idx="' + oi + '">' +
+              '<span class="ltr">' + String.fromCharCode(65 + oi) + '</span><span>' + escapeHtml(o) + '</span></button>';
+          }).join('') +
+          '</div><div class="op-fb" id="qfb-' + qi + '" aria-live="polite"></div></div>';
+      }).join('') + '</div>';
+
+    return '<div class="op-beat-tag">' + escapeHtml(b.tag) + '</div>' +
+      '<h2>' + escapeHtml(b.title) + yieldTag(b) + '</h2>' +
+      '<div class="op-scenario"><div class="sh">Scenario brief</div><div class="sb">' + escapeHtml(b.scenario) + '</div></div>' +
+      '<div class="op-rhint">' + escapeHtml(b.hint) + '</div>' +
+      '<textarea class="op-termarea op-bigterm" id="capInput" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="R(config)# type the full config from memory, then the verify command..." aria-label="Type the full config"></textarea>' +
+      '<div class="op-ractions"><button class="op-checkbtn" type="button" id="capCheck">Check the whole config</button>' +
+      '<button class="op-secbtn" type="button" id="capClear">Clear</button>' +
+      '<button class="op-secbtn" type="button" id="capReveal">Show answer</button></div>' +
+      '<div class="op-results" id="capResults"></div>' +
+      quizHtml +
+      '<div class="op-done" id="capDone"><h3>OSPF single area: mastered.</h3><p>You rebuilt the config from memory and cleared the triggers. This is the number one P1 topic. Come back and run the capstone cold before exam day.</p></div>';
+  }
+
+  // ── Wiring for the visible beat ────────────────────────────────────
+  function wireCurrentBeat() {
+    var b = BEATS[current];
+    if (b.isCapstone) { wireCapstone(b); return; }
+    var r = b.recall;
+
+    // prev / next
+    var prevBtn = document.getElementById('prev-' + b.id);
+    if (prevBtn) prevBtn.addEventListener('click', function () { current--; renderAll(); window.scrollTo(0, 0); });
+    var nextBtn = document.getElementById('next-' + b.id);
+    if (nextBtn) nextBtn.addEventListener('click', function () {
+      if (state.beats[b.id] !== 'mastered') return;
+      if (current < BEATS.length - 1) { current++; renderAll(); window.scrollTo(0, 0); }
+    });
+
+    if (r.kind === 'mcq' || r.kind === 'trap') {
+      var box = document.getElementById('mcq-' + b.id);
+      box.querySelectorAll('.op-opt').forEach(function (opt) {
+        opt.addEventListener('click', function () {
+          var idx = parseInt(opt.getAttribute('data-idx'), 10);
+          gradeMcq(b, box, idx, r.answer, r.explain);
+        });
+      });
+    } else if (r.kind === 'cmd') {
+      var inp = document.getElementById('inp-' + b.id);
+      var chk = document.getElementById('chk-' + b.id);
+      chk.addEventListener('click', function () { gradeCmd(b); });
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); gradeCmd(b); } });
+    } else if (r.kind === 'blank') {
+      var binp = document.getElementById('inp-' + b.id);
+      var bchk = document.getElementById('chk-' + b.id);
+      bchk.addEventListener('click', function () { gradeBlank(b); });
+      binp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); gradeBlank(b); } });
+    } else if (r.kind === 'config') {
+      var cchk = document.getElementById('chk-' + b.id);
+      cchk.addEventListener('click', function () { gradeConfig(b); });
+      var rev = document.getElementById('rev-' + b.id);
+      if (rev) rev.addEventListener('click', function () { revealConfig(b); });
+      var ta = document.getElementById('inp-' + b.id);
+      ta.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); gradeConfig(b); }
+      });
+    }
+  }
+
+  function markMastered(b) {
+    state.beats[b.id] = 'mastered';
+    saveState(state);
+    renderRail();
+    renderTrack();
+    var nb = document.getElementById('next-' + b.id);
+    if (nb) nb.disabled = false;
+    var lm = document.getElementById('lock-' + b.id);
+    if (lm) lm.textContent = 'Beat passed. Move on when ready.';
+    // refresh dot styling on current node
+    renderTrack();
+  }
+
+  function showFb(b, ok, msg) {
+    var fb = document.getElementById('fb-' + b.id);
+    fb.className = 'op-fb show ' + (ok ? 'pass' : 'fail');
+    fb.innerHTML = msg;
+  }
+
+  // ── Graders ────────────────────────────────────────────────────────
+  function gradeMcq(b, box, picked, answer, explain) {
+    var opts = box.querySelectorAll('.op-opt');
+    opts.forEach(function (o, idx) {
+      o.classList.remove('correct', 'wrong', 'dim');
+      if (idx === answer) o.classList.add('correct');
+      else if (idx === picked) o.classList.add('wrong');
+      else o.classList.add('dim');
+    });
+    var ok = picked === answer;
+    if (ok) {
+      showFb(b, true, '<b>Correct.</b> ' + explain);
+      markMastered(b);
+    } else {
+      showFb(b, false, '<b>Not quite.</b> ' + explain + ' Pick the right answer to continue.');
+    }
+  }
+
+  function gradeCmd(b) {
+    var r = b.recall;
+    var raw = document.getElementById('inp-' + b.id).value;
+    var line = raw.replace(/^[A-Za-z0-9_().#-]+[#>]\s*/, '').trim();
+    var uc = canon(line);
+    var ok = r.accept.some(function (a) {
+      var ac = canon(a);
+      return uc === ac || (r.prefixOk && uc.indexOf(ac) === 0);
+    });
+    if (ok) { showFb(b, true, '<b>Correct.</b> ' + r.explain); markMastered(b); }
+    else { showFb(b, false, '<b>Not yet.</b> ' + r.explain + ' Try again.'); }
+  }
+
+  function gradeBlank(b) {
+    var r = b.recall;
+    var v = document.getElementById('inp-' + b.id).value.toLowerCase().trim();
+    var ok = r.accept.some(function (a) { return v === String(a).toLowerCase().trim(); });
+    if (ok) { showFb(b, true, '<b>Correct.</b> ' + r.explain); markMastered(b); }
+    else { showFb(b, false, '<b>Not yet.</b> ' + r.explain + ' Try again.'); }
+  }
+
+  function gradeConfig(b) {
+    var r = b.recall;
+    var raw = document.getElementById('inp-' + b.id).value;
+    var userLinesRaw = raw.split('\n')
+      .map(function (l) { return l.replace(/^[A-Za-z0-9_().#-]+[#>]\s*/, ''); })
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+    var userCanon = userLinesRaw.map(canon);
+    var used = userCanon.map(function () { return false; });
+    var got = 0, missNotes = [];
+    r.expected.forEach(function (exp) {
+      var found = -1;
+      for (var i = 0; i < userCanon.length; i++) {
+        if (!used[i] && lineMatches(userCanon[i], exp)) { found = i; break; }
+      }
+      if (found >= 0) { used[found] = true; got++; }
+      else missNotes.push(exp.cmds[0] + ' (' + exp.note + ')');
+    });
+    if (got === r.expected.length) {
+      showFb(b, true, '<b>All lines correct.</b> Beat passed.');
+      markMastered(b);
+    } else {
+      showFb(b, false, '<b>' + got + ' of ' + r.expected.length + ' correct.</b> Still missing: <code>' +
+        escapeHtml(missNotes.join('</code>, <code>')) + '</code>. Fix it and check again.');
+    }
+  }
+
+  function revealConfig(b) {
+    var lines = b.recall.expected.map(function (e) { return e.cmds[0]; });
+    document.getElementById('inp-' + b.id).value = lines.join('\n');
+    showFb(b, false, 'Answer shown. Clear it and type it yourself to pass the beat.');
+  }
+
+  function lineMatches(userCanon, expected) {
+    for (var i = 0; i < expected.cmds.length; i++) {
+      if (canon(expected.cmds[i]) === userCanon) return true;
+    }
+    return false;
+  }
+
+  // ── Capstone wiring ────────────────────────────────────────────────
+  function wireCapstone(b) {
+    var prevBtn = null;
+    // capstone has no teach nav; provide prev via the track only.
+    document.getElementById('capCheck').addEventListener('click', function () { gradeCapstone(b); });
+    document.getElementById('capClear').addEventListener('click', function () {
+      document.getElementById('capInput').value = '';
+      document.getElementById('capResults').classList.remove('show');
+      document.getElementById('capInput').focus();
+    });
+    document.getElementById('capReveal').addEventListener('click', function () {
+      var lines = b.expected.map(function (e) { return e.cmds[0]; });
+      lines.push(b.verifyCmd);
+      document.getElementById('capInput').value = lines.join('\n');
+    });
+    document.getElementById('capInput').addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); gradeCapstone(b); }
+    });
+
+    // quiz wiring
+    b.quiz.forEach(function (q, qi) {
+      var qbox = beatsEl.querySelector('.op-mcq[data-q="' + qi + '"]');
+      qbox.querySelectorAll('.op-opt').forEach(function (opt) {
+        opt.addEventListener('click', function () {
+          var idx = parseInt(opt.getAttribute('data-idx'), 10);
+          gradeCapQuiz(qi, qbox, idx, q.answer, q.explain);
+        });
+      });
+    });
+  }
+
+  var capQuizPassed = {};
+  function gradeCapQuiz(qi, qbox, picked, answer, explain) {
+    var opts = qbox.querySelectorAll('.op-opt');
+    opts.forEach(function (o, idx) {
+      o.classList.remove('correct', 'wrong', 'dim');
+      if (idx === answer) o.classList.add('correct');
+      else if (idx === picked) o.classList.add('wrong');
+      else o.classList.add('dim');
+    });
+    var fb = document.getElementById('qfb-' + qi);
+    var ok = picked === answer;
+    fb.className = 'op-fb show ' + (ok ? 'pass' : 'fail');
+    fb.innerHTML = (ok ? '<b>Correct.</b> ' : '<b>Not quite.</b> ') + explain;
+    capQuizPassed[qi] = ok;
+    maybeFinishCapstone();
+  }
+
+  function gradeCapstone(b) {
+    var raw = document.getElementById('capInput').value;
+    var userLinesRaw = raw.split('\n')
+      .map(function (l) { return l.replace(/^[A-Za-z0-9_().#-]+[#>]\s*/, ''); })
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+    var userCanon = userLinesRaw.map(canon);
+    var used = userCanon.map(function () { return false; });
+    var rows = [];
+    var gotConfig = 0;
+
+    b.expected.forEach(function (exp) {
+      var found = -1;
+      for (var i = 0; i < userCanon.length; i++) {
+        if (!used[i] && lineMatches(userCanon[i], exp)) { found = i; break; }
+      }
+      if (found >= 0) {
+        used[found] = true; gotConfig++;
+        rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[found], note: exp.note });
+      } else {
+        rows.push({ cls: 'miss', icon: '✗', text: exp.cmds[0], note: 'missing: ' + exp.note });
+      }
+    });
+
+    var verifyCanon = canon(b.verifyCmd);
+    var verifyOk = false, vi = -1;
+    for (var j = 0; j < userCanon.length; j++) {
+      if (!used[j] && (userCanon[j] === verifyCanon || userCanon[j].indexOf(verifyCanon) === 0)) { verifyOk = true; vi = j; break; }
+    }
+    if (verifyOk) { used[vi] = true; rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[vi], note: 'verify command' }); }
+    else { rows.push({ cls: 'miss', icon: '✗', text: b.verifyCmd, note: 'missing the verify command' }); }
+
+    userCanon.forEach(function (uc, i) {
+      if (!used[i]) rows.push({ cls: 'extra', icon: '~', text: userLinesRaw[i], note: 'not expected for this scenario' });
+    });
+
+    var totalNeeded = b.expected.length + 1;
+    var got = gotConfig + (verifyOk ? 1 : 0);
+    var pct = Math.round((got / totalNeeded) * 100);
+
+    if (pct > (state.capScore || 0)) { state.capScore = pct; saveState(state); }
+
+    renderCapResults(pct, got, totalNeeded, rows);
+    capConfigPassed = (pct >= 100);
+    maybeFinishCapstone();
+  }
+
+  var capConfigPassed = false;
+  function renderCapResults(pct, got, total, rows) {
+    var box = document.getElementById('capResults');
+    var cls = pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red';
+    var label = pct >= 100 ? 'Perfect. That is exam ready.' :
+      pct >= 70 ? 'Close. Fix the gaps and run it again from memory.' :
+      pct >= 40 ? 'Partial. Review the config beats and retype it.' :
+      'Keep drilling. Walk back through the beats and type it again.';
+    var rowsHtml = rows.map(function (r) {
+      return '<div class="op-diff-row ' + r.cls + '"><span class="icon">' + r.icon + '</span>' +
+        '<span class="ctext">' + escapeHtml(r.text) + '<span class="cnote">' + escapeHtml(r.note) + '</span></span></div>';
+    }).join('');
+    box.innerHTML = '<div class="op-score"><span class="sv ' + cls + '">' + pct + '%</span>' +
+      '<span class="sl">' + got + ' of ' + total + ' lines. ' + label + '</span></div>' +
+      '<div class="op-diff">' + rowsHtml + '</div>';
+    box.classList.add('show');
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function maybeFinishCapstone() {
+    var b = BEATS[BEATS.length - 1];
+    var allQuiz = b.quiz.every(function (q, qi) { return capQuizPassed[qi]; });
+    if (capConfigPassed && allQuiz) {
+      state.beats[b.id] = 'mastered';
+      saveState(state);
+      renderRail(); renderTrack();
+      document.getElementById('capDone').classList.add('show');
+    }
+  }
+
+  // ── Render all ─────────────────────────────────────────────────────
+  function renderAll() {
+    renderRail();
+    renderTrack();
+    renderBeats();
+  }
+
+  renderAll();
+});
+</script>
+</body>
+</html>

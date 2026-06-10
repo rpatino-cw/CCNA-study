@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>IPv6 Addressing + EUI-64 (Deep)</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress rail ──────────────────────────────────────── */
+.iv-overall{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg);position:sticky;top:0;background:var(--bg);z-index:5}
+.iv-ostat{display:flex;flex-direction:column}
+.iv-ostat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.iv-ostat .val.green{color:var(--prof-strong)}
+.iv-ostat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.iv-obar-wrap{flex:1;min-width:160px}
+.iv-obar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.iv-obar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.iv-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.iv-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+.iv-reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Beat rail (the spine) ──────────────────────────────────────── */
+.iv-rail{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-lg)}
+.iv-rail-node{font-family:var(--font-mono);font-size:.72rem;font-weight:700;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-muted);cursor:pointer;transition:all .15s;flex-shrink:0}
+.iv-rail-node:hover{border-color:var(--accent);color:var(--accent)}
+.iv-rail-node:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.iv-rail-node.current{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 3px rgba(180,83,9,.12)}
+.iv-rail-node.mastered{background:var(--prof-strong);border-color:var(--prof-strong);color:#fff}
+.iv-rail-node.locked{opacity:.45;cursor:not-allowed}
+.iv-rail-node.locked:hover{border-color:var(--border);color:var(--ink-muted)}
+.iv-rail-node.cap{border-radius:var(--radius);width:auto;padding:0 10px;letter-spacing:.04em}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.iv-beat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:var(--s-lg)}
+@media(max-width:640px){.iv-beat{padding:18px 16px}}
+.iv-beat-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-md)}
+.iv-beat-num{font-family:var(--font-mono);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(180,83,9,.1);color:var(--accent);letter-spacing:.04em}
+.iv-beat-kind{font-family:var(--font-mono);font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:100px;letter-spacing:.05em;text-transform:uppercase}
+.iv-beat-kind.concept{background:rgba(87,83,78,.1);color:var(--ink-secondary)}
+.iv-beat-kind.config{background:rgba(202,138,4,.14);color:var(--prof-mid)}
+.iv-beat-kind.trap{background:rgba(220,38,38,.1);color:var(--prof-weak)}
+.iv-beat h2{font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin:0;letter-spacing:-.01em;width:100%;line-height:1.25}
+@media(max-width:640px){.iv-beat h2{font-size:1.12rem}}
+
+.iv-teach{font-family:var(--font-body);font-size:.96rem;color:var(--ink);line-height:1.65;margin:0 0 var(--s-md)}
+.iv-teach strong{font-weight:600}
+.iv-teach code,.iv-gist code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-recessed);border-radius:3px;color:var(--ink)}
+
+.iv-gist{padding:13px 15px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.iv-gist .gh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:4px}
+.iv-gist .gb{font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.55}
+
+/* diagram block (mono / svg) */
+.iv-diagram{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:var(--s-md);overflow-x:auto}
+.iv-diagram pre{font-family:var(--font-mono);font-size:.8rem;line-height:1.55;color:#FAFAF9;margin:0;white-space:pre}
+.iv-diagram .dim{color:#A8A29E}
+.iv-diagram .hot{color:#FBBF24}
+.iv-diagram .grn{color:#86EFAC}
+.iv-svg-wrap{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:var(--s-md);overflow-x:auto}
+.iv-svg-wrap svg{display:block;max-width:100%;height:auto;margin:0 auto}
+
+/* reference table */
+.iv-table{width:100%;border-collapse:collapse;margin-bottom:var(--s-md);font-family:var(--font-mono);font-size:.84rem}
+.iv-table th,.iv-table td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule)}
+.iv-table th{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);font-weight:600}
+.iv-table td:first-child{color:var(--accent);font-weight:600}
+.iv-table tr:last-child td{border-bottom:none}
+
+/* guided CLI block (config beats) */
+.iv-cli-block{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.iv-line{display:grid;grid-template-columns:1fr;gap:0;padding:0 16px;border-left:3px solid transparent;transition:background .15s}
+.iv-line:hover{background:rgba(255,255,255,.03)}
+.iv-line.comment{opacity:.65}
+.iv-line.alt{border-left-color:var(--accent)}
+.iv-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.iv-cmd .pmt{color:#A8A29E}
+.iv-cmd.cmt{color:#86EFAC}
+.iv-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.iv-line:last-child .iv-ann{border-bottom:none}
+.iv-verify{padding:13px 16px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.iv-verify .vh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:6px}
+.iv-verify code{display:block;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);padding:3px 0}
+.iv-verify .vn{font-family:var(--font-body);font-size:.83rem;color:var(--ink-secondary);margin-top:3px;line-height:1.5}
+
+/* ── Recall block ───────────────────────────────────────────────── */
+.iv-recall{border-top:1px dashed var(--rule);padding-top:var(--s-md);margin-top:var(--s-md)}
+.iv-recall-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.iv-recall-head .rh{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700}
+.iv-recall-head .rstate{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-left:auto}
+.iv-recall-head .rstate.pass{color:var(--prof-strong);font-weight:700}
+.iv-q{font-family:var(--font-body);font-size:.98rem;color:var(--ink);line-height:1.55;margin-bottom:var(--s-sm)}
+.iv-q code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-recessed);border-radius:3px}
+
+/* MCQ options */
+.iv-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--s-sm)}
+.iv-opt{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.45;transition:border-color .15s,background .15s}
+.iv-opt:hover{border-color:var(--accent)}
+.iv-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.iv-opt .mark{font-family:var(--font-mono);font-weight:700;color:var(--ink-muted);flex-shrink:0}
+.iv-opt code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-recessed);border-radius:3px}
+.iv-opt.correct{border-color:var(--prof-strong);background:rgba(22,163,74,.07)}
+.iv-opt.correct .mark{color:var(--prof-strong)}
+.iv-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.07)}
+.iv-opt.wrong .mark{color:var(--prof-weak)}
+.iv-opt.disabled{cursor:default;pointer-events:none}
+
+/* type-in line */
+.iv-typein{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--s-sm)}
+.iv-input{width:100%;background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:11px 14px;font-family:var(--font-mono);font-size:.9rem;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.iv-input::placeholder{color:#57534E}
+.iv-input:focus{border-color:var(--accent)}
+.iv-input.ok{border-color:var(--prof-strong)}
+.iv-input.bad{border-color:var(--prof-weak)}
+.iv-prefix-row{display:flex;align-items:center;gap:8px;background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:0 0 0 14px}
+.iv-prefix-row .pmt{font-family:var(--font-mono);font-size:.9rem;color:#A8A29E;white-space:nowrap}
+.iv-prefix-row .iv-input{border:none;border-radius:0;padding-left:6px}
+
+.iv-fb{font-family:var(--font-body);font-size:.86rem;line-height:1.5;padding:10px 13px;border-radius:var(--radius);margin-bottom:var(--s-sm);display:none}
+.iv-fb.show{display:block}
+.iv-fb.good{background:rgba(22,163,74,.08);border:1px solid var(--prof-strong);color:var(--ink)}
+.iv-fb.bad{background:rgba(220,38,38,.06);border:1px solid var(--prof-weak);color:var(--ink)}
+.iv-fb code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-recessed);border-radius:3px}
+.iv-fb strong{font-weight:600}
+
+.iv-actions{display:flex;gap:8px;flex-wrap:wrap}
+.iv-btn{padding:11px 22px;font-family:var(--font-display);font-size:.86rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s,transform .15s var(--ease-out)}
+.iv-btn:hover{filter:brightness(1.06)}
+.iv-btn:active{transform:translateY(1px)}
+.iv-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.iv-btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.iv-btn.sec{background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);font-weight:600}
+.iv-btn.sec:hover{border-color:var(--accent);color:var(--accent);filter:none}
+.iv-btn.next{background:var(--prof-strong)}
+
+/* capstone terminal */
+.iv-scenario{padding:16px 18px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.iv-scenario .sh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:6px}
+.iv-scenario .sb{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.55}
+.iv-term{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:var(--s-sm)}
+.iv-term label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:8px;letter-spacing:.04em}
+.iv-termarea{width:100%;min-height:160px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.iv-termarea::placeholder{color:#57534E}
+.iv-results{display:none;margin:var(--s-sm) 0 var(--s-md)}
+.iv-results.show{display:block}
+.iv-score{display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-sm)}
+.iv-score .sv{font-family:var(--font-mono);font-size:2.2rem;font-weight:700;line-height:1}
+.iv-score .sv.green{color:var(--prof-strong)}.iv-score .sv.amber{color:var(--prof-mid)}.iv-score .sv.red{color:var(--prof-weak)}
+.iv-score .sl{font-family:var(--font-display);font-size:.9rem;font-weight:600;color:var(--ink-secondary)}
+.iv-diff{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.iv-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.iv-diff-row:first-child{border-top:none}
+.iv-diff-row .icon{flex-shrink:0;width:18px;text-align:center;font-weight:700}
+.iv-diff-row.ok{background:rgba(22,163,74,.05)}.iv-diff-row.ok .icon{color:var(--prof-strong)}
+.iv-diff-row.miss{background:rgba(220,38,38,.05)}.iv-diff-row.miss .icon{color:var(--prof-weak)}
+.iv-diff-row.extra .icon{color:var(--prof-mid)}
+.iv-diff-row .ctext{color:var(--ink);word-break:break-word}
+.iv-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.iv-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.iv-done{text-align:center;padding:30px 20px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-bottom:var(--s-lg)}
+.iv-done h2{font-family:var(--font-display);font-size:1.4rem;color:var(--prof-strong);margin:0 0 8px}
+.iv-done p{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);margin:0;line-height:1.55}
+
+.iv-hidden{display:none}
+
+@media(max-width:640px){
+  .iv-overall{gap:var(--s-sm);position:static}
+  .iv-score .sv{font-size:1.8rem}
+  .iv-diagram pre{font-size:.72rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .iv-btn,.iv-obar>span,.iv-opt,.iv-rail-node{transition:none}
+  .iv-btn:active{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">P1 · OBJ 1.8-1.9 · DEEP COURSE</div>
+    <h1>IPv6 Addressing + EUI-64</h1>
+    <p class="subtitle">Teach a small chunk, then make you recall it before you move on. Each beat is locked until you pass the one before it. The EUI-64 7th bit flip gets drilled the hardest, because it is the top calculation trap on this objective.</p>
+  </header>
+
+  <p class="intro">Work top to bottom. Read the chunk, study the diagram, then answer the recall right under it. You cannot advance until you pass that beat. At the end you reproduce the full address config from a blank terminal and clear five exam style questions.</p>
+
+  <div class="iv-overall" id="ivOverall"></div>
+  <div class="iv-rail" id="ivRail"></div>
+
+  <div id="ivStage"></div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var PREFIX = 'ccna_p1-ipv6_';
+
+  // ── Beat data. Ordered so the highest yield idea (EUI-64) is reinforced most.
+  // recall.kind: 'mcq' | 'short' | 'typecmd' | 'fillblank'
+  var BEATS = [
+    // 0 ───────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'The shape: 128 bits, 8 hextets',
+      teach:'An IPv6 address is <strong>128 bits</strong>, written as <strong>8 groups of 4 hex digits</strong> (called hextets), separated by colons. Each hextet is 16 bits. IPv4 was 32 bits. IPv6 is four times longer, which is why the address space is enormous.',
+      gist:'8 hextets x 16 bits = 128 bits. Hex, not dotted decimal.',
+      diagram:'<div class="iv-diagram"><pre>'+
+        '<span class="hot">2001</span>:<span class="hot">0db8</span>:<span class="hot">0000</span>:<span class="hot">0000</span>:<span class="hot">0000</span>:<span class="hot">0000</span>:<span class="hot">0000</span>:<span class="hot">0001</span>\n'+
+        '<span class="dim">|16b||16b||16b||16b||16b||16b||16b||16b|</span>\n'+
+        '<span class="dim">\\__________ 128 bits total __________/</span>'+
+        '</pre></div>',
+      recall:{
+        kind:'mcq',
+        q:'How many bits is an IPv6 address, and how is it written?',
+        opts:[
+          {t:'32 bits, four dotted decimal octets'},
+          {t:'64 bits, written in binary'},
+          {t:'128 bits, eight hextets of 4 hex digits each', correct:true},
+          {t:'256 bits, sixteen hex pairs'}
+        ],
+        explain:'128 bits total, shown as 8 hextets (groups of 4 hex digits). Each hextet is 16 bits, and 8 x 16 = 128.'
+      }
+    },
+    // 1 ───────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'The prefix tells you the TYPE',
+      teach:'You identify an IPv6 address by its leading bits. Memorize this table cold, it is the single highest yield fact on the objective. The exam loves to show an address and ask what kind it is.',
+      gist:'Read the front of the address. GUA 2000::/3, ULA FC00::/7, link-local FE80::/10, multicast FF00::/8.',
+      table:{head:['Type','Prefix','Note'],rows:[
+        ['GUA','2000::/3','Global unicast, the public, routable Internet address'],
+        ['ULA','FC00::/7','Unique local, private, not Internet routable'],
+        ['Link-local','FE80::/10','Auto on every interface, never leaves the link'],
+        ['Multicast','FF00::/8','One to many. There is no broadcast in IPv6'],
+        ['Loopback','::1','The host itself, like 127.0.0.1'],
+        ['Unspecified','::','All zeros, used before an address is assigned']
+      ]},
+      recall:{
+        kind:'mcq',
+        q:'A host shows the address <code>FE80::1</code> on its interface. What type is it?',
+        opts:[
+          {t:'Global unicast (GUA), routable on the Internet'},
+          {t:'Link-local, valid only on the local link', correct:true},
+          {t:'Unique local (ULA), private but routed inside the org'},
+          {t:'Multicast, sent to a group'}
+        ],
+        explain:'FE80::/10 is link-local. Every IPv6 interface builds one automatically, and it never leaves the local link (not routable).'
+      }
+    },
+    // 2 ───────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'Network half and interface half',
+      teach:'In a standard /64 subnet the address splits cleanly down the middle. The <strong>first 64 bits are the network</strong> (the prefix). The <strong>last 64 bits are the interface ID</strong>, which identifies the host on that subnet. Sites are usually handed a /48, and each /64 inside it is one subnet.',
+      gist:'/48 site, then carve /64 subnets. First 64 bits = network, last 64 = interface ID.',
+      diagram:'<div class="iv-diagram"><pre>'+
+        '<span class="grn">2001:0db8:000a</span>:<span class="hot">0001</span> : <span class="dim">0000:0000:0000:0001</span>\n'+
+        '<span class="grn">\\___ /48 site __/</span><span class="hot">|sub|</span>   <span class="dim">\\__ interface ID _/</span>\n'+
+        '<span class="grn">\\________ network /64 ________/</span> <span class="dim">\\__ last 64 bits _/</span>'+
+        '</pre></div>',
+      recall:{
+        kind:'mcq',
+        q:'In a typical /64 IPv6 subnet, what do the last 64 bits represent?',
+        opts:[
+          {t:'The interface ID (which host on the subnet)', correct:true},
+          {t:'The global routing prefix'},
+          {t:'The multicast group ID'},
+          {t:'The subnet mask in hex'}
+        ],
+        explain:'With a /64, the first 64 bits are the network/prefix and the last 64 bits are the interface ID identifying the host on that subnet.'
+      }
+    },
+    // 3 ───────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'Shortening rule 1: drop leading zeros',
+      teach:'Two rules compress an address, and they are tested constantly. <strong>Rule 1: in each hextet, drop leading zeros only.</strong> So <code>0db8</code> becomes <code>db8</code>, <code>000a</code> becomes <code>a</code>, and <code>0000</code> becomes <code>0</code>. You never drop trailing zeros, and you never touch zeros in the middle of a hextet (<code>0a0b</code> stays <code>a0b</code>, not <code>ab</code>).',
+      gist:'Leading zeros only. 0db8 -> db8. Trailing and middle zeros stay.',
+      recall:{
+        kind:'short',
+        q:'Apply rule 1 only (drop leading zeros per hextet) to this hextet: <code>0050</code>. Type the result.',
+        accept:['50'],
+        explain:'Drop the two leading zeros: 0050 -> 50. The trailing zero stays. You only ever strip zeros from the front of a hextet.'
+      }
+    },
+    // 4 ───────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'Shortening rule 2: double colon, once',
+      teach:'<strong>Rule 2: a double colon (::) replaces ONE run of consecutive all-zero hextets.</strong> You may use it only once per address, because a parser counts the missing hextets, and two double colons would be ambiguous. If there are two equal length runs of zeros, compress the leftmost (or pick one, never both).',
+      gist:':: replaces one run of all-zero hextets. Only ONCE per address.',
+      diagram:'<div class="iv-diagram"><pre>'+
+        'full:  2001:0db8:0000:0000:0000:0000:0000:0001\n'+
+        'rule1: <span class="dim">2001:db8:0:0:0:0:0:1</span>\n'+
+        'rule2: <span class="grn">2001:db8::1</span>   <span class="dim">(one :: for the zero run)</span>'+
+        '</pre></div>',
+      recall:{
+        kind:'short',
+        q:'Fully compress this address (both rules): <code>2001:0db8:0000:0000:0000:0000:0000:0001</code>',
+        accept:['2001:db8::1'],
+        explain:'Drop leading zeros, then collapse the one long run of zero hextets with a single ::. Result: 2001:db8::1.'
+      }
+    },
+    // 5 ───────────────────────────────────────────────────────────────
+    {
+      kind:'trap', title:'Trap: :: only once',
+      teach:'This is a classic exam trap. The address <code>2001:0:0:1:0:0:0:1</code> has two separate runs of zeros. You cannot write <code>2001::1::1</code>, because the parser cannot tell how many hextets each :: hides. You compress only one run, normally the longer one, here the run of three: <code>2001:0:0:1::1</code>.',
+      gist:'Two zero runs, one :: allowed. Compress the longer run only.',
+      recall:{
+        kind:'mcq',
+        q:'Which is a VALID compression of <code>2001:0000:0000:0001:0000:0000:0000:0001</code>?',
+        opts:[
+          {t:'2001::1::1'},
+          {t:'2001:0:0:1::1', correct:true},
+          {t:'2001::1:0:0:0:1 then :: again'},
+          {t:'You cannot compress this address at all'}
+        ],
+        explain:'Only one :: is legal. Collapse the longer zero run (the three hextets) and leave the shorter run expanded: 2001:0:0:1::1.'
+      }
+    },
+    // 6 ───────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'EUI-64 step 1: split the MAC, insert FFFE',
+      teach:'EUI-64 builds a 64-bit interface ID from a 48-bit MAC. <strong>Step 1: split the MAC in half and insert <code>FFFE</code> in the middle.</strong> A MAC of <code>00-1A-2B-3C-4D-5E</code> becomes <code>001A:2B</code> + <code>FFFE</code> + <code>3C:4D5E</code>, giving <code>001A:2BFF:FE3C:4D5E</code> before the bit flip. The next beat does the part everyone gets wrong.',
+      gist:'Split MAC in half, jam FFFE between the two halves.',
+      diagram:'<div class="iv-diagram"><pre>'+
+        'MAC:   00:1A:2B : 3C:4D:5E\n'+
+        '             <span class="hot">insert FFFE here</span>\n'+
+        'EUI64: 001A:2B<span class="hot">FF:FE</span>3C:4D5E   <span class="dim">(before flip)</span>'+
+        '</pre></div>',
+      recall:{
+        kind:'mcq',
+        q:'In EUI-64, what value gets inserted into the middle of the 48-bit MAC?',
+        opts:[
+          {t:'FFFF'},
+          {t:'FFFE', correct:true},
+          {t:'FEFF'},
+          {t:'FE80'}
+        ],
+        explain:'EUI-64 inserts FFFE between the OUI half and the device half, turning the 48-bit MAC into a 64-bit interface ID.'
+      }
+    },
+    // 7 ───────────────────────────────────────────────────────────────
+    {
+      kind:'trap', title:'EUI-64 step 2: FLIP THE 7TH BIT (top trap)',
+      teach:'<strong>Step 2, the one the exam targets: flip the 7th bit of the first byte.</strong> Not the 8th. The 7th bit is the Universal/Local bit. You take the first hex pair, flip bit 7, and the most common mistake is flipping bit 8 instead. Watch one byte: <code>00</code> in binary is <code>0000 0000</code>. Flip bit 7 (counting from the left, bit positions 1 to 8) and you get <code>0000 0010</code>, which is <code>02</code>. So a MAC starting <code>00</code> becomes an interface ID starting <code>02</code>.',
+      gist:'Flip the 7TH bit of byte 1, not the 8th. 00 -> 02. This is the top calc error.',
+      diagram:'<div class="iv-diagram"><pre>'+
+        'byte 1 = 00\n'+
+        'bits   = 0 0 0 0 0 0 0 0\n'+
+        'pos    = 1 2 3 4 5 6 <span class="hot">7</span> 8\n'+
+        'flip 7 = 0 0 0 0 0 0 <span class="hot">1</span> 0  -> <span class="grn">02</span>\n'+
+        'so 00:1A:2B... -> <span class="grn">02</span>1A:2BFF:FE3C:4D5E'+
+        '</pre></div>',
+      recall:{
+        kind:'mcq',
+        q:'A MAC starts with <code>00</code>. After the EUI-64 7th bit flip, the interface ID starts with which hex pair?',
+        opts:[
+          {t:'01 (flipped the 8th bit)'},
+          {t:'02 (flipped the 7th bit)', correct:true},
+          {t:'FF (inserted in front)'},
+          {t:'00 (no change, the flip is on the last byte)'}
+        ],
+        explain:'Flip the 7th bit of the first byte. 00 = 0000 0000, set bit 7 to get 0000 0010 = 02. Flipping the 8th bit (giving 01) is the classic wrong answer.'
+      }
+    },
+    // 8 ───────────────────────────────────────────────────────────────
+    {
+      kind:'trap', title:'EUI-64 the whole flip, end to end',
+      teach:'Lock the full procedure with a fresh MAC. The trick: if the second hex digit of byte 1 is 0/4/8/C it gains 2 (the bit 7 add), so the digit changes by +2 in hex. <code>1C</code> -> <code>1E</code>. <code>52</code> -> <code>50</code>. Just do the binary on the FIRST byte, insert FFFE, and copy the rest.',
+      gist:'Byte 1: flip bit 7. Middle: FFFE. Rest of MAC: unchanged.',
+      diagram:'<div class="iv-diagram"><pre>'+
+        'MAC    = 1C:2B:3C:4D:5E:6F\n'+
+        'byte1  = 1C = 0001 1100\n'+
+        'flip 7 = 0001 11<span class="hot">1</span>0 = <span class="grn">1E</span>\n'+
+        'EUI64  = <span class="grn">1E</span>2B:3CFF:FE4D:5E6F'+
+        '</pre></div>',
+      recall:{
+        kind:'short',
+        q:'MAC <code>1C:2B:3C:4D:5E:6F</code>. Type the full 64-bit EUI-64 interface ID (use colons, e.g. <code>xxxx:xxxx:xxxx:xxxx</code>).',
+        accept:['1e2b:3cff:fe4d:5e6f'],
+        explain:'Flip bit 7 of 1C to get 1E, insert FFFE in the middle, copy the rest: 1E2B:3CFF:FE4D:5E6F.'
+      }
+    },
+    // 9 ───────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'SLAAC vs DHCPv6',
+      teach:'<strong>SLAAC</strong> = the host builds its own address. It hears a Router Advertisement (RA), takes the /64 prefix from it, and generates its own interface ID (often via EUI-64). No server tracks it. <strong>DHCPv6 stateful</strong> = a server assigns the full address and keeps a binding, just like IPv4 DHCP. SLAAC is the prefix from the router plus a self-built host part. DHCP is server assigned.',
+      gist:'SLAAC: host self-builds from the RA prefix. DHCPv6 stateful: server assigns.',
+      recall:{
+        kind:'mcq',
+        q:'With SLAAC, how does a host get the host portion of its IPv6 address?',
+        opts:[
+          {t:'A DHCPv6 server leases the full address and tracks it'},
+          {t:'The host builds it itself from the RA prefix (e.g. via EUI-64)', correct:true},
+          {t:'It is hard coded by the manufacturer in ROM'},
+          {t:'The switch assigns it based on the access VLAN'}
+        ],
+        explain:'SLAAC = Stateless Address Autoconfiguration. The router advertises the /64 prefix, and the host generates its own interface ID. No server keeps state.'
+      }
+    },
+    // 10 ──────────────────────────────────────────────────────────────
+    {
+      kind:'concept', title:'Multicast groups + NDP replaces ARP',
+      teach:'IPv6 has no broadcast. Multicast does that job. Memorize the well-known groups. NDP (Neighbor Discovery) replaces ARP using these multicasts, and IPv6 needs no NAT because the address space is huge.',
+      gist:'FF02::1 all-nodes, ::2 all-routers, ::5 all-OSPF, ::6 OSPF-DR. NDP replaces ARP.',
+      table:{head:['Group','Meaning'],rows:[
+        ['FF02::1','All nodes on the link'],
+        ['FF02::2','All routers on the link'],
+        ['FF02::5','All OSPF routers'],
+        ['FF02::6','OSPF DR / BDR']
+      ]},
+      recall:{
+        kind:'mcq',
+        q:'Which multicast address reaches ALL ROUTERS on the local link?',
+        opts:[
+          {t:'FF02::1'},
+          {t:'FF02::2', correct:true},
+          {t:'FF02::5'},
+          {t:'224.0.0.6'}
+        ],
+        explain:'FF02::1 is all-nodes, FF02::2 is all-routers, FF02::5 is all-OSPF, FF02::6 is OSPF DR/BDR. The 224.0.0.x options are IPv4 multicast, a distractor.'
+      }
+    },
+    // 11 ── CONFIG BEAT ────────────────────────────────────────────────
+    {
+      kind:'config', title:'Config: enable IPv6 and assign an address',
+      teach:'Now the exact CLI, in order. You must turn on IPv6 routing globally first, then put an address on the interface. You can hard set a full address, or let the interface autoconfigure from the RA. Study each line, then you will type it from memory.',
+      gist:'ipv6 unicast-routing first, then ipv6 address on the interface.',
+      cli:[
+        {p:'R(config)#', c:'ipv6 unicast-routing', a:'Global switch. Without this the router will not route or send RAs for IPv6. Always first.'},
+        {p:'R(config)#', c:'interface g0/0', a:'Move to the interface you are addressing.'},
+        {p:'R(config-if)#', c:'ipv6 address 2001:db8::1/64', a:'Assign a full global unicast address with a /64 prefix length.'},
+        {p:'R(config-if)#', c:'ipv6 address autoconfig', a:'Alternative: build the address automatically from the RA prefix (SLAAC) instead of hard coding it.', cls:'alt'}
+      ],
+      verify:{c:'show ipv6 interface brief', n:'Lists each interface with its IPv6 addresses, including the auto link-local FE80 address.'},
+      recall:{
+        kind:'typecmd',
+        prompt:'R(config-if)#',
+        q:'You are in interface config. Type the command to assign the global unicast address <code>2001:db8::1</code> with a /64 prefix.',
+        accept:['ipv6 address 2001:db8::1/64'],
+        explain:'ipv6 address 2001:db8::1/64. The /64 is the prefix length, attached right to the address.'
+      }
+    },
+    // 12 ──────────────────────────────────────────────────────────────
+    {
+      kind:'trap', title:'Trap roundup before the capstone',
+      teach:'Four traps the exam reuses. (1) EUI-64 flips the <strong>7th</strong> bit, never the 8th. (2) :: appears <strong>once</strong> per address. (3) Link-local <code>FE80</code> is <strong>not routable</strong>, it never leaves the link. (4) <strong>ULA is not link-local</strong>, and an anycast address is just a GUA reused on many hosts so the network routes you to the nearest one.',
+      gist:'7th bit. :: once. FE80 stays local. ULA is not link-local. Anycast = shared GUA.',
+      recall:{
+        kind:'mcq',
+        q:'Spot the FALSE statement.',
+        opts:[
+          {t:'EUI-64 flips the 7th bit of the first byte'},
+          {t:'A link-local FE80 address is fully routable across the Internet', correct:true},
+          {t:':: may be used only once in an address'},
+          {t:'Anycast is a GUA assigned to several hosts; traffic goes to the nearest'}
+        ],
+        explain:'The false one: FE80 link-local is NOT routable. It is valid only on the local link and never leaves it. The other three are true.'
+      }
+    }
+  ];
+
+  var CAP = {
+    scenario:'R1 needs IPv6. Enable IPv6 routing globally, go to interface g0/0, and give it the global unicast address 2001:db8::1 with a /64 prefix. End by typing the verify command. Abbreviations like int g0/0 are accepted.',
+    recall:[
+      {cmds:['ipv6 unicast-routing'], note:'enable IPv6 routing globally, always first'},
+      {cmds:['interface g0/0','interface gigabitethernet0/0'], note:'select the interface'},
+      {cmds:['ipv6 address 2001:db8::1/64'], note:'global unicast, /64 prefix'}
+    ],
+    verify:'show ipv6 interface brief',
+    quiz:[
+      {
+        q:'An interface auto-generated <code>FE80::</code> address appears even though you only configured a GUA. Why?',
+        opts:[
+          {t:'It is a leftover from IPv4 APIPA'},
+          {t:'Every IPv6 interface builds a link-local FE80 address automatically', correct:true},
+          {t:'The DHCPv6 server pushed it'},
+          {t:'It is the multicast all-nodes group'}
+        ],
+        explain:'Every IPv6 enabled interface auto-creates a link-local FE80::/10 address. It is normal and used for on-link operations like NDP.'
+      },
+      {
+        q:'Fully compress: <code>FE80:0000:0000:0000:0204:61FF:FE9D:0001</code>',
+        opts:[
+          {t:'FE80::204:61FF:FE9D:1', correct:true},
+          {t:'FE8::204:61FF:FE9D:1'},
+          {t:'FE80::0204:61FF:FE9D:0001'},
+          {t:'FE80:0:0:0:204:61FF:FE9D:1::'}
+        ],
+        explain:'Drop leading zeros per hextet, collapse the one run of zero hextets with ::, result FE80::204:61FF:FE9D:1. Note the FFFE marker, this came from EUI-64.'
+      },
+      {
+        q:'MAC <code>00:0C:29:AB:CD:EF</code> through EUI-64. What is the interface ID?',
+        opts:[
+          {t:'020C:29FF:FEAB:CDEF', correct:true},
+          {t:'010C:29FF:FEAB:CDEF'},
+          {t:'000C:29FF:FFAB:CDEF'},
+          {t:'020C:29FE:FFAB:CDEF'}
+        ],
+        explain:'Flip bit 7 of 00 to get 02, insert FFFE, copy the rest: 020C:29FF:FEAB:CDEF. The 01 answer is the 8th-bit-flip trap.'
+      },
+      {
+        q:'Which prefix identifies a Unique Local Address (ULA)?',
+        opts:[
+          {t:'2000::/3'},
+          {t:'FE80::/10'},
+          {t:'FC00::/7', correct:true},
+          {t:'FF00::/8'}
+        ],
+        explain:'ULA is FC00::/7 (private, not Internet routable). 2000::/3 is GUA, FE80::/10 is link-local, FF00::/8 is multicast.'
+      },
+      {
+        q:'A host gets its full IPv6 address and the server keeps a binding for it. Which method is this?',
+        opts:[
+          {t:'SLAAC'},
+          {t:'Stateful DHCPv6', correct:true},
+          {t:'EUI-64'},
+          {t:'Anycast'}
+        ],
+        explain:'A server that assigns the full address and tracks the binding is stateful DHCPv6. SLAAC is stateless and host-built.'
+      }
+    ]
+  };
+
+  // ── localStorage state ──────────────────────────────────────────────
+  function loadState(){ try { return JSON.parse(localStorage.getItem(PREFIX+'state')||'{}'); } catch(e){ return {}; } }
+  function saveState(){ try { localStorage.setItem(PREFIX+'state', JSON.stringify(state)); } catch(e){} }
+  // state: { mastered:{idx:true}, cur:idx, capBest:0, capDone:bool }
+  var state = loadState();
+  state.mastered = state.mastered || {};
+  if (typeof state.cur !== 'number') state.cur = 0;
+
+  var TOTAL = BEATS.length; // beats only; capstone is a separate stage
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // lenient normalization (mirrors config-bootcamp)
+  var IFACE=[[/\bgigabitethernet\b/g,'g'],[/\bgig\b/g,'g'],[/\bge\b/g,'g'],[/\bfastethernet\b/g,'f'],[/\bfa\b/g,'f'],[/\binterface\b/g,'int'],[/\bint\b/g,'int']];
+  function normalize(line){ var s=(line||'').toLowerCase().trim(); if(!s) return ''; s=s.replace(/[ \t]+/g,' '); IFACE.forEach(function(r){ s=s.replace(r[0],r[1]); }); return s.replace(/\s+/g,' ').trim(); }
+  function canon(line){ var s=normalize(line); s=s.replace(/^int /,'interface '); return s; }
+  // for addresses / hex answers: strip spaces, lowercase
+  function canonAddr(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+
+  var overall = document.getElementById('ivOverall');
+  var rail = document.getElementById('ivRail');
+  var stage = document.getElementById('ivStage');
+
+  function masteredCount(){ var n=0; for (var i=0;i<TOTAL;i++){ if (state.mastered[i]) n++; } return n; }
+  function isUnlocked(idx){ // beat idx unlocked if all earlier beats mastered
+    for (var i=0;i<idx;i++){ if (!state.mastered[i]) return false; } return true;
+  }
+  function capUnlocked(){ return masteredCount() === TOTAL; }
+
+  function renderOverall(){
+    var done = masteredCount() + (state.capDone?1:0);
+    var total = TOTAL + 1; // +1 for capstone
+    var pct = Math.round((done/total)*100);
+    overall.innerHTML =
+      '<div class="iv-ostat"><span class="val '+(done===total?'green':'')+'">'+done+'/'+total+'</span><span class="lbl">Beats mastered</span></div>'+
+      '<div class="iv-ostat"><span class="val">'+pct+'%</span><span class="lbl">Course progress</span></div>'+
+      '<div class="iv-obar-wrap"><div class="iv-obar"><span style="width:'+pct+'%"></span></div></div>'+
+      '<button class="iv-reset" id="ivReset" type="button">Reset progress</button>';
+    document.getElementById('ivReset').addEventListener('click', function(){
+      if (window.confirm('Reset all IPv6 course progress?')) {
+        state = { mastered:{}, cur:0 }; saveState(); render();
+      }
+    });
+  }
+
+  function renderRail(){
+    rail.innerHTML='';
+    BEATS.forEach(function(b,i){
+      var node=document.createElement('button');
+      node.type='button';
+      var cls='iv-rail-node';
+      if (state.mastered[i]) cls+=' mastered';
+      if (i===state.cur) cls+=' current';
+      if (!isUnlocked(i) && !state.mastered[i]) cls+=' locked';
+      node.className=cls;
+      node.textContent = state.mastered[i] ? '✓' : (i+1);
+      node.setAttribute('aria-label','Beat '+(i+1)+': '+b.title+(state.mastered[i]?' (mastered)':isUnlocked(i)?'':' (locked)'));
+      node.addEventListener('click', function(){
+        if (isUnlocked(i) || state.mastered[i]) { state.cur=i; saveState(); render(); }
+      });
+      rail.appendChild(node);
+    });
+    var cap=document.createElement('button');
+    cap.type='button';
+    cap.className='iv-rail-node cap'+(state.capDone?' mastered':'')+(state.cur==='cap'?' current':'')+(capUnlocked()?'':' locked');
+    cap.textContent = state.capDone ? '✓ CAP' : 'CAP';
+    cap.setAttribute('aria-label','Capstone'+(capUnlocked()?'':' (locked until all beats mastered)'));
+    cap.addEventListener('click', function(){ if (capUnlocked()){ state.cur='cap'; saveState(); render(); } });
+    rail.appendChild(cap);
+  }
+
+  // ── Render a single beat ────────────────────────────────────────────
+  function renderBeat(idx){
+    var b = BEATS[idx];
+    var passed = !!state.mastered[idx];
+
+    var diagram = b.diagram || '';
+    var table = b.table ? tableHtml(b.table) : '';
+    var cli = '', verify = '';
+    if (b.kind==='config' && b.cli){
+      cli = '<div class="iv-cli-block">'+ b.cli.map(function(ln){
+        var rowCls='iv-line'+(ln.cls==='alt'?' alt':'');
+        var ann=ln.a?'<span class="iv-ann">'+escapeHtml(ln.a)+'</span>':'';
+        return '<div class="'+rowCls+'"><span class="iv-cmd"><span class="pmt">'+escapeHtml(ln.p)+' </span>'+escapeHtml(ln.c)+'</span>'+ann+'</div>';
+      }).join('')+'</div>';
+      verify = '<div class="iv-verify"><div class="vh">Verify</div><code>'+escapeHtml(b.verify.c)+'</code><div class="vn">'+escapeHtml(b.verify.n)+'</div></div>';
+    }
+
+    stage.innerHTML =
+      '<section class="iv-beat">'+
+        '<div class="iv-beat-head">'+
+          '<span class="iv-beat-num">Beat '+(idx+1)+' / '+TOTAL+'</span>'+
+          '<span class="iv-beat-kind '+b.kind+'">'+b.kind+'</span>'+
+          '<h2>'+escapeHtml(b.title)+'</h2>'+
+        '</div>'+
+        '<p class="iv-teach">'+b.teach+'</p>'+
+        '<div class="iv-gist"><div class="gh">Gist</div><div class="gb">'+b.gist+'</div></div>'+
+        diagram + table + cli + verify +
+        recallHtml(b, idx, passed) +
+      '</section>';
+
+    wireRecall(b, idx);
+  }
+
+  function tableHtml(t){
+    return '<table class="iv-table"><thead><tr>'+t.head.map(function(h){return '<th>'+escapeHtml(h)+'</th>';}).join('')+
+      '</tr></thead><tbody>'+t.rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+escapeHtml(c)+'</td>';}).join('')+'</tr>';}).join('')+
+      '</tbody></table>';
+  }
+
+  function recallHtml(b, idx, passed){
+    var r=b.recall;
+    var state2 = passed ? '<span class="rstate pass">✓ passed</span>' : '<span class="rstate">answer to unlock the next beat</span>';
+    var body='';
+    if (r.kind==='mcq'){
+      body = '<div class="iv-opts" id="ivOpts">'+ r.opts.map(function(o,i){
+        return '<button class="iv-opt" type="button" data-i="'+i+'"><span class="mark">'+String.fromCharCode(65+i)+'</span><span>'+o.t+'</span></button>';
+      }).join('')+'</div>';
+    } else if (r.kind==='typecmd'){
+      body = '<div class="iv-typein"><div class="iv-prefix-row"><span class="pmt">'+escapeHtml(r.prompt)+'</span>'+
+        '<input class="iv-input" id="ivIn" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type the command..."></div></div>';
+    } else { // short / fillblank
+      body = '<div class="iv-typein"><input class="iv-input" id="ivIn" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type your answer..."></div>';
+    }
+    var actions;
+    if (r.kind==='mcq'){
+      actions = '<div class="iv-actions">'+
+        (passed ? '<button class="iv-btn next" type="button" id="ivNext">'+nextLabel(idx)+'</button>' : '')+
+        '</div>';
+    } else {
+      actions = '<div class="iv-actions">'+
+        '<button class="iv-btn" type="button" id="ivCheck">Check</button>'+
+        '<button class="iv-btn sec" type="button" id="ivReveal">Reveal</button>'+
+        (passed ? '<button class="iv-btn next" type="button" id="ivNext">'+nextLabel(idx)+'</button>' : '')+
+        '</div>';
+    }
+    return '<div class="iv-recall">'+
+      '<div class="iv-recall-head"><span class="rh">Recall</span>'+state2+'</div>'+
+      '<p class="iv-q">'+r.q+'</p>'+
+      body +
+      '<div class="iv-fb" id="ivFb"></div>'+
+      actions +
+    '</div>';
+  }
+
+  function nextLabel(idx){ return (idx+1 < TOTAL) ? 'Next beat →' : 'Go to capstone →'; }
+
+  function advance(idx){
+    if (idx+1 < TOTAL) state.cur = idx+1;
+    else state.cur = 'cap';
+    saveState();
+  }
+
+  function passBeat(idx){
+    state.mastered[idx] = true;
+    saveState();
+    renderOverall(); renderRail();
+  }
+
+  function showFb(good, html){
+    var fb=document.getElementById('ivFb');
+    fb.className='iv-fb show '+(good?'good':'bad');
+    fb.innerHTML=html;
+  }
+
+  function injectNextBtn(idx){
+    var actions = stage.querySelector('.iv-actions');
+    if (actions && !document.getElementById('ivNext')){
+      var btn=document.createElement('button');
+      btn.className='iv-btn next'; btn.type='button'; btn.id='ivNext'; btn.textContent=nextLabel(idx);
+      actions.appendChild(btn);
+      btn.addEventListener('click', function(){ advance(idx); render(); });
+    }
+  }
+
+  function wireRecall(b, idx){
+    var r=b.recall;
+    // wire existing Next (when already passed)
+    var existingNext=document.getElementById('ivNext');
+    if (existingNext) existingNext.addEventListener('click', function(){ advance(idx); render(); });
+
+    if (r.kind==='mcq'){
+      var opts=document.querySelectorAll('#ivOpts .iv-opt');
+      opts.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var i=parseInt(btn.getAttribute('data-i'),10);
+          var chosen=r.opts[i];
+          opts.forEach(function(o){ o.classList.add('disabled'); });
+          // mark correct
+          r.opts.forEach(function(o,j){ if (o.correct) opts[j].classList.add('correct'); });
+          if (chosen.correct){
+            showFb(true, '<strong>Correct.</strong> '+r.explain);
+            passBeat(idx);
+            injectNextBtn(idx);
+          } else {
+            btn.classList.add('wrong');
+            showFb(false, '<strong>Not quite.</strong> '+r.explain+'<br>Read the gist again, then pick the correct option to advance.');
+            // allow retry: re-enable after a moment so they must actively choose the right one
+            setTimeout(function(){
+              opts.forEach(function(o){ o.classList.remove('disabled'); });
+            }, 250);
+          }
+        });
+      });
+    } else {
+      var input=document.getElementById('ivIn');
+      var check=document.getElementById('ivCheck');
+      var reveal=document.getElementById('ivReveal');
+      function doCheck(){
+        var val=input.value;
+        var ok;
+        if (r.kind==='typecmd'){
+          var uc=canon(val.replace(/^[A-Za-z0-9_().#-]+[#>]\s*/,''));
+          ok = r.accept.some(function(a){ return canon(a)===uc; });
+        } else {
+          var ua=canonAddr(val);
+          ok = r.accept.some(function(a){ return canonAddr(a)===ua; });
+        }
+        input.classList.remove('ok','bad');
+        if (ok){
+          input.classList.add('ok');
+          showFb(true,'<strong>Correct.</strong> '+r.explain);
+          passBeat(idx);
+          injectNextBtn(idx);
+        } else {
+          input.classList.add('bad');
+          showFb(false,'<strong>Not yet.</strong> '+r.explain+'<br>Fix it and check again, or hit Reveal.');
+        }
+      }
+      check.addEventListener('click', doCheck);
+      input.addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); doCheck(); } });
+      reveal.addEventListener('click', function(){
+        input.value = r.accept[0];
+        showFb(false,'<strong>Answer:</strong> <code>'+escapeHtml(r.accept[0])+'</code>. '+r.explain+'<br>Clear it and type it yourself to mark this beat mastered.');
+      });
+      input.focus();
+    }
+  }
+
+  // ── Capstone ────────────────────────────────────────────────────────
+  function renderCapstone(){
+    var quizHtml = CAP.quiz.map(function(q,qi){
+      return '<div class="iv-beat" style="margin-bottom:var(--s-md)" data-q="'+qi+'">'+
+        '<p class="iv-q">'+(qi+1)+'. '+q.q+'</p>'+
+        '<div class="iv-opts iv-capq" data-q="'+qi+'">'+ q.opts.map(function(o,i){
+          return '<button class="iv-opt" type="button" data-q="'+qi+'" data-i="'+i+'"><span class="mark">'+String.fromCharCode(65+i)+'</span><span>'+o.t+'</span></button>';
+        }).join('')+'</div>'+
+        '<div class="iv-fb" id="ivCapFb'+qi+'"></div>'+
+      '</div>';
+    }).join('');
+
+    stage.innerHTML =
+      '<section class="iv-beat">'+
+        '<div class="iv-beat-head">'+
+          '<span class="iv-beat-num">Capstone</span>'+
+          '<span class="iv-beat-kind config">build from memory</span>'+
+          '<h2>Reproduce the whole config, then clear the exam questions</h2>'+
+        '</div>'+
+        '<div class="iv-scenario"><div class="sh">Scenario</div><div class="sb">'+escapeHtml(CAP.scenario)+'</div></div>'+
+        '<div class="iv-term">'+
+          '<label for="ivCapArea">R(config)#  - type the full config, one command per line</label>'+
+          '<textarea class="iv-termarea" id="ivCapArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="ipv6 unicast-routing&#10;interface g0/0&#10;..."></textarea>'+
+        '</div>'+
+        '<div class="iv-actions" style="margin-bottom:var(--s-md)">'+
+          '<button class="iv-btn" type="button" id="ivCapCheck">Check config</button>'+
+          '<button class="iv-btn sec" type="button" id="ivCapClear">Clear</button>'+
+          '<button class="iv-btn sec" type="button" id="ivCapReveal">Reveal</button>'+
+        '</div>'+
+        '<div class="iv-results" id="ivCapResults"></div>'+
+        '<h2 style="font-family:var(--font-display);font-size:1.1rem;margin:var(--s-lg) 0 var(--s-sm)">Exam style questions</h2>'+
+        quizHtml +
+        '<div class="iv-actions"><button class="iv-btn sec" type="button" id="ivCapBack">← Back to beats</button></div>'+
+      '</section>';
+
+    var area=document.getElementById('ivCapArea');
+    document.getElementById('ivCapCheck').addEventListener('click', checkCapConfig);
+    document.getElementById('ivCapClear').addEventListener('click', function(){ area.value=''; document.getElementById('ivCapResults').classList.remove('show'); area.focus(); });
+    document.getElementById('ivCapReveal').addEventListener('click', function(){
+      var lines=CAP.recall.map(function(r){return r.cmds[0];}); lines.push(CAP.verify);
+      area.value=lines.join('\n');
+    });
+    area.addEventListener('keydown', function(e){ if ((e.ctrlKey||e.metaKey)&&e.key==='Enter'){ e.preventDefault(); checkCapConfig(); } });
+    document.getElementById('ivCapBack').addEventListener('click', function(){ state.cur=TOTAL-1; saveState(); render(); });
+
+    // quiz wiring
+    document.querySelectorAll('.iv-capq').forEach(function(grp){
+      var qi=parseInt(grp.getAttribute('data-q'),10);
+      var q=CAP.quiz[qi];
+      var opts=grp.querySelectorAll('.iv-opt');
+      opts.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var i=parseInt(btn.getAttribute('data-i'),10);
+          opts.forEach(function(o){ o.classList.add('disabled'); o.classList.remove('correct','wrong'); });
+          q.opts.forEach(function(o,j){ if (o.correct) opts[j].classList.add('correct'); });
+          var fb=document.getElementById('ivCapFb'+qi);
+          fb.className='iv-fb show '+(q.opts[i].correct?'good':'bad');
+          if (q.opts[i].correct){ fb.innerHTML='<strong>Correct.</strong> '+q.explain; capQuizState[qi]=true; }
+          else { btn.classList.add('wrong'); fb.innerHTML='<strong>Not quite.</strong> '+q.explain+'<br>Try again.'; setTimeout(function(){ opts.forEach(function(o){ o.classList.remove('disabled'); }); },250); }
+          maybeFinishCapstone();
+        });
+      });
+    });
+  }
+
+  var capQuizState = {};
+
+  function checkCapConfig(){
+    var raw=document.getElementById('ivCapArea').value;
+    var userLinesRaw=raw.split('\n')
+      .map(function(l){ return l.replace(/^[A-Za-z0-9_().#-]+[#>]\s*/,''); })
+      .map(function(l){ return l.trim(); })
+      .filter(function(l){ return l.length && l.charAt(0)!=='!'; });
+    var userCanon=userLinesRaw.map(canon);
+    var used=userCanon.map(function(){ return false; });
+    var rows=[], got=0;
+
+    CAP.recall.forEach(function(exp){
+      var found=-1;
+      for (var i=0;i<userCanon.length;i++){ if (!used[i] && exp.cmds.some(function(c){ return canon(c)===userCanon[i]; })){ found=i; break; } }
+      if (found>=0){ used[found]=true; got++; rows.push({cls:'ok',icon:'✓',text:userLinesRaw[found],note:exp.note}); }
+      else rows.push({cls:'miss',icon:'✗',text:exp.cmds[0],note:'missing: '+exp.note});
+    });
+    // verify
+    var vc=canon(CAP.verify), vOk=false, vIdx=-1;
+    for (var j=0;j<userCanon.length;j++){ if (!used[j] && (userCanon[j]===vc || userCanon[j].indexOf(vc)===0)){ vOk=true; vIdx=j; break; } }
+    if (vOk){ used[vIdx]=true; rows.push({cls:'ok',icon:'✓',text:userLinesRaw[vIdx],note:'verify command'}); }
+    else rows.push({cls:'miss',icon:'✗',text:CAP.verify,note:'missing the verify command'});
+    // extras
+    userCanon.forEach(function(uc,i){ if (!used[i]) rows.push({cls:'extra',icon:'~',text:userLinesRaw[i],note:'not needed for this scenario'}); });
+
+    var total=CAP.recall.length+1;
+    var gotAll=got+(vOk?1:0);
+    var pct=Math.round((gotAll/total)*100);
+    if (pct > (state.capBest||0)) state.capBest=pct;
+    state.capConfigPass = (pct>=100);
+    saveState();
+
+    var box=document.getElementById('ivCapResults');
+    var sc = pct>=100?'green':pct>=70?'amber':'red';
+    var sl = pct>=100?'Perfect. That is the full config from memory.':pct>=70?'Close. Fill the gaps and run it again.':'Back to the config beat, then retry.';
+    box.innerHTML='<div class="iv-score"><span class="sv '+sc+'">'+pct+'%</span><span class="sl">'+gotAll+' of '+total+' lines. '+sl+'</span></div>'+
+      '<div class="iv-diff">'+rows.map(function(r){return '<div class="iv-diff-row '+r.cls+'"><span class="icon">'+r.icon+'</span><span class="ctext">'+escapeHtml(r.text)+'<span class="cnote">'+escapeHtml(r.note)+'</span></span></div>';}).join('')+'</div>';
+    box.classList.add('show'); box.setAttribute('aria-live','polite');
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
+    maybeFinishCapstone();
+  }
+
+  function maybeFinishCapstone(){
+    var allQuiz = CAP.quiz.every(function(_,qi){ return capQuizState[qi]; });
+    if (state.capConfigPass && allQuiz && !state.capDone){
+      state.capDone=true; saveState(); renderOverall(); renderRail();
+      var box=document.getElementById('ivCapResults');
+      var done=document.createElement('div'); done.className='iv-done';
+      done.innerHTML='<h2>Course complete</h2><p>You reproduced the IPv6 config from memory and cleared all five exam questions. The 7th bit flip, the :: once rule, and the prefix to type map are now drilled. Come back tomorrow and run the capstone cold to keep it.</p>';
+      box.parentNode.insertBefore(done, box.nextSibling);
+      done.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  }
+
+  // ── Top level render ────────────────────────────────────────────────
+  function render(){
+    renderOverall();
+    renderRail();
+    if (state.cur==='cap'){ if (!capUnlocked()) state.cur=Math.max(0,TOTAL-1); }
+    if (state.cur==='cap') renderCapstone();
+    else {
+      // guard against landing on a locked beat
+      var idx=state.cur;
+      if (!isUnlocked(idx) && !state.mastered[idx]){
+        for (var i=0;i<TOTAL;i++){ if (!state.mastered[i]){ idx=i; break; } }
+        state.cur=idx; saveState();
+      }
+      renderBeat(idx);
+    }
+  }
+
+  render();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

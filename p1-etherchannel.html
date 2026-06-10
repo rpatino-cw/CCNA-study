@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>EtherChannel (Deep): CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress rail ──────────────────────────────────────── */
+.ec-overall{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg);position:sticky;top:0;background:var(--bg);z-index:5}
+.ec-ostat{display:flex;flex-direction:column}
+.ec-ostat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.ec-ostat .val.green{color:var(--prof-strong)}
+.ec-ostat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.ec-obar-wrap{flex:1;min-width:160px}
+.ec-obar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.ec-obar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.ec-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.ec-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+.ec-reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Beat rail (left nav) + content ─────────────────────────────── */
+.ec-layout{display:grid;grid-template-columns:230px 1fr;gap:var(--s-lg);align-items:start}
+@media(max-width:900px){.ec-layout{grid-template-columns:1fr}}
+.ec-rail{position:sticky;top:84px}
+@media(max-width:900px){.ec-rail{position:static;display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}}
+.ec-rail h3{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin:0 0 var(--s-sm)}
+@media(max-width:900px){.ec-rail h3{display:none}}
+.ec-railbtn{display:flex;align-items:center;gap:9px;width:100%;text-align:left;font-family:var(--font-display);font-size:.8rem;font-weight:600;padding:9px 11px;margin-bottom:3px;background:none;border:none;border-left:3px solid transparent;border-radius:0 var(--radius) var(--radius) 0;color:var(--ink-secondary);cursor:pointer;transition:background .15s,color .15s}
+@media(max-width:900px){.ec-railbtn{white-space:nowrap;flex-shrink:0;border-left:none;border-bottom:3px solid transparent;border-radius:var(--radius) var(--radius) 0 0}}
+.ec-railbtn:hover{background:var(--bg-hover);color:var(--ink)}
+.ec-railbtn.active{background:var(--accent-dim);border-left-color:var(--accent);color:var(--accent)}
+@media(max-width:900px){.ec-railbtn.active{border-left-color:transparent;border-bottom-color:var(--accent)}}
+.ec-railbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ec-raildot{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);flex-shrink:0;transition:background .2s}
+.ec-raildot.mastered{background:var(--prof-strong)}
+.ec-railbtn.capstone .ec-railnum{font-family:var(--font-mono);font-size:.7rem;color:var(--accent)}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.ec-beat{display:none}
+.ec-beat.active{display:block}
+.ec-beat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-xs)}
+.ec-beat-num{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:var(--accent);background:var(--accent-dim);padding:2px 9px;border-radius:100px;letter-spacing:.03em}
+.ec-beat h2{font-family:var(--font-display);font-size:1.45rem;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.2}
+.ec-beat-gist{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.55;margin:6px 0 var(--s-lg);max-width:64ch}
+
+/* WHY / CORE callouts */
+.ec-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-sm);margin-bottom:var(--s-lg)}
+@media(max-width:640px){.ec-meta-grid{grid-template-columns:1fr}}
+.ec-meta{padding:13px 15px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface)}
+.ec-meta .mh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:5px}
+.ec-meta .mb{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.5}
+.ec-meta code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border:1px solid var(--border);border-radius:3px}
+
+/* mental-model figure */
+.ec-fig{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-surface);padding:16px;margin-bottom:var(--s-lg)}
+.ec-fig .fc{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-muted);font-weight:600;margin-bottom:10px}
+.ec-fig svg{display:block;width:100%;height:auto;max-width:520px;margin:0 auto}
+.ec-ascii{font-family:var(--font-mono);font-size:.8rem;line-height:1.5;color:var(--ink);background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;overflow-x:auto;white-space:pre;margin-bottom:var(--s-lg)}
+
+/* combo matrix */
+.ec-matrix{width:100%;border-collapse:collapse;margin-bottom:var(--s-lg);font-family:var(--font-mono);font-size:.82rem}
+.ec-matrix th,.ec-matrix td{border:1px solid var(--border);padding:8px 10px;text-align:center}
+.ec-matrix th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.74rem;color:var(--ink-secondary);font-weight:600}
+.ec-matrix td.yes{background:var(--prof-strong-bg);color:var(--prof-strong);font-weight:700}
+.ec-matrix td.no{background:var(--prof-weak-bg);color:var(--prof-weak);font-weight:700}
+.ec-matrix caption{font-family:var(--font-body);font-size:.84rem;color:var(--ink-muted);margin-bottom:6px;text-align:left}
+
+/* guided CLI block */
+.ec-cli-block{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-lg);overflow:hidden;border:1px solid #292524}
+.ec-line{display:grid;grid-template-columns:1fr;gap:0;padding:0 16px;align-items:baseline;border-left:3px solid transparent;transition:background .15s}
+.ec-line:hover{background:rgba(255,255,255,.03)}
+.ec-line.comment{opacity:.65}
+.ec-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.ec-cmd .pmt{color:#A8A29E}
+.ec-cmd.cmt{color:#86EFAC}
+.ec-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.ec-line:last-child .ec-ann{border-bottom:none}
+
+.ec-verify{padding:14px 16px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:var(--prof-strong-bg);margin-bottom:var(--s-lg)}
+.ec-verify .vh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:7px}
+.ec-verify code{display:block;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);padding:4px 0}
+.ec-verify .vn{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary);margin-top:4px;line-height:1.5}
+
+.ec-traps{padding:14px 16px;border:1px solid var(--prof-weak);border-radius:var(--radius-lg);background:var(--prof-weak-bg);margin-bottom:var(--s-lg)}
+.ec-traps .th{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-weak);font-weight:700;margin-bottom:7px}
+.ec-traps ul{margin:0;padding-left:18px}
+.ec-traps li{font-family:var(--font-body);font-size:.87rem;color:var(--ink);line-height:1.55;margin-bottom:5px}
+.ec-traps code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border:1px solid var(--border);border-radius:3px}
+
+/* ── Recall block (inside each beat) ────────────────────────────── */
+.ec-recall{border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));padding:18px;margin-top:var(--s-md)}
+.ec-recall .rh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:4px}
+.ec-recall .rq{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.55;margin-bottom:var(--s-md)}
+.ec-recall .rq code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border:1px solid var(--border);border-radius:3px}
+.ec-recall-locked{font-family:var(--font-display);font-size:.74rem;font-weight:600;color:var(--prof-strong);display:none;align-items:center;gap:6px;margin-top:4px}
+.ec-recall-locked.show{display:flex}
+
+/* type-the-command terminal */
+.ec-term{background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:12px 14px;margin-bottom:var(--s-sm)}
+.ec-term label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:7px;letter-spacing:.04em}
+.ec-termarea{width:100%;min-height:56px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.ec-termarea::placeholder{color:#57534E}
+
+/* MCQ + short answer inputs */
+.ec-choices{display:flex;flex-direction:column;gap:7px;margin-bottom:var(--s-sm)}
+.ec-choice{display:flex;align-items:flex-start;gap:10px;text-align:left;font-family:var(--font-body);font-size:.92rem;line-height:1.45;color:var(--ink);padding:11px 13px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .15s,background .15s}
+.ec-choice:hover{border-color:var(--accent)}
+.ec-choice:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ec-choice .lt{font-family:var(--font-mono);font-weight:700;color:var(--ink-secondary);flex-shrink:0}
+.ec-choice.correct{border-color:var(--prof-strong);background:var(--prof-strong-bg)}
+.ec-choice.correct .lt{color:var(--prof-strong)}
+.ec-choice.wrong{border-color:var(--prof-weak);background:var(--prof-weak-bg)}
+.ec-choice.wrong .lt{color:var(--prof-weak)}
+.ec-choice.dim{opacity:.55}
+.ec-blankinput{width:100%;font-family:var(--font-mono);font-size:.9rem;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--ink);outline:none;margin-bottom:var(--s-sm)}
+.ec-blankinput:focus{border-color:var(--accent)}
+.ec-fillctx{font-family:var(--font-mono);font-size:.85rem;line-height:1.9;color:var(--ink);background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:var(--s-sm);white-space:pre-wrap}
+.ec-fillctx .blank{color:var(--accent);font-weight:700;border-bottom:2px dashed var(--accent);padding:0 6px}
+
+.ec-recall-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ec-checkbtn{padding:11px 22px;font-family:var(--font-display);font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+.ec-checkbtn:hover{filter:brightness(1.06)}
+.ec-checkbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.ec-secbtn{padding:11px 18px;font-family:var(--font-display);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.ec-secbtn:hover{border-color:var(--accent);color:var(--accent)}
+.ec-secbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.ec-feedback{font-family:var(--font-body);font-size:.9rem;line-height:1.5;margin-top:var(--s-sm);padding:11px 14px;border-radius:var(--radius);display:none}
+.ec-feedback.show{display:block}
+.ec-feedback.ok{background:var(--prof-strong-bg);border:1px solid var(--prof-strong);color:var(--ink)}
+.ec-feedback.bad{background:var(--prof-weak-bg);border:1px solid var(--prof-weak);color:var(--ink)}
+.ec-feedback code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border:1px solid var(--border);border-radius:3px}
+
+/* beat nav */
+.ec-beat-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:var(--s-lg);padding-top:var(--s-md);border-top:1px solid var(--rule)}
+.ec-nextbtn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;font-family:var(--font-display);font-size:.88rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-lg);cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s,opacity .15s;box-shadow:0 4px 14px rgba(180,83,9,.22)}
+.ec-nextbtn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 22px rgba(180,83,9,.32)}
+.ec-nextbtn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.ec-nextbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.ec-prevbtn{padding:12px 18px;font-family:var(--font-display);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:none;color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;transition:all .15s}
+.ec-prevbtn:hover{border-color:var(--accent);color:var(--accent)}
+.ec-locknote{font-family:var(--font-body);font-size:.8rem;color:var(--ink-muted);margin-left:auto}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.ec-capstone .ec-scenario{padding:16px 18px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.ec-scenario .sh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.ec-scenario .sb{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.55}
+.ec-cap-hint{font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);margin-bottom:8px;line-height:1.5}
+.ec-cap-hint code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border:1px solid var(--border);border-radius:3px}
+.ec-capterm{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:var(--s-sm)}
+.ec-capterm label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:8px;letter-spacing:.04em}
+.ec-capterm textarea{width:100%;min-height:170px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.ec-capterm textarea::placeholder{color:#57534E}
+.ec-results{display:none;margin:var(--s-md) 0 var(--s-lg)}
+.ec-results.show{display:block}
+.ec-score{display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-md)}
+.ec-score .sv{font-family:var(--font-mono);font-size:2.2rem;font-weight:700;line-height:1}
+.ec-score .sv.green{color:var(--prof-strong)}
+.ec-score .sv.amber{color:var(--prof-mid)}
+.ec-score .sv.red{color:var(--prof-weak)}
+.ec-score .sl{font-family:var(--font-display);font-size:.9rem;font-weight:600;color:var(--ink-secondary)}
+.ec-diff{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.ec-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.ec-diff-row:first-child{border-top:none}
+.ec-diff-row .icon{flex-shrink:0;width:18px;text-align:center;font-weight:700}
+.ec-diff-row.ok{background:var(--prof-strong-bg)}
+.ec-diff-row.ok .icon{color:var(--prof-strong)}
+.ec-diff-row.miss{background:var(--prof-weak-bg)}
+.ec-diff-row.miss .icon{color:var(--prof-weak)}
+.ec-diff-row.extra .icon{color:var(--prof-mid)}
+.ec-diff-row .ctext{color:var(--ink);word-break:break-word}
+.ec-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.ec-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.ec-quiz{margin-top:var(--s-lg)}
+.ec-quiz h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin:0 0 var(--s-sm);padding-top:var(--s-md);border-top:1px solid var(--rule)}
+.ec-quiz-q{margin-bottom:var(--s-lg)}
+.ec-quiz-q .qtext{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.5;margin-bottom:9px}
+.ec-quiz-q .qtext code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border:1px solid var(--border);border-radius:3px}
+
+.ec-done{text-align:center;padding:var(--s-xl) var(--s-lg);border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:var(--prof-strong-bg);margin-top:var(--s-lg);display:none}
+.ec-done.show{display:block}
+.ec-done h2{font-family:var(--font-display);font-size:1.4rem;color:var(--prof-strong);border:none;margin:0 0 8px;padding:0}
+.ec-done p{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);margin:0;line-height:1.5}
+
+@media(max-width:640px){
+  .ec-beat h2{font-size:1.2rem}
+  .ec-overall{gap:var(--s-sm)}
+  .ec-score .sv{font-size:1.8rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .ec-nextbtn,.ec-obar>span,.ec-raildot{transition:none}
+  .ec-nextbtn:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">DEEP COURSE · TEACH THEN RECALL · OBJ 2.4</div>
+    <h1>EtherChannel (Deep)</h1>
+    <p class="subtitle">One topic, taught in small beats. Each beat teaches a chunk, then forces you to recall it before you move on. Finish with a blank terminal capstone.</p>
+  </header>
+
+  <p class="intro">EtherChannel bundles several physical links into ONE logical link. You get more bandwidth and redundancy, and Spanning Tree treats the bundle as a single link so it never blocks your spare cables. Work the beats in order. You cannot advance past a beat until you pass its recall check. The highest-yield idea (which negotiation combos actually form) is drilled the most.</p>
+
+  <div class="ec-overall" id="ecOverall"></div>
+
+  <div class="ec-layout">
+    <aside class="ec-rail">
+      <h3>Beats</h3>
+      <div id="ecRail"></div>
+    </aside>
+    <main id="ecMain"></main>
+  </div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var PREFIX = 'ccna_p1-etherchannel_';
+
+  // ── localStorage ────────────────────────────────────────────────────
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(PREFIX + 'mastery') || '{}'); }
+    catch (e) { return {}; }
+  }
+  function saveState(s) {
+    try { localStorage.setItem(PREFIX + 'mastery', JSON.stringify(s)); }
+    catch (e) {}
+  }
+  // state = { beats: { <id>: true }, capstone: { best: 0-100, quiz: 0-100 } }
+  var state = loadState();
+  state.beats = state.beats || {};
+  state.capstone = state.capstone || { best: 0, quiz: 0 };
+
+  // ── Lenient CLI normalization (copied pattern from config-bootcamp) ──
+  var IFACE = [
+    [/\bgigabitethernet\b/g, 'g'], [/\bgigethernet\b/g, 'g'], [/\bgig\b/g, 'g'], [/\bge\b/g, 'g'],
+    [/\bfastethernet\b/g, 'f'], [/\bfa\b/g, 'f'],
+    [/\btengigabitethernet\b/g, 'te'], [/\bethernet\b/g, 'e'],
+    [/\bport-channel\b/g, 'po'], [/\bportchannel\b/g, 'po'],
+    [/\binterface range\b/g, 'int range'], [/\binterface\b/g, 'int'], [/\bint\b/g, 'int']
+  ];
+  function normalize(line) {
+    var s = (line || '').toLowerCase().trim();
+    if (!s) return '';
+    s = s.replace(/[ \t]+/g, ' ');
+    IFACE.forEach(function (r) { s = s.replace(r[0], r[1]); });
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  }
+  function canon(line) {
+    var s = normalize(line);
+    s = s.replace(/^int range /, 'int range ').replace(/^int /, 'interface ');
+    // collapse "int range" leading verb back consistently
+    s = s.replace(/^int range /, 'interface range ');
+    s = s.replace(/\bno shut$/, 'no shutdown');
+    return s;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── Beat data ───────────────────────────────────────────────────────
+  // Recall types: 'mcq' | 'short' | 'fill' | 'type' | 'trap'
+  var BEATS = [
+    {
+      id: 'concept',
+      label: 'The bundle idea',
+      title: 'One logical link from many',
+      gist: 'EtherChannel groups two or more identical physical links into a single logical link called a port-channel (also written Po). The CCNA cap is 8 active links per bundle.',
+      why: 'More bandwidth and built-in redundancy on one logical interface. If a member cable dies, traffic shifts to the survivors and the link stays up.',
+      core: 'Spanning Tree sees the whole bundle as ONE link. That is why it does NOT block the redundant members the way it would block parallel standalone cables.',
+      fig: {
+        caption: 'Without EtherChannel, STP blocks the spare. With it, both cables forward as one logical link.',
+        svg: '<svg viewBox="0 0 520 150" role="img" aria-label="Two switches with two links: STP blocks one when standalone, both forward as one port-channel when bundled">' +
+          '<rect x="20" y="20" width="80" height="36" rx="4" fill="#FFFFFF" stroke="#E2DFD9"/><text x="60" y="43" font-family="Space Grotesk" font-size="13" text-anchor="middle" fill="#1C1917">SW1</text>' +
+          '<rect x="20" y="94" width="80" height="36" rx="4" fill="#FFFFFF" stroke="#E2DFD9"/><text x="60" y="117" font-family="Space Grotesk" font-size="13" text-anchor="middle" fill="#1C1917">SW2</text>' +
+          '<line x1="100" y1="32" x2="100" y2="106" stroke="#DC2626" stroke-width="2" stroke-dasharray="5 4"/><text x="112" y="60" font-family="JetBrains Mono" font-size="10" fill="#DC2626">g0/1 fwd</text>' +
+          '<text x="112" y="86" font-family="JetBrains Mono" font-size="10" fill="#DC2626">g0/2 BLOCKED</text>' +
+          '<text x="60" y="148" font-family="Source Serif 4" font-size="11" text-anchor="middle" fill="#A8A29E">standalone: STP blocks one</text>' +
+          '<rect x="300" y="20" width="80" height="36" rx="4" fill="#FFFFFF" stroke="#E2DFD9"/><text x="340" y="43" font-family="Space Grotesk" font-size="13" text-anchor="middle" fill="#1C1917">SW1</text>' +
+          '<rect x="300" y="94" width="80" height="36" rx="4" fill="#FFFFFF" stroke="#E2DFD9"/><text x="340" y="117" font-family="Space Grotesk" font-size="13" text-anchor="middle" fill="#1C1917">SW2</text>' +
+          '<rect x="332" y="56" width="16" height="38" rx="3" fill="#16A34A" opacity="0.18" stroke="#16A34A"/>' +
+          '<line x1="340" y1="56" x2="340" y2="94" stroke="#16A34A" stroke-width="6"/><text x="392" y="78" font-family="JetBrains Mono" font-size="10" fill="#16A34A">Po1 = g0/1 + g0/2</text>' +
+          '<text x="340" y="148" font-family="Source Serif 4" font-size="11" text-anchor="middle" fill="#A8A29E">bundled: both forward as one</text>' +
+          '</svg>'
+      },
+      traps: [
+        'STP does NOT block bundled members. The whole channel counts as a single link in the STP topology.',
+        'The CCNA maximum is <code>8 active</code> links per EtherChannel.'
+      ],
+      recall: {
+        type: 'mcq',
+        q: 'You bundle g0/1 and g0/2 into a port-channel between two switches. What does Spanning Tree do with the second member link?',
+        choices: [
+          'Blocks g0/2 to prevent a loop, like it would for a parallel standalone link.',
+          'Treats the whole bundle as one logical link, so both members forward.',
+          'Shuts g0/2 administratively until g0/1 fails.',
+          'Runs a separate STP instance on each member.'
+        ],
+        answer: 1,
+        explain: 'STP sees the port-channel as a single link, so it never blocks the redundant members. That extra bandwidth is the whole point.'
+      }
+    },
+    {
+      id: 'protocols',
+      label: 'Three ways to negotiate',
+      title: 'LACP, PAgP, and static (on)',
+      gist: 'A bundle can be brought up three ways: LACP (open standard), PAgP (Cisco proprietary), or static "on" (no negotiation at all).',
+      why: 'The negotiation protocol decides whether the two ends agree to bundle and whether they detect a misconfigured neighbor. Static "on" skips that safety check entirely.',
+      core: 'LACP keywords are <code>active</code> and <code>passive</code>. PAgP keywords are <code>desirable</code> and <code>auto</code>. Static is <code>on</code>. LACP is the open standard, PAgP is Cisco only.',
+      ascii:
+        'PROTOCOL   KEYWORDS               TYPE\n' +
+        '--------   ------------------     -----------------\n' +
+        'LACP       active / passive       open standard (802.3ad)\n' +
+        'PAgP       desirable / auto       Cisco proprietary\n' +
+        'static     on                     no negotiation',
+      traps: [
+        '<code>active</code> / <code>passive</code> are LACP. <code>desirable</code> / <code>auto</code> are PAgP. Do not swap them.',
+        'LACP = open standard (works with non-Cisco). PAgP = Cisco only.'
+      ],
+      recall: {
+        type: 'mcq',
+        q: 'Which pair of keywords belongs to LACP, the open-standard EtherChannel protocol?',
+        choices: [
+          'desirable and auto',
+          'on and on',
+          'active and passive',
+          'desirable and passive'
+        ],
+        answer: 2,
+        explain: 'LACP uses active and passive. PAgP (Cisco) uses desirable and auto. Static is on.'
+      }
+    },
+    {
+      id: 'combos',
+      label: 'Which combos form',
+      title: 'The valid mode combinations',
+      gist: 'Both ends must use the SAME protocol family, and at least one end must actively negotiate. This is the single highest-yield EtherChannel fact on the exam.',
+      why: 'A channel only forms if one side is willing to start the conversation. Two silent sides (passive+passive or auto+auto) just sit there and never bundle.',
+      core: 'VALID: active+active, active+passive, desirable+desirable, desirable+auto, on+on. NEVER: passive+passive, auto+auto, and NEVER mix LACP with PAgP.',
+      matrix: {
+        caption: 'Green forms a channel, red never does. Note the two silent pairs that fail.',
+        rows: [
+          ['active + active', 'yes'],
+          ['active + passive', 'yes'],
+          ['passive + passive', 'no'],
+          ['desirable + desirable', 'yes'],
+          ['desirable + auto', 'yes'],
+          ['auto + auto', 'no'],
+          ['on + on', 'yes'],
+          ['active + desirable (mixed)', 'no']
+        ]
+      },
+      traps: [
+        '<code>passive + passive</code> NEVER forms a channel. Both sides wait.',
+        '<code>auto + auto</code> NEVER forms a channel. Both sides wait.',
+        'NEVER mix protocols. LACP on one end and PAgP on the other never bundles.'
+      ],
+      recall: {
+        type: 'trap',
+        q: 'Spot the trap. Which of these mode combinations will NOT form an EtherChannel?',
+        choices: [
+          'active + passive',
+          'passive + passive',
+          'desirable + auto',
+          'on + on'
+        ],
+        answer: 1,
+        explain: 'passive + passive never forms: neither side initiates. You also reject auto + auto and any mixed-protocol pair (active + desirable).'
+      }
+    },
+    {
+      id: 'match',
+      label: 'Members must match',
+      title: 'Matching settings on every member',
+      gist: 'Every physical member, on both switches, must agree on speed, duplex, and the allowed VLAN list (plus access vs trunk mode and native VLAN on trunks).',
+      why: 'If a member disagrees on any of these, that link is left out of the bundle or the whole channel fails to come up. The mismatch is a classic "channel down" troubleshooting trigger.',
+      core: 'Match speed, duplex, and allowed VLANs across all members and both ends. Configure shared switchport settings ON the <code>port-channel</code> interface so they apply to every member at once.',
+      ascii:
+        'MUST MATCH across all members + both ends:\n' +
+        '  speed         (e.g. 1000 / 1000)\n' +
+        '  duplex        (full / full)\n' +
+        '  allowed VLANs (same list)\n' +
+        '  mode          (access vs trunk)\n' +
+        '  native VLAN   (on trunks)',
+      traps: [
+        'Any speed, duplex, or VLAN mismatch breaks the bundle or drops the offending member.',
+        'Set shared switchport config on the <code>port-channel</code> interface, not on each physical port, so members cannot drift apart.'
+      ],
+      recall: {
+        type: 'short',
+        q: 'Name any ONE setting that must match across all EtherChannel members or the bundle breaks. (One word is fine: speed, duplex, or VLANs.)',
+        accept: ['speed', 'duplex', 'vlan', 'vlans', 'allowed vlan', 'allowed vlans', 'native vlan', 'mode'],
+        explain: 'Speed, duplex, and the allowed VLAN list (plus mode and native VLAN on trunks) must all match. Any mismatch breaks the channel.'
+      }
+    },
+    {
+      id: 'cfg-members',
+      label: 'Config: bundle the ports',
+      title: 'channel-group on the member range',
+      gist: 'Select both physical ports at once with interface range, then drop them into a channel group with a mode. The mode you pick here decides the protocol.',
+      why: 'channel-group is what actually creates the logical port-channel and assigns these members to it. The mode keyword (active here) chooses LACP and tells this side to negotiate.',
+      core: 'The <code>mode active</code> keyword selects LACP and actively negotiates the bundle. The channel number (1) is locally significant but the members must share it.',
+      cli: [
+        {p:'S(config)#', c:'interface range g0/1-2', a:'Select both physical ports at once so the next command hits both.'},
+        {p:'S(config-if-range)#', c:'channel-group 1 mode active', a:'Put both ports into channel-group 1 using LACP active. This creates Po1 and starts negotiating.'}
+      ],
+      verify: {c:'show etherchannel summary', n:'Look for flag P next to each member, which means the port is bundled into the channel.'},
+      traps: [
+        'The mode keyword chooses the protocol: <code>active</code>/<code>passive</code> = LACP, <code>desirable</code>/<code>auto</code> = PAgP, <code>on</code> = static.'
+      ],
+      recall: {
+        type: 'type',
+        q: 'Type the command, issued under <code>S(config-if-range)#</code>, that bundles these ports into channel 1 using LACP active.',
+        prompt: 'S(config-if-range)#',
+        accept: ['channel-group 1 mode active'],
+        explain: 'channel-group 1 mode active assigns the members to Po1 and uses LACP active to negotiate.'
+      }
+    },
+    {
+      id: 'cfg-po',
+      label: 'Config: the port-channel',
+      title: 'interface port-channel and trunk it',
+      gist: 'Now configure the logical interface itself. Settings applied to interface port-channel 1 push down to every bundled member automatically.',
+      why: 'You configure switchport behavior once, on the logical interface, instead of repeating it on each cable. That also guarantees the members stay in sync.',
+      core: 'Enter <code>interface port-channel 1</code> and set <code>switchport mode trunk</code>. The trunk setting now applies to all members of the bundle.',
+      cli: [
+        {p:'S(config)#', c:'interface port-channel 1', a:'Enter the logical channel interface. Po1 is shorthand that the parser also accepts.'},
+        {p:'S(config-if)#', c:'switchport mode trunk', a:'Make the whole bundle a trunk. This applies to every member port at once.'}
+      ],
+      verify: {c:'show etherchannel summary', n:'Confirms Po1 exists and lists its bundled members with the P flag.'},
+      traps: [
+        'Put shared switchport config on the <code>port-channel</code> interface so all members match. A per-member mismatch can drop that link from the bundle.'
+      ],
+      recall: {
+        type: 'fill',
+        q: 'Fill the blank. You are configuring the logical channel as a trunk.',
+        context: 'S(config)# interface port-channel 1\nS(config-if)# switchport mode ____',
+        accept: ['trunk'],
+        explain: 'switchport mode trunk on the port-channel makes every bundled member a trunk.'
+      }
+    },
+    {
+      id: 'verify',
+      label: 'Verify the bundle',
+      title: 'show etherchannel summary and the P flag',
+      gist: 'The one verification command to know is show etherchannel summary. The flag next to each member tells you its state.',
+      why: 'On the exam and on a real switch, this is how you confirm the channel actually came up rather than just trusting your config.',
+      core: 'In <code>show etherchannel summary</code>, flag <code>P</code> means the port is bundled (in the port-channel). Common others: <code>D</code> = down, <code>I</code> = standalone/individual (not bundled), <code>s</code> = suspended.',
+      ascii:
+        'SW# show etherchannel summary\n' +
+        'Group  Port-channel  Protocol    Ports\n' +
+        '-----+-------------+-----------+----------------\n' +
+        '1      Po1(SU)       LACP        Gi0/1(P) Gi0/2(P)\n' +
+        '\n' +
+        'P = bundled in the channel   (this is what you want)\n' +
+        'I = standalone (not bundling)   D = down   s = suspended',
+      verify: {c:'show etherchannel summary', n:'P next to a member = bundled and healthy. I or s means it is not joining the channel.'},
+      traps: [
+        'Flag <code>P</code> = bundled. If you see <code>I</code> (individual) or <code>s</code> (suspended), the member is NOT in the channel, usually a mode or settings mismatch.'
+      ],
+      recall: {
+        type: 'mcq',
+        q: 'In <code>show etherchannel summary</code>, what does the flag <code>P</code> next to a member port mean?',
+        choices: [
+          'The port is in PAgP mode.',
+          'The port is bundled into the channel (working).',
+          'The port is in a pending/suspended state.',
+          'The port is powered but down.'
+        ],
+        answer: 1,
+        explain: 'P means the port is bundled into the port-channel. That is the healthy state you are verifying for.'
+      }
+    }
+  ];
+
+  var CAPSTONE = {
+    scenario: 'On switch SW1, bundle ports g0/1 and g0/2 into channel 1 using LACP active, then make the resulting logical interface an 802.1Q trunk. Reproduce the full config from memory, then end with the verify command.',
+    hintVerify: 'show etherchannel summary',
+    recall: [
+      {cmds:['interface range g0/1-2','interface range gigabitethernet0/1-2'], note:'select both member ports'},
+      {cmds:['channel-group 1 mode active'], note:'LACP active, creates Po1'},
+      {cmds:['interface port-channel 1','interface po1'], note:'the logical channel interface'},
+      {cmds:['switchport mode trunk'], note:'applies to all members'}
+    ],
+    quiz: [
+      {
+        q: 'Two switches are connected by g0/1 and g0/2. SW1 is set to <code>passive</code> and SW2 is set to <code>passive</code>. What happens?',
+        choices: [
+          'A LACP channel forms normally.',
+          'No channel forms, because neither side initiates.',
+          'A PAgP channel forms.',
+          'One link bundles and the other is suspended.'
+        ],
+        answer: 1,
+        explain: 'passive + passive never forms. At least one side must actively negotiate (active for LACP, desirable for PAgP).'
+      },
+      {
+        q: 'SW1 uses LACP <code>active</code> and SW2 uses PAgP <code>desirable</code>. Result?',
+        choices: [
+          'Channel forms using LACP.',
+          'Channel forms using PAgP.',
+          'No channel forms. You cannot mix protocols.',
+          'Channel forms in static on mode.'
+        ],
+        answer: 2,
+        explain: 'Never mix protocols. LACP on one end and PAgP on the other will not bundle.'
+      },
+      {
+        q: 'Which command verifies that members are bundled, with the <code>P</code> flag indicating success?',
+        choices: [
+          'show interfaces trunk',
+          'show spanning-tree',
+          'show etherchannel summary',
+          'show ip interface brief'
+        ],
+        answer: 2,
+        explain: 'show etherchannel summary lists each member with a flag. P means bundled.'
+      },
+      {
+        q: 'What is the maximum number of ACTIVE links the CCNA expects in a single EtherChannel?',
+        choices: ['2', '4', '8', '16'],
+        answer: 2,
+        explain: 'The CCNA cap is 8 active links per EtherChannel bundle.'
+      },
+      {
+        q: 'A member port shows flag <code>I</code> in <code>show etherchannel summary</code> while its neighbor expected to bundle. Most likely cause?',
+        choices: [
+          'The cable is unplugged.',
+          'A mode or settings mismatch, so it stays standalone instead of bundling.',
+          'The switch is rebooting.',
+          'STP blocked the port.'
+        ],
+        answer: 1,
+        explain: 'I = individual/standalone. Usually an incompatible mode pairing or a speed/duplex/VLAN mismatch keeps it from joining.'
+      }
+    ]
+  };
+
+  // ── DOM refs ────────────────────────────────────────────────────────
+  var overall = document.getElementById('ecOverall');
+  var rail = document.getElementById('ecRail');
+  var main = document.getElementById('ecMain');
+  var TOTAL = BEATS.length + 1; // beats + capstone
+
+  function beatDone(id) { return !!state.beats[id]; }
+  function capstoneDone() { return (state.capstone.best >= 100) && (state.capstone.quiz >= 80); }
+  function countMastered() {
+    var n = 0;
+    BEATS.forEach(function (b) { if (beatDone(b.id)) n++; });
+    if (capstoneDone()) n++;
+    return n;
+  }
+  // a beat/capstone is reachable if every earlier beat is done
+  function reachable(idx) {
+    for (var i = 0; i < idx; i++) {
+      if (i < BEATS.length && !beatDone(BEATS[i].id)) return false;
+    }
+    return true;
+  }
+
+  var current = 0; // 0..BEATS.length (last = capstone)
+
+  // ── Overall rail ────────────────────────────────────────────────────
+  function renderOverall() {
+    var done = countMastered();
+    var pct = Math.round((done / TOTAL) * 100);
+    overall.innerHTML =
+      '<div class="ec-ostat"><span class="val ' + (done === TOTAL ? 'green' : '') + '">' + done + '/' + TOTAL + '</span><span class="lbl">Beats mastered</span></div>' +
+      '<div class="ec-ostat"><span class="val">' + pct + '%</span><span class="lbl">Course complete</span></div>' +
+      '<div class="ec-obar-wrap"><div class="ec-obar"><span style="width:' + pct + '%"></span></div></div>' +
+      '<button class="ec-reset" id="ecReset" type="button">Reset progress</button>';
+    document.getElementById('ecReset').addEventListener('click', function () {
+      if (window.confirm('Reset all EtherChannel (Deep) progress?')) {
+        state = { beats: {}, capstone: { best: 0, quiz: 0 } };
+        saveState(state); current = 0; renderAll();
+      }
+    });
+  }
+
+  function renderRail() {
+    var html = '';
+    BEATS.forEach(function (b, i) {
+      var cls = 'ec-railbtn' + (i === current ? ' active' : '');
+      var dot = 'ec-raildot' + (beatDone(b.id) ? ' mastered' : '');
+      var disabled = reachable(i) ? '' : ' disabled';
+      html += '<button class="' + cls + '" type="button" data-idx="' + i + '"' + disabled +
+        ' aria-label="Beat ' + (i + 1) + ': ' + b.label + (beatDone(b.id) ? ', mastered' : '') + '">' +
+        '<span class="' + dot + '"></span><span class="ec-railnum">' + (i + 1) + '.</span> ' + escapeHtml(b.label) + '</button>';
+    });
+    var capIdx = BEATS.length;
+    var capCls = 'ec-railbtn capstone' + (current === capIdx ? ' active' : '');
+    var capDot = 'ec-raildot' + (capstoneDone() ? ' mastered' : '');
+    var capDisabled = reachable(capIdx) ? '' : ' disabled';
+    html += '<button class="' + capCls + '" type="button" data-idx="' + capIdx + '"' + capDisabled +
+      ' aria-label="Capstone' + (capstoneDone() ? ', mastered' : '') + '">' +
+      '<span class="' + capDot + '"></span><span class="ec-railnum">&starf;</span> Capstone</button>';
+    rail.innerHTML = html;
+    rail.querySelectorAll('.ec-railbtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        current = parseInt(btn.getAttribute('data-idx'), 10);
+        renderAll(); window.scrollTo(0, 0);
+      });
+    });
+  }
+
+  // ── Beat content builders ───────────────────────────────────────────
+  function cliHtml(cli) {
+    return '<div class="ec-cli-block">' + cli.map(function (ln) {
+      var ann = ln.a ? '<span class="ec-ann">' + escapeHtml(ln.a) + '</span>' : '';
+      return '<div class="ec-line"><span class="ec-cmd"><span class="pmt">' + escapeHtml(ln.p) + ' </span>' + escapeHtml(ln.c) + '</span>' + ann + '</div>';
+    }).join('') + '</div>';
+  }
+  function matrixHtml(m) {
+    var rows = m.rows.map(function (r) {
+      return '<tr><td style="text-align:left">' + escapeHtml(r[0]) + '</td><td class="' + r[1] + '">' + (r[1] === 'yes' ? 'forms' : 'never') + '</td></tr>';
+    }).join('');
+    return '<table class="ec-matrix"><caption>' + escapeHtml(m.caption) + '</caption>' +
+      '<thead><tr><th style="text-align:left">Mode combination</th><th>Result</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function recallHtml(b) {
+    var r = b.recall;
+    var inner = '';
+    if (r.type === 'mcq' || r.type === 'trap') {
+      inner = '<div class="ec-choices" id="ecChoices">' +
+        r.choices.map(function (c, i) {
+          return '<button class="ec-choice" type="button" data-i="' + i + '"><span class="lt">' + 'ABCD'.charAt(i) + '</span><span>' + escapeHtml(c) + '</span></button>';
+        }).join('') + '</div>';
+    } else if (r.type === 'type') {
+      inner = '<div class="ec-term"><label for="ecInput">' + escapeHtml(r.prompt) + '</label>' +
+        '<textarea class="ec-termarea" id="ecInput" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type the command..."></textarea></div>' +
+        '<div class="ec-recall-actions"><button class="ec-checkbtn" type="button" id="ecCheck">Check</button>' +
+        '<button class="ec-secbtn" type="button" id="ecRevealR">Show answer</button></div>';
+    } else if (r.type === 'fill') {
+      inner = '<div class="ec-fillctx">' + r.context.replace('____', '<span class="blank">____</span>').replace(/\n/g, '<br>').replace(/S\(config[^)]*\)#/g, function (m) { return '<span style="color:var(--ink-muted)">' + m + '</span>'; }) + '</div>' +
+        '<input class="ec-blankinput" id="ecInput" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="fill the blank">' +
+        '<div class="ec-recall-actions"><button class="ec-checkbtn" type="button" id="ecCheck">Check</button>' +
+        '<button class="ec-secbtn" type="button" id="ecRevealR">Show answer</button></div>';
+    } else if (r.type === 'short') {
+      inner = '<input class="ec-blankinput" id="ecInput" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="your answer">' +
+        '<div class="ec-recall-actions"><button class="ec-checkbtn" type="button" id="ecCheck">Check</button>' +
+        '<button class="ec-secbtn" type="button" id="ecRevealR">Show answer</button></div>';
+    }
+    return '<div class="ec-recall">' +
+      '<div class="rh">Recall check</div>' +
+      '<div class="rq">' + r.q + '</div>' +
+      inner +
+      '<div class="ec-feedback" id="ecFeedback" aria-live="polite"></div>' +
+      '<div class="ec-recall-locked" id="ecLocked"><span>&#10003;</span> Recall passed. This beat is mastered.</div>' +
+      '</div>';
+  }
+
+  function renderBeat(idx) {
+    var b = BEATS[idx];
+    var passed = beatDone(b.id);
+
+    var metaGrid = '<div class="ec-meta-grid">' +
+      '<div class="ec-meta"><div class="mh">Why</div><div class="mb">' + b.why + '</div></div>' +
+      '<div class="ec-meta"><div class="mh">Core truth</div><div class="mb">' + b.core + '</div></div>' +
+      '</div>';
+
+    var figHtml = '';
+    if (b.fig) figHtml = '<div class="ec-fig"><div class="fc">Mental model</div>' + b.fig.svg + '<p style="font-family:var(--font-body);font-size:.84rem;color:var(--ink-muted);text-align:center;margin:10px 0 0">' + escapeHtml(b.fig.caption) + '</p></div>';
+    if (b.ascii) figHtml += '<div class="ec-ascii">' + escapeHtml(b.ascii) + '</div>';
+    if (b.matrix) figHtml += matrixHtml(b.matrix);
+
+    var cliBlock = b.cli ? cliHtml(b.cli) : '';
+    var verifyHtml = b.verify ? '<div class="ec-verify"><div class="vh">Verify</div><code>' + escapeHtml(b.verify.c) + '</code><div class="vn">' + escapeHtml(b.verify.n) + '</div></div>' : '';
+    var trapsHtml = (b.traps && b.traps.length) ?
+      '<div class="ec-traps"><div class="th">Traps to remember</div><ul>' + b.traps.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>' : '';
+
+    main.innerHTML =
+      '<section class="ec-beat active">' +
+        '<div class="ec-beat-head"><span class="ec-beat-num">Beat ' + (idx + 1) + ' of ' + BEATS.length + '</span><h2>' + escapeHtml(b.title) + '</h2></div>' +
+        '<p class="ec-beat-gist">' + escapeHtml(b.gist) + '</p>' +
+        metaGrid + figHtml + cliBlock + verifyHtml + trapsHtml +
+        recallHtml(b) +
+        '<div class="ec-beat-nav">' +
+          (idx > 0 ? '<button class="ec-prevbtn" type="button" id="ecPrev">&larr; Previous</button>' : '') +
+          '<button class="ec-nextbtn" type="button" id="ecNext"' + (passed ? '' : ' disabled') + '>' +
+            (idx === BEATS.length - 1 ? 'To the capstone &starf;' : 'Next beat &rarr;') + '</button>' +
+          '<span class="ec-locknote" id="ecLockNote">' + (passed ? 'Mastered. You can advance.' : 'Pass the recall check to unlock.') + '</span>' +
+        '</div>' +
+      '</section>';
+
+    wireRecall(b);
+    if (passed) showLocked();
+
+    var prev = document.getElementById('ecPrev');
+    if (prev) prev.addEventListener('click', function () { current = idx - 1; renderAll(); window.scrollTo(0, 0); });
+    document.getElementById('ecNext').addEventListener('click', function () {
+      if (this.disabled) return;
+      current = idx + 1; renderAll(); window.scrollTo(0, 0);
+    });
+  }
+
+  function showLocked() {
+    var lk = document.getElementById('ecLocked');
+    if (lk) lk.classList.add('show');
+    var nx = document.getElementById('ecNext');
+    if (nx) nx.disabled = false;
+    var note = document.getElementById('ecLockNote');
+    if (note) note.textContent = 'Mastered. You can advance.';
+  }
+
+  function passBeat(b) {
+    state.beats[b.id] = true;
+    saveState(state);
+    showLocked();
+    renderOverall(); renderRail();
+  }
+
+  function wireRecall(b) {
+    var r = b.recall;
+    var fb = document.getElementById('ecFeedback');
+    function good(extra) {
+      fb.className = 'ec-feedback ok show';
+      fb.innerHTML = '<strong>Correct.</strong> ' + r.explain + (extra || '');
+      passBeat(b);
+    }
+    function bad(msg) {
+      fb.className = 'ec-feedback bad show';
+      fb.innerHTML = '<strong>Not yet.</strong> ' + (msg || '') + ' Try again, or use Show answer.';
+    }
+
+    if (r.type === 'mcq' || r.type === 'trap') {
+      var choices = document.getElementById('ecChoices');
+      choices.querySelectorAll('.ec-choice').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var i = parseInt(btn.getAttribute('data-i'), 10);
+          choices.querySelectorAll('.ec-choice').forEach(function (c) { c.classList.add('dim'); });
+          if (i === r.answer) {
+            btn.classList.remove('dim'); btn.classList.add('correct');
+            good();
+          } else {
+            btn.classList.remove('dim'); btn.classList.add('wrong');
+            var correctBtn = choices.querySelector('.ec-choice[data-i="' + r.answer + '"]');
+            if (correctBtn) { correctBtn.classList.remove('dim'); correctBtn.classList.add('correct'); }
+            bad('That combination is not the right answer.');
+          }
+        });
+      });
+    } else {
+      var input = document.getElementById('ecInput');
+      var check = document.getElementById('ecCheck');
+      var reveal = document.getElementById('ecRevealR');
+      function evaluate() {
+        var v = (input.value || '').trim();
+        if (!v) { bad('Type something first.'); return; }
+        var ok = false;
+        if (r.type === 'type') {
+          var uc = canon(v.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/, ''));
+          ok = r.accept.some(function (a) { return canon(a) === uc; });
+        } else {
+          var lv = v.toLowerCase().replace(/[ \t]+/g, ' ').trim();
+          ok = r.accept.some(function (a) { return a.toLowerCase() === lv; });
+        }
+        if (ok) good(); else bad(r.type === 'type' ? 'Check the keyword and the channel number.' : 'Check spelling.');
+      }
+      check.addEventListener('click', evaluate);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && (r.type !== 'type' || e.ctrlKey || e.metaKey || !e.shiftKey)) {
+          if (r.type === 'type' && !(e.ctrlKey || e.metaKey)) { /* allow Enter to submit single-line */ }
+          e.preventDefault(); evaluate();
+        }
+      });
+      reveal.addEventListener('click', function () {
+        input.value = r.accept[0];
+        fb.className = 'ec-feedback bad show';
+        fb.innerHTML = 'Answer shown. Clear it and type it yourself to master this beat.';
+      });
+    }
+  }
+
+  // ── Capstone ────────────────────────────────────────────────────────
+  function lineMatches(userCanon, expected) {
+    for (var i = 0; i < expected.cmds.length; i++) {
+      if (canon(expected.cmds[i]) === userCanon) return true;
+    }
+    return false;
+  }
+  function scoreClass(pct) { return pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red'; }
+  function scoreLabel(pct) {
+    if (pct >= 100) return 'Perfect config. That is exam ready.';
+    if (pct >= 70) return 'Close. Fix the gaps and run it again for a clean 100.';
+    if (pct >= 40) return 'Partial. Revisit the config beats, then retry.';
+    return 'Keep drilling. Walk the beats again and type it from memory.';
+  }
+
+  function renderCapstone() {
+    var c = CAPSTONE;
+    var quizHtml = '<div class="ec-quiz"><h3>Exam-style questions</h3>' +
+      c.quiz.map(function (q, qi) {
+        return '<div class="ec-quiz-q" data-qi="' + qi + '">' +
+          '<div class="qtext">' + (qi + 1) + '. ' + q.q + '</div>' +
+          '<div class="ec-choices">' +
+            q.choices.map(function (ch, ci) {
+              return '<button class="ec-choice" type="button" data-qi="' + qi + '" data-ci="' + ci + '"><span class="lt">' + 'ABCD'.charAt(ci) + '</span><span>' + escapeHtml(ch) + '</span></button>';
+            }).join('') +
+          '</div>' +
+          '<div class="ec-feedback" id="ecQfb' + qi + '" aria-live="polite"></div>' +
+        '</div>';
+      }).join('') + '</div>';
+
+    main.innerHTML =
+      '<section class="ec-beat active ec-capstone">' +
+        '<div class="ec-beat-head"><span class="ec-beat-num">&starf; Capstone</span><h2>Reproduce the whole config</h2></div>' +
+        '<p class="ec-beat-gist">No teaching now. Build the entire EtherChannel from memory, line by line, then answer the trigger questions.</p>' +
+        '<div class="ec-scenario"><div class="sh">Scenario</div><div class="sb">' + escapeHtml(c.scenario) + '</div></div>' +
+        '<p class="ec-cap-hint">Type the config from memory, one command per line. Abbreviations like <code>int range g0/1-2</code> and <code>int po1</code> are accepted. End with the verify command. Press Ctrl+Enter to check.</p>' +
+        '<div class="ec-capterm"><label for="ecCapArea">SW1(config)#</label>' +
+          '<textarea id="ecCapArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type each config line here..."></textarea></div>' +
+        '<div class="ec-recall-actions">' +
+          '<button class="ec-checkbtn" type="button" id="ecCapCheck">Check config</button>' +
+          '<button class="ec-secbtn" type="button" id="ecCapClear">Clear</button>' +
+          '<button class="ec-secbtn" type="button" id="ecCapReveal">Show answer</button>' +
+        '</div>' +
+        '<div class="ec-results" id="ecCapResults"></div>' +
+        quizHtml +
+        '<div class="ec-done" id="ecDone"><h2>EtherChannel mastered</h2><p>You reproduced the full config and cleared the trigger questions. This whole topic is in long-term recall now.</p></div>' +
+        '<div class="ec-beat-nav"><button class="ec-prevbtn" type="button" id="ecPrev">&larr; Back to beats</button></div>' +
+      '</section>';
+
+    var area = document.getElementById('ecCapArea');
+    document.getElementById('ecCapCheck').addEventListener('click', checkCapstone);
+    document.getElementById('ecCapClear').addEventListener('click', function () {
+      area.value = ''; document.getElementById('ecCapResults').classList.remove('show'); area.focus();
+    });
+    document.getElementById('ecCapReveal').addEventListener('click', function () {
+      var lines = c.recall.map(function (r) { return r.cmds[0]; });
+      lines.push(c.hintVerify);
+      area.value = lines.join('\n');
+      var box = document.getElementById('ecCapResults');
+      box.innerHTML = '<div class="ec-score"><span class="sl">Answer shown above. Clear it and type it yourself to score 100.</span></div>';
+      box.classList.add('show');
+    });
+    area.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); checkCapstone(); }
+    });
+
+    document.getElementById('ecPrev').addEventListener('click', function () { current = BEATS.length - 1; renderAll(); window.scrollTo(0, 0); });
+
+    // wire quiz
+    var quizState = {};
+    main.querySelectorAll('.ec-quiz-q').forEach(function (qEl) {
+      var qi = parseInt(qEl.getAttribute('data-qi'), 10);
+      var q = c.quiz[qi];
+      qEl.querySelectorAll('.ec-choice').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var ci = parseInt(btn.getAttribute('data-ci'), 10);
+          qEl.querySelectorAll('.ec-choice').forEach(function (b2) { b2.classList.add('dim'); });
+          var fb = document.getElementById('ecQfb' + qi);
+          if (ci === q.answer) {
+            btn.classList.remove('dim'); btn.classList.add('correct');
+            fb.className = 'ec-feedback ok show'; fb.innerHTML = '<strong>Correct.</strong> ' + q.explain;
+            quizState[qi] = true;
+          } else {
+            btn.classList.remove('dim'); btn.classList.add('wrong');
+            var cb = qEl.querySelector('.ec-choice[data-ci="' + q.answer + '"]');
+            if (cb) { cb.classList.remove('dim'); cb.classList.add('correct'); }
+            fb.className = 'ec-feedback bad show'; fb.innerHTML = '<strong>Not quite.</strong> ' + q.explain;
+            quizState[qi] = false;
+          }
+          var correct = 0;
+          c.quiz.forEach(function (_, k) { if (quizState[k]) correct++; });
+          var qpct = Math.round((correct / c.quiz.length) * 100);
+          if (qpct > (state.capstone.quiz || 0)) { state.capstone.quiz = qpct; saveState(state); }
+          renderOverall(); renderRail(); maybeDone();
+        });
+      });
+    });
+
+    maybeDone();
+  }
+
+  function checkCapstone() {
+    var c = CAPSTONE;
+    var raw = document.getElementById('ecCapArea').value;
+    var userLinesRaw = raw.split('\n')
+      .map(function (l) { return l.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/, ''); })
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+    var userCanon = userLinesRaw.map(canon);
+    var usedUser = userCanon.map(function () { return false; });
+
+    var rows = [], gotConfig = 0;
+    c.recall.forEach(function (exp) {
+      var found = -1;
+      for (var i = 0; i < userCanon.length; i++) {
+        if (!usedUser[i] && lineMatches(userCanon[i], exp)) { found = i; break; }
+      }
+      if (found >= 0) { usedUser[found] = true; gotConfig++; rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[found], note: exp.note }); }
+      else rows.push({ cls: 'miss', icon: '✗', text: exp.cmds[0], note: 'missing: ' + exp.note });
+    });
+
+    var verifyCanon = canon(c.hintVerify), verifyOk = false, verifyIdx = -1;
+    for (var j = 0; j < userCanon.length; j++) {
+      if (!usedUser[j] && (userCanon[j] === verifyCanon || userCanon[j].indexOf(verifyCanon) === 0)) { verifyOk = true; verifyIdx = j; break; }
+    }
+    if (verifyOk) { usedUser[verifyIdx] = true; rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[verifyIdx], note: 'verify command' }); }
+    else rows.push({ cls: 'miss', icon: '✗', text: c.hintVerify, note: 'missing the verify command' });
+
+    userCanon.forEach(function (uc, i) {
+      if (!usedUser[i]) rows.push({ cls: 'extra', icon: '~', text: userLinesRaw[i], note: 'not expected for this scenario' });
+    });
+
+    var totalNeeded = c.recall.length + 1;
+    var got = gotConfig + (verifyOk ? 1 : 0);
+    var pct = Math.round((got / totalNeeded) * 100);
+    if (pct > (state.capstone.best || 0)) { state.capstone.best = pct; saveState(state); }
+
+    var box = document.getElementById('ecCapResults');
+    var rowsHtml = rows.map(function (r) {
+      return '<div class="ec-diff-row ' + r.cls + '"><span class="icon">' + r.icon + '</span>' +
+        '<span class="ctext">' + escapeHtml(r.text) + '<span class="cnote">' + escapeHtml(r.note) + '</span></span></div>';
+    }).join('');
+    box.innerHTML =
+      '<div class="ec-score"><span class="sv ' + scoreClass(pct) + '">' + pct + '%</span>' +
+      '<span class="sl">' + got + ' of ' + totalNeeded + ' lines. ' + scoreLabel(pct) + '</span></div>' +
+      '<div class="ec-diff">' + rowsHtml + '</div>';
+    box.classList.add('show');
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    renderOverall(); renderRail(); maybeDone();
+  }
+
+  function maybeDone() {
+    var done = document.getElementById('ecDone');
+    if (done && capstoneDone()) done.classList.add('show');
+  }
+
+  // ── Render dispatch ─────────────────────────────────────────────────
+  function renderAll() {
+    if (current > BEATS.length) current = BEATS.length;
+    if (!reachable(current)) {
+      // bounce back to the first unfinished beat
+      for (var i = 0; i < BEATS.length; i++) { if (!beatDone(BEATS[i].id)) { current = i; break; } }
+    }
+    renderOverall();
+    renderRail();
+    if (current < BEATS.length) renderBeat(current);
+    else renderCapstone();
+  }
+
+  renderAll();
+});
+</script>
+</body>
+</html>

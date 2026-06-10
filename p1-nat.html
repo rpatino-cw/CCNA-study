@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>NAT static + PAT (Deep): CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress rail ──────────────────────────────────────── */
+.nt-rail{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg)}
+.nt-rail .nt-stat{display:flex;flex-direction:column}
+.nt-rail .nt-stat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.nt-rail .nt-stat .val.green{color:var(--prof-strong)}
+.nt-rail .nt-stat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.nt-rail .nt-bar-wrap{flex:1;min-width:160px}
+.nt-bar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.nt-bar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.nt-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.nt-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+.nt-reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Beat tracker dots ──────────────────────────────────────────── */
+.nt-track{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+.nt-track .seg{flex:1;min-width:26px;height:8px;border-radius:4px;background:var(--bg-recessed);transition:background .25s}
+.nt-track .seg.done{background:var(--prof-strong)}
+.nt-track .seg.current{background:var(--accent)}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.nt-beat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0;overflow:hidden;margin-bottom:var(--s-lg)}
+.nt-beat-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.nt-bnum{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:#fff;background:var(--accent);border-radius:100px;padding:3px 10px;letter-spacing:.03em}
+.nt-bnum.done{background:var(--prof-strong)}
+.nt-btype{font-family:var(--font-display);font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-muted);border:1px solid var(--border);border-radius:100px;padding:2px 9px}
+.nt-beat-head h2{font-family:var(--font-display);font-size:1.18rem;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.25;flex:1;min-width:180px}
+.nt-bdone{font-family:var(--font-display);font-size:.74rem;font-weight:700;color:var(--prof-strong);margin-left:auto;display:none;align-items:center;gap:4px}
+.nt-bdone.show{display:inline-flex}
+.nt-beat-body{padding:18px}
+
+/* teach blocks */
+.nt-teach .gist{font-family:var(--font-body);font-size:1.02rem;line-height:1.6;color:var(--ink);margin:0 0 var(--s-md)}
+.nt-teach .gist code{font-family:var(--font-mono);font-size:.86em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+.nt-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media(max-width:640px){.nt-meta-grid{grid-template-columns:1fr}}
+.nt-meta{padding:13px 15px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.nt-meta .mh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:5px}
+.nt-meta .mb{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.5}
+.nt-meta .mb code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* SVG / diagram holder */
+.nt-fig{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:var(--s-md);overflow-x:auto}
+.nt-fig svg{display:block;margin:0 auto;max-width:100%;height:auto}
+.nt-fig .cap{font-family:var(--font-body);font-size:.8rem;color:var(--ink-muted);text-align:center;margin-top:8px;line-height:1.5}
+.nt-ascii{font-family:var(--font-mono);font-size:.8rem;line-height:1.5;color:var(--ink);white-space:pre;margin:0}
+
+/* guided CLI block */
+.nt-cli{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.nt-line{display:grid;grid-template-columns:1fr;gap:0;padding:0 16px;align-items:baseline;border-left:3px solid transparent;transition:background .15s}
+.nt-line:hover{background:rgba(255,255,255,.03)}
+.nt-line.comment{opacity:.7}
+.nt-line.alt{border-left-color:var(--accent)}
+.nt-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.nt-cmd .pmt{color:#A8A29E}
+.nt-cmd .kw{color:#FBBF24}
+.nt-cmd.cmt{color:#86EFAC}
+.nt-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.nt-line:last-child .nt-ann{border-bottom:none}
+
+.nt-verify{padding:13px 16px;border:1px solid var(--prof-strong);border-radius:var(--radius);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.nt-verify .vh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:6px}
+.nt-verify code{display:block;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);padding:3px 0}
+.nt-verify .vn{font-family:var(--font-body);font-size:.83rem;color:var(--ink-secondary);margin-top:2px;line-height:1.5}
+
+.nt-traps{padding:13px 16px;border:1px solid var(--prof-weak);border-radius:var(--radius);background:rgba(220,38,38,.04);margin-bottom:var(--s-md)}
+.nt-traps .th{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-weak);font-weight:700;margin-bottom:6px}
+.nt-traps ul{margin:0;padding-left:18px}
+.nt-traps li{font-family:var(--font-body);font-size:.86rem;color:var(--ink);line-height:1.55;margin-bottom:5px}
+.nt-traps code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── Recall block ───────────────────────────────────────────────── */
+.nt-recall{border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));padding:16px 18px;margin-top:var(--s-md)}
+.nt-recall .rh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:8px}
+.nt-prompt{font-family:var(--font-body);font-size:.98rem;color:var(--ink);line-height:1.55;margin:0 0 12px}
+.nt-prompt code{font-family:var(--font-mono);font-size:.84em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+
+/* type-the-command / fill-blank terminal input */
+.nt-termwrap{background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:12px 14px;margin-bottom:10px}
+.nt-termwrap label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:7px;letter-spacing:.03em}
+.nt-input{width:100%;background:transparent;border:none;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.nt-input::placeholder{color:#57534E}
+.nt-area{width:100%;min-height:120px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.nt-area::placeholder{color:#57534E}
+
+/* MCQ */
+.nt-choices{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.nt-choice{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;font-family:var(--font-body);font-size:.92rem;line-height:1.45;color:var(--ink);transition:border-color .15s,background .15s;width:100%}
+.nt-choice:hover{border-color:var(--accent)}
+.nt-choice:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nt-choice .ltr{font-family:var(--font-mono);font-weight:700;color:var(--ink-secondary);flex-shrink:0}
+.nt-choice.correct{border-color:var(--prof-strong);background:rgba(22,163,74,.08)}
+.nt-choice.correct .ltr{color:var(--prof-strong)}
+.nt-choice.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.07)}
+.nt-choice.wrong .ltr{color:var(--prof-weak)}
+.nt-choice.locked{cursor:default;pointer-events:none}
+.nt-choice code{font-family:var(--font-mono);font-size:.86em;padding:0 3px}
+
+.nt-recall-actions{display:flex;gap:8px;flex-wrap:wrap}
+.nt-btn{padding:11px 22px;font-family:var(--font-display);font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+.nt-btn:hover{filter:brightness(1.07)}
+.nt-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.nt-btn.sec{background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);font-weight:600}
+.nt-btn.sec:hover{filter:none;border-color:var(--accent);color:var(--accent)}
+
+.nt-feedback{display:none;margin-top:12px;padding:12px 14px;border-radius:var(--radius);font-family:var(--font-body);font-size:.9rem;line-height:1.55}
+.nt-feedback.show{display:block}
+.nt-feedback.pass{background:rgba(22,163,74,.07);border:1px solid var(--prof-strong);color:var(--ink)}
+.nt-feedback.fail{background:rgba(220,38,38,.06);border:1px solid var(--prof-weak);color:var(--ink)}
+.nt-feedback strong{font-family:var(--font-display)}
+.nt-feedback code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+
+.nt-next{display:none;margin-top:14px}
+.nt-next.show{display:block}
+.nt-nextbtn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;font-family:var(--font-display);font-size:.92rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--prof-strong);color:#fff;border:none;border-radius:var(--radius-lg);cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s;box-shadow:0 5px 16px rgba(22,163,74,.22)}
+.nt-nextbtn:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(22,163,74,.3)}
+.nt-nextbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+.nt-locked{opacity:.45;pointer-events:none;filter:grayscale(.3)}
+.nt-locked .nt-beat-body{display:none}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.nt-cap{background:var(--bg-surface);border:2px solid var(--accent);border-radius:var(--radius-lg);padding:0;overflow:hidden;margin-bottom:var(--s-lg)}
+.nt-cap.nt-locked{border-color:var(--border)}
+.nt-cap-head{padding:16px 18px;border-bottom:1px solid var(--rule);background:linear-gradient(135deg,rgba(180,83,9,.06),rgba(180,83,9,0))}
+.nt-cap-head h2{font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin:0;letter-spacing:-.01em}
+.nt-cap-head .sub{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);margin-top:4px;line-height:1.5}
+.nt-cap-body{padding:18px}
+.nt-scenario{padding:14px 16px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:var(--bg);margin-bottom:var(--s-md)}
+.nt-scenario .sh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.nt-scenario .sb{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.55}
+.nt-scenario .sb code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* capstone diff results */
+.nt-results{display:none;margin-top:var(--s-md)}
+.nt-results.show{display:block}
+.nt-score{display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-md)}
+.nt-score .sv{font-family:var(--font-mono);font-size:2.3rem;font-weight:700;line-height:1}
+.nt-score .sv.green{color:var(--prof-strong)}
+.nt-score .sv.amber{color:var(--prof-mid)}
+.nt-score .sv.red{color:var(--prof-weak)}
+.nt-score .sl{font-family:var(--font-display);font-size:.92rem;font-weight:600;color:var(--ink-secondary)}
+.nt-diff{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.nt-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.nt-diff-row:first-child{border-top:none}
+.nt-diff-row .icon{flex-shrink:0;width:18px;text-align:center;font-weight:700}
+.nt-diff-row.ok{background:rgba(22,163,74,.05)}
+.nt-diff-row.ok .icon{color:var(--prof-strong)}
+.nt-diff-row.miss{background:rgba(220,38,38,.05)}
+.nt-diff-row.miss .icon{color:var(--prof-weak)}
+.nt-diff-row .ctext{color:var(--ink);word-break:break-word}
+.nt-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.nt-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.nt-quiz{margin-top:var(--s-lg)}
+.nt-quiz>h3{font-family:var(--font-display);font-size:.96rem;font-weight:700;margin:0 0 var(--s-sm);color:var(--ink)}
+.nt-q{border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:var(--s-sm);background:var(--bg)}
+.nt-q .qstem{font-family:var(--font-body);font-size:.95rem;line-height:1.55;color:var(--ink);margin:0 0 10px}
+.nt-q .qstem code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+.nt-done-banner{display:none;text-align:center;padding:var(--s-xl) var(--s-lg);border:2px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.06);margin-bottom:var(--s-lg)}
+.nt-done-banner.show{display:block}
+.nt-done-banner h2{font-family:var(--font-display);font-size:1.4rem;font-weight:700;color:var(--prof-strong);margin:0 0 6px}
+.nt-done-banner p{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);margin:0;line-height:1.55}
+
+@media(max-width:640px){
+  .nt-beat-head h2{font-size:1.05rem}
+  .nt-cap-head h2{font-size:1.15rem}
+  .nt-score .sv{font-size:1.9rem}
+  .nt-rail{gap:var(--s-sm)}
+}
+@media (prefers-reduced-motion: reduce){
+  .nt-nextbtn,.nt-bar>span,.nt-track .seg{transition:none}
+  .nt-nextbtn:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">DEEP COURSE · TEACH THEN RECALL · OBJ 4.1</div>
+    <h1>NAT static + PAT (Deep)</h1>
+    <p class="subtitle">One topic, taught in small beats. Each beat teaches a chunk, then forces you to recall it before you move on. End with a blank terminal capstone and exam triggers.</p>
+  </header>
+
+  <p class="intro">NAT swaps private inside addresses for public outside addresses on the way to the internet, because RFC 1918 space cannot route there. Work through every beat in order. You cannot unlock the next beat until you pass the recall for the current one. The capstone makes you rebuild the whole config from memory.</p>
+
+  <div class="nt-rail" id="ntRail"></div>
+  <div class="nt-track" id="ntTrack" aria-hidden="true"></div>
+
+  <div id="ntBeats"></div>
+
+  <div class="nt-done-banner" id="ntDone">
+    <h2>Topic mastered</h2>
+    <p>You taught yourself NAT inside source and proved it cold: terms, the static map, the PAT chain, and the interface tags. Come back tomorrow and rebuild the capstone from a blank terminal to lock it in.</p>
+  </div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var PREFIX = 'ccna_p1-nat_';
+
+  // ── localStorage ────────────────────────────────────────────────────
+  function load() {
+    try { return JSON.parse(localStorage.getItem(PREFIX + 'mastery') || '{}'); }
+    catch (e) { return {}; }
+  }
+  function save(s) {
+    try { localStorage.setItem(PREFIX + 'mastery', JSON.stringify(s)); }
+    catch (e) {}
+  }
+  // state = { beats: { <id>: true }, capstone: { best: 0-100 }, quiz: { <i>: true } }
+  var state = load();
+  if (!state.beats) state.beats = {};
+  if (!state.quiz) state.quiz = {};
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── Lenient command normalization (interface abbreviations + whitespace) ─
+  var IFACE = [
+    [/\bgigabitethernet\b/g, 'g'], [/\bgigethernet\b/g, 'g'], [/\bgig\b/g, 'g'], [/\bge\b/g, 'g'],
+    [/\bfastethernet\b/g, 'f'], [/\bfa\b/g, 'f'],
+    [/\btengigabitethernet\b/g, 'te'], [/\bethernet\b/g, 'e'],
+    [/\binterface\b/g, 'int'], [/\bint\b/g, 'int']
+  ];
+  function normalize(line) {
+    var s = (line || '').toLowerCase().trim();
+    if (!s) return '';
+    s = s.replace(/[ \t]+/g, ' ');
+    IFACE.forEach(function (r) { s = s.replace(r[0], r[1]); });
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  }
+  // accept any of a set of canonical forms
+  function matchesAny(input, accepted) {
+    var n = normalize(input);
+    return accepted.some(function (a) { return normalize(a) === n; });
+  }
+
+  // ── COURSE DATA ──────────────────────────────────────────────────────
+  // Beat types: 'concept' (teach + MCQ), 'config' (teach CLI + type/fill recall),
+  //             'trap' (teach + spot-the-trap MCQ)
+  // Ordered so the highest-yield ideas (overload keyword, both tags) hit late and hard,
+  // after the terms are solid.
+  var BEATS = [
+    // 1 ─ mental model
+    {
+      id: 'why', type: 'concept', kind: 'mcq',
+      title: 'Why NAT exists at all',
+      gist: 'A private host like <code>10.0.0.5</code> cannot route on the internet. RFC 1918 ranges (<code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>) are reserved for internal use only. NAT sits on the edge router and swaps the private inside address for a public outside address on the way out, then swaps it back on the way in.',
+      meta: [
+        {h:'GIST', b:'Private in, public out. The router rewrites the source IP as the packet leaves toward the internet.'},
+        {h:'WHY', b:'There are not enough public IPv4 addresses for every host. NAT lets a whole private LAN share public space.'}
+      ],
+      fig: {type:'ascii', cap:'NAT rewrites the source IP at the edge as traffic leaves the private LAN.', art:
+'  PRIVATE LAN                EDGE ROUTER                 INTERNET\n'+
+'  (RFC 1918)                  (does NAT)                 (public)\n'+
+'\n'+
+'  10.0.0.5  ───────────►  [ swap src IP ]  ───────────►  203.0.113.5\n'+
+'  cannot route             inside -> outside             can route\n'+
+'  on internet                                            on internet'},
+      recall: {
+        type:'mcq',
+        prompt:'Why must a host at <code>10.0.0.5</code> be translated before it can reach a public web server?',
+        choices:[
+          {t:'<code>10.0.0.0/8</code> is RFC 1918 private space and is not routable on the internet.', ok:true},
+          {t:'10.0.0.5 is an IPv6 address and the internet only routes IPv4.', ok:false},
+          {t:'Private addresses are slower, so NAT speeds them up.', ok:false},
+          {t:'NAT is only for encrypting traffic to the internet.', ok:false}
+        ],
+        explain:'Private RFC 1918 ranges (10/8, 172.16/12, 192.168/16) are reserved for internal use and cannot route on the public internet. NAT swaps them for a public address. It does not encrypt anything.'
+      }
+    },
+    // 2 ─ inside vs outside
+    {
+      id: 'inout', type: 'concept', kind: 'mcq',
+      title: 'Inside vs outside (where the host lives)',
+      gist: 'NAT splits the world in two. <b>Inside</b> is your private network. <b>Outside</b> is everything beyond the edge router (the internet). On the router you tag the LAN-facing interface <code>ip nat inside</code> and the WAN-facing interface <code>ip nat outside</code>. Inside and outside answer one question: which side of the router does this host sit on?',
+      meta: [
+        {h:'CORE', b:'INSIDE = your private network. OUTSIDE = the internet side. These are about location, not address format.'},
+        {h:'WHY', b:'The router has to know which interface faces the LAN and which faces the WAN, or it cannot decide what to translate.'}
+      ],
+      recall: {
+        type:'mcq',
+        prompt:'On the edge router, the interface facing your private LAN should be tagged how?',
+        choices:[
+          {t:'<code>ip nat inside</code>', ok:true},
+          {t:'<code>ip nat outside</code>', ok:false},
+          {t:'<code>ip nat local</code>', ok:false},
+          {t:'<code>ip nat private</code>', ok:false}
+        ],
+        explain:'The LAN side is the inside. Tag it ip nat inside. The WAN side gets ip nat outside. There is no ip nat local or ip nat private keyword.'
+      }
+    },
+    // 3 ─ local vs global
+    {
+      id: 'localglobal', type: 'concept', kind: 'mcq',
+      title: 'Local vs global (whose view of the address)',
+      gist: 'Local vs global is about <b>point of view</b>, not location. <b>Local</b> = the address as seen on the private side. <b>Global</b> = the address as seen on the public side. Combine them: <b>inside local</b> = the private host address (for example <code>10.0.0.5</code>). <b>Inside global</b> = its public address after translation (for example <code>203.0.113.5</code>).',
+      meta: [
+        {h:'CORE', b:'LOCAL = private-side view. GLOBAL = public-side view. inside local is the private host; inside global is its public face.'},
+        {h:'MEMORY HOOK', b:'Local sounds like the local network (private). Global sounds like the global internet (public).'}
+      ],
+      fig: {type:'ascii', cap:'Same inside host, two views. Local is the private address; global is the translated public address.', art:
+'                 inside local         inside global\n'+
+'                 (private view)       (public view)\n'+
+'  host  10.0.0.5  ◄───────────────►  203.0.113.5  internet\n'+
+'        the real                      what the\n'+
+'        host IP                       world sees'},
+      recall: {
+        type:'mcq',
+        prompt:'Host <code>10.0.0.5</code> is translated to <code>203.0.113.5</code>. Which label is correct?',
+        choices:[
+          {t:'10.0.0.5 is the inside local; 203.0.113.5 is the inside global.', ok:true},
+          {t:'10.0.0.5 is the inside global; 203.0.113.5 is the inside local.', ok:false},
+          {t:'Both are outside local addresses.', ok:false},
+          {t:'10.0.0.5 is the outside global; 203.0.113.5 is the inside local.', ok:false}
+        ],
+        explain:'Inside = the host is on your network. Local = private-side view (10.0.0.5). Global = public-side view (203.0.113.5). So inside local is the private host, inside global is its public address.'
+      }
+    },
+    // 4 ─ three flavors
+    {
+      id: 'flavors', type: 'concept', kind: 'mcq',
+      title: 'The three flavors of NAT',
+      gist: 'There are three flavors. <b>Static</b> = a fixed 1:1 map, one private address always maps to one public address (good for a server you reach from outside). <b>Dynamic</b> = the router hands out public addresses from a pool, first come first served. <b>PAT / overload</b> = many private hosts share one public address, kept apart by port number. PAT is the one home and most office networks actually use.',
+      meta: [
+        {h:'CORE', b:'Static = 1:1 fixed. Dynamic = pool, many:many. PAT/overload = many:1, distinguished by PORT number.'},
+        {h:'WHY', b:'PAT is how a whole house shares one public IP. The port number is what tells return traffic which inside host it belongs to.'}
+      ],
+      fig: {type:'ascii', cap:'PAT (overload): many inside hosts behind one public IP, separated by source port.', art:
+'  10.0.0.5:1100 ─┐\n'+
+'  10.0.0.6:1200 ─┼──►  203.0.113.1 : (unique port per flow)  ──► internet\n'+
+'  10.0.0.7:1300 ─┘            one shared public IP'},
+      recall: {
+        type:'mcq',
+        prompt:'A whole <code>10.0.0.0/24</code> subnet must share a single public IP. Which flavor, and what keeps the hosts apart?',
+        choices:[
+          {t:'PAT (overload); hosts are distinguished by port number.', ok:true},
+          {t:'Static NAT; hosts are distinguished by MAC address.', ok:false},
+          {t:'Dynamic NAT; each host gets its own public IP from the pool.', ok:false},
+          {t:'Static NAT; one public IP maps 1:1 to every host at once.', ok:false}
+        ],
+        explain:'Many hosts behind ONE public IP is PAT, also called overload. The router uses unique port numbers to track which inside host each flow belongs to. Static is 1:1, dynamic uses a pool of many addresses.'
+      }
+    },
+    // 5 ─ static config
+    {
+      id: 'static', type: 'config',
+      title: 'Config: static 1:1 map',
+      gist: 'Static NAT pins one inside address to one outside address, permanently. Use it for a server that the outside world needs to reach at a predictable public address.',
+      cli: [
+        {p:'R(config)#', c:'ip nat inside source static 10.0.0.5 203.0.113.5', a:'Map inside host 10.0.0.5 to public 203.0.113.5, always. inside local first (10.0.0.5), inside global second (203.0.113.5).'}
+      ],
+      verify: [
+        {c:'show ip nat translations', n:'You should see a permanent entry mapping 10.0.0.5 to 203.0.113.5 (a static map has no port and never times out).'}
+      ],
+      recall: {
+        type:'cmd',
+        prompt:'Type the command that statically maps inside host <code>10.0.0.5</code> to public <code>203.0.113.5</code>.',
+        label:'R(config)#',
+        accept:['ip nat inside source static 10.0.0.5 203.0.113.5'],
+        explain:'Order is fixed: <code>ip nat inside source static</code> then the inside local (private 10.0.0.5) then the inside global (public 203.0.113.5).'
+      }
+    },
+    // 6 ─ ACL for PAT
+    {
+      id: 'acl', type: 'config',
+      title: 'Config: define which hosts get PAT',
+      gist: 'Before PAT can translate a subnet, you tell the router which inside hosts are allowed to be translated. A standard ACL with a wildcard mask does that. Here <code>0.0.0.255</code> matches the whole <code>10.0.0.0/24</code>.',
+      cli: [
+        {p:'R(config)#', c:'access-list 1 permit 10.0.0.0 0.0.0.255', a:'Permit the 10.0.0.0/24 subnet. The 0.0.0.255 is a WILDCARD: 0 means match, 1 means ignore. This list names the inside hosts that will be translated.'}
+      ],
+      verify: [
+        {c:'show access-lists', n:'Confirms list 1 permits 10.0.0.0 0.0.0.255 and shows match counts.'}
+      ],
+      recall: {
+        type:'cmd',
+        prompt:'Type the standard ACL that permits the whole <code>10.0.0.0/24</code> subnet so PAT can translate it.',
+        label:'R(config)#',
+        accept:['access-list 1 permit 10.0.0.0 0.0.0.255'],
+        explain:'A standard ACL with wildcard <code>0.0.0.255</code> matches all of 10.0.0.0/24. This list tells the next NAT command which inside hosts to translate.'
+      }
+    },
+    // 7 ─ PAT line (highest yield, the overload keyword)
+    {
+      id: 'pat', type: 'config',
+      title: 'Config: the PAT line (overload)',
+      gist: 'This is the line that turns the ACL into PAT. It tells the router: translate the hosts in list 1, using the address of interface g0/0, and <b>overload</b> that one address across many hosts by port. Drop the word <code>overload</code> and it is no longer PAT.',
+      cli: [
+        {p:'R(config)#', c:'ip nat inside source list 1 interface g0/0 overload', a:'Translate hosts matched by ACL 1, sharing the g0/0 public address. The overload keyword IS what makes this PAT (many hosts, one IP, separated by port).'}
+      ],
+      verify: [
+        {c:'show ip nat statistics', n:'Shows the NAT is active and which interface is the outside (g0/0) it overloads onto.'}
+      ],
+      recall: {
+        type:'cmd',
+        prompt:'Type the PAT line: translate ACL <code>1</code>, overloading the <code>g0/0</code> interface address. Interface abbreviations are accepted.',
+        label:'R(config)#',
+        accept:[
+          'ip nat inside source list 1 interface g0/0 overload',
+          'ip nat inside source list 1 interface gigabitethernet0/0 overload'
+        ],
+        explain:'The exact chain is <code>ip nat inside source list 1 interface g0/0 overload</code>. The trailing <code>overload</code> is the entire point: without it you get no PAT.'
+      }
+    },
+    // 8 ─ tag the interfaces (high yield, both tags)
+    {
+      id: 'tags', type: 'config',
+      title: 'Config: tag both interfaces',
+      gist: 'NAT does nothing until the router knows which interface is inside and which is outside. Tag the LAN side <code>ip nat inside</code> and the WAN side <code>ip nat outside</code>. You must do BOTH. Tag only one and nothing translates.',
+      cli: [
+        {p:'R(config)#', c:'interface g0/1', a:'Move to the LAN-facing interface.'},
+        {p:'R(config-if)#', c:'ip nat inside', a:'Tag the LAN side as inside.'},
+        {p:'R(config)#', c:'interface g0/0', a:'Move to the WAN-facing interface.'},
+        {p:'R(config-if)#', c:'ip nat outside', a:'Tag the WAN side as outside. Both tags are required.'}
+      ],
+      verify: [
+        {c:'show ip nat statistics', n:'Lists the inside and outside interfaces. If one is missing, nothing translates.'}
+      ],
+      recall: {
+        type:'fill',
+        prompt:'Fill in the two interface tags. The LAN side gets one, the WAN side gets the other.',
+        fields:[
+          {pre:'R(config-if)# (on LAN side g0/1)', accept:['ip nat inside'], ph:'tag the LAN side...'},
+          {pre:'R(config-if)# (on WAN side g0/0)', accept:['ip nat outside'], ph:'tag the WAN side...'}
+        ],
+        explain:'LAN side = <code>ip nat inside</code>. WAN side = <code>ip nat outside</code>. Both are mandatory. Tag only one and translation silently fails.'
+      }
+    },
+    // 9 ─ verify
+    {
+      id: 'verify', type: 'concept', kind: 'mcq',
+      title: 'Verify your NAT',
+      gist: 'Two show commands prove NAT is working. <code>show ip nat translations</code> lists the live inside-to-outside mappings (the static entry plus any active PAT flows with port numbers). <code>show ip nat statistics</code> shows hit counts and which interfaces are inside and outside, which is your fastest check for the most common mistake (a missing interface tag).',
+      meta: [
+        {h:'CORE', b:'show ip nat translations = the live mappings. show ip nat statistics = hit counts + inside/outside interfaces.'},
+        {h:'WHY', b:'If statistics shows no inside or no outside interface, that is your bug: a missing ip nat inside/outside tag.'}
+      ],
+      recall: {
+        type:'mcq',
+        prompt:'Which command lists the live inside-to-outside address mappings, including active PAT port translations?',
+        choices:[
+          {t:'<code>show ip nat translations</code>', ok:true},
+          {t:'<code>show ip nat pool</code>', ok:false},
+          {t:'<code>show ip route nat</code>', ok:false},
+          {t:'<code>show running-config | nat</code>', ok:false}
+        ],
+        explain:'<code>show ip nat translations</code> shows the live mappings and ports. <code>show ip nat statistics</code> shows hit counts and the inside/outside interface assignments.'
+      }
+    },
+    // 10 ─ traps (spot the trap, highest yield reinforced last)
+    {
+      id: 'traps', type: 'trap',
+      title: 'Spot the trap',
+      gist: 'These are the mistakes that cost exam points and break real configs.',
+      traps: [
+        'Forget the keyword <code>overload</code> on the PAT line and you get no PAT. With only one public IP the pool runs dry after one host.',
+        'You must tag <b>both</b> <code>ip nat inside</code> (LAN) and <code>ip nat outside</code> (WAN). Miss either and nothing translates, with no error message.',
+        'Do not flip the terms: <code>inside local</code> = the private host address; <code>inside global</code> = its public address.'
+      ],
+      recall: {
+        type:'mcq',
+        prompt:'A tech configured <code>ip nat inside source list 1 interface g0/0</code> and tagged both interfaces, but only the first host can reach the internet. What is the bug?',
+        choices:[
+          {t:'The <code>overload</code> keyword is missing, so it is not PAT. One address serves only one host at a time.', ok:true},
+          {t:'The <code>ip nat outside</code> tag is on the wrong interface.', ok:false},
+          {t:'The ACL should use a subnet mask, not a wildcard.', ok:false},
+          {t:'Static NAT was used instead of dynamic.', ok:false}
+        ],
+        explain:'Without <code>overload</code>, the line behaves like dynamic NAT against a single interface address: it maps one inside host and then has nothing left. Adding <code>overload</code> shares that one public IP across all hosts by port.'
+      }
+    }
+  ];
+
+  // ── CAPSTONE ─────────────────────────────────────────────────────────
+  var CAPSTONE = {
+    scenario: 'You are on edge router R1. The LAN is <code>10.0.0.0/24</code> on <code>g0/1</code>. The WAN is <code>g0/0</code>. Statically publish the server <code>10.0.0.5</code> as <code>203.0.113.5</code>. Then PAT the whole <code>10.0.0.0/24</code> subnet behind the <code>g0/0</code> address. Tag both interfaces. Reproduce the full config from memory, one command per line.',
+    label:'R1(config)#',
+    // expected lines, each with accepted forms + a why note
+    lines: [
+      {accept:['ip nat inside source static 10.0.0.5 203.0.113.5'], note:'static 1:1 for the server'},
+      {accept:['access-list 1 permit 10.0.0.0 0.0.0.255'], note:'which inside hosts get PAT'},
+      {accept:['ip nat inside source list 1 interface g0/0 overload','ip nat inside source list 1 interface gigabitethernet0/0 overload'], note:'PAT, overload IS the point'},
+      {accept:['interface g0/1','interface gigabitethernet0/1'], note:'go to the LAN side'},
+      {accept:['ip nat inside'], note:'tag the LAN side'},
+      {accept:['interface g0/0','interface gigabitethernet0/0'], note:'go to the WAN side'},
+      {accept:['ip nat outside'], note:'tag the WAN side'}
+    ],
+    quiz: [
+      {
+        stem:'On an exam, the stem says "many internal hosts must share a single public IP to reach the internet." Which keyword must appear on the <code>ip nat inside source</code> line?',
+        choices:[{t:'<code>overload</code>', ok:true},{t:'<code>static</code>', ok:false},{t:'<code>pool</code>', ok:false},{t:'<code>extendable</code>', ok:false}],
+        explain:'Many hosts, one public IP, separated by port = PAT = the <code>overload</code> keyword.'
+      },
+      {
+        stem:'A router runs PAT but no inside hosts can reach the internet. <code>show ip nat statistics</code> lists an outside interface but no inside interface. What is missing?',
+        choices:[{t:'<code>ip nat inside</code> on the LAN interface', ok:true},{t:'A default route', ok:false},{t:'The <code>overload</code> keyword', ok:false},{t:'An additional public IP', ok:false}],
+        explain:'Statistics shows an outside but no inside interface, so the <code>ip nat inside</code> tag on the LAN side is missing. Both tags are required.'
+      },
+      {
+        stem:'Host <code>10.0.0.5</code> is statically mapped to <code>203.0.113.5</code>. What is the correct name for <code>203.0.113.5</code>?',
+        choices:[{t:'inside global', ok:true},{t:'inside local', ok:false},{t:'outside global', ok:false},{t:'outside local', ok:false}],
+        explain:'It is the inside host (inside) seen from the public side (global) = inside global. <code>10.0.0.5</code> is the inside local.'
+      },
+      {
+        stem:'Which command shows the live address-and-port mappings created by PAT?',
+        choices:[{t:'<code>show ip nat translations</code>', ok:true},{t:'<code>show ip nat statistics</code>', ok:false},{t:'<code>show ip nat pool</code>', ok:false},{t:'<code>show access-lists</code>', ok:false}],
+        explain:'<code>show ip nat translations</code> lists each live mapping including the PAT port numbers. Statistics shows totals and interface roles.'
+      },
+      {
+        stem:'In <code>ip nat inside source static 10.0.0.5 203.0.113.5</code>, which address is the inside local?',
+        choices:[{t:'<code>10.0.0.5</code>', ok:true},{t:'<code>203.0.113.5</code>', ok:false},{t:'Neither, both are global', ok:false},{t:'Both are local', ok:false}],
+        explain:'The private host address listed first, <code>10.0.0.5</code>, is the inside local. The public <code>203.0.113.5</code> is the inside global.'
+      }
+    ]
+  };
+
+  var configBeatCount = BEATS.filter(function (b) { return b.type === 'config'; }).length;
+  var TOTAL_GATES = BEATS.length + 1; // every beat + the capstone
+
+  // ── progress helpers ────────────────────────────────────────────────
+  function beatsDone() {
+    return BEATS.filter(function (b) { return state.beats[b.id]; }).length;
+  }
+  function capstoneDone() {
+    return state.capstone && state.capstone.best >= 100;
+  }
+  function quizDone() {
+    return CAPSTONE.quiz.every(function (q, i) { return state.quiz[i]; });
+  }
+  function allDone() {
+    return beatsDone() === BEATS.length && capstoneDone() && quizDone();
+  }
+  // first beat whose recall is not yet passed
+  function currentBeatIndex() {
+    for (var i = 0; i < BEATS.length; i++) {
+      if (!state.beats[BEATS[i].id]) return i;
+    }
+    return BEATS.length; // all beats done -> capstone is current
+  }
+
+  // ── Rail + track ─────────────────────────────────────────────────────
+  var rail = document.getElementById('ntRail');
+  var track = document.getElementById('ntTrack');
+
+  function renderRail() {
+    var done = beatsDone() + (capstoneDone() && quizDone() ? 1 : 0);
+    var pct = Math.round((done / TOTAL_GATES) * 100);
+    rail.innerHTML =
+      '<div class="nt-stat"><span class="val ' + (done === TOTAL_GATES ? 'green' : '') + '">' + done + '/' + TOTAL_GATES + '</span><span class="lbl">Beats mastered</span></div>' +
+      '<div class="nt-stat"><span class="val">' + pct + '%</span><span class="lbl">Complete</span></div>' +
+      '<div class="nt-bar-wrap"><div class="nt-bar"><span style="width:' + pct + '%"></span></div></div>' +
+      '<button class="nt-reset" id="ntReset" type="button">Reset progress</button>';
+    document.getElementById('ntReset').addEventListener('click', function () {
+      if (window.confirm('Reset all progress for this NAT course?')) {
+        state = { beats: {}, quiz: {} };
+        save(state);
+        renderAll();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  }
+
+  function renderTrack() {
+    var cur = currentBeatIndex();
+    track.innerHTML = BEATS.map(function (b, i) {
+      var cls = state.beats[b.id] ? 'done' : (i === cur ? 'current' : '');
+      return '<span class="seg ' + cls + '" title="Beat ' + (i + 1) + '"></span>';
+    }).join('') +
+    '<span class="seg ' + ((capstoneDone() && quizDone()) ? 'done' : (cur === BEATS.length ? 'current' : '')) + '" title="Capstone"></span>';
+  }
+
+  // ── Render one beat ──────────────────────────────────────────────────
+  function cliHtml(line) {
+    if (line.cls === 'comment') return '<span class="nt-cmd cmt">' + escapeHtml(line.c) + '</span>';
+    return '<span class="nt-cmd"><span class="pmt">' + escapeHtml(line.p) + ' </span>' + escapeHtml(line.c) + '</span>';
+  }
+
+  function teachHtml(b) {
+    var h = '<div class="nt-teach"><p class="gist">' + b.gist + '</p>';
+    if (b.meta) {
+      h += '<div class="nt-meta-grid">' + b.meta.map(function (m) {
+        return '<div class="nt-meta"><div class="mh">' + escapeHtml(m.h) + '</div><div class="mb">' + m.b + '</div></div>';
+      }).join('') + '</div>';
+    }
+    if (b.fig && b.fig.type === 'ascii') {
+      h += '<div class="nt-fig"><pre class="nt-ascii">' + escapeHtml(b.fig.art) + '</pre><div class="cap">' + escapeHtml(b.fig.cap) + '</div></div>';
+    }
+    if (b.cli) {
+      h += '<div class="nt-cli">' + b.cli.map(function (ln) {
+        var rowCls = 'nt-line' + (ln.cls === 'comment' ? ' comment' : '') + (ln.cls === 'alt' ? ' alt' : '');
+        return '<div class="' + rowCls + '">' + cliHtml(ln) + (ln.a ? '<span class="nt-ann">' + escapeHtml(ln.a) + '</span>' : '') + '</div>';
+      }).join('') + '</div>';
+    }
+    if (b.verify) {
+      h += '<div class="nt-verify"><div class="vh">Verify</div>' + b.verify.map(function (v) {
+        return '<code>' + escapeHtml(v.c) + '</code><div class="vn">' + escapeHtml(v.n) + '</div>';
+      }).join('') + '</div>';
+    }
+    if (b.traps) {
+      h += '<div class="nt-traps"><div class="th">Traps</div><ul>' + b.traps.map(function (t) {
+        return '<li>' + t + '</li>';
+      }).join('') + '</ul></div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function recallHtml(b, idx) {
+    var r = b.recall;
+    var h = '<div class="nt-recall"><div class="rh">Recall · prove it before you advance</div>' +
+            '<p class="nt-prompt">' + r.prompt + '</p>';
+    if (r.type === 'mcq') {
+      h += '<div class="nt-choices" id="ch_' + b.id + '">' + r.choices.map(function (c, i) {
+        return '<button class="nt-choice" type="button" data-i="' + i + '"><span class="ltr">' + 'ABCD'[i] + '</span><span>' + c.t + '</span></button>';
+      }).join('') + '</div>';
+    } else if (r.type === 'cmd') {
+      h += '<div class="nt-termwrap"><label for="in_' + b.id + '">' + escapeHtml(r.label) + '</label>' +
+           '<input class="nt-input" id="in_' + b.id + '" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type the command..."></div>' +
+           '<div class="nt-recall-actions"><button class="nt-btn" type="button" data-act="check">Check</button>' +
+           '<button class="nt-btn sec" type="button" data-act="reveal">Show answer</button></div>';
+    } else if (r.type === 'fill') {
+      h += r.fields.map(function (f, i) {
+        return '<div class="nt-termwrap"><label for="in_' + b.id + '_' + i + '">' + escapeHtml(f.pre) + '</label>' +
+               '<input class="nt-input" id="in_' + b.id + '_' + i + '" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="' + escapeHtml(f.ph) + '"></div>';
+      }).join('') +
+      '<div class="nt-recall-actions"><button class="nt-btn" type="button" data-act="check">Check</button>' +
+      '<button class="nt-btn sec" type="button" data-act="reveal">Show answer</button></div>';
+    }
+    h += '<div class="nt-feedback" id="fb_' + b.id + '" aria-live="polite"></div>';
+    h += '<div class="nt-next" id="nx_' + b.id + '"><button class="nt-nextbtn" type="button" data-act="next">' +
+         (idx === BEATS.length - 1 ? 'To the capstone' : 'Next beat') + ' &rarr;</button></div>';
+    h += '</div>';
+    return h;
+  }
+
+  function beatHtml(b, idx) {
+    var locked = idx > currentBeatIndex();
+    var done = !!state.beats[b.id];
+    var typeLbl = b.type === 'config' ? 'Config beat' : (b.type === 'trap' ? 'Trap beat' : 'Concept beat');
+    return '<div class="nt-beat' + (locked ? ' nt-locked' : '') + '" id="beat_' + b.id + '">' +
+      '<div class="nt-beat-head">' +
+        '<span class="nt-bnum' + (done ? ' done' : '') + '">' + (idx + 1) + '</span>' +
+        '<span class="nt-btype">' + typeLbl + '</span>' +
+        '<h2>' + escapeHtml(b.title) + '</h2>' +
+        '<span class="nt-bdone' + (done ? ' show' : '') + '" id="bd_' + b.id + '">&#10003; passed</span>' +
+      '</div>' +
+      '<div class="nt-beat-body">' + teachHtml(b) + recallHtml(b, idx) + '</div>' +
+    '</div>';
+  }
+
+  // ── Capstone render ──────────────────────────────────────────────────
+  function capstoneHtml() {
+    var locked = beatsDone() < BEATS.length;
+    var q = CAPSTONE.quiz.map(function (qz, i) {
+      var answered = state.quiz[i];
+      return '<div class="nt-q" id="cq_' + i + '">' +
+        '<p class="qstem"><strong>Q' + (i + 1) + '.</strong> ' + qz.stem + '</p>' +
+        '<div class="nt-choices" id="cqch_' + i + '">' + qz.choices.map(function (c, j) {
+          return '<button class="nt-choice' + (answered ? ' locked' : '') + '" type="button" data-q="' + i + '" data-i="' + j + '"><span class="ltr">' + 'ABCD'[j] + '</span><span>' + c.t + '</span></button>';
+        }).join('') + '</div>' +
+        '<div class="nt-feedback' + (answered ? ' show pass' : '') + '" id="cqfb_' + i + '">' + (answered ? 'Correct. ' + qz.explain : '') + '</div>' +
+      '</div>';
+    }).join('');
+
+    return '<div class="nt-cap' + (locked ? ' nt-locked' : '') + '" id="ntCap">' +
+      '<div class="nt-cap-head">' +
+        '<h2>Capstone · rebuild it blind</h2>' +
+        '<div class="sub">' + (locked ? 'Locked until every beat above is passed.' : 'Reproduce the whole NAT config from a blank terminal, then answer the exam triggers.') + '</div>' +
+      '</div>' +
+      '<div class="nt-cap-body">' +
+        '<div class="nt-scenario"><div class="sh">Scenario</div><div class="sb">' + CAPSTONE.scenario + '</div></div>' +
+        '<div class="nt-termwrap"><label for="capArea">' + escapeHtml(CAPSTONE.label) + '</label>' +
+          '<textarea class="nt-area" id="capArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="one command per line, from memory..."></textarea></div>' +
+        '<div class="nt-recall-actions"><button class="nt-btn" type="button" id="capCheck">Check config</button>' +
+          '<button class="nt-btn sec" type="button" id="capClear">Clear</button>' +
+          '<button class="nt-btn sec" type="button" id="capReveal">Show answer</button></div>' +
+        '<div class="nt-results" id="capResults" aria-live="polite"></div>' +
+        '<div class="nt-quiz"><h3>Exam triggers</h3>' + q + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── Recall wiring per beat ───────────────────────────────────────────
+  function showFeedback(id, pass, msg) {
+    var fb = document.getElementById('fb_' + id);
+    fb.className = 'nt-feedback show ' + (pass ? 'pass' : 'fail');
+    fb.innerHTML = msg;
+  }
+  function passBeat(b) {
+    state.beats[b.id] = true;
+    save(state);
+    document.getElementById('bd_' + b.id).classList.add('show');
+    document.querySelector('#beat_' + b.id + ' .nt-bnum').classList.add('done');
+    document.getElementById('nx_' + b.id).classList.add('show');
+    renderRail();
+    renderTrack();
+  }
+
+  function wireBeat(b, idx) {
+    var r = b.recall;
+    if (r.type === 'mcq') {
+      var wrap = document.getElementById('ch_' + b.id);
+      wrap.querySelectorAll('.nt-choice').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (state.beats[b.id]) return;
+          var i = +btn.getAttribute('data-i');
+          var ok = r.choices[i].ok;
+          if (ok) {
+            btn.classList.add('correct');
+            wrap.querySelectorAll('.nt-choice').forEach(function (x) { x.classList.add('locked'); });
+            showFeedback(b.id, true, '<strong>Correct.</strong> ' + r.explain);
+            passBeat(b);
+          } else {
+            btn.classList.add('wrong');
+            btn.classList.add('locked');
+            showFeedback(b.id, false, '<strong>Not quite.</strong> Try another answer. ' + r.explain);
+          }
+        });
+      });
+    } else if (r.type === 'cmd') {
+      var input = document.getElementById('in_' + b.id);
+      var body = document.getElementById('beat_' + b.id);
+      function check() {
+        if (state.beats[b.id]) return;
+        if (matchesAny(input.value, r.accept)) {
+          showFeedback(b.id, true, '<strong>Correct.</strong> ' + r.explain);
+          passBeat(b);
+        } else {
+          showFeedback(b.id, false, '<strong>Not yet.</strong> Check the keyword order and try again, or reveal the answer. ' + r.explain);
+        }
+      }
+      body.querySelector('[data-act="check"]').addEventListener('click', check);
+      body.querySelector('[data-act="reveal"]').addEventListener('click', function () {
+        input.value = r.accept[0];
+        showFeedback(b.id, false, 'Answer revealed: <code>' + escapeHtml(r.accept[0]) + '</code>. Clear it and type it yourself to pass.');
+      });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); check(); } });
+    } else if (r.type === 'fill') {
+      var bodyf = document.getElementById('beat_' + b.id);
+      function checkFill() {
+        if (state.beats[b.id]) return;
+        var allOk = r.fields.every(function (f, i) {
+          return matchesAny(document.getElementById('in_' + b.id + '_' + i).value, f.accept);
+        });
+        if (allOk) {
+          showFeedback(b.id, true, '<strong>Correct.</strong> ' + r.explain);
+          passBeat(b);
+        } else {
+          showFeedback(b.id, false, '<strong>Not yet.</strong> Both tags must be right. ' + r.explain);
+        }
+      }
+      bodyf.querySelector('[data-act="check"]').addEventListener('click', checkFill);
+      bodyf.querySelector('[data-act="reveal"]').addEventListener('click', function () {
+        r.fields.forEach(function (f, i) { document.getElementById('in_' + b.id + '_' + i).value = f.accept[0]; });
+        showFeedback(b.id, false, 'Answers revealed. Clear them and type them yourself to pass.');
+      });
+    }
+    // next button -> unlock and scroll to the next gate
+    var nx = document.getElementById('nx_' + b.id);
+    nx.querySelector('[data-act="next"]').addEventListener('click', function () {
+      renderAll();
+      var nextEl = (idx + 1 < BEATS.length) ? document.getElementById('beat_' + BEATS[idx + 1].id) : document.getElementById('ntCap');
+      if (nextEl) nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // ── Capstone wiring ──────────────────────────────────────────────────
+  function scoreClass(p) { return p >= 100 ? 'green' : (p >= 60 ? 'amber' : 'red'); }
+  function scoreLabel(p) {
+    if (p >= 100) return 'Perfect. You rebuilt the whole config.';
+    if (p >= 60) return 'Close. Fix the missing lines and run it again.';
+    return 'Keep going. Reteach yourself the beats above.';
+  }
+
+  function wireCapstone() {
+    var locked = beatsDone() < BEATS.length;
+    if (locked) {
+      // still wire quiz? no, the whole capstone is locked visually; quiz lives inside it
+      return;
+    }
+    var area = document.getElementById('capArea');
+    document.getElementById('capCheck').addEventListener('click', function () {
+      var raw = (area.value || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+      var used = raw.map(function () { return false; });
+      var rows = '';
+      var got = 0;
+      CAPSTONE.lines.forEach(function (exp) {
+        var foundIdx = -1;
+        for (var i = 0; i < raw.length; i++) {
+          if (!used[i] && matchesAny(raw[i], exp.accept)) { foundIdx = i; break; }
+        }
+        if (foundIdx >= 0) {
+          used[foundIdx] = true;
+          got++;
+          rows += '<div class="nt-diff-row ok"><span class="icon">&#10003;</span><span class="ctext">' + escapeHtml(exp.accept[0]) + '</span><span class="cnote">' + escapeHtml(exp.note) + '</span></div>';
+        } else {
+          rows += '<div class="nt-diff-row miss"><span class="icon">&#10007;</span><span class="ctext">' + escapeHtml(exp.accept[0]) + '</span><span class="cnote">missing: ' + escapeHtml(exp.note) + '</span></div>';
+        }
+      });
+      var total = CAPSTONE.lines.length;
+      var pct = Math.round((got / total) * 100);
+      if (!state.capstone || pct > (state.capstone.best || 0)) {
+        state.capstone = { best: pct };
+        save(state);
+      }
+      var box = document.getElementById('capResults');
+      box.innerHTML =
+        '<div class="nt-score"><span class="sv ' + scoreClass(pct) + '">' + pct + '%</span>' +
+        '<span class="sl">' + got + ' of ' + total + ' lines. ' + scoreLabel(pct) + '</span></div>' +
+        '<div class="nt-diff">' + rows + '</div>';
+      box.classList.add('show');
+      renderRail();
+      renderTrack();
+      checkComplete();
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    document.getElementById('capClear').addEventListener('click', function () {
+      area.value = '';
+      document.getElementById('capResults').classList.remove('show');
+    });
+    document.getElementById('capReveal').addEventListener('click', function () {
+      area.value = CAPSTONE.lines.map(function (l) { return l.accept[0]; }).join('\n');
+      var box = document.getElementById('capResults');
+      box.innerHTML = '<div class="nt-score"><span class="sl">Answer shown above. Clear it and type it from memory to score.</span></div>';
+      box.classList.add('show');
+    });
+
+    // quiz
+    CAPSTONE.quiz.forEach(function (qz, i) {
+      var wrap = document.getElementById('cqch_' + i);
+      if (!wrap) return;
+      wrap.querySelectorAll('.nt-choice').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (state.quiz[i]) return;
+          var j = +btn.getAttribute('data-i');
+          var fb = document.getElementById('cqfb_' + i);
+          if (qz.choices[j].ok) {
+            btn.classList.add('correct');
+            wrap.querySelectorAll('.nt-choice').forEach(function (x) { x.classList.add('locked'); });
+            fb.className = 'nt-feedback show pass';
+            fb.innerHTML = '<strong>Correct.</strong> ' + qz.explain;
+            state.quiz[i] = true;
+            save(state);
+            renderRail();
+            renderTrack();
+            checkComplete();
+          } else {
+            btn.classList.add('wrong');
+            btn.classList.add('locked');
+            fb.className = 'nt-feedback show fail';
+            fb.innerHTML = '<strong>Not quite.</strong> ' + qz.explain;
+          }
+        });
+      });
+    });
+  }
+
+  function checkComplete() {
+    document.getElementById('ntDone').classList.toggle('show', allDone());
+  }
+
+  // ── Render everything ────────────────────────────────────────────────
+  var beatsHost = document.getElementById('ntBeats');
+  function renderAll() {
+    renderRail();
+    renderTrack();
+    beatsHost.innerHTML = BEATS.map(function (b, i) { return beatHtml(b, i); }).join('') + capstoneHtml();
+    BEATS.forEach(function (b, i) {
+      var locked = i > currentBeatIndex();
+      if (!locked) wireBeat(b, i);
+    });
+    wireCapstone();
+    checkComplete();
+  }
+
+  renderAll();
+});
+</script>
+</body>
+</html>

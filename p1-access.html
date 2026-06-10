@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Local Device Access + SSH (Deep)</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress rail ──────────────────────────────────────── */
+.pa-rail{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg)}
+.pa-rail .pa-stat{display:flex;flex-direction:column}
+.pa-rail .pa-stat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.pa-rail .pa-stat .val.green{color:var(--prof-strong)}
+.pa-rail .pa-stat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.pa-rail .pa-bar-wrap{flex:1;min-width:160px}
+.pa-bar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.pa-bar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.pa-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.pa-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+.pa-reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Beat stepper (the spine of the course) ─────────────────────── */
+.pa-steps{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+.pa-step-pip{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:.7rem;font-weight:600;padding:5px 9px;border-radius:100px;border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.pa-step-pip:hover{border-color:var(--accent);color:var(--ink)}
+.pa-step-pip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pa-step-pip.current{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.pa-step-pip.mastered{border-color:var(--prof-strong);color:var(--prof-strong);background:rgba(22,163,74,.06)}
+.pa-step-pip.locked{opacity:.45;cursor:not-allowed}
+.pa-step-pip.locked:hover{border-color:var(--border);color:var(--ink-muted)}
+.pa-step-pip .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.pa-beat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-lg);margin-bottom:var(--s-lg)}
+.pa-beat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-sm)}
+.pa-beat-num{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:var(--accent);background:rgba(180,83,9,.1);padding:2px 8px;border-radius:100px}
+.pa-beat-kind{font-family:var(--font-display);font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--ink-muted);border:1px solid var(--border);padding:2px 8px;border-radius:100px}
+.pa-beat h2{font-family:var(--font-display);font-size:1.35rem;font-weight:700;margin:0;letter-spacing:-.01em;width:100%;line-height:1.2}
+
+/* TEACH block */
+.pa-teach{margin-bottom:var(--s-md)}
+.pa-gist{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.6;margin:0 0 var(--s-md)}
+.pa-gist b{font-weight:600}
+.pa-callgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media(max-width:640px){.pa-callgrid{grid-template-columns:1fr}}
+.pa-call{padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.pa-call.why{border-left:3px solid var(--accent)}
+.pa-call.core{border-left:3px solid var(--prof-mid)}
+.pa-call .ch{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:5px}
+.pa-call.why .ch{color:var(--accent)}
+.pa-call.core .ch{color:var(--prof-mid)}
+.pa-call .cb{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.5}
+.pa-call code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* inline SVG / ascii diagram */
+.pa-diagram{margin:0 0 var(--s-md);padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);overflow-x:auto}
+.pa-diagram .dh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--ink-muted);margin-bottom:8px}
+.pa-ascii{font-family:var(--font-mono);font-size:.8rem;line-height:1.5;color:var(--ink);white-space:pre;margin:0}
+.pa-diagram svg{display:block;max-width:100%;height:auto}
+
+/* guided CLI block */
+.pa-cli-block{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.pa-cli-cap{font-family:var(--font-display);font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:#A8A29E;padding:8px 16px 4px}
+.pa-line{display:grid;grid-template-columns:1fr;gap:0;padding:0 16px;align-items:baseline;border-left:3px solid transparent;transition:background .15s}
+.pa-line:hover{background:rgba(255,255,255,.03)}
+.pa-line.comment{opacity:.7}
+.pa-line.alt{border-left-color:var(--accent)}
+.pa-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.pa-cmd .pmt{color:#A8A29E}
+.pa-cmd.cmt{color:#86EFAC}
+.pa-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.pa-line:last-child .pa-ann{border-bottom:none}
+
+.pa-verify{padding:12px 14px;border:1px solid var(--prof-strong);border-radius:var(--radius);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.pa-verify .vh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:6px}
+.pa-verify code{display:block;font-family:var(--font-mono);font-size:.85rem;color:var(--ink);padding:3px 0}
+.pa-verify .vn{font-family:var(--font-body);font-size:.83rem;color:var(--ink-secondary);margin-top:3px;line-height:1.5}
+
+.pa-trap{padding:12px 14px;border:1px solid var(--prof-weak);border-radius:var(--radius);background:rgba(220,38,38,.04);margin-bottom:var(--s-md)}
+.pa-trap .th{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-weak);font-weight:700;margin-bottom:6px}
+.pa-trap ul{margin:0;padding-left:18px}
+.pa-trap li{font-family:var(--font-body);font-size:.86rem;color:var(--ink);line-height:1.55;margin-bottom:4px}
+.pa-trap code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── RECALL block ───────────────────────────────────────────────── */
+.pa-recall{border-top:1px dashed var(--rule);padding-top:var(--s-md);margin-top:var(--s-sm)}
+.pa-recall-head{display:flex;align-items:center;gap:8px;margin-bottom:var(--s-sm)}
+.pa-recall-head .rk{font-family:var(--font-display);font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--accent)}
+.pa-recall-head .rt{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--ink-muted);border:1px solid var(--border);padding:1px 7px;border-radius:100px}
+.pa-prompt{font-family:var(--font-body);font-size:.98rem;color:var(--ink);line-height:1.55;margin:0 0 var(--s-sm)}
+.pa-prompt code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.pa-prompt .blank{display:inline-block;min-width:90px;border-bottom:2px dashed var(--accent);color:var(--accent);font-weight:600;font-family:var(--font-mono);text-align:center}
+
+/* type-the-command terminal */
+.pa-term{background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:11px 13px;margin-bottom:var(--s-sm)}
+.pa-term label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:7px;letter-spacing:.04em}
+.pa-input{width:100%;background:transparent;border:none;font-family:var(--font-mono);font-size:.9rem;line-height:1.6;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.pa-input::placeholder{color:#57534E}
+.pa-area{width:100%;min-height:150px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.pa-area::placeholder{color:#57534E}
+
+/* MCQ options */
+.pa-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:var(--s-sm)}
+.pa-opt{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;transition:all .15s;text-align:left;font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.45;width:100%}
+.pa-opt:hover{border-color:var(--accent)}
+.pa-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pa-opt .ol{font-family:var(--font-mono);font-size:.78rem;font-weight:700;color:var(--ink-secondary);flex-shrink:0;margin-top:1px}
+.pa-opt code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.pa-opt.correct{border-color:var(--prof-strong);background:rgba(22,163,74,.07)}
+.pa-opt.correct .ol{color:var(--prof-strong)}
+.pa-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.06)}
+.pa-opt.wrong .ol{color:var(--prof-weak)}
+.pa-opt.dim{opacity:.55}
+.pa-opt[disabled]{cursor:default}
+
+.pa-recall-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:var(--s-sm)}
+.pa-checkbtn{padding:11px 22px;font-family:var(--font-display);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+.pa-checkbtn:hover{filter:brightness(1.06)}
+.pa-checkbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.pa-secbtn{padding:11px 18px;font-family:var(--font-display);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.pa-secbtn:hover{border-color:var(--accent);color:var(--accent)}
+.pa-secbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.pa-feedback{display:none;margin-bottom:var(--s-sm);padding:12px 14px;border-radius:var(--radius);font-family:var(--font-body);font-size:.9rem;line-height:1.55}
+.pa-feedback.show{display:block}
+.pa-feedback.pass{border:1px solid var(--prof-strong);background:rgba(22,163,74,.06);color:var(--ink)}
+.pa-feedback.fail{border:1px solid var(--prof-weak);background:rgba(220,38,38,.05);color:var(--ink)}
+.pa-feedback .fh{font-family:var(--font-display);font-weight:700;font-size:.82rem;display:block;margin-bottom:3px}
+.pa-feedback.pass .fh{color:var(--prof-strong)}
+.pa-feedback.fail .fh{color:var(--prof-weak)}
+.pa-feedback code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* diff rows reused for multi-line recall */
+.pa-diff{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:var(--s-sm)}
+.pa-diff-row{display:flex;align-items:flex-start;gap:10px;padding:7px 13px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.84rem;line-height:1.5}
+.pa-diff-row:first-child{border-top:none}
+.pa-diff-row .icon{flex-shrink:0;width:16px;text-align:center;font-weight:700}
+.pa-diff-row.ok{background:rgba(22,163,74,.05)}
+.pa-diff-row.ok .icon{color:var(--prof-strong)}
+.pa-diff-row.miss{background:rgba(220,38,38,.05)}
+.pa-diff-row.miss .icon{color:var(--prof-weak)}
+.pa-diff-row.miss .ctext{color:var(--ink-secondary)}
+.pa-diff-row.extra .icon{color:var(--prof-mid)}
+.pa-diff-row .ctext{color:var(--ink);word-break:break-word}
+.pa-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.8rem;margin-left:6px}
+
+.pa-nextbtn{display:none;align-items:center;gap:8px;padding:13px 26px;font-family:var(--font-display);font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--prof-strong);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s;box-shadow:0 5px 16px rgba(22,163,74,.22);margin-top:var(--s-xs)}
+.pa-nextbtn.show{display:inline-flex}
+.pa-nextbtn:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(22,163,74,.3)}
+.pa-nextbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.pa-capstone{background:var(--bg-surface);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:var(--s-lg);margin-bottom:var(--s-lg)}
+.pa-capstone h2{font-family:var(--font-display);font-size:1.45rem;font-weight:700;margin:0 0 var(--s-xs);letter-spacing:-.01em}
+.pa-scenario{padding:14px 16px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.pa-scenario .sh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.pa-scenario .sb{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.55}
+.pa-recall-hint{font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);margin-bottom:8px;line-height:1.5}
+.pa-recall-hint code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.pa-score{display:flex;align-items:baseline;gap:10px;margin:var(--s-sm) 0}
+.pa-score .sv{font-family:var(--font-mono);font-size:2.2rem;font-weight:700;line-height:1}
+.pa-score .sv.green{color:var(--prof-strong)}
+.pa-score .sv.amber{color:var(--prof-mid)}
+.pa-score .sv.red{color:var(--prof-weak)}
+.pa-score .sl{font-family:var(--font-display);font-size:.9rem;font-weight:600;color:var(--ink-secondary)}
+.pa-mcq-block{margin-top:var(--s-lg);border-top:1px solid var(--rule);padding-top:var(--s-md)}
+.pa-mcq-block h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin:0 0 var(--s-sm)}
+.pa-mcq{margin-bottom:var(--s-md)}
+.pa-mcq .q{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.5;margin-bottom:8px;font-weight:600}
+.pa-mcq .q code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.pa-mcq .exp{display:none;font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.55;margin-top:7px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)}
+.pa-mcq .exp.show{display:block}
+.pa-mcq .exp code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── Done banner ────────────────────────────────────────────────── */
+.pa-done{display:none;text-align:center;padding:var(--s-xl) var(--s-lg);border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-bottom:var(--s-lg)}
+.pa-done.show{display:block}
+.pa-done h2{font-family:var(--font-display);font-size:1.4rem;font-weight:700;color:var(--prof-strong);margin:0 0 var(--s-xs)}
+.pa-done p{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);margin:0 auto;max-width:46ch;line-height:1.6}
+
+@media(max-width:640px){
+  .pa-beat,.pa-capstone{padding:var(--s-md)}
+  .pa-beat h2{font-size:1.15rem}
+  .pa-rail{gap:var(--s-sm)}
+  .pa-score .sv{font-size:1.8rem}
+  .pa-ascii{font-size:.72rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .pa-bar>span,.pa-nextbtn,.pa-step-pip{transition:none}
+  .pa-nextbtn:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">DEEP COURSE · TEACH THEN PROVE · DEVICE HARDENING</div>
+    <h1>Local Device Access + SSH (Deep)</h1>
+    <p class="subtitle">One topic, built line by line. Each beat teaches a small chunk, then makes you recall it before you can move on. Finish with a blank terminal and reproduce the whole hardened config from memory.</p>
+  </header>
+
+  <p class="intro">This covers obj 5.3 (local device access passwords) and obj 4.8 (the SSH remote access sequence). Both are device hardening. Learn the why and the core truth, watch the exact CLI in config context, then prove the chunk you just saw. You cannot skip ahead until each beat is passed. The highest yield idea, the SSH key order, gets the most reinforcement.</p>
+
+  <div class="pa-rail" id="paRail"></div>
+  <div class="pa-steps" id="paSteps" role="tablist" aria-label="Lesson beats"></div>
+
+  <div id="paStage"></div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  // ────────────────────────────────────────────────────────────────────
+  // Recall types per beat:
+  //   'type'  -> type-the-command (single line, lenient match vs accept[])
+  //   'multi' -> type several config lines (line-by-line vs expect[])
+  //   'blank' -> fill-the-blank in a config (single token, vs accept[])
+  //   'mcq'   -> concept or "spot the trap" multiple choice (answer index)
+  // Every exam fact below is taken verbatim from the canonical brief.
+  // ────────────────────────────────────────────────────────────────────
+  var BEATS = [
+    // ── BEAT 1 ─ enable secret vs enable password (highest yield trap) ──
+    {
+      kind: 'CONCEPT',
+      title: 'enable secret beats enable password',
+      gist: 'Privileged EXEC (the <code>#</code> prompt) is the keys to the box. You guard it with a password. There are two commands, and one is always the right answer: <b>enable secret</b> stores a hashed password. <b>enable password</b> stores it weak (effectively plaintext). If both exist, the device uses <b>enable secret</b> and ignores enable password.',
+      why: 'Anyone at the prompt can reconfigure or wipe the device. The privileged password is the one that matters most, so it must be hashed, not readable.',
+      core: 'On the exam, <code>enable secret</code> (hashed) ALWAYS beats <code>enable password</code> (weak). If you see both, secret wins.',
+      diagram: {
+        title: 'Two commands, one winner',
+        ascii:
+'  enable password cisco   ->  stored WEAK   (loses)\n' +
+'  enable secret   cisco   ->  stored HASHED (wins, used)\n' +
+'                                    ^\n' +
+'              if both are set, the device uses SECRET'
+      },
+      cli: [
+        {p:'R(config)#', c:'enable secret cisco', a:'Set the hashed privileged mode password. This is the one to use, every time.'}
+      ],
+      verify: {c:'show running-config', n:'The secret shows as a type 5 (or type 8/9) hash, never as the word cisco in clear text.'},
+      traps: ['<code>enable secret</code> (hashed) beats <code>enable password</code> (weak). If both are configured, the secret is used.'],
+      recall: {
+        type: 'type',
+        promptHtml: 'Type the command that sets the <b>hashed</b> privileged mode password to <code>cisco</code>.',
+        rtype: 'type the command',
+        accept: ['enable secret cisco'],
+        answer: 'enable secret cisco',
+        explain: 'Use <code>enable secret cisco</code>. <code>enable password</code> would be the weak, wrong answer.'
+      }
+    },
+
+    // ── BEAT 2 ─ console line password + login ──────────────────────────
+    {
+      kind: 'CONFIG',
+      title: 'Lock the console line',
+      gist: 'The console (<code>line console 0</code>) is the physical port you plug a rollover cable into. By default it is open. You set a line <b>password</b>, then add <b>login</b> to actually enforce it. Without <code>login</code>, the password is ignored.',
+      why: 'Physical access should still require a password. An open console means anyone with a cable owns the device.',
+      core: 'On a line, the order is <code>password</code> then <code>login</code>. The <code>login</code> keyword is what turns the password check on for that line.',
+      cli: [
+        {p:'R(config)#', c:'line console 0', a:'Enter the physical console line. The prompt changes to R(config-line)#.'},
+        {p:'R(config-line)#', c:'password cisco', a:'Set the console line password.'},
+        {p:'R(config-line)#', c:'login', a:'Require that password at the console. Without login, the password does nothing.'}
+      ],
+      verify: {c:'show running-config', n:'Under line con 0 you should see the password and the login keyword.'},
+      traps: ['<code>login</code> (with a line password) is what enforces the check. <code>login local</code> instead uses the local username database.'],
+      recall: {
+        type: 'multi',
+        promptHtml: 'Type the three lines that password protect the console (enter the line, set password <code>cisco</code>, then enforce it). One command per line.',
+        rtype: 'type the config',
+        expect: [
+          {cmds:['line console 0','line con 0'], note:'enter the console line'},
+          {cmds:['password cisco'], note:'set the line password'},
+          {cmds:['login'], note:'enforce the password'}
+        ],
+        answer: 'line console 0\npassword cisco\nlogin'
+      }
+    },
+
+    // ── BEAT 3 ─ service password-encryption (weak type 7) ──────────────
+    {
+      kind: 'CONCEPT',
+      title: 'service password-encryption is only type 7',
+      gist: '<code>service password-encryption</code> scrambles the plaintext passwords sitting in the running config (like a line password) so a shoulder-surfer cannot read them. But the scheme is <b>type 7</b>, which is reversible. It is obfuscation, not real encryption.',
+      why: 'It stops a casual reader of the config. It does NOT protect against an attacker, because type 7 is trivially decoded.',
+      core: '<code>service password-encryption</code> is WEAK type 7 (reversible). It is not a substitute for <code>enable secret</code>, which is a real hash.',
+      diagram: {
+        title: 'Encryption strength on a Cisco box',
+        ascii:
+'  type 7  (service password-encryption)  ->  REVERSIBLE   weak\n' +
+'  type 5  (enable secret)                ->  HASHED       strong\n' +
+'\n' +
+'  type 7 hides the password from eyes, not from attackers.'
+      },
+      cli: [
+        {p:'R(config)#', c:'service password-encryption', a:'Obfuscate plaintext passwords already in the config. Weak type 7, easily reversed.'}
+      ],
+      verify: {c:'show running-config', n:'Plaintext line passwords now appear as a type 7 string (a 7 followed by hex), not the clear word.'},
+      traps: ['<code>service password-encryption</code> is only weak type 7 and is easily reversed.'],
+      recall: {
+        type: 'mcq',
+        promptHtml: 'Spot the trap. Which statement about <code>service password-encryption</code> is TRUE?',
+        rtype: 'spot the trap',
+        options: [
+          'It hashes passwords with the same strength as <code>enable secret</code>.',
+          'It is weak type 7 encryption and is easily reversed.',
+          'It is required before you can generate an RSA key.',
+          'It encrypts traffic on the VTY lines.'
+        ],
+        answer: 1,
+        explain: '<code>service password-encryption</code> is weak type 7, reversible. It only hides plaintext from a casual reader. It has nothing to do with RSA keys or VTY traffic.'
+      }
+    },
+
+    // ── BEAT 4 ─ SSH replaces Telnet ────────────────────────────────────
+    {
+      kind: 'CONCEPT',
+      title: 'SSH replaces Telnet, use SSHv2',
+      gist: 'Telnet sends everything, including your password, in <b>plaintext</b> on TCP 23. SSH is the encrypted replacement on <b>TCP 22</b>. On the exam, you always pick SSH over Telnet, and you force <b>SSH version 2</b>.',
+      why: 'A plaintext Telnet session can be sniffed and the admin password read off the wire. SSH encrypts the session, so remote management is safe.',
+      core: 'Telnet = plaintext, port 23. SSH = encrypted, port 22. Use SSHv2.',
+      diagram: {
+        title: 'Plaintext vs encrypted remote access',
+        ascii:
+'  Admin --- Telnet (TCP 23, PLAINTEXT) ---> R1   sniffable\n' +
+'  Admin --- SSH    (TCP 22, ENCRYPTED) ---> R1   safe (use v2)'
+      },
+      cli: [
+        {p:'R(config)#', c:'ip ssh version 2', a:'Force SSH version 2 only. Version 1 is weak, so this pins the strong version.'}
+      ],
+      verify: {c:'show ip ssh', n:'Confirms SSH is enabled and reports the version (you want 2.0).'},
+      traps: ['Telnet is plaintext on port 23. SSH is encrypted on port 22. Always use SSHv2.'],
+      recall: {
+        type: 'blank',
+        promptHtml: 'Fill the blank. Force the strong version of SSH only:<br><code>ip ssh version <span class="blank">[ ? ]</span></code>',
+        rtype: 'fill the blank',
+        accept: ['2'],
+        answer: '2',
+        explain: 'The full command is <code>ip ssh version 2</code>. SSHv2 is the strong version; v1 is weak.'
+      }
+    },
+
+    // ── BEAT 5 ─ THE SSH SEQUENCE: hostname + domain BEFORE the key (top yield) ──
+    {
+      kind: 'CONFIG',
+      title: 'SSH prep: hostname + domain BEFORE the key',
+      gist: 'The single highest yield idea in this topic is <b>order</b>. The RSA key name is built from the hostname and the domain name. So both MUST exist <b>before</b> you run <code>crypto key generate rsa</code>. Set the hostname, set the domain, THEN generate the key.',
+      why: 'If you try to generate the key with no domain configured, the device complains and no key is made, so SSH never comes up. The order is the whole point of the question.',
+      core: '<code>hostname</code> + <code>ip domain-name</code> MUST come BEFORE <code>crypto key generate rsa</code>. The key is named after hostname.domain.',
+      diagram: {
+        title: 'The order that makes the key',
+        svg:
+'<svg viewBox="0 0 560 92" role="img" aria-label="hostname then ip domain-name then crypto key generate rsa, in order">' +
+'<style>.b{fill:#FFFFFF;stroke:#E2DFD9;stroke-width:1.5;rx:4}.t{font-family:\'JetBrains Mono\',monospace;font-size:12px;fill:#1C1917}.n{font-family:\'Space Grotesk\',sans-serif;font-size:10px;fill:#A8A29E}.ar{stroke:#B45309;stroke-width:2;fill:none;marker-end:url(#ah)}</style>' +
+'<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#B45309"/></marker></defs>' +
+'<rect class="b" x="6" y="28" width="120" height="34" rx="4"/><text class="t" x="16" y="49">hostname R1</text><text class="n" x="16" y="22">1</text>' +
+'<line class="ar" x1="128" y1="45" x2="160" y2="45"/>' +
+'<rect class="b" x="162" y="28" width="180" height="34" rx="4"/><text class="t" x="172" y="49">ip domain-name lab.local</text><text class="n" x="172" y="22">2</text>' +
+'<line class="ar" x1="344" y1="45" x2="376" y2="45"/>' +
+'<rect class="b" x="378" y="28" width="176" height="34" rx="4" stroke="#B45309"/><text class="t" x="386" y="44">crypto key</text><text class="t" x="386" y="58">generate rsa</text><text class="n" x="386" y="22">3 then</text>' +
+'</svg>'
+      },
+      cli: [
+        {p:'R(config)#', c:'hostname R1', a:'Set the hostname. It becomes the first half of the RSA key name. Must be set first.'},
+        {p:'R(config)#', c:'ip domain-name lab.local', a:'Set the domain. The second half of the key name. Must exist before the key generates.'},
+        {p:'R(config)#', c:'crypto key generate rsa modulus 2048', a:'Now generate the 2048 bit RSA key pair. This is what actually enables SSH on the device.'}
+      ],
+      verify: {c:'show ip ssh', n:'Once the key exists, SSH is enabled. This confirms it and the key modulus.'},
+      traps: [
+        '<code>hostname</code> and <code>ip domain-name</code> MUST exist BEFORE the key generates, because the key name is built from them.',
+        'Generate the key with no domain set and it fails: no key, no SSH.'
+      ],
+      recall: {
+        type: 'multi',
+        promptHtml: 'Type the three SSH prep lines <b>in the correct order</b>: hostname <code>R1</code>, domain <code>lab.local</code>, then the 2048 bit RSA key. Order is graded.',
+        rtype: 'type the config (order matters)',
+        ordered: true,
+        expect: [
+          {cmds:['hostname R1'], note:'first half of the key name'},
+          {cmds:['ip domain-name lab.local','ip domain name lab.local'], note:'second half of the key name, must precede the key'},
+          {cmds:['crypto key generate rsa modulus 2048','crypto key generate rsa'], note:'generate only AFTER hostname and domain'}
+        ],
+        answer: 'hostname R1\nip domain-name lab.local\ncrypto key generate rsa modulus 2048'
+      }
+    },
+
+    // ── BEAT 6 ─ local user + VTY transport input ssh + login local ─────
+    {
+      kind: 'CONFIG',
+      title: 'VTY lines: SSH only, local login',
+      gist: 'The VTY lines (<code>line vty 0 4</code>) are the virtual terminals SSH and Telnet land on. You make a local <b>username</b>, then on VTY you set <b>transport input ssh</b> (which blocks Telnet) and <b>login local</b> (which authenticates against that local username). <code>login local</code> needs a username to exist or no one can log in.',
+      why: 'transport input ssh forces the encrypted protocol and shuts the plaintext door. login local ties logins to a real account instead of a shared line password.',
+      core: '<code>transport input ssh</code> blocks Telnet. <code>login local</code> uses the local username database, so a <code>username</code> MUST exist.',
+      cli: [
+        {p:'R(config)#', c:'username admin secret cisco', a:'Create a local user with a hashed password. login local checks against this.'},
+        {p:'R(config)#', c:'line vty 0 4', a:'Enter the five virtual terminal lines (0 through 4).'},
+        {p:'R(config-line)#', c:'transport input ssh', a:'Allow only SSH on VTY. This blocks Telnet, which is the point.'},
+        {p:'R(config-line)#', c:'login local', a:'Authenticate VTY logins against the local username database.'}
+      ],
+      verify: {c:'show running-config', n:'Confirms the username, and under line vty 0 4 the transport input ssh and login local.'},
+      traps: [
+        '<code>transport input ssh</code> blocks Telnet (that is the goal).',
+        '<code>login local</code> requires a <code>username</code> in the config, or no one can authenticate.'
+      ],
+      recall: {
+        type: 'mcq',
+        promptHtml: 'Spot the trap. You set <code>login local</code> on the VTY lines but cannot log in over SSH. What is missing?',
+        rtype: 'spot the trap',
+        options: [
+          'A <code>username</code> in the local database.',
+          'The command <code>service password-encryption</code>.',
+          'A second <code>enable secret</code>.',
+          'The command <code>transport output ssh</code>.'
+        ],
+        answer: 0,
+        explain: '<code>login local</code> checks the local username database, so a <code>username admin secret cisco</code> must exist. Without a local user, there is nothing to authenticate against.'
+      }
+    }
+  ];
+
+  // ── Capstone: full blank config + topic MCQs ──────────────────────────
+  var CAPSTONE = {
+    scenario: 'Harden R1 from scratch and turn on SSH v2 remote access. Set a hashed enable secret of cisco. Password protect the console line. Turn on password encryption. Then bring up SSH in the correct order: set hostname R1 and domain lab.local, generate a 2048 bit RSA key, make local user admin with secret cisco, force SSH v2, and on VTY 0 4 allow only SSH with local login. End with a verify command. Order matters for the SSH block.',
+    // The full expected config, line by line (lenient match). Order not strictly graded line-for-line,
+    // but the hostname/domain must appear before the key (checked separately).
+    expect: [
+      {cmds:['enable secret cisco'], note:'hashed privileged password'},
+      {cmds:['line console 0','line con 0'], note:'the console line'},
+      {cmds:['password cisco'], note:'console line password'},
+      {cmds:['login'], note:'enforce the console password'},
+      {cmds:['service password-encryption'], note:'weak type 7 obfuscation'},
+      {cmds:['hostname R1'], note:'must precede the key'},
+      {cmds:['ip domain-name lab.local','ip domain name lab.local'], note:'must precede the key'},
+      {cmds:['crypto key generate rsa modulus 2048','crypto key generate rsa'], note:'generate after hostname and domain'},
+      {cmds:['username admin secret cisco'], note:'local user for login local'},
+      {cmds:['ip ssh version 2'], note:'force SSHv2'},
+      {cmds:['line vty 0 4'], note:'the virtual terminal lines'},
+      {cmds:['transport input ssh'], note:'blocks Telnet'},
+      {cmds:['login local'], note:'use the local username database'}
+    ],
+    verify: 'show ip ssh',
+    // hostname + domain must come before the key for the order bonus/warning
+    orderCheck: {
+      before: ['hostname r1', 'ip domain-name lab.local'],
+      after: 'crypto key generate rsa modulus 2048'
+    },
+    mcqs: [
+      {
+        q: 'On a device that has BOTH <code>enable password cisco</code> and <code>enable secret cisco</code> configured, which one does the device use to gate privileged mode?',
+        options: ['enable password, because it was likely entered first','enable secret, because it is the hashed one','Neither, the two cancel out','Both must match or login fails'],
+        answer: 1,
+        explain: 'The hashed <code>enable secret</code> always wins over the weak <code>enable password</code> when both are present.'
+      },
+      {
+        q: 'You run <code>crypto key generate rsa</code> and the router refuses, saying it needs a domain name. What did you skip?',
+        options: ['You skipped <code>ip ssh version 2</code>','You skipped <code>ip domain-name</code> (and hostname) before the key','You skipped <code>service password-encryption</code>','You skipped <code>login local</code>'],
+        answer: 1,
+        explain: 'The RSA key name is built from hostname + domain, so <code>ip domain-name</code> (and a non-default hostname) MUST be set before generating the key.'
+      },
+      {
+        q: 'Which command, placed on the VTY lines, blocks Telnet and permits only SSH?',
+        options: ['<code>login local</code>','<code>transport input ssh</code>','<code>service password-encryption</code>','<code>ip ssh version 2</code>'],
+        answer: 1,
+        explain: '<code>transport input ssh</code> on the VTY lines allows SSH only and blocks Telnet.'
+      },
+      {
+        q: 'What is the security weakness of <code>service password-encryption</code>?',
+        options: ['It only works on the console line','It is weak type 7 and easily reversed','It blocks SSH from working','It deletes the enable secret'],
+        answer: 1,
+        explain: '<code>service password-encryption</code> uses weak, reversible type 7 obfuscation. It hides plaintext from a casual reader but does not protect against an attacker.'
+      },
+      {
+        q: 'You configured <code>login local</code> on VTY but no <code>username</code> exists. What happens?',
+        options: ['SSH falls back to the enable secret','The line password is used instead','No one can authenticate, there is no account to check','Telnet is automatically enabled'],
+        answer: 2,
+        explain: '<code>login local</code> authenticates against the local username database. With no <code>username</code> configured, there is nothing to check and login fails.'
+      }
+    ]
+  };
+
+  var PREFIX = 'ccna_p1-access_';
+  var TOTAL_UNITS = BEATS.length + 1; // beats + capstone
+
+  // ── localStorage ──────────────────────────────────────────────────────
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(PREFIX + 'mastery') || '{}'); }
+    catch (e) { return {}; }
+  }
+  function saveState(s) {
+    try { localStorage.setItem(PREFIX + 'mastery', JSON.stringify(s)); }
+    catch (e) {}
+  }
+  // state shape: { beats: {0:true,...}, capstone:{best:0..100, mcq:0..5}, pos: <index> }
+  var state = loadState();
+  state.beats = state.beats || {};
+  state.capstone = state.capstone || { best: 0, mcq: 0 };
+  if (typeof state.pos !== 'number') state.pos = 0;
+
+  function beatDone(i) { return !!state.beats[i]; }
+  function highestUnlocked() {
+    // first incomplete beat, else capstone index (BEATS.length)
+    for (var i = 0; i < BEATS.length; i++) { if (!beatDone(i)) return i; }
+    return BEATS.length;
+  }
+  function masteredCount() {
+    var n = 0;
+    for (var i = 0; i < BEATS.length; i++) { if (beatDone(i)) n++; }
+    if (state.capstone.best >= 70) n++;
+    return n;
+  }
+
+  // ── lenient command normalization (mirrors config-bootcamp) ───────────
+  var IFACE = [
+    [/\bgigabitethernet\b/g, 'g'], [/\bgigethernet\b/g, 'g'], [/\bgig\b/g, 'g'], [/\bge\b/g, 'g'],
+    [/\bfastethernet\b/g, 'f'], [/\bfa\b/g, 'f'],
+    [/\bport-channel\b/g, 'po'], [/\bportchannel\b/g, 'po'],
+    [/\bconsole\b/g, 'con']
+  ];
+  function normalize(line) {
+    var s = (line || '').toLowerCase().trim();
+    if (!s) return '';
+    s = s.replace(/[ \t]+/g, ' ');
+    IFACE.forEach(function (r) { s = s.replace(r[0], r[1]); });
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  }
+  function canon(line) {
+    var s = normalize(line);
+    s = s.replace(/^con /, 'console ');
+    s = s.replace(/^line con /, 'line console ');
+    s = s.replace(/\bno shut$/, 'no shutdown');
+    s = s.replace(/\bip domain name\b/, 'ip domain-name');
+    return s;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── render the progress rail ──────────────────────────────────────────
+  var rail = document.getElementById('paRail');
+  function renderRail() {
+    var done = masteredCount();
+    var pct = Math.round((done / TOTAL_UNITS) * 100);
+    rail.innerHTML =
+      '<div class="pa-stat"><span class="val ' + (done === TOTAL_UNITS ? 'green' : '') + '">' + done + '/' + TOTAL_UNITS + '</span><span class="lbl">Mastered</span></div>' +
+      '<div class="pa-stat"><span class="val">' + (state.capstone.best || 0) + '%</span><span class="lbl">Capstone best</span></div>' +
+      '<div class="pa-bar-wrap"><div class="pa-bar"><span style="width:' + pct + '%"></span></div></div>' +
+      '<button class="pa-reset" id="paReset" type="button">Reset progress</button>';
+    document.getElementById('paReset').addEventListener('click', function () {
+      if (window.confirm('Reset all progress for this course?')) {
+        state = { beats: {}, capstone: { best: 0, mcq: 0 }, pos: 0 };
+        saveState(state);
+        render();
+      }
+    });
+  }
+
+  // ── render the beat stepper ───────────────────────────────────────────
+  var stepsEl = document.getElementById('paSteps');
+  function renderSteps() {
+    var unlocked = highestUnlocked();
+    var html = '';
+    BEATS.forEach(function (b, i) {
+      var cls = 'pa-step-pip';
+      if (i === state.pos) cls += ' current';
+      if (beatDone(i)) cls += ' mastered';
+      if (i > unlocked) cls += ' locked';
+      html += '<button class="' + cls + '" type="button" role="tab" data-go="' + i + '" ' +
+              (i > unlocked ? 'aria-disabled="true"' : '') +
+              ' aria-label="Beat ' + (i + 1) + ': ' + escapeHtml(b.title) + (beatDone(i) ? ', mastered' : '') + '">' +
+              '<span class="dot"></span>' + (i + 1) + '</button>';
+    });
+    // capstone pip
+    var cCls = 'pa-step-pip';
+    if (state.pos === BEATS.length) cCls += ' current';
+    if (state.capstone.best >= 70) cCls += ' mastered';
+    if (unlocked < BEATS.length) cCls += ' locked';
+    html += '<button class="' + cCls + '" type="button" role="tab" data-go="' + BEATS.length + '" ' +
+            (unlocked < BEATS.length ? 'aria-disabled="true"' : '') +
+            ' aria-label="Capstone' + (state.capstone.best >= 70 ? ', mastered' : '') + '"><span class="dot"></span>Cap</button>';
+    stepsEl.innerHTML = html;
+    stepsEl.querySelectorAll('[data-go]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(btn.getAttribute('data-go'), 10);
+        if (idx > highestUnlocked()) return; // locked
+        state.pos = idx; saveState(state); render();
+      });
+    });
+  }
+
+  // ── render the current stage (a beat or the capstone) ─────────────────
+  var stage = document.getElementById('paStage');
+
+  function cmdHtml(line) {
+    if (line.cls === 'comment') return '<span class="pa-cmd cmt">' + escapeHtml(line.c) + '</span>';
+    return '<span class="pa-cmd"><span class="pmt">' + escapeHtml(line.p) + ' </span>' + escapeHtml(line.c) + '</span>';
+  }
+
+  function teachHtml(b) {
+    var diag = '';
+    if (b.diagram) {
+      var body = b.diagram.svg ? b.diagram.svg : '<pre class="pa-ascii">' + escapeHtml(b.diagram.ascii) + '</pre>';
+      diag = '<div class="pa-diagram"><div class="dh">' + escapeHtml(b.diagram.title) + '</div>' + body + '</div>';
+    }
+    var cli = '<div class="pa-cli-block"><div class="pa-cli-cap">Config context, line by line</div>' +
+      b.cli.map(function (ln) {
+        var rowCls = 'pa-line' + (ln.cls === 'comment' ? ' comment' : '') + (ln.cls === 'alt' ? ' alt' : '');
+        var ann = ln.a ? '<span class="pa-ann">' + escapeHtml(ln.a) + '</span>' : '';
+        return '<div class="' + rowCls + '">' + cmdHtml(ln) + ann + '</div>';
+      }).join('') + '</div>';
+    var verify = '<div class="pa-verify"><div class="vh">Verify with</div><code>' + escapeHtml(b.verify.c) +
+      '</code><div class="vn">' + escapeHtml(b.verify.n) + '</div></div>';
+    var traps = (b.traps && b.traps.length)
+      ? '<div class="pa-trap"><div class="th">Trap</div><ul>' + b.traps.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>'
+      : '';
+    return '<div class="pa-teach">' +
+      '<p class="pa-gist">' + b.gist + '</p>' +
+      '<div class="pa-callgrid">' +
+        '<div class="pa-call why"><div class="ch">Why it matters</div><div class="cb">' + b.why + '</div></div>' +
+        '<div class="pa-call core"><div class="ch">Core truth</div><div class="cb">' + b.core + '</div></div>' +
+      '</div>' +
+      diag + cli + verify + traps +
+    '</div>';
+  }
+
+  function recallHtml(b) {
+    var r = b.recall;
+    var head = '<div class="pa-recall-head"><span class="rk">Prove it now</span><span class="rt">' + escapeHtml(r.rtype) + '</span></div>' +
+               '<p class="pa-prompt">' + r.promptHtml + '</p>';
+    var body = '';
+    if (r.type === 'type' || r.type === 'blank') {
+      var ph = r.type === 'blank' ? 'type just the missing value' : 'type the command';
+      var lbl = r.type === 'blank' ? 'answer:' : 'R(config)#';
+      body = '<div class="pa-term"><label for="paInput">' + lbl + '</label>' +
+             '<input class="pa-input" id="paInput" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="' + ph + '"></div>';
+    } else if (r.type === 'multi') {
+      body = '<div class="pa-term"><label for="paArea">R(config)#</label>' +
+             '<textarea class="pa-area" id="paArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="one command per line..."></textarea></div>';
+    } else if (r.type === 'mcq') {
+      body = '<div class="pa-opts" id="paOpts">' + r.options.map(function (o, i) {
+        return '<button class="pa-opt" type="button" data-opt="' + i + '"><span class="ol">' +
+          String.fromCharCode(65 + i) + '</span><span>' + o + '</span></button>';
+      }).join('') + '</div>';
+    }
+    var actions = (r.type === 'mcq')
+      ? '<div class="pa-recall-actions"><button class="pa-secbtn" type="button" id="paReveal">Show answer</button></div>'
+      : '<div class="pa-recall-actions">' +
+          '<button class="pa-checkbtn" type="button" id="paCheck">Check</button>' +
+          '<button class="pa-secbtn" type="button" id="paClear">Clear</button>' +
+          '<button class="pa-secbtn" type="button" id="paReveal">Show answer</button>' +
+        '</div>';
+    return '<div class="pa-recall">' + head + body + actions +
+      '<div class="pa-feedback" id="paFeedback" aria-live="polite"></div>' +
+      '<button class="pa-nextbtn" type="button" id="paNext">' + (state.pos === BEATS.length - 1 ? 'On to the capstone' : 'Next beat') + ' &rarr;</button>' +
+    '</div>';
+  }
+
+  function renderBeat(i) {
+    var b = BEATS[i];
+    stage.innerHTML =
+      '<div class="pa-beat">' +
+        '<div class="pa-beat-head">' +
+          '<span class="pa-beat-num">Beat ' + (i + 1) + ' / ' + BEATS.length + '</span>' +
+          '<span class="pa-beat-kind">' + b.kind + ' beat</span>' +
+          '<h2>' + escapeHtml(b.title) + '</h2>' +
+        '</div>' +
+        teachHtml(b) +
+        recallHtml(b) +
+      '</div>';
+    wireRecall(i, b);
+    window.scrollTo(0, 0);
+  }
+
+  // ── grade a single beat's recall ──────────────────────────────────────
+  function passBeat(i) {
+    state.beats[i] = true;
+    saveState(state);
+    renderRail(); renderSteps();
+    var nb = document.getElementById('paNext');
+    if (nb) nb.classList.add('show');
+  }
+
+  function showFeedback(pass, headTxt, bodyHtml) {
+    var fb = document.getElementById('paFeedback');
+    if (!fb) return;
+    fb.className = 'pa-feedback show ' + (pass ? 'pass' : 'fail');
+    fb.innerHTML = '<span class="fh">' + headTxt + '</span>' + bodyHtml;
+    fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // line-by-line grade against an expect[] array; returns {ok, rows}
+  function gradeMulti(raw, expect, ordered) {
+    var userLines = raw.split('\n')
+      .map(function (l) { return l.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/, ''); })
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+    var userCanon = userLines.map(canon);
+    var used = userCanon.map(function () { return false; });
+    var rows = [], got = 0, lastFoundIdx = -1, orderOk = true;
+    expect.forEach(function (exp) {
+      var found = -1;
+      for (var i = 0; i < userCanon.length; i++) {
+        if (used[i]) continue;
+        for (var k = 0; k < exp.cmds.length; k++) {
+          if (canon(exp.cmds[k]) === userCanon[i]) { found = i; break; }
+        }
+        if (found >= 0) break;
+      }
+      if (found >= 0) {
+        used[found] = true; got++;
+        if (ordered && found < lastFoundIdx) orderOk = false;
+        lastFoundIdx = Math.max(lastFoundIdx, found);
+        rows.push({ cls: 'ok', icon: '✓', text: userLines[found], note: exp.note });
+      } else {
+        rows.push({ cls: 'miss', icon: '✗', text: exp.cmds[0], note: 'missing: ' + exp.note });
+      }
+    });
+    userCanon.forEach(function (uc, i) {
+      if (!used[i]) rows.push({ cls: 'extra', icon: '~', text: userLines[i], note: 'not needed here' });
+    });
+    return { ok: got === expect.length && orderOk, got: got, total: expect.length, rows: rows, orderOk: orderOk };
+  }
+
+  function diffHtml(rows) {
+    return '<div class="pa-diff">' + rows.map(function (r) {
+      return '<div class="pa-diff-row ' + r.cls + '"><span class="icon">' + r.icon + '</span>' +
+        '<span class="ctext">' + escapeHtml(r.text) + '<span class="cnote">' + escapeHtml(r.note) + '</span></span></div>';
+    }).join('') + '</div>';
+  }
+
+  function wireRecall(i, b) {
+    var r = b.recall;
+    var nextBtn = document.getElementById('paNext');
+    nextBtn.addEventListener('click', function () {
+      if (state.pos < BEATS.length) { state.pos = state.pos + 1; saveState(state); render(); }
+    });
+    // if already mastered, allow advancing immediately
+    if (beatDone(i)) nextBtn.classList.add('show');
+
+    if (r.type === 'mcq') {
+      var opts = document.getElementById('paOpts');
+      var revealed = false;
+      opts.querySelectorAll('[data-opt]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (revealed) return;
+          revealed = true;
+          var pick = parseInt(btn.getAttribute('data-opt'), 10);
+          var correct = pick === r.answer;
+          opts.querySelectorAll('[data-opt]').forEach(function (b2) {
+            var idx = parseInt(b2.getAttribute('data-opt'), 10);
+            b2.disabled = true;
+            if (idx === r.answer) b2.classList.add('correct');
+            else if (idx === pick) b2.classList.add('wrong');
+            else b2.classList.add('dim');
+          });
+          if (correct) {
+            showFeedback(true, 'Correct.', r.explain);
+            passBeat(i);
+          } else {
+            showFeedback(false, 'Not quite. Read the right answer, then it unlocks.', r.explain);
+            passBeat(i); // teach-then-recall: reveal the truth and let them move on
+          }
+        });
+      });
+      document.getElementById('paReveal').addEventListener('click', function () {
+        if (revealed) return;
+        revealed = true;
+        opts.querySelectorAll('[data-opt]').forEach(function (b2) {
+          var idx = parseInt(b2.getAttribute('data-opt'), 10);
+          b2.disabled = true;
+          if (idx === r.answer) b2.classList.add('correct'); else b2.classList.add('dim');
+        });
+        showFeedback(true, 'Answer revealed.', r.explain);
+        passBeat(i);
+      });
+      return;
+    }
+
+    // type / blank / multi
+    var input = document.getElementById('paInput');
+    var area = document.getElementById('paArea');
+    function doCheck() {
+      if (r.type === 'multi') {
+        var res = gradeMulti(area.value, r.expect, r.ordered);
+        var head = res.ok ? 'Nailed it.' : (res.got + ' of ' + res.total + ' lines.' + (!res.orderOk ? ' Order is off.' : ''));
+        showFeedback(res.ok, head, diffHtml(res.rows) +
+          (res.ok ? '' : '<div style="margin-top:6px">Fix the misses' + (!res.orderOk ? ' and the order' : '') + ', then check again.</div>'));
+        if (res.ok) passBeat(i);
+      } else {
+        var val = (input.value || '').trim();
+        var ok = r.accept.some(function (a) { return canon(a) === canon(val); });
+        if (ok) { showFeedback(true, 'Correct.', r.explain || ''); passBeat(i); }
+        else { showFeedback(false, 'Not it yet.', (r.explain || '') + '<br>Try again or reveal the answer.'); }
+      }
+    }
+    document.getElementById('paCheck').addEventListener('click', doCheck);
+    document.getElementById('paClear').addEventListener('click', function () {
+      if (input) input.value = '';
+      if (area) area.value = '';
+      var fb = document.getElementById('paFeedback'); fb.className = 'pa-feedback'; fb.innerHTML = '';
+      (input || area).focus();
+    });
+    document.getElementById('paReveal').addEventListener('click', function () {
+      if (input) input.value = r.answer;
+      if (area) area.value = r.answer;
+      showFeedback(true, 'Answer shown.', 'Clear it and type it yourself to mark the beat mastered. (Reveal still unlocks the next beat.)');
+      passBeat(i);
+    });
+    var field = input || area;
+    if (field) field.addEventListener('keydown', function (e) {
+      if (r.type === 'multi') {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); doCheck(); }
+      } else if (e.key === 'Enter') { e.preventDefault(); doCheck(); }
+    });
+  }
+
+  // ── render the capstone ───────────────────────────────────────────────
+  function renderCapstone() {
+    var c = CAPSTONE;
+    var mcqHtml = c.mcqs.map(function (m, i) {
+      return '<div class="pa-mcq" data-mcq="' + i + '">' +
+        '<div class="q">' + (i + 1) + '. ' + m.q + '</div>' +
+        '<div class="pa-opts">' + m.options.map(function (o, j) {
+          return '<button class="pa-opt" type="button" data-cmcq="' + i + '" data-copt="' + j + '"><span class="ol">' +
+            String.fromCharCode(65 + j) + '</span><span>' + o + '</span></button>';
+        }).join('') + '</div>' +
+        '<div class="exp" id="cexp' + i + '">' + m.explain + '</div>' +
+      '</div>';
+    }).join('');
+
+    stage.innerHTML =
+      '<div class="pa-capstone">' +
+        '<div class="pa-beat-head"><span class="pa-beat-num">Capstone</span>' +
+          '<span class="pa-beat-kind">Whole config from memory</span>' +
+          '<h2>Reproduce the full hardened config</h2></div>' +
+        '<div class="pa-scenario"><div class="sh">Scenario</div><div class="sb">' + escapeHtml(c.scenario) + '</div></div>' +
+        '<p class="pa-recall-hint">Type the entire config from memory, one command per line. Abbreviations like <code>line con 0</code> are accepted. End with a verify command. Press Ctrl+Enter to check.</p>' +
+        '<div class="pa-term"><label for="paCapArea">R(config)#</label>' +
+          '<textarea class="pa-area" id="paCapArea" style="min-height:280px" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type the whole config here..."></textarea></div>' +
+        '<div class="pa-recall-actions">' +
+          '<button class="pa-checkbtn" type="button" id="paCapCheck">Grade my config</button>' +
+          '<button class="pa-secbtn" type="button" id="paCapClear">Clear</button>' +
+          '<button class="pa-secbtn" type="button" id="paCapReveal">Show answer</button>' +
+        '</div>' +
+        '<div class="pa-feedback" id="paCapFeedback" aria-live="polite"></div>' +
+        '<div class="pa-mcq-block">' +
+          '<h3>Exam-style triggers (' + c.mcqs.length + ')</h3>' + mcqHtml +
+        '</div>' +
+      '</div>' +
+      '<div class="pa-done" id="paDone"><h2>Topic mastered</h2><p>You hit 70 percent or better on the blank config and worked the triggers. Local device access and the SSH sequence are exam ready. Run it again any time to keep it sharp.</p></div>';
+
+    wireCapstone(c);
+    window.scrollTo(0, 0);
+  }
+
+  function wireCapstone(c) {
+    var area = document.getElementById('paCapArea');
+
+    function buildExpect() {
+      // base expected lines + the verify line, weighted equally
+      return c.expect.slice();
+    }
+
+    function orderWarning(raw) {
+      var lines = raw.split('\n').map(function (l) {
+        return canon(l.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/, '').trim());
+      });
+      var keyIdx = lines.indexOf(canon(c.orderCheck.after));
+      if (keyIdx < 0) return ''; // key line missing, handled by diff
+      for (var i = 0; i < c.orderCheck.before.length; i++) {
+        var bIdx = lines.indexOf(canon(c.orderCheck.before[i]));
+        if (bIdx < 0 || bIdx > keyIdx) {
+          return 'Order issue: <code>' + escapeHtml(c.orderCheck.before[i]) + '</code> must appear BEFORE <code>crypto key generate rsa</code>. The key is named after hostname and domain.';
+        }
+      }
+      return '';
+    }
+
+    function doGrade() {
+      var expect = buildExpect();
+      var res = gradeMulti(area.value, expect, false);
+      // verify line, checked separately so it is required at the end
+      var userLines = area.value.split('\n').map(function (l) {
+        return canon(l.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/, '').trim());
+      }).filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+      var vCanon = canon(c.verify);
+      var verifyOk = userLines.some(function (u) { return u === vCanon || u.indexOf(vCanon) === 0; });
+      var totalNeeded = expect.length + 1;
+      var got = res.got + (verifyOk ? 1 : 0);
+      var pct = Math.round((got / totalNeeded) * 100);
+
+      // append verify row to the diff
+      var rows = res.rows.slice();
+      // remove an 'extra' row that is actually the verify command
+      rows = rows.filter(function (rw) {
+        return !(rw.cls === 'extra' && (canon(rw.text) === vCanon || canon(rw.text).indexOf(vCanon) === 0));
+      });
+      rows.push(verifyOk
+        ? { cls: 'ok', icon: '✓', text: c.verify, note: 'verify command' }
+        : { cls: 'miss', icon: '✗', text: c.verify, note: 'missing the verify command' });
+
+      var ow = orderWarning(area.value);
+
+      // persist best
+      if (pct > (state.capstone.best || 0)) state.capstone.best = pct;
+      saveState(state);
+      renderRail(); renderSteps();
+
+      var label = pct >= 100 ? 'Perfect. That is exam ready.'
+        : pct >= 70 ? 'Mastered. Close the gaps and run it again.'
+        : pct >= 40 ? 'Partial. Re-read the beats, then retry.'
+        : 'Keep drilling. Walk the beats again and type it from memory.';
+      var sv = pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red';
+
+      var fb = document.getElementById('paCapFeedback');
+      fb.className = 'pa-feedback show ' + (pct >= 70 ? 'pass' : 'fail');
+      fb.innerHTML =
+        '<div class="pa-score"><span class="sv ' + sv + '">' + pct + '%</span>' +
+        '<span class="sl">' + got + ' of ' + totalNeeded + ' lines. ' + label + '</span></div>' +
+        (ow ? '<div class="pa-trap" style="margin-bottom:10px"><div class="th">Sequence check</div><div style="font-family:var(--font-body);font-size:.86rem;line-height:1.5">' + ow + '</div></div>' : '') +
+        diffHtml(rows);
+      fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      maybeShowDone();
+    }
+
+    document.getElementById('paCapCheck').addEventListener('click', doGrade);
+    document.getElementById('paCapClear').addEventListener('click', function () {
+      area.value = '';
+      var fb = document.getElementById('paCapFeedback'); fb.className = 'pa-feedback'; fb.innerHTML = '';
+      area.focus();
+    });
+    document.getElementById('paCapReveal').addEventListener('click', function () {
+      var lines = c.expect.map(function (e) { return e.cmds[0]; });
+      lines.push(c.verify);
+      area.value = lines.join('\n');
+      var fb = document.getElementById('paCapFeedback');
+      fb.className = 'pa-feedback pass show';
+      fb.innerHTML = '<span class="fh">Answer shown.</span>Clear it and type it yourself to score the capstone.';
+    });
+    area.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); doGrade(); }
+    });
+
+    // capstone MCQs
+    stage.querySelectorAll('[data-cmcq]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var qi = parseInt(btn.getAttribute('data-cmcq'), 10);
+        var block = stage.querySelector('[data-mcq="' + qi + '"]');
+        if (block.getAttribute('data-answered') === '1') return;
+        block.setAttribute('data-answered', '1');
+        var pick = parseInt(btn.getAttribute('data-copt'), 10);
+        var ans = c.mcqs[qi].answer;
+        block.querySelectorAll('[data-cmcq]').forEach(function (b2) {
+          var j = parseInt(b2.getAttribute('data-copt'), 10);
+          b2.disabled = true;
+          if (j === ans) b2.classList.add('correct');
+          else if (j === pick) b2.classList.add('wrong');
+          else b2.classList.add('dim');
+        });
+        document.getElementById('cexp' + qi).classList.add('show');
+        // count answered mcqs
+        var answered = stage.querySelectorAll('.pa-mcq[data-answered="1"]').length;
+        if (answered > (state.capstone.mcq || 0)) { state.capstone.mcq = answered; saveState(state); }
+        maybeShowDone();
+      });
+    });
+  }
+
+  function maybeShowDone() {
+    var done = document.getElementById('paDone');
+    if (!done) return;
+    if ((state.capstone.best || 0) >= 70 && (state.capstone.mcq || 0) >= CAPSTONE.mcqs.length) {
+      done.classList.add('show');
+    }
+  }
+
+  // ── top-level render ──────────────────────────────────────────────────
+  function render() {
+    renderRail();
+    renderSteps();
+    // clamp pos to what is unlocked
+    var unlocked = highestUnlocked();
+    if (state.pos > unlocked) state.pos = unlocked;
+    if (state.pos >= BEATS.length) renderCapstone();
+    else renderBeat(state.pos);
+  }
+
+  render();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

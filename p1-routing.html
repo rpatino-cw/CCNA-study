@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Routing Table + Forwarding (Deep): CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress ───────────────────────────────────────────── */
+.rt-overall{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg)}
+.rt-ostat{display:flex;flex-direction:column}
+.rt-ostat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.rt-ostat .val.green{color:var(--prof-strong)}
+.rt-ostat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.rt-obar-wrap{flex:1;min-width:160px}
+.rt-obar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.rt-obar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.rt-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.rt-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+
+/* ── Beat rail ──────────────────────────────────────────────────── */
+.rt-rail{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+.rt-pip{display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border);border-radius:100px;background:var(--bg-surface);cursor:pointer;transition:all .15s;font-family:var(--font-display);font-size:.74rem;font-weight:600;color:var(--ink-muted)}
+.rt-pip:hover{border-color:var(--accent);color:var(--ink)}
+.rt-pip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rt-pip .dot{width:9px;height:9px;border-radius:50%;background:var(--ink-muted);flex-shrink:0}
+.rt-pip.current{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 2px rgba(180,83,9,.12)}
+.rt-pip.done{color:var(--prof-strong)}
+.rt-pip.done .dot{background:var(--prof-strong)}
+.rt-pip.locked{opacity:.5;cursor:not-allowed}
+.rt-pip.locked:hover{border-color:var(--border);color:var(--ink-muted)}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.rt-beat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:var(--s-lg)}
+@media(max-width:640px){.rt-beat{padding:18px 16px}}
+.rt-beat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-sm)}
+.rt-beat-num{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:var(--accent);letter-spacing:.04em}
+.rt-beat-kind{font-family:var(--font-mono);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:100px;background:rgba(180,83,9,.1);color:var(--accent)}
+.rt-beat-kind.config{background:rgba(22,163,74,.1);color:var(--prof-strong)}
+.rt-beat h2{font-family:var(--font-display);font-size:1.4rem;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.2;width:100%}
+@media(max-width:640px){.rt-beat h2{font-size:1.15rem}}
+
+.rt-gist{font-family:var(--font-body);font-size:.96rem;color:var(--ink);line-height:1.6;margin:0 0 var(--s-md)}
+.rt-gist code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+.rt-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media(max-width:640px){.rt-meta-grid{grid-template-columns:1fr}}
+.rt-meta{padding:13px 15px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.rt-meta .mh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:5px}
+.rt-meta .mb{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.55}
+.rt-meta code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── Diagram block (SVG / ASCII) ────────────────────────────────── */
+.rt-diagram{margin-bottom:var(--s-md);text-align:center}
+.rt-diagram svg{max-width:100%;height:auto}
+.rt-ascii{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:var(--s-md);overflow-x:auto}
+.rt-ascii pre{font-family:var(--font-mono);font-size:.82rem;line-height:1.5;color:#FAFAF9;margin:0;white-space:pre}
+.rt-ascii .hl{color:#FBBF24}
+.rt-ascii .gn{color:#86EFAC}
+.rt-ascii .mu{color:#A8A29E}
+
+/* ── Guided CLI block ───────────────────────────────────────────── */
+.rt-cli-block{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.rt-line{display:grid;grid-template-columns:1fr;gap:0;padding:0 16px;align-items:baseline;border-left:3px solid transparent;transition:background .15s}
+.rt-line:hover{background:rgba(255,255,255,.03)}
+.rt-line.comment{opacity:.7}
+.rt-line.alt{border-left-color:var(--accent)}
+.rt-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.rt-cmd .pmt{color:#A8A29E}
+.rt-cmd.cmt{color:#86EFAC}
+.rt-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;border-bottom:1px dashed #292524;margin-bottom:2px}
+.rt-line:last-child .rt-ann{border-bottom:none}
+
+/* ── Verify + traps ─────────────────────────────────────────────── */
+.rt-verify{padding:14px 16px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.rt-verify .vh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:7px}
+.rt-verify code{display:block;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);padding:4px 0}
+.rt-verify .vn{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary);margin-top:2px;line-height:1.5}
+
+.rt-traps{padding:14px 16px;border:1px solid var(--prof-weak);border-radius:var(--radius-lg);background:rgba(220,38,38,.04);margin-bottom:var(--s-md)}
+.rt-traps .th{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-weak);font-weight:700;margin-bottom:7px}
+.rt-traps ul{margin:0;padding-left:18px}
+.rt-traps li{font-family:var(--font-body);font-size:.87rem;color:var(--ink);line-height:1.55;margin-bottom:5px}
+.rt-traps code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── Recall block ───────────────────────────────────────────────── */
+.rt-recall{border-top:2px dashed var(--rule);margin-top:var(--s-md);padding-top:var(--s-md)}
+.rt-recall-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rt-recall-head .rh{font-family:var(--font-display);font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.rt-recall-head .rh-tick{color:var(--prof-strong);font-weight:700}
+.rt-q{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.55;margin:0 0 var(--s-sm)}
+.rt-q code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.rt-q .cloze-blank{display:inline-block;min-width:60px;border-bottom:2px dashed var(--accent);color:var(--accent);font-weight:600;padding:0 4px;margin:0 2px;font-family:var(--font-mono)}
+
+/* MCQ options */
+.rt-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--s-sm)}
+.rt-opt{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;transition:all .15s;text-align:left;font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.45}
+.rt-opt:hover{border-color:var(--accent)}
+.rt-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rt-opt .ol{font-family:var(--font-mono);font-weight:700;color:var(--ink-secondary);flex-shrink:0}
+.rt-opt code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.rt-opt.correct{border-color:var(--prof-strong);background:rgba(22,163,74,.08)}
+.rt-opt.correct .ol{color:var(--prof-strong)}
+.rt-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.07)}
+.rt-opt.wrong .ol{color:var(--prof-weak)}
+.rt-opt.disabled{cursor:default;pointer-events:none}
+
+/* text / command input */
+.rt-input{width:100%;background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:11px 14px;font-family:var(--font-mono);font-size:.9rem;color:#FAFAF9;outline:none;caret-color:var(--accent);margin-bottom:var(--s-sm)}
+.rt-input::placeholder{color:#57534E}
+.rt-input:focus{border-color:var(--accent)}
+.rt-termarea{width:100%;min-height:150px;background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:12px 14px;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent);margin-bottom:var(--s-sm)}
+.rt-termarea:focus{border-color:var(--accent)}
+.rt-termarea::placeholder{color:#57534E}
+
+.rt-recall-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rt-checkbtn{padding:11px 22px;font-family:var(--font-display);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+.rt-checkbtn:hover{filter:brightness(1.06)}
+.rt-checkbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.rt-secbtn{padding:11px 18px;font-family:var(--font-display);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.rt-secbtn:hover{border-color:var(--accent);color:var(--accent)}
+.rt-secbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* feedback */
+.rt-fb{margin-top:var(--s-sm);padding:12px 15px;border-radius:var(--radius);font-family:var(--font-body);font-size:.9rem;line-height:1.55;display:none}
+.rt-fb.show{display:block}
+.rt-fb.pass{background:rgba(22,163,74,.08);border:1px solid var(--prof-strong);color:var(--ink)}
+.rt-fb.fail{background:rgba(220,38,38,.06);border:1px solid var(--prof-weak);color:var(--ink)}
+.rt-fb code{font-family:var(--font-mono);font-size:.86em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.rt-fb .fb-h{font-family:var(--font-display);font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.rt-fb.pass .fb-h{color:var(--prof-strong)}
+.rt-fb.fail .fb-h{color:var(--prof-weak)}
+
+/* diff rows for command recall */
+.rt-diff{margin-top:var(--s-sm);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.rt-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.rt-diff-row:first-child{border-top:none}
+.rt-diff-row .icon{flex-shrink:0;width:16px;text-align:center;font-weight:700}
+.rt-diff-row.ok{background:rgba(22,163,74,.05)}
+.rt-diff-row.ok .icon{color:var(--prof-strong)}
+.rt-diff-row.miss{background:rgba(220,38,38,.05)}
+.rt-diff-row.miss .icon{color:var(--prof-weak)}
+.rt-diff-row.extra .icon{color:var(--prof-mid)}
+.rt-diff-row .ctext{color:var(--ink);word-break:break-word}
+.rt-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.rt-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.rt-advance{display:flex;justify-content:flex-end;margin-top:var(--s-md)}
+.rt-nextbtn{display:inline-flex;align-items:center;gap:9px;padding:13px 26px;font-family:var(--font-display);font-size:.92rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-lg);cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s,opacity .15s;box-shadow:0 5px 16px rgba(180,83,9,.25)}
+.rt-nextbtn:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(180,83,9,.35)}
+.rt-nextbtn:active{transform:translateY(0)}
+.rt-nextbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.rt-nextbtn[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none;transform:none}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.rt-capstone{background:var(--bg-surface);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-lg)}
+.rt-capstone h2{font-family:var(--font-display);font-size:1.45rem;font-weight:700;margin:0 0 var(--s-sm);letter-spacing:-.01em}
+.rt-scenario{padding:16px 18px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.rt-scenario .sh{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.rt-scenario .sb{font-family:var(--font-body);font-size:.95rem;color:var(--ink);line-height:1.6}
+.rt-scenario .sb code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.rt-hint{font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);margin-bottom:8px;line-height:1.5}
+.rt-hint code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.rt-cap-q{margin-top:var(--s-lg);padding-top:var(--s-md);border-top:1px solid var(--rule)}
+.rt-cap-q .rt-q{font-weight:600}
+
+.rt-locked-msg{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);line-height:1.6;text-align:center;padding:var(--s-xl) var(--s-lg);background:var(--bg-surface);border:1px dashed var(--border);border-radius:var(--radius-lg)}
+.rt-locked-msg strong{color:var(--ink)}
+
+.rt-done-banner{padding:18px 20px;border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.06);margin-bottom:var(--s-lg);display:none}
+.rt-done-banner.show{display:block}
+.rt-done-banner h3{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--prof-strong);margin:0 0 6px}
+.rt-done-banner p{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.55;margin:0}
+
+@media (max-width:640px){
+  .rt-overall{gap:var(--s-sm)}
+  .rt-capstone{padding:16px}
+}
+@media (prefers-reduced-motion: reduce){
+  .rt-nextbtn,.rt-obar>span,.rt-pip{transition:none}
+  .rt-nextbtn:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">TEACH THEN RECALL · DEEP COURSE</div>
+    <h1>Routing Table + Forwarding (Deep)</h1>
+    <p class="subtitle">How a router picks ONE best path out of everything it knows. Each beat teaches a small chunk, then forces you to recall it before you can move on.</p>
+  </header>
+
+  <p class="intro">Objectives 3.1 and 3.2. We build the decision a router makes when a packet arrives: read the route table, match the longest prefix, trust the lowest administrative distance, then break ties on metric. Learn a chunk, prove the chunk, advance. A capstone at the end makes you rebuild the whole mental model from a blank screen.</p>
+
+  <div class="rt-overall" id="rtOverall"></div>
+  <div class="rt-rail" id="rtRail"></div>
+
+  <div class="rt-done-banner" id="rtDoneBanner">
+    <h3>All beats mastered. The forwarding decision is yours.</h3>
+    <p>You can replay any beat from the rail, or reset progress to drill it cold again.</p>
+  </div>
+
+  <div id="rtStage"></div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  // ════════════════════════════════════════════════════════════════════
+  //  DATA: every fact verbatim from the brief + canonical AD values.
+  //  Beat kinds: 'concept' (mental model) or 'config' (CLI + verify).
+  //  Recall types: 'mcq', 'fill' (single blank, text), 'cmd' (line-by-line),
+  //               'trap' (spot-the-trap MCQ), 'short' (short text accept-list).
+  //  Beats are ordered so the hardest, highest-yield idea (decision order
+  //  + AD-vs-prefix trap) is taught early and reinforced most.
+  // ════════════════════════════════════════════════════════════════════
+  var BEATS = [
+    {
+      slug: 'b1-what-table-is',
+      kind: 'concept',
+      title: 'One destination, one best path',
+      gist: 'A router does ONE job per packet: look at the destination IP, find the single best matching route in its table, and forward out that next hop. It does not load-balance across worse paths. It picks the one winner and commits.',
+      meta: [
+        {h:'Why', b:'A packet has nowhere to go until the router resolves it to a next hop. The route table IS that lookup.'},
+        {h:'Core truth', b:'The table can list many ways to reach a destination, but only ONE entry gets installed and used. The rest are losers held in reserve.'}
+      ],
+      recall: {
+        type:'mcq',
+        q:'A router has three different ways it learned about 10.1.1.0/24. How many of those does it use to forward a packet to 10.1.1.5?',
+        opts:[
+          {t:'All three, load-balanced equally'},
+          {t:'Exactly one: the single best path it selects', correct:true},
+          {t:'Two: the primary and a backup, simultaneously'},
+          {t:'None until you configure load balancing'}
+        ],
+        explain:'The router selects ONE best path and installs only that entry in the table. The others are not used unless the winner is withdrawn.'
+      }
+    },
+    {
+      slug: 'b2-read-a-route-line',
+      kind: 'concept',
+      title: 'Reading a line of show ip route',
+      gist: 'Every route line has the same four parts. Learn to read them left to right. Example: <code>O 10.1.1.0/24 [110/2] via 192.168.1.1</code>.',
+      ascii:
+'<span class="hl">O</span>   <span class="gn">10.1.1.0/24</span>   <span class="hl">[110/2]</span>   via <span class="gn">192.168.1.1</span>\n'+
+'<span class="mu">^</span>     <span class="mu">^</span>          <span class="mu">^   ^</span>          <span class="mu">^</span>\n'+
+'<span class="mu">code  prefix      AD  metric    next-hop</span>\n'+
+'<span class="mu">(how    (network/    (trust  (cost)   (where to</span>\n'+
+'<span class="mu">learned) mask)      level)            send it)</span>',
+      meta: [
+        {h:'The code', b:'A single letter for HOW the route was learned. <code>O</code> here means OSPF.'},
+        {h:'The brackets', b:'<code>[AD/metric]</code>. First number is administrative distance (trust). Second is the protocol metric (cost).'}
+      ],
+      recall: {
+        type:'fill',
+        q:'In the line <code>O 10.1.1.0/24 [110/2] via 192.168.1.1</code>, type the administrative distance value (the first number in the brackets).',
+        placeholder:'AD value',
+        accept:['110'],
+        explain:'The brackets are [AD/metric]. 110 is the AD (OSPF), 2 is the metric. The next-hop is 192.168.1.1.'
+      }
+    },
+    {
+      slug: 'b3-route-codes',
+      kind: 'concept',
+      title: 'The route codes (the legend)',
+      gist: 'The letter at the start of each line tells you the source. The exam-critical ones: <code>C</code> connected, <code>L</code> local (the router\'s own /32 interface IP), <code>S</code> static, <code>O</code> OSPF, <code>D</code> EIGRP (D for Diffusing), and <code>*</code> which marks the default route. The "gateway of last resort" line at the top names where unmatched traffic goes.',
+      meta: [
+        {h:'Why C and L differ', b:'<code>C</code> is the whole connected subnet. <code>L</code> is the single /32 address of the router\'s own interface on that subnet.'},
+        {h:'Gateway of last resort', b:'The header line that points at the default route (<code>0.0.0.0/0</code>). If it says "not set", unmatched packets are dropped.'}
+      ],
+      recall: {
+        type:'mcq',
+        q:'Which route code marks a route learned by EIGRP?',
+        opts:[
+          {t:'O'},
+          {t:'S'},
+          {t:'D', correct:true},
+          {t:'E'}
+        ],
+        explain:'EIGRP uses D (for Diffusing Update Algorithm). O is OSPF, S is static, C is connected, L is local.'
+      }
+    },
+    {
+      slug: 'b4-decision-order',
+      kind: 'concept',
+      title: 'The decision order (memorize this cold)',
+      gist: 'When more than one route could match, the router decides in a FIXED order. This is the single highest-yield idea in the topic. (1) Longest-prefix match wins first. (2) If prefixes tie, lowest administrative distance wins (which source to trust). (3) If AD also ties, lowest metric wins (within that one protocol).',
+      ascii:
+'<span class="hl">STEP 1</span>  Longest prefix match   <span class="mu">/30 beats /24 beats /0</span>\n'+
+'   <span class="mu">|</span>     <span class="mu">(most specific network wins, period)</span>\n'+
+'   <span class="mu">v</span>\n'+
+'<span class="hl">STEP 2</span>  Lowest AD              <span class="mu">which SOURCE to trust</span>\n'+
+'   <span class="mu">|</span>     <span class="mu">(compares DIFFERENT protocols)</span>\n'+
+'   <span class="mu">v</span>\n'+
+'<span class="hl">STEP 3</span>  Lowest metric          <span class="mu">cost within the SAME protocol</span>',
+      meta: [
+        {h:'Why order matters', b:'Prefix length is checked BEFORE trust. A more specific route wins even if a less specific one came from a more trusted source.'},
+        {h:'Core truth', b:'AD compares different protocols. Metric compares routes from the same protocol. Never mix the two jobs.'}
+      ],
+      recall: {
+        type:'short',
+        q:'Name the three tie-break steps a router uses, in order, to pick the best route. (One short answer, the three keywords in order.)',
+        placeholder:'step 1, step 2, step 3',
+        accept:[
+          'longest prefix, ad, metric',
+          'prefix, ad, metric',
+          'longest prefix match, ad, metric',
+          'longest prefix match, administrative distance, metric',
+          'prefix, administrative distance, metric',
+          'longest prefix, administrative distance, metric',
+          'prefix length, ad, metric',
+          'prefix length, administrative distance, metric'
+        ],
+        explain:'Order: (1) longest-prefix match, (2) administrative distance, (3) metric. Always prefix first, then trust, then cost.'
+      }
+    },
+    {
+      slug: 'b5-longest-prefix-trap',
+      kind: 'concept',
+      title: 'The longest-prefix trap',
+      gist: 'This is the trap the exam loves. Longest prefix wins EVEN IF its administrative distance is higher. A static route to <code>10.1.1.0/26</code> (AD 1) and an OSPF route to <code>10.1.1.0/24</code> (AD 110) both match the destination 10.1.1.5. Prefix is checked first, so the /26 wins, even though the question dangles the lower AD of a less specific route to bait you.',
+      meta: [
+        {h:'The bait', b:'The stem makes one route look more trustworthy (lower AD). Ignore that until prefixes are equal.'},
+        {h:'The truth', b:'Most specific prefix that matches the destination wins outright. AD only breaks ties between routes of EQUAL prefix length.'}
+      ],
+      recall: {
+        type:'trap',
+        q:'Destination 10.1.1.5. The table has: OSPF <code>10.1.1.0/24</code> [110/2] and a static <code>10.1.1.0/26</code> [1/0]. Which route forwards the packet?',
+        opts:[
+          {t:'The static /26, because longest prefix is checked before AD', correct:true},
+          {t:'The OSPF /24, because its prefix is shorter and easier to match'},
+          {t:'The OSPF /24, because OSPF metrics are lower than static'},
+          {t:'Neither, because the ADs do not match'}
+        ],
+        explain:'Longest prefix wins first. /26 is more specific than /24 and 10.1.1.5 falls inside 10.1.1.0/26, so the static /26 wins. The lower-vs-higher AD only matters when prefix lengths are equal.'
+      }
+    },
+    {
+      slug: 'b6-ad-values',
+      kind: 'concept',
+      title: 'The AD table (trust ranking)',
+      gist: 'Administrative distance ranks how much a router trusts each ROUTE SOURCE when prefixes are equal. Lower is more trusted. Memorize: connected 0, static 1, eBGP 20, EIGRP 90, OSPF 110, RIP 120, EIGRP-external 170, iBGP 200, unreachable 255. Connected and local are always preferred because their AD is 0.',
+      ascii:
+'<span class="gn">  0</span>  Connected   <span class="mu">(also Local /32)</span>\n'+
+'<span class="gn">  1</span>  Static\n'+
+' 20  eBGP\n'+
+' 90  EIGRP        <span class="mu">(internal)</span>\n'+
+'110  OSPF\n'+
+'120  RIP\n'+
+'170  EIGRP-ext    <span class="mu">(external/redistributed)</span>\n'+
+'200  iBGP\n'+
+'<span class="hl">255</span>  Unreachable  <span class="mu">(never installed, route is dropped)</span>',
+      meta: [
+        {h:'Why connected wins', b:'AD 0 cannot be beaten. A directly attached subnet is the ground truth, so it always installs over any learned route.'},
+        {h:'255 means dead', b:'An AD of 255 is "unreachable". The router refuses to install it and the destination is unreachable via that source.'}
+      ],
+      recall: {
+        type:'mcq',
+        q:'Two equal-prefix routes to the same network: one from OSPF, one from EIGRP. Which installs in the table?',
+        opts:[
+          {t:'OSPF, because 110 is the lower number'},
+          {t:'EIGRP, because AD 90 beats AD 110', correct:true},
+          {t:'Both, split equally'},
+          {t:'Whichever arrived first'}
+        ],
+        explain:'Equal prefixes, so AD decides. EIGRP AD 90 is lower (more trusted) than OSPF AD 110, so EIGRP installs.'
+      }
+    },
+    {
+      slug: 'b7-ad-vs-metric',
+      kind: 'concept',
+      title: 'AD vs metric: do not confuse the jobs',
+      gist: 'Two different comparisons that learners constantly swap. Administrative distance compares routes from DIFFERENT protocols (OSPF vs EIGRP vs static). Metric compares routes from the SAME protocol (which OSPF path is cheaper). You only reach the metric step after prefix and AD have already tied.',
+      meta: [
+        {h:'AD job', b:'Cross-protocol trust. "Do I believe OSPF or EIGRP for this network?" Picks the source.'},
+        {h:'Metric job', b:'Within-protocol cost. "Of the OSPF paths, which is cheapest?" Picks the path inside the chosen source.'}
+      ],
+      recall: {
+        type:'trap',
+        q:'A router has two OSPF routes to 10.2.2.0/24 with equal prefix and equal AD (both 110) but different metrics, 2 and 5. What decides the winner?',
+        opts:[
+          {t:'Administrative distance, the 110s'},
+          {t:'Metric: the route with metric 2 wins, lowest cost within OSPF', correct:true},
+          {t:'Longest prefix, but they are equal so it is a tie forever'},
+          {t:'The router installs both because the ADs match'}
+        ],
+        explain:'Same protocol, same AD, equal prefix. The only remaining tie-break is metric. Lowest metric (2) wins. AD already tied, so it cannot decide here.'
+      }
+    },
+    {
+      slug: 'b8-static-default-config',
+      kind: 'config',
+      title: 'Config: a static route and a default route',
+      gist: 'You install routes by hand to feed the table. A specific static route names the destination network and mask. The default route <code>0.0.0.0/0</code> catches everything with no better match and becomes the gateway of last resort.',
+      meta: [
+        {h:'Why', b:'On a stub or edge router you point everything unknown at the ISP with one default route, instead of running a protocol.'},
+        {h:'Core truth', b:'A static route uses a SUBNET mask here, not a wildcard. The default route is literally the network 0.0.0.0 with mask 0.0.0.0.'}
+      ],
+      guided: [
+        {p:'R(config)#', c:'ip route 10.1.1.0 255.255.255.0 192.168.1.1', a:'Specific static route to 10.1.1.0/24 via next-hop 192.168.1.1. This appears as code S in the table.'},
+        {p:'R(config)#', c:'ip route 0.0.0.0 0.0.0.0 192.168.1.1', a:'Default route. The all-zeros network and mask match anything with no better entry. This becomes the gateway of last resort, shown with a *.'}
+      ],
+      verify: [
+        {c:'show ip route static', n:'Lists the static routes you installed (code S). The default shows as S*.'},
+        {c:'show ip route', n:'The top names the gateway of last resort. The default route line carries the *.'}
+      ],
+      traps: [
+        'A static route uses a SUBNET mask (255.255.255.0), NOT a wildcard.',
+        'The default route is <code>0.0.0.0 0.0.0.0</code>, prefix <code>0.0.0.0/0</code>, the shortest possible prefix so it only wins when nothing else matches.'
+      ],
+      recall: {
+        type:'cmd',
+        scenario:'Install a static route to 10.1.1.0/24 via 192.168.1.1, then a default route via the same next-hop. Type each command on its own line.',
+        hint:'Subnet mask, not wildcard. Default is the all-zeros network and mask.',
+        lines:[
+          {cmds:['ip route 10.1.1.0 255.255.255.0 192.168.1.1'], note:'specific static, subnet mask'},
+          {cmds:['ip route 0.0.0.0 0.0.0.0 192.168.1.1'], note:'default route, gateway of last resort'}
+        ],
+        explain:'Static routes take a subnet mask. The default 0.0.0.0/0 catches everything unmatched and shows as S* with the * marking the gateway of last resort.'
+      }
+    },
+    {
+      slug: 'b9-verify-commands',
+      kind: 'config',
+      title: 'Config: verifying the table',
+      gist: 'Three verify commands you must know. <code>show ip route</code> dumps the whole table with the legend and the gateway of last resort. <code>show ip route 10.1.1.0</code> shows the single winning entry for one destination and how it was chosen. <code>show ip cef</code> shows the data-plane forwarding table.',
+      meta: [
+        {h:'Control vs data plane', b:'The routing protocols and table are the CONTROL plane (it decides). CEF is the DATA plane (it forwards fast, in hardware).'},
+        {h:'Why show ip route 10.1.1.0', b:'It returns only the one matching entry, the AD, the metric, and the next-hop, so you can prove WHICH route won.'}
+      ],
+      guided: [
+        {p:'R#', c:'show ip route', a:'Whole table. Header shows the legend and the gateway of last resort. Every installed route, one per line.'},
+        {p:'R#', c:'show ip route 10.1.1.0', a:'The single best entry for that destination, including AD, metric, and the next-hop that won. This is your "why did it pick THIS" command.'},
+        {p:'R#', c:'show ip cef', a:'The data-plane forwarding table CEF built from the route table. Control plane decides, data plane forwards.'}
+      ],
+      verify: [
+        {c:'show ip route', n:'Confirms what is installed and what the gateway of last resort is.'},
+        {c:'show ip cef', n:'Confirms the forwarding entries the hardware actually uses.'}
+      ],
+      traps: [
+        'The route table is the CONTROL plane (decides). CEF is the DATA plane (forwards).',
+        '<code>show ip route 10.1.1.0</code> shows only the WINNING route for that destination, not every candidate.'
+      ],
+      recall: {
+        type:'cmd',
+        scenario:'Show the entire route table, then show only the winning entry for destination 10.1.1.0, then show the data-plane forwarding table.',
+        hint:'Three show commands. One is scoped to a single destination. One is the CEF table.',
+        lines:[
+          {cmds:['show ip route'], note:'whole table + gateway of last resort'},
+          {cmds:['show ip route 10.1.1.0'], note:'the single winning entry'},
+          {cmds:['show ip cef'], note:'data-plane forwarding table'}
+        ],
+        explain:'show ip route is the control-plane table, show ip route 10.1.1.0 isolates the winner for one destination, show ip cef is the data-plane table the hardware forwards on.'
+      }
+    },
+    {
+      slug: 'b10-connected-always-wins',
+      kind: 'concept',
+      title: 'Connected and local always win (AD 0/0)',
+      gist: 'A directly attached subnet (code <code>C</code>, AD 0) and the router\'s own interface address (code <code>L</code>, a /32, AD 0) can never be beaten by a learned route. If a destination is on a directly connected subnet, the router forwards locally and never consults a static or OSPF entry for it.',
+      meta: [
+        {h:'Why AD 0 is unbeatable', b:'There is no lower number. The router physically owns the link, so it is the ground truth for that subnet.'},
+        {h:'Local /32', b:'The L route is the exact IP of the router\'s interface, a host route, so traffic to the router itself resolves instantly.'}
+      ],
+      recall: {
+        type:'mcq',
+        q:'A subnet is directly connected (C, AD 0) AND also advertised to this router by OSPF (AD 110). Which does the router use?',
+        opts:[
+          {t:'OSPF, dynamic routes are always preferred'},
+          {t:'The connected route, AD 0 cannot be beaten', correct:true},
+          {t:'Whichever has the lower metric'},
+          {t:'Both, for redundancy'}
+        ],
+        explain:'Connected (AD 0) beats OSPF (AD 110) on equal prefixes every time. The router forwards on the directly attached subnet and ignores the learned route.'
+      }
+    }
+  ];
+
+  // ── Capstone: blank-config rebuild + topic MCQs ────────────────────
+  var CAPSTONE = {
+    scenario:'An edge router must reach 10.1.1.0/24 through next-hop 192.168.1.1, and send everything else to the same upstream as a default route. From a blank terminal, reproduce BOTH config lines, then add the one command that proves the chosen route for destination 10.1.1.0 (its AD, metric, and next-hop).',
+    hint:'Two ip route lines (specific + default), then one scoped show command. Subnet mask, not wildcard.',
+    lines:[
+      {cmds:['ip route 10.1.1.0 255.255.255.0 192.168.1.1'], note:'specific static, subnet mask'},
+      {cmds:['ip route 0.0.0.0 0.0.0.0 192.168.1.1'], note:'default route, gateway of last resort'}
+    ],
+    verify:'show ip route 10.1.1.0',
+    questions:[
+      {
+        q:'Destination 10.1.1.5 matches an OSPF <code>/24</code> [110/2] and a static <code>/26</code> [1/0]. Which forwards the packet?',
+        opts:[
+          {t:'The static /26, longest prefix is checked before AD', correct:true},
+          {t:'The OSPF /24, lower metric'},
+          {t:'The OSPF /24, dynamic beats static'},
+          {t:'Neither, ADs differ'}
+        ],
+        explain:'Longest prefix first. /26 is more specific and contains 10.1.1.5, so the static /26 wins regardless of the OSPF route\'s AD.'
+      },
+      {
+        q:'Equal-prefix routes to one network from EIGRP and OSPF. Which installs?',
+        opts:[
+          {t:'EIGRP, AD 90 beats AD 110', correct:true},
+          {t:'OSPF, AD 110 is lower'},
+          {t:'Both, equal cost'},
+          {t:'RIP, AD 120'}
+        ],
+        explain:'Equal prefix, so AD decides. EIGRP 90 is lower than OSPF 110, so EIGRP installs.'
+      },
+      {
+        q:'In <code>S* 0.0.0.0/0 [1/0] via 192.168.1.1</code>, what does the <code>*</code> mean?',
+        opts:[
+          {t:'It is the gateway of last resort (the default route)', correct:true},
+          {t:'The route is down'},
+          {t:'It is a connected route'},
+          {t:'The AD is unknown'}
+        ],
+        explain:'The * marks the default route, which serves as the gateway of last resort for any destination with no more specific match.'
+      },
+      {
+        q:'Two OSPF routes to the same prefix, equal AD (110), metrics 2 and 5. What decides?',
+        opts:[
+          {t:'Metric: the metric-2 route wins', correct:true},
+          {t:'AD, they are both 110'},
+          {t:'Prefix length'},
+          {t:'The router installs both'}
+        ],
+        explain:'Same protocol, same AD, equal prefix. Metric is the final tie-break, so the lower metric (2) wins.'
+      },
+      {
+        q:'A destination is on a directly connected subnet (C, AD 0) that is also learned via static (AD 1). Which is used?',
+        opts:[
+          {t:'The connected route, AD 0 cannot be beaten', correct:true},
+          {t:'The static route, you configured it'},
+          {t:'Whichever has the lower metric'},
+          {t:'Neither until a protocol confirms it'}
+        ],
+        explain:'Connected AD 0 is the lowest possible and unbeatable on equal prefixes. The router forwards on the attached subnet.'
+      }
+    ]
+  };
+
+  var PREFIX = 'ccna_p1-routing_';
+
+  // ── localStorage ────────────────────────────────────────────────────
+  function loadState(){ try { return JSON.parse(localStorage.getItem(PREFIX+'mastery')||'{}'); } catch(e){ return {}; } }
+  function saveState(s){ try { localStorage.setItem(PREFIX+'mastery', JSON.stringify(s)); } catch(e){} }
+  var state = loadState(); // { mastered:{slug:true}, capstone:bool, current:idx }
+
+  if (!state.mastered) state.mastered = {};
+  if (typeof state.current !== 'number') state.current = 0;
+
+  function beatDone(slug){ return !!state.mastered[slug]; }
+  function masteredCount(){ var n=0; BEATS.forEach(function(b){ if(beatDone(b.slug)) n++; }); return n; }
+  function allBeatsDone(){ return masteredCount() === BEATS.length; }
+  // A beat is unlocked if it is the first, or the previous beat is mastered, or it is already mastered.
+  function beatUnlocked(idx){
+    if (idx === 0) return true;
+    if (beatDone(BEATS[idx].slug)) return true;
+    return beatDone(BEATS[idx-1].slug);
+  }
+  function capstoneUnlocked(){ return allBeatsDone(); }
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ── Lenient command normalization (matches config-bootcamp behavior) ──
+  var IFACE = [
+    [/\bgigabitethernet\b/g,'g'],[/\bgigethernet\b/g,'g'],[/\bgig\b/g,'g'],[/\bge\b/g,'g'],
+    [/\bfastethernet\b/g,'f'],[/\bfa\b/g,'f'],
+    [/\btengigabitethernet\b/g,'te'],[/\bethernet\b/g,'e'],
+    [/\bport-channel\b/g,'po'],[/\bportchannel\b/g,'po'],
+    [/\bvlan\b/g,'vlan'],[/\binterface\b/g,'int'],[/\bint\b/g,'int'],[/\bconsole\b/g,'con']
+  ];
+  function normalize(line){
+    var s=(line||'').toLowerCase().trim();
+    if(!s) return '';
+    s=s.replace(/[ \t]+/g,' ');
+    IFACE.forEach(function(r){ s=s.replace(r[0],r[1]); });
+    s=s.replace(/\s+/g,' ').trim();
+    return s;
+  }
+  function canon(line){
+    var s=normalize(line);
+    s=s.replace(/^int /,'interface ').replace(/^con /,'console ');
+    s=s.replace(/\bno shut$/,'no shutdown');
+    return s;
+  }
+  function normText(s){
+    return String(s||'').toLowerCase().trim()
+      .replace(/[.,;]/g,' ').replace(/\s+/g,' ').trim();
+  }
+
+  // ── DOM refs ──────────────────────────────────────────────────────
+  var overall = document.getElementById('rtOverall');
+  var rail = document.getElementById('rtRail');
+  var stage = document.getElementById('rtStage');
+  var doneBanner = document.getElementById('rtDoneBanner');
+
+  // ════════════════════════════════════════════════════════════════════
+  //  RENDER: overall progress
+  // ════════════════════════════════════════════════════════════════════
+  function renderOverall(){
+    var total = BEATS.length;
+    var done = masteredCount();
+    var capDone = !!state.capstone;
+    var pct = Math.round((done / total) * 100);
+    overall.innerHTML =
+      '<div class="rt-ostat"><span class="val '+(done===total?'green':'')+'">'+done+'/'+total+'</span><span class="lbl">Beats mastered</span></div>'+
+      '<div class="rt-ostat"><span class="val '+(capDone?'green':'')+'">'+(capDone?'Yes':'No')+'</span><span class="lbl">Capstone passed</span></div>'+
+      '<div class="rt-obar-wrap"><div class="rt-obar"><span style="width:'+pct+'%"></span></div></div>'+
+      '<button class="rt-reset" id="rtReset" type="button">Reset progress</button>';
+    document.getElementById('rtReset').addEventListener('click', function(){
+      if (window.confirm('Reset all Routing Table course progress?')){
+        state = { mastered:{}, current:0, capstone:false };
+        saveState(state);
+        render();
+      }
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  //  RENDER: beat rail (jump nav)
+  // ════════════════════════════════════════════════════════════════════
+  function renderRail(){
+    var html = '';
+    BEATS.forEach(function(b, i){
+      var cls = 'rt-pip';
+      if (i === state.current) cls += ' current';
+      if (beatDone(b.slug)) cls += ' done';
+      else if (!beatUnlocked(i)) cls += ' locked';
+      var disabled = (!beatUnlocked(i) && i !== state.current) ? ' aria-disabled="true"' : '';
+      html += '<button class="'+cls+'" type="button" data-idx="'+i+'"'+disabled+
+        ' aria-label="Beat '+(i+1)+': '+escapeHtml(b.title)+(beatDone(b.slug)?', mastered':'')+'">'+
+        '<span class="dot"></span>'+(i+1)+'</button>';
+    });
+    // capstone pip
+    var ccls = 'rt-pip' + (state.current === BEATS.length ? ' current' : '') + (state.capstone ? ' done' : (capstoneUnlocked()?'':' locked'));
+    html += '<button class="'+ccls+'" type="button" data-idx="'+BEATS.length+'" aria-label="Capstone'+(state.capstone?', passed':'')+'">'+
+      '<span class="dot"></span>Capstone</button>';
+    rail.innerHTML = html;
+    rail.querySelectorAll('.rt-pip').forEach(function(p){
+      p.addEventListener('click', function(){
+        var idx = parseInt(p.getAttribute('data-idx'),10);
+        if (idx === BEATS.length){ if (!capstoneUnlocked()) return; }
+        else if (!beatUnlocked(idx)) return;
+        state.current = idx; saveState(state); render();
+      });
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  //  RENDER: a single beat (teach + recall)
+  // ════════════════════════════════════════════════════════════════════
+  function renderBeat(idx){
+    var b = BEATS[idx];
+
+    if (!beatUnlocked(idx)){
+      stage.innerHTML = '<div class="rt-locked-msg">This beat is locked. <strong>Master the previous beat first</strong> to unlock it. Each chunk has to stick before the next one builds on it.</div>';
+      return;
+    }
+
+    var metaHtml = (b.meta||[]).map(function(m){
+      return '<div class="rt-meta"><div class="mh">'+m.h+'</div><div class="mb">'+m.b+'</div></div>';
+    }).join('');
+
+    var asciiHtml = b.ascii ? '<div class="rt-ascii"><pre>'+b.ascii+'</pre></div>' : '';
+
+    var guidedHtml = '';
+    if (b.guided){
+      var lines = b.guided.map(function(ln){
+        var rowCls = 'rt-line'+(ln.cls==='comment'?' comment':'')+(ln.cls==='alt'?' alt':'');
+        var cmd = ln.cls==='comment'
+          ? '<span class="rt-cmd cmt">'+escapeHtml(ln.c)+'</span>'
+          : '<span class="rt-cmd"><span class="pmt">'+escapeHtml(ln.p)+' </span>'+escapeHtml(ln.c)+'</span>';
+        var ann = ln.a ? '<span class="rt-ann">'+ln.a+'</span>' : '';
+        return '<div class="'+rowCls+'">'+cmd+ann+'</div>';
+      }).join('');
+      guidedHtml = '<div class="rt-cli-block">'+lines+'</div>';
+    }
+
+    var verifyHtml = '';
+    if (b.verify){
+      verifyHtml = '<div class="rt-verify"><div class="vh">Verify</div>'+
+        b.verify.map(function(v){ return '<code>'+escapeHtml(v.c)+'</code><div class="vn">'+escapeHtml(v.n)+'</div>'; }).join('')+
+        '</div>';
+    }
+
+    var trapsHtml = '';
+    if (b.traps && b.traps.length){
+      trapsHtml = '<div class="rt-traps"><div class="th">Traps to remember</div><ul>'+
+        b.traps.map(function(t){ return '<li>'+t+'</li>'; }).join('')+'</ul></div>';
+    }
+
+    var doneTick = beatDone(b.slug) ? '<span class="rh-tick">&#10003; mastered</span>' : '';
+
+    stage.innerHTML =
+      '<div class="rt-beat">'+
+        '<div class="rt-beat-head">'+
+          '<span class="rt-beat-num">BEAT '+(idx+1)+' / '+BEATS.length+'</span>'+
+          '<span class="rt-beat-kind'+(b.kind==='config'?' config':'')+'">'+(b.kind==='config'?'config':'concept')+'</span>'+
+          '<h2>'+escapeHtml(b.title)+'</h2>'+
+        '</div>'+
+        '<p class="rt-gist">'+b.gist+'</p>'+
+        asciiHtml +
+        (metaHtml?'<div class="rt-meta-grid">'+metaHtml+'</div>':'')+
+        guidedHtml + verifyHtml + trapsHtml +
+        '<div class="rt-recall">'+
+          '<div class="rt-recall-head"><span class="rh">Prove it</span>'+doneTick+'</div>'+
+          '<div id="rtRecallBody"></div>'+
+        '</div>'+
+        '<div class="rt-advance">'+
+          '<button class="rt-nextbtn" id="rtNext" type="button"'+(beatDone(b.slug)?'':' disabled')+'>'+
+            (idx < BEATS.length-1 ? 'Next beat &rarr;' : 'To the capstone &rarr;')+
+          '</button>'+
+        '</div>'+
+      '</div>';
+
+    renderRecall(b, document.getElementById('rtRecallBody'), function(){
+      // on pass: mark mastered + enable next
+      state.mastered[b.slug] = true;
+      saveState(state);
+      var nb = document.getElementById('rtNext');
+      if (nb) nb.removeAttribute('disabled');
+      renderOverall(); renderRail();
+      var tickWrap = document.querySelector('.rt-recall-head');
+      if (tickWrap && !tickWrap.querySelector('.rh-tick')){
+        var t = document.createElement('span'); t.className='rh-tick'; t.innerHTML='&#10003; mastered';
+        tickWrap.appendChild(t);
+      }
+    });
+
+    document.getElementById('rtNext').addEventListener('click', function(){
+      if (this.hasAttribute('disabled')) return;
+      state.current = idx + 1; saveState(state); render();
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  //  RECALL widgets (one per type). onPass() fires when the learner clears it.
+  // ════════════════════════════════════════════════════════════════════
+  function renderRecall(beat, host, onPass){
+    var r = beat.recall;
+    if (r.type === 'mcq' || r.type === 'trap'){ renderMcq(r, host, onPass, beatDone(beat.slug)); }
+    else if (r.type === 'fill' || r.type === 'short'){ renderTextRecall(r, host, onPass, beatDone(beat.slug)); }
+    else if (r.type === 'cmd'){ renderCmdRecall(r, host, onPass, beatDone(beat.slug)); }
+  }
+
+  function fbBox(){ return '<div class="rt-fb" id="rtFb" role="status" aria-live="polite"></div>'; }
+  function showFb(pass, html){
+    var fb = document.getElementById('rtFb');
+    fb.className = 'rt-fb show '+(pass?'pass':'fail');
+    fb.innerHTML = html;
+  }
+
+  function renderMcq(r, host, onPass, already){
+    var optsHtml = r.opts.map(function(o,i){
+      return '<button class="rt-opt" type="button" data-i="'+i+'" data-correct="'+(o.correct?'1':'0')+'">'+
+        '<span class="ol">'+String.fromCharCode(65+i)+'</span><span>'+o.t+'</span></button>';
+    }).join('');
+    host.innerHTML = '<p class="rt-q">'+r.q+'</p><div class="rt-opts" role="group">'+optsHtml+'</div>'+fbBox();
+
+    var answered = already;
+    var opts = host.querySelectorAll('.rt-opt');
+    if (already){
+      opts.forEach(function(b){ if(b.getAttribute('data-correct')==='1') b.classList.add('correct'); b.classList.add('disabled'); });
+      showFb(true, '<div class="fb-h">Already mastered</div>'+r.explain);
+    }
+    opts.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered) return;
+        answered = true;
+        var correct = btn.getAttribute('data-correct')==='1';
+        opts.forEach(function(b){
+          if (b.getAttribute('data-correct')==='1') b.classList.add('correct');
+          b.classList.add('disabled');
+        });
+        if (!correct) btn.classList.add('wrong');
+        if (correct){ showFb(true, '<div class="fb-h">Correct</div>'+r.explain); onPass(); }
+        else {
+          showFb(false, '<div class="fb-h">Not quite</div>'+r.explain+'<br><br>Read the highlighted answer, then click Retry to lock it in.');
+          // allow retry
+          var retry = document.createElement('button');
+          retry.className='rt-secbtn'; retry.type='button'; retry.textContent='Retry';
+          retry.style.marginTop='10px';
+          retry.addEventListener('click', function(){ renderMcq(r, host, onPass, false); });
+          document.getElementById('rtFb').appendChild(document.createElement('br'));
+          document.getElementById('rtFb').appendChild(retry);
+        }
+      });
+    });
+  }
+
+  function renderTextRecall(r, host, onPass, already){
+    host.innerHTML = '<p class="rt-q">'+r.q+'</p>'+
+      '<input class="rt-input" id="rtTextIn" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="'+escapeHtml(r.placeholder||'type your answer')+'" aria-label="Your answer">'+
+      '<div class="rt-recall-actions">'+
+        '<button class="rt-checkbtn" id="rtTextCheck" type="button">Check</button>'+
+        '<button class="rt-secbtn" id="rtTextReveal" type="button">Show answer</button>'+
+      '</div>'+fbBox();
+
+    var input = document.getElementById('rtTextIn');
+    if (already){
+      input.value = r.accept[0];
+      showFb(true, '<div class="fb-h">Already mastered</div>'+r.explain);
+    }
+    function accepts(val){
+      var n = normText(val);
+      return r.accept.some(function(a){ return normText(a) === n; });
+    }
+    function check(){
+      if (accepts(input.value)){ showFb(true, '<div class="fb-h">Correct</div>'+r.explain); onPass(); }
+      else { showFb(false, '<div class="fb-h">Not yet</div>Check spelling and order, then try again. Hint: '+escapeHtml(r.placeholder||'')+'.'); }
+    }
+    document.getElementById('rtTextCheck').addEventListener('click', check);
+    input.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); check(); } });
+    document.getElementById('rtTextReveal').addEventListener('click', function(){
+      input.value = r.accept[0];
+      showFb(false, '<div class="fb-h">Answer</div>'+r.explain+'<br><br>Clear it and type it yourself to mark this beat mastered.');
+    });
+  }
+
+  function renderCmdRecall(r, host, onPass, already){
+    host.innerHTML =
+      (r.scenario?'<div class="rt-scenario"><div class="sh">Scenario</div><div class="sb">'+r.scenario+'</div></div>':'')+
+      (r.hint?'<p class="rt-hint">'+r.hint+'</p>':'')+
+      '<textarea class="rt-termarea" id="rtCmdArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type each command on its own line..." aria-label="Type the commands"></textarea>'+
+      '<div class="rt-recall-actions">'+
+        '<button class="rt-checkbtn" id="rtCmdCheck" type="button">Check</button>'+
+        '<button class="rt-secbtn" id="rtCmdClear" type="button">Clear</button>'+
+        '<button class="rt-secbtn" id="rtCmdReveal" type="button">Show answer</button>'+
+      '</div>'+
+      '<div id="rtCmdDiff"></div>'+fbBox();
+
+    var area = document.getElementById('rtCmdArea');
+    var diffHost = document.getElementById('rtCmdDiff');
+
+    if (already){
+      var revealLines = r.lines.map(function(l){ return l.cmds[0]; });
+      area.value = revealLines.join('\n');
+      showFb(true, '<div class="fb-h">Already mastered</div>'+r.explain);
+    }
+
+    function lineMatches(userCanon, expected){
+      for (var i=0;i<expected.cmds.length;i++){ if (canon(expected.cmds[i])===userCanon) return true; }
+      return false;
+    }
+    function check(){
+      var raw = area.value;
+      var userRaw = raw.split('\n')
+        .map(function(l){ return l.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/,''); })
+        .map(function(l){ return l.trim(); })
+        .filter(function(l){ return l.length && l.charAt(0)!=='!'; });
+      var userCanon = userRaw.map(canon);
+      var used = userCanon.map(function(){ return false; });
+      var rows = [], got = 0;
+
+      r.lines.forEach(function(exp){
+        var found = -1;
+        for (var i=0;i<userCanon.length;i++){ if (!used[i] && lineMatches(userCanon[i], exp)){ found=i; break; } }
+        if (found>=0){ used[found]=true; got++; rows.push({cls:'ok',icon:'✓',text:userRaw[found],note:exp.note}); }
+        else { rows.push({cls:'miss',icon:'✗',text:exp.cmds[0],note:'missing: '+exp.note}); }
+      });
+      userCanon.forEach(function(uc,i){ if(!used[i]) rows.push({cls:'extra',icon:'~',text:userRaw[i],note:'not needed for this scenario'}); });
+
+      diffHost.innerHTML = '<div class="rt-diff">'+rows.map(function(rw){
+        return '<div class="rt-diff-row '+rw.cls+'"><span class="icon">'+rw.icon+'</span>'+
+          '<span class="ctext">'+escapeHtml(rw.text)+'<span class="cnote">'+escapeHtml(rw.note)+'</span></span></div>';
+      }).join('')+'</div>';
+
+      var pass = (got === r.lines.length);
+      if (pass){ showFb(true, '<div class="fb-h">All lines correct</div>'+r.explain); onPass(); }
+      else { showFb(false, '<div class="fb-h">'+got+' of '+r.lines.length+' lines</div>Fill the missing lines above and check again. The prompt prefix (<code>R(config)#</code>) is optional, and common abbreviations are accepted.'); }
+    }
+    document.getElementById('rtCmdCheck').addEventListener('click', check);
+    area.addEventListener('keydown', function(e){ if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){ e.preventDefault(); check(); } });
+    document.getElementById('rtCmdClear').addEventListener('click', function(){ area.value=''; diffHost.innerHTML=''; document.getElementById('rtFb').className='rt-fb'; area.focus(); });
+    document.getElementById('rtCmdReveal').addEventListener('click', function(){
+      area.value = r.lines.map(function(l){ return l.cmds[0]; }).join('\n');
+      showFb(false, '<div class="fb-h">Answer</div>'+r.explain+'<br><br>Clear it and type it yourself to mark this beat mastered.');
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  //  RENDER: capstone
+  // ════════════════════════════════════════════════════════════════════
+  function renderCapstone(){
+    if (!capstoneUnlocked()){
+      stage.innerHTML = '<div class="rt-locked-msg">The capstone is locked. <strong>Master all '+BEATS.length+' beats</strong> first. Then you rebuild the whole config from a blank screen and answer the exam-style triggers.</div>';
+      return;
+    }
+
+    var qHtml = CAPSTONE.questions.map(function(q,i){
+      var optsHtml = q.opts.map(function(o,j){
+        return '<button class="rt-opt" type="button" data-q="'+i+'" data-correct="'+(o.correct?'1':'0')+'">'+
+          '<span class="ol">'+String.fromCharCode(65+j)+'</span><span>'+o.t+'</span></button>';
+      }).join('');
+      return '<div class="rt-cap-q"><p class="rt-q">Q'+(i+1)+'. '+q.q+'</p><div class="rt-opts" data-qg="'+i+'">'+optsHtml+'</div>'+
+        '<div class="rt-fb" id="capFb'+i+'" role="status" aria-live="polite"></div></div>';
+    }).join('');
+
+    stage.innerHTML =
+      '<div class="rt-capstone">'+
+        '<h2>Capstone: rebuild it from memory</h2>'+
+        '<div class="rt-scenario"><div class="sh">Scenario</div><div class="sb">'+CAPSTONE.scenario+'</div></div>'+
+        '<p class="rt-hint">'+CAPSTONE.hint+'</p>'+
+        '<textarea class="rt-termarea" id="capArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type each line here..." aria-label="Rebuild the config"></textarea>'+
+        '<div class="rt-recall-actions">'+
+          '<button class="rt-checkbtn" id="capCheck" type="button">Check config</button>'+
+          '<button class="rt-secbtn" id="capClear" type="button">Clear</button>'+
+          '<button class="rt-secbtn" id="capReveal" type="button">Show answer</button>'+
+        '</div>'+
+        '<div id="capDiff"></div>'+
+        '<div class="rt-fb" id="capFbMain" role="status" aria-live="polite"></div>'+
+        '<div class="rt-cap-q" style="border-top:none;padding-top:var(--s-md)">'+
+          '<p class="rt-q" style="color:var(--accent);font-family:var(--font-display);text-transform:uppercase;font-size:.74rem;letter-spacing:.06em">Exam-style triggers ('+CAPSTONE.questions.length+')</p>'+
+        '</div>'+
+        qHtml +
+      '</div>';
+
+    // config grader
+    var area = document.getElementById('capArea');
+    var diffHost = document.getElementById('capDiff');
+    var configPassed = false;
+    var qPassed = CAPSTONE.questions.map(function(){ return false; });
+
+    function lineMatches(uc, exp){ for(var i=0;i<exp.cmds.length;i++){ if(canon(exp.cmds[i])===uc) return true; } return false; }
+
+    function checkConfig(){
+      var raw = area.value;
+      var userRaw = raw.split('\n')
+        .map(function(l){ return l.replace(/^[A-Za-z0-9_().#>-]+[#>]\s*/,''); })
+        .map(function(l){ return l.trim(); })
+        .filter(function(l){ return l.length && l.charAt(0)!=='!'; });
+      var userCanon = userRaw.map(canon);
+      var used = userCanon.map(function(){ return false; });
+      var rows=[], got=0;
+
+      CAPSTONE.lines.forEach(function(exp){
+        var found=-1;
+        for(var i=0;i<userCanon.length;i++){ if(!used[i]&&lineMatches(userCanon[i],exp)){ found=i; break; } }
+        if(found>=0){ used[found]=true; got++; rows.push({cls:'ok',icon:'✓',text:userRaw[found],note:exp.note}); }
+        else { rows.push({cls:'miss',icon:'✗',text:exp.cmds[0],note:'missing: '+exp.note}); }
+      });
+      // verify command required
+      var vCanon = canon(CAPSTONE.verify);
+      var vOk=false, vIdx=-1;
+      for(var j=0;j<userCanon.length;j++){ if(!used[j] && (userCanon[j]===vCanon || userCanon[j].indexOf(vCanon)===0)){ vOk=true; vIdx=j; break; } }
+      if(vOk){ used[vIdx]=true; rows.push({cls:'ok',icon:'✓',text:userRaw[vIdx],note:'verify command'}); }
+      else { rows.push({cls:'miss',icon:'✗',text:CAPSTONE.verify,note:'missing the verify command'}); }
+
+      userCanon.forEach(function(uc,i){ if(!used[i]) rows.push({cls:'extra',icon:'~',text:userRaw[i],note:'not needed here'}); });
+
+      diffHost.innerHTML = '<div class="rt-diff">'+rows.map(function(rw){
+        return '<div class="rt-diff-row '+rw.cls+'"><span class="icon">'+rw.icon+'</span>'+
+          '<span class="ctext">'+escapeHtml(rw.text)+'<span class="cnote">'+escapeHtml(rw.note)+'</span></span></div>';
+      }).join('')+'</div>';
+
+      var need = CAPSTONE.lines.length + 1;
+      var total = got + (vOk?1:0);
+      var fb = document.getElementById('capFbMain');
+      configPassed = (total === need);
+      if (configPassed){ fb.className='rt-fb show pass'; fb.innerHTML='<div class="fb-h">Config rebuilt</div>Both routes and the scoped verify command are correct. Now clear the trigger questions below.'; }
+      else { fb.className='rt-fb show fail'; fb.innerHTML='<div class="fb-h">'+total+' of '+need+' lines</div>Two ip route lines plus the scoped show command. Fill the gaps and check again.'; }
+      maybeFinish();
+    }
+    document.getElementById('capCheck').addEventListener('click', checkConfig);
+    area.addEventListener('keydown', function(e){ if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){ e.preventDefault(); checkConfig(); } });
+    document.getElementById('capClear').addEventListener('click', function(){ area.value=''; diffHost.innerHTML=''; document.getElementById('capFbMain').className='rt-fb'; area.focus(); });
+    document.getElementById('capReveal').addEventListener('click', function(){
+      var lines = CAPSTONE.lines.map(function(l){ return l.cmds[0]; }); lines.push(CAPSTONE.verify);
+      area.value = lines.join('\n');
+      var fb=document.getElementById('capFbMain'); fb.className='rt-fb show fail';
+      fb.innerHTML='<div class="fb-h">Answer</div>Clear it and type it yourself to pass the capstone.';
+    });
+
+    // MCQ graders
+    CAPSTONE.questions.forEach(function(q,i){
+      var group = stage.querySelector('.rt-opts[data-qg="'+i+'"]');
+      var btns = group.querySelectorAll('.rt-opt');
+      var done = false;
+      function bind(){
+        btns.forEach(function(btn){
+          btn.addEventListener('click', function(){
+            if (done) return; done = true;
+            var correct = btn.getAttribute('data-correct')==='1';
+            btns.forEach(function(b){ if(b.getAttribute('data-correct')==='1') b.classList.add('correct'); b.classList.add('disabled'); });
+            if (!correct) btn.classList.add('wrong');
+            var fb = document.getElementById('capFb'+i);
+            if (correct){ fb.className='rt-fb show pass'; fb.innerHTML='<div class="fb-h">Correct</div>'+q.explain; qPassed[i]=true; maybeFinish(); }
+            else {
+              fb.className='rt-fb show fail'; fb.innerHTML='<div class="fb-h">Not quite</div>'+q.explain;
+              var retry=document.createElement('button'); retry.className='rt-secbtn'; retry.type='button'; retry.textContent='Retry'; retry.style.marginTop='10px';
+              retry.addEventListener('click', function(){
+                done=false;
+                btns.forEach(function(b){ b.classList.remove('correct','wrong','disabled'); });
+                fb.className='rt-fb';
+              });
+              fb.appendChild(document.createElement('br')); fb.appendChild(retry);
+            }
+          });
+        });
+      }
+      bind();
+    });
+
+    function maybeFinish(){
+      var allQ = qPassed.every(function(v){ return v; });
+      if (configPassed && allQ && !state.capstone){
+        state.capstone = true; saveState(state);
+        renderOverall(); renderRail();
+        doneBanner.classList.add('show');
+        doneBanner.scrollIntoView({behavior:'smooth', block:'nearest'});
+      }
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  //  TOP-LEVEL RENDER
+  // ════════════════════════════════════════════════════════════════════
+  function render(){
+    renderOverall();
+    renderRail();
+    doneBanner.classList.toggle('show', !!state.capstone);
+    if (state.current >= BEATS.length){ renderCapstone(); }
+    else { renderBeat(state.current); }
+    window.scrollTo(0,0);
+  }
+
+  render();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

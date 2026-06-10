@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>ACLs numbered + named + VTY (Deep) · CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+.back-wrap{margin-bottom:var(--s-md)}
+
+/* ── Overall progress rail ──────────────────────────────────────── */
+.acl-overall{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;padding:var(--s-md) 0;border-bottom:1px solid var(--rule);margin-bottom:var(--s-lg)}
+.acl-overall .ostat{display:flex;flex-direction:column}
+.acl-overall .ostat .val{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--ink)}
+.acl-overall .ostat .val.green{color:var(--prof-strong)}
+.acl-overall .ostat .lbl{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:3px}
+.acl-obar-wrap{flex:1;min-width:160px}
+.acl-obar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.acl-obar>span{display:block;height:100%;background:var(--prof-strong);border-radius:3px;transition:width .4s var(--ease-out)}
+.acl-reset{margin-left:auto;font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 13px;background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.acl-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}
+
+/* ── Beat rail (chips) ──────────────────────────────────────────── */
+.acl-rail{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+.acl-chip{font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:6px 11px;border:1px solid var(--border);border-radius:100px;background:var(--bg-surface);color:var(--ink-secondary);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.acl-chip:hover{border-color:var(--accent);color:var(--accent)}
+.acl-chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.acl-chip.current{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.acl-chip.mastered{border-color:var(--prof-strong)}
+.acl-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-muted);flex-shrink:0}
+.acl-chip.mastered .dot{background:var(--prof-strong)}
+.acl-chip.current .dot{background:var(--bg)}
+.acl-chip.locked{opacity:.5;cursor:not-allowed}
+.acl-chip.locked:hover{border-color:var(--border);color:var(--ink-secondary)}
+
+/* ── Beat card ──────────────────────────────────────────────────── */
+.acl-beat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 22px 20px;margin-bottom:var(--s-lg)}
+.acl-beat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-sm)}
+.acl-beat-num{font-family:var(--font-mono);font-size:.74rem;font-weight:700;color:var(--accent)}
+.acl-beat-head h2{font-family:var(--font-display);font-size:1.4rem;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.2}
+.acl-beat-kind{font-family:var(--font-mono);font-size:.64rem;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:100px;text-transform:uppercase;margin-left:auto}
+.acl-beat-kind.concept{background:rgba(180,83,9,.1);color:var(--accent)}
+.acl-beat-kind.config{background:rgba(22,163,74,.1);color:var(--prof-strong)}
+
+.acl-gist{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.6;margin:0 0 var(--s-md)}
+.acl-gist strong{font-family:var(--font-display);font-weight:600}
+.acl-gist code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+
+.acl-why{padding:13px 15px;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.04),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.acl-why .mh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:5px}
+.acl-why .mb{font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.55}
+.acl-why code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* inline SVG / diagram frame */
+.acl-diagram{margin:0 0 var(--s-md);padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);overflow-x:auto}
+.acl-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}
+.acl-ascii{font-family:var(--font-mono);font-size:.8rem;line-height:1.5;color:var(--ink);white-space:pre;margin:0}
+
+/* guided CLI block */
+.acl-cli-block{background:#1C1917;border-radius:var(--radius-lg);padding:6px 0;margin-bottom:var(--s-md);overflow:hidden;border:1px solid #292524}
+.acl-line{display:grid;grid-template-columns:auto 1fr;gap:0;padding:0 16px;align-items:baseline;border-left:3px solid transparent}
+.acl-line.comment{opacity:.7}
+.acl-line.alt{border-left-color:var(--accent)}
+.acl-cmd{font-family:var(--font-mono);font-size:.85rem;line-height:2;color:#FAFAF9;white-space:pre-wrap;word-break:break-word}
+.acl-cmd .pmt{color:#A8A29E}
+.acl-cmd.cmt{color:#86EFAC}
+.acl-ann{font-family:var(--font-body);font-size:.8rem;color:#A8A29E;line-height:1.45;padding:2px 0 8px;grid-column:1 / -1;border-bottom:1px dashed #292524;margin-bottom:2px}
+.acl-line:last-child .acl-ann{border-bottom:none}
+
+.acl-verify{padding:13px 15px;border:1px solid var(--prof-strong);border-radius:var(--radius);background:rgba(22,163,74,.05);margin-bottom:var(--s-md)}
+.acl-verify .vh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-strong);font-weight:700;margin-bottom:6px}
+.acl-verify code{display:block;font-family:var(--font-mono);font-size:.85rem;color:var(--ink);padding:3px 0}
+.acl-verify .vn{font-family:var(--font-body);font-size:.83rem;color:var(--ink-secondary);margin-top:3px;line-height:1.5}
+
+.acl-trapbox{padding:13px 15px;border:1px solid var(--prof-weak);border-radius:var(--radius);background:rgba(220,38,38,.04);margin-bottom:var(--s-md)}
+.acl-trapbox .th{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--prof-weak);font-weight:700;margin-bottom:5px}
+.acl-trapbox .tb{font-family:var(--font-body);font-size:.87rem;color:var(--ink);line-height:1.55}
+.acl-trapbox code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+/* ── Recall block (inside a beat) ───────────────────────────────── */
+.acl-recall{border-top:1px dashed var(--rule);padding-top:var(--s-md);margin-top:var(--s-sm)}
+.acl-recall-head{display:flex;align-items:center;gap:8px;margin-bottom:var(--s-sm)}
+.acl-recall-head .rk{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700}
+.acl-recall-head .rtype{font-family:var(--font-mono);font-size:.62rem;color:var(--ink-muted);background:var(--bg-recessed);padding:2px 7px;border-radius:100px}
+.acl-prompt{font-family:var(--font-body);font-size:.98rem;color:var(--ink);line-height:1.55;margin-bottom:var(--s-sm)}
+.acl-prompt code{font-family:var(--font-mono);font-size:.85em;padding:1px 5px;background:var(--bg-input);border-radius:3px}
+.acl-prompt .cloze{display:inline-block;min-width:90px;border-bottom:2px dashed var(--accent);margin:0 3px}
+
+/* type-the-command terminal */
+.acl-term{background:#1C1917;border:1px solid #292524;border-radius:var(--radius);padding:11px 13px;margin-bottom:var(--s-sm)}
+.acl-term label{display:block;font-family:var(--font-mono);font-size:.7rem;color:#86EFAC;margin-bottom:6px;letter-spacing:.04em}
+.acl-input{width:100%;background:transparent;border:none;font-family:var(--font-mono);font-size:.9rem;line-height:1.6;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.acl-input::placeholder{color:#57534E}
+.acl-termarea{width:100%;min-height:84px;background:transparent;border:none;resize:vertical;font-family:var(--font-mono);font-size:.9rem;line-height:1.7;color:#FAFAF9;outline:none;caret-color:var(--accent)}
+.acl-termarea::placeholder{color:#57534E}
+
+/* MCQ options */
+.acl-mcq{list-style:none;margin:0 0 var(--s-sm);padding:0;display:flex;flex-direction:column;gap:6px}
+.acl-mcq li{padding:0}
+.acl-opt{width:100%;text-align:left;font-family:var(--font-body);font-size:.92rem;color:var(--ink);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;cursor:pointer;transition:all .14s;display:flex;gap:9px;align-items:baseline}
+.acl-opt:hover{border-color:var(--accent)}
+.acl-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.acl-opt .ltr{font-family:var(--font-mono);font-weight:700;color:var(--ink-secondary);flex-shrink:0}
+.acl-opt.correct{border-color:var(--prof-strong);background:rgba(22,163,74,.08)}
+.acl-opt.correct .ltr{color:var(--prof-strong)}
+.acl-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.06)}
+.acl-opt.wrong .ltr{color:var(--prof-weak)}
+.acl-opt.dim{opacity:.55}
+.acl-opt[disabled]{cursor:default}
+
+.acl-recall-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.acl-checkbtn{padding:10px 22px;font-family:var(--font-display);font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:filter .15s}
+.acl-checkbtn:hover{filter:brightness(1.06)}
+.acl-checkbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.acl-secbtn{padding:10px 18px;font-family:var(--font-display);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--bg-surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.acl-secbtn:hover{border-color:var(--accent);color:var(--accent)}
+.acl-secbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* feedback */
+.acl-fb{margin-top:var(--s-sm);padding:11px 14px;border-radius:var(--radius);font-family:var(--font-body);font-size:.9rem;line-height:1.55;display:none}
+.acl-fb.show{display:block}
+.acl-fb.ok{border:1px solid var(--prof-strong);background:rgba(22,163,74,.06);color:var(--ink)}
+.acl-fb.no{border:1px solid var(--prof-weak);background:rgba(220,38,38,.05);color:var(--ink)}
+.acl-fb code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.acl-fb .fbh{font-family:var(--font-display);font-weight:700;font-size:.82rem;display:block;margin-bottom:3px}
+
+.acl-advance{display:none;margin-top:var(--s-md)}
+.acl-advance.show{display:block}
+.acl-nextbtn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;font-family:var(--font-display);font-size:.92rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--prof-strong);color:#fff;border:none;border-radius:var(--radius-lg);cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s;box-shadow:0 5px 16px rgba(22,163,74,.22)}
+.acl-nextbtn:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(22,163,74,.32)}
+.acl-nextbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+/* ── Capstone ───────────────────────────────────────────────────── */
+.acl-locked-note{font-family:var(--font-body);font-size:.92rem;color:var(--ink-muted);text-align:center;padding:var(--s-xl) var(--s-lg);border:1px dashed var(--border);border-radius:var(--radius-lg)}
+.acl-scenario{padding:15px 17px;border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(180,83,9,.05),rgba(180,83,9,.01));margin-bottom:var(--s-md)}
+.acl-scenario .sh{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:6px}
+.acl-scenario .sb{font-family:var(--font-body);font-size:.96rem;color:var(--ink);line-height:1.6}
+.acl-recall-hint{font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);margin-bottom:8px;line-height:1.5}
+.acl-recall-hint code{font-family:var(--font-mono);font-size:.84em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+.acl-bigterm{background:#1C1917;border:1px solid #292524;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:var(--s-sm)}
+.acl-bigterm label{display:block;font-family:var(--font-mono);font-size:.72rem;color:#86EFAC;margin-bottom:8px;letter-spacing:.04em}
+.acl-bigterm .acl-termarea{min-height:200px}
+
+.acl-results{display:none;margin-bottom:var(--s-lg)}
+.acl-results.show{display:block}
+.acl-score{display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-md)}
+.acl-score .sv{font-family:var(--font-mono);font-size:2.4rem;font-weight:700;line-height:1}
+.acl-score .sv.green{color:var(--prof-strong)}
+.acl-score .sv.amber{color:var(--prof-mid)}
+.acl-score .sv.red{color:var(--prof-weak)}
+.acl-score .sl{font-family:var(--font-display);font-size:.92rem;font-weight:600;color:var(--ink-secondary)}
+.acl-diff{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.acl-diff-row{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:.85rem;line-height:1.5}
+.acl-diff-row:first-child{border-top:none}
+.acl-diff-row .icon{flex-shrink:0;width:18px;text-align:center;font-weight:700}
+.acl-diff-row.ok{background:rgba(22,163,74,.05)}
+.acl-diff-row.ok .icon{color:var(--prof-strong)}
+.acl-diff-row.miss{background:rgba(220,38,38,.05)}
+.acl-diff-row.miss .icon{color:var(--prof-weak)}
+.acl-diff-row.extra .icon{color:var(--prof-mid)}
+.acl-diff-row .ctext{color:var(--ink);word-break:break-word}
+.acl-diff-row .cnote{color:var(--ink-muted);font-family:var(--font-body);font-size:.82rem;margin-left:6px}
+.acl-diff-row.miss .ctext{color:var(--ink-secondary)}
+
+.acl-quiz{margin-top:var(--s-lg)}
+.acl-quiz h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin:0 0 var(--s-sm)}
+.acl-q{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:var(--s-md)}
+.acl-q .qstem{font-family:var(--font-body);font-size:.96rem;color:var(--ink);line-height:1.55;margin-bottom:var(--s-sm)}
+.acl-q .qstem code{font-family:var(--font-mono);font-size:.85em;padding:1px 4px;background:var(--bg-input);border-radius:3px}
+
+.acl-done{display:none;text-align:center;padding:var(--s-xl) var(--s-lg);border:1px solid var(--prof-strong);border-radius:var(--radius-lg);background:rgba(22,163,74,.05);margin-top:var(--s-lg)}
+.acl-done.show{display:block}
+.acl-done h3{font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin:0 0 8px;color:var(--prof-strong)}
+.acl-done p{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);margin:0}
+
+.acl-section-title{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);font-weight:600;margin:var(--s-xl) 0 var(--s-sm);padding-top:var(--s-md);border-top:1px solid var(--rule)}
+
+@media(max-width:640px){
+  .acl-beat{padding:18px 16px 16px}
+  .acl-beat-head h2{font-size:1.15rem}
+  .acl-beat-kind{margin-left:0}
+  .acl-score .sv{font-size:2rem}
+  .acl-cmd,.acl-ann{font-size:.8rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .acl-obar>span,.acl-nextbtn,.acl-opt{transition:none}
+  .acl-nextbtn:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">DEEP COURSE · TEACH THEN RECALL · OBJ 5.6</div>
+    <h1>ACLs: Numbered, Named, VTY</h1>
+    <p class="subtitle">Short lesson beats. Each one teaches a chunk, then makes you prove it before you advance. End with a blank terminal capstone and exam triggers.</p>
+  </header>
+
+  <p class="intro">Access Control Lists are high yield and a common gap. This course walks the whole topic in small beats. Read the teach, then nail the recall right after, while it is fresh. You cannot skip ahead until each beat is passed. The last beat builds the full config from a blank screen.</p>
+
+  <div class="acl-overall" id="aclOverall"></div>
+  <div class="acl-rail" id="aclRail"></div>
+  <div id="aclStage"></div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var PREFIX = 'ccna_p1-acl_';
+
+  // ── BEAT DATA ───────────────────────────────────────────────────────
+  // kind: 'concept' | 'config'
+  // recall.type: 'cmd' | 'cmdblock' | 'blank' | 'mcq' | 'trap'
+  var BEATS = [
+    {
+      id: 'model',
+      kind: 'concept',
+      title: 'The mental model: a top-down list',
+      gist: 'An ACL is an ordered list of <strong>permit</strong> and <strong>deny</strong> rules. The router reads it <strong>top down</strong>. The <strong>first match wins</strong> and the router stops reading. Order is everything: a general rule placed above a specific one will swallow it.',
+      why: 'CORE truth: ACLs are not a set, they are a sequence. Put specific entries first, general entries last. Once a packet matches a line, no later line is even checked.',
+      ascii:
+'  packet in\n'+
+'     |\n'+
+'     v\n'+
+'  line 10  permit ...  --- match? --> YES --> PERMIT (stop)\n'+
+'     | no\n'+
+'     v\n'+
+'  line 20  deny   ...  --- match? --> YES --> DENY  (stop)\n'+
+'     | no\n'+
+'     v\n'+
+'  [implicit deny any]  ---------------------> DROP',
+      recall: {
+        type: 'mcq',
+        rtype: 'concept MCQ',
+        prompt: 'A packet matches line 10 (permit) AND would also match line 30 (deny) lower in the same ACL. What happens?',
+        options: [
+          'It is permitted. First match wins and the router stops reading.',
+          'It is denied. The deny is more specific so it overrides.',
+          'It is denied. Any deny in the list always wins.',
+          'It is dropped by the implicit deny at the end.'
+        ],
+        answer: 0,
+        explain: 'Top down, first match wins, then it STOPS. Line 10 permits it, so line 30 is never evaluated.'
+      }
+    },
+    {
+      id: 'implicit',
+      kind: 'concept',
+      title: 'The invisible implicit deny any',
+      gist: 'Every ACL ends with an <strong>implicit <code>deny any</code></strong>. It is real, it drops everything not explicitly permitted, and it is <strong>never shown</strong> in <code>show access-lists</code> or the running config.',
+      why: 'WHY it bites: a list with only permit lines still blocks everything else silently. If you permit one subnet and nothing else, every other subnet is dropped by the invisible last line. An ACL that contains only deny lines blocks all traffic, including what you wanted through.',
+      trapNote: 'You will not see <code>deny any</code> in <code>show access-lists</code>. The hit counter for dropped traffic is invisible too. It is still there.',
+      recall: {
+        type: 'mcq',
+        rtype: 'spot the trap',
+        prompt: 'An ACL contains exactly one line: <code>access-list 10 permit 10.0.0.0 0.0.0.255</code>. A packet from 192.168.5.5 hits it. Result?',
+        options: [
+          'Permitted. Anything not denied is allowed.',
+          'Dropped by the implicit deny any at the end of the list.',
+          'Permitted, because there is no deny line written.',
+          'Logged but forwarded, since the list only has a permit.'
+        ],
+        answer: 1,
+        explain: '192.168.5.5 does not match the one permit line, so it falls to the implicit deny any. Never shown, always there.'
+      }
+    },
+    {
+      id: 'wildcard',
+      kind: 'concept',
+      title: 'Wildcard mask: the inverse of a subnet mask',
+      gist: 'ACLs match addresses with a <strong>wildcard mask</strong>, not a subnet mask. A wildcard bit of <code>0</code> means <strong>match this bit exactly</strong>. A bit of <code>1</code> means <strong>ignore this bit</strong>. So <code>0.0.0.255</code> matches a whole /24: match the first three octets, ignore the last.',
+      why: 'CORE truth: wildcard is the inverse of the subnet mask. /24 subnet mask 255.255.255.0 becomes wildcard 0.0.0.255. Shortcuts: <code>host 10.0.0.1</code> = a single host = wildcard 0.0.0.0. The keyword <code>any</code> = wildcard 255.255.255.255 (ignore every bit).',
+      ascii:
+'  subnet mask  255.255.255.0   (this IS a network)\n'+
+'  wildcard     0.  0.  0.255   (inverse: 0=match, 1=ignore)\n'+
+'\n'+
+'  host 10.0.0.1   ==  10.0.0.1  0.0.0.0      (one exact host)\n'+
+'  any             ==  0.0.0.0   255.255.255.255  (everything)',
+      recall: {
+        type: 'mcq',
+        rtype: 'concept MCQ',
+        prompt: 'You want a standard ACL to match the entire 172.16.8.0/24 network. Which wildcard mask is correct?',
+        options: [
+          '255.255.255.0',
+          '0.0.0.255',
+          '0.0.255.255',
+          '255.255.255.255'
+        ],
+        answer: 1,
+        explain: 'Wildcard is the inverse of the /24 subnet mask. 255.255.255.0 inverts to 0.0.0.255: match first three octets, ignore the host octet.'
+      }
+    },
+    {
+      id: 'std',
+      kind: 'config',
+      title: 'Standard ACL: source only, near the destination',
+      gist: 'A <strong>standard ACL matches source IP ONLY</strong>. It cannot see destination, protocol, or port. Numbered <strong>1-99</strong> (also 1300-1999). Because it only knows the source, you place it <strong>near the DESTINATION</strong> so it does not block traffic the source still needs elsewhere.',
+      why: 'WHY near destination: a standard ACL filtering only on source, placed near the source, would block that source from reaching every destination, not just the one you meant. Put it close to where the traffic should be stopped.',
+      guided: [
+        {p:'R(config)#', c:'! standard (source only) -> near DESTINATION', a:'', cls:'comment'},
+        {p:'R(config)#', c:'access-list 10 permit 10.0.0.0 0.0.0.255', a:'Standard list 10 (range 1-99). Matches source 10.0.0.0/24 by WILDCARD 0.0.0.255. The implicit deny any follows, never shown.'},
+        {p:'R(config)#', c:'interface g0/1', a:'Move to the interface closest to the destination.'},
+        {p:'R(config-if)#', c:'ip access-group 10 in', a:'Bind list 10 inbound. One ACL per interface, per direction, per protocol.'}
+      ],
+      verify: [
+        {c:'show access-lists', n:'Lists every ACL and per-line hit counters. The implicit deny any is NOT shown.'},
+        {c:'show ip interface g0/1', n:'Confirms which ACL is applied inbound or outbound on the interface.'}
+      ],
+      recall: {
+        type: 'cmd',
+        rtype: 'type the command',
+        prompt: 'Type the standard ACL line that permits the source network 10.0.0.0/24 (use the wildcard). Number it 10.',
+        accept: ['access-list 10 permit 10.0.0.0 0.0.0.255'],
+        reveal: 'access-list 10 permit 10.0.0.0 0.0.0.255',
+        explain: 'Standard list (1-99), source only, wildcard 0.0.0.255 for the /24.'
+      }
+    },
+    {
+      id: 'std-apply',
+      kind: 'config',
+      title: 'Applying it: ip access-group in or out',
+      gist: 'You bind an interface ACL with <code>ip access-group {number|name} {in|out}</code>. The rule of thumb: <strong>one ACL per interface, per direction, per protocol</strong>. <code>in</code> filters traffic entering the interface, <code>out</code> filters traffic leaving it.',
+      why: 'WHY direction matters: an inbound ACL on g0/1 inspects packets arriving on g0/1 before routing. An outbound ACL inspects packets the router has already decided to send out g0/1. Same list, opposite point in the path.',
+      guided: [
+        {p:'R(config)#', c:'interface g0/1', a:'Select the interface near the destination.'},
+        {p:'R(config-if)#', c:'ip access-group 10 in', a:'Apply standard list 10 to inbound traffic. Use ip access-group on interfaces (NOT VTY lines).'}
+      ],
+      verify: [
+        {c:'show ip interface g0/1', n:'Shows the inbound and outbound access list applied to the interface.'}
+      ],
+      recall: {
+        type: 'blank',
+        rtype: 'fill the blank',
+        prompt: 'Complete the interface command to apply list 10 to traffic entering the interface:',
+        template: 'ip ____ 10 in',
+        accept: ['access-group'],
+        reveal: 'ip access-group 10 in',
+        explain: 'Interfaces use ip access-group. The direction in filters traffic entering the interface.'
+      }
+    },
+    {
+      id: 'ext',
+      kind: 'config',
+      title: 'Extended ACL: the 5-tuple, near the source',
+      gist: 'An <strong>extended ACL matches the full 5-tuple</strong>: protocol, source, destination, and (for TCP/UDP) ports. Numbered <strong>100-199</strong> (also 2000-2699). Because it can match destination AND port, you place it <strong>near the SOURCE</strong> to drop unwanted traffic early and save bandwidth.',
+      why: 'WHY near source: an extended ACL knows exactly which destination and port to block, so you can filter right at the source without harming other flows. Stop the bad traffic before it crosses the network. Syntax order: action, protocol, source, destination, then <code>eq port</code>.',
+      ascii:
+'  access-list 100 permit tcp any host 10.0.0.1 eq 80\n'+
+'                  ^   ^    ^   ^    ^           ^\n'+
+'                  |   |    |   |    |           port (HTTP=80)\n'+
+'                  |   |    |   |    destination host\n'+
+'                  |   |    |   source = any\n'+
+'                  |   |    protocol = tcp\n'+
+'                  |   permit / deny\n'+
+'                  list number 100 (extended 100-199)',
+      guided: [
+        {p:'R(config)#', c:'! extended (5-tuple) -> near SOURCE', a:'', cls:'comment'},
+        {p:'R(config)#', c:'access-list 100 permit tcp any host 10.0.0.1 eq 80', a:'Extended list 100 (range 100-199). protocol tcp, source any, destination host 10.0.0.1, port eq 80 (HTTP). Place near the source.'},
+        {p:'R(config)#', c:'interface g0/0', a:'Move to the interface closest to the source.'},
+        {p:'R(config-if)#', c:'ip access-group 100 in', a:'Bind the extended list inbound near the source.'}
+      ],
+      verify: [
+        {c:'show access-lists', n:'Shows the extended list with protocol, source, destination, and port, plus hit counts.'}
+      ],
+      recall: {
+        type: 'cmd',
+        rtype: 'type the command',
+        prompt: 'Type the extended ACL line: list 100, permit TCP from any source to host 10.0.0.1 on the HTTP port.',
+        accept: [
+          'access-list 100 permit tcp any host 10.0.0.1 eq 80',
+          'access-list 100 permit tcp any host 10.0.0.1 eq www'
+        ],
+        reveal: 'access-list 100 permit tcp any host 10.0.0.1 eq 80',
+        explain: 'Extended list (100-199): action permit, protocol tcp, source any, destination host 10.0.0.1, eq 80 for HTTP.'
+      }
+    },
+    {
+      id: 'placement',
+      kind: 'concept',
+      title: 'Placement rule: the highest-yield trap',
+      gist: '<strong>Standard near the DESTINATION. Extended near the SOURCE.</strong> This single pair of facts is one of the most tested ideas in objective 5.6. Standard only sees source, so it must sit far from the source. Extended sees everything, so it filters early near the source.',
+      why: 'CORE truth, say it out loud: standard = source only = near destination. Extended = full 5-tuple = near source. Mnemonic: the LESS the ACL knows (standard, source only), the FARTHER from the source it goes.',
+      ascii:
+'  [SOURCE host] --- R1 --- R2 --- R3 --- [DEST host]\n'+
+'                                    ^\n'+
+'                    STANDARD ACL goes here (near DEST)\n'+
+'\n'+
+'  [SOURCE host] --- R1 --- R2 --- R3 --- [DEST host]\n'+
+'                     ^\n'+
+'              EXTENDED ACL goes here (near SOURCE)',
+      recall: {
+        type: 'mcq',
+        rtype: 'spot the trap',
+        prompt: 'Which placement is correct?',
+        options: [
+          'Standard near the source, extended near the destination.',
+          'Both types near the source for efficiency.',
+          'Standard near the destination, extended near the source.',
+          'Both types near the destination so nothing leaks.'
+        ],
+        answer: 2,
+        explain: 'Standard (source only) -> near DESTINATION. Extended (full 5-tuple) -> near SOURCE. This pairing is heavily tested.'
+      }
+    },
+    {
+      id: 'named',
+      kind: 'config',
+      title: 'Named ACL: edit by sequence number',
+      gist: 'A <strong>named ACL</strong> is created with <code>ip access-list {standard|extended} NAME</code> and you add rules under it. The win: you can <strong>edit by sequence number</strong>, inserting or deleting a single line. A numbered ACL has <strong>no single-line delete</strong>: removing one line wipes the whole list.',
+      why: 'WHY named is better for maintenance: under the named ACL config you can type a sequence number then the rule to slot it in, or <code>no SEQ</code> to remove just that line. With numbered lists, <code>no access-list 100</code> deletes everything. Named also reads clearer (WEB, MGMT).',
+      guided: [
+        {p:'R(config)#', c:'! named', a:'', cls:'comment'},
+        {p:'R(config)#', c:'ip access-list extended WEB', a:'Create a named extended ACL called WEB and drop into its sub-config.'},
+        {p:'R(config-ext-nacl)#', c:'permit tcp any host 10.0.0.1 eq 443', a:'Permit HTTPS (port 443) to the web host. Order matters, put specific entries first.'}
+      ],
+      verify: [
+        {c:'show access-lists', n:'Lists the named ACL WEB with its sequence-numbered entries and hit counts.'}
+      ],
+      recall: {
+        type: 'cmdblock',
+        rtype: 'type the block',
+        prompt: 'Create a named extended ACL called WEB, then permit TCP from any to host 10.0.0.1 on the HTTPS port. Two lines.',
+        accept: [
+          ['ip access-list extended web'],
+          ['permit tcp any host 10.0.0.1 eq 443', 'permit tcp any host 10.0.0.1 eq https']
+        ],
+        reveal: 'ip access-list extended WEB\npermit tcp any host 10.0.0.1 eq 443',
+        explain: 'Named ACLs are created with ip access-list, then rules are added in the sub-config. 443 = HTTPS.'
+      }
+    },
+    {
+      id: 'vty',
+      kind: 'config',
+      title: 'VTY uses access-class, NOT ip access-group',
+      gist: 'To restrict who can reach the <strong>virtual terminal (VTY) lines</strong> for remote management, you apply the ACL with <code>access-class {number|name} in</code> from line config. <strong>VTY uses <code>access-class</code>. Interfaces use <code>ip access-group</code>.</strong> Mixing them up is a classic trap.',
+      why: 'WHY a separate keyword: VTY lines are not physical interfaces, so the interface binding does not apply. <code>access-class N in</code> on the VTY lines limits which source addresses may open a Telnet or SSH session to the box itself.',
+      guided: [
+        {p:'R(config)#', c:'line vty 0 4', a:'Enter the virtual terminal lines used for remote management.'},
+        {p:'R(config-line)#', c:'! restrict VTY (use access-class, NOT ip access-group)', a:'', cls:'comment'},
+        {p:'R(config-line)#', c:'access-class 10 in', a:'Restrict inbound management sessions to sources permitted by ACL 10. VTY uses access-class.'}
+      ],
+      verify: [
+        {c:'show access-lists', n:'Confirms ACL 10 exists and shows its hit counters from VTY connection attempts.'}
+      ],
+      trapNote: 'On a VTY line, <code>ip access-group</code> does NOT exist. It is <code>access-class</code>. On a physical interface it is the reverse: <code>ip access-group</code>, never access-class.',
+      recall: {
+        type: 'blank',
+        rtype: 'fill the blank',
+        prompt: 'Under <code>line vty 0 4</code>, complete the command that restricts management access using ACL 10:',
+        template: '____ 10 in',
+        accept: ['access-class'],
+        reveal: 'access-class 10 in',
+        explain: 'VTY lines use access-class, not ip access-group. That keyword swap is a frequent exam trap.'
+      }
+    },
+    {
+      id: 'verify',
+      kind: 'config',
+      title: 'Verify: show access-lists and show ip interface',
+      gist: 'Two verify commands close the loop. <code>show access-lists</code> dumps every ACL with per-line hit counters (but never the implicit deny). <code>show ip interface g0/1</code> confirms which ACL is bound in or out on that interface.',
+      why: 'WHY both: show access-lists proves the LIST is right and that lines are matching (rising hit counts). show ip interface proves the list is actually APPLIED in the correct direction. A perfect list that is never bound does nothing.',
+      guided: [
+        {p:'R#', c:'show access-lists', a:'Every ACL, every line, hit counters. The implicit deny any is still not shown.'},
+        {p:'R#', c:'show ip interface g0/1', a:'Shows the inbound and outbound ACL applied to g0/1.'}
+      ],
+      verify: [],
+      recall: {
+        type: 'mcq',
+        rtype: 'concept MCQ',
+        prompt: 'Your ACL lines look perfect in <code>show access-lists</code> but traffic is not being filtered. Which command best confirms whether the ACL is actually applied to the interface?',
+        options: [
+          'show running-config | include access-list',
+          'show ip interface g0/1',
+          'show access-lists',
+          'show ip route'
+        ],
+        answer: 1,
+        explain: 'show ip interface g0/1 reveals whether an ACL is bound inbound or outbound. A correct list that is never applied filters nothing.'
+      }
+    }
+  ];
+
+  // ── Capstone data ───────────────────────────────────────────────────
+  var CAPSTONE = {
+    scenario: 'Build the full ACL config from memory. Standard list 10 permits source 10.0.0.0/24 and is applied inbound on g0/1 (near the destination). Restrict VTY 0 4 to that same list. Then build a named extended ACL WEB that permits TCP from any to host 10.0.0.1 on HTTPS. Finish with the verify command.',
+    expected: [
+      {cmds:['access-list 10 permit 10.0.0.0 0.0.0.255'], note:'standard, source by wildcard'},
+      {cmds:['interface g0/1','interface gigabitethernet0/1'], note:'interface near the destination'},
+      {cmds:['ip access-group 10 in'], note:'apply on the interface, inbound'},
+      {cmds:['line vty 0 4'], note:'enter the VTY lines'},
+      {cmds:['access-class 10 in'], note:'VTY uses access-class, NOT ip access-group'},
+      {cmds:['ip access-list extended web'], note:'create named extended ACL WEB'},
+      {cmds:['permit tcp any host 10.0.0.1 eq 443','permit tcp any host 10.0.0.1 eq https'], note:'permit HTTPS to the web host'}
+    ],
+    verifyCmd: 'show access-lists',
+    quiz: [
+      {
+        stem: 'A question asks you to filter traffic based on source IP, destination IP, and TCP port. Which ACL type is required?',
+        options: ['Standard ACL','Extended ACL','Named standard ACL','Either type works'],
+        answer: 1,
+        explain: 'Only an extended ACL can match the full 5-tuple (protocol, source, destination, port). Standard sees source only.'
+      },
+      {
+        stem: 'The exam stem says "place the ACL to conserve bandwidth and stop the traffic as early as possible." This points to:',
+        options: ['A standard ACL near the destination','An extended ACL near the source','A standard ACL near the source','An extended ACL near the destination'],
+        answer: 1,
+        explain: 'Stop traffic early = near the source = extended ACL (it knows destination and port, so it can filter precisely at the source).'
+      },
+      {
+        stem: 'Which number range is valid for a standard numbered ACL?',
+        options: ['100-199','2000-2699','1-99 (and 1300-1999)','1812-1813'],
+        answer: 2,
+        explain: 'Standard = 1-99 plus 1300-1999. Extended = 100-199 plus 2000-2699.'
+      },
+      {
+        stem: 'You apply an ACL to restrict remote management to the router. Which command and where?',
+        options: ['ip access-group on the VTY lines','access-class on a physical interface','access-class on the VTY lines','ip access-group on the console line'],
+        answer: 2,
+        explain: 'VTY lines use access-class in. Physical interfaces use ip access-group. Do not swap them.'
+      },
+      {
+        stem: 'An ACL has only permit lines for two subnets. A third subnet sends traffic through it. The result is:',
+        options: ['Permitted, no deny is written','Dropped by the implicit deny any','Logged then forwarded','Returned to sender with an error'],
+        answer: 1,
+        explain: 'The implicit deny any at the end of every ACL drops anything not explicitly permitted. It is never shown but always present.'
+      }
+    ]
+  };
+
+  // ── State ───────────────────────────────────────────────────────────
+  function load() {
+    try { return JSON.parse(localStorage.getItem(PREFIX + 'state') || '{}'); }
+    catch (e) { return {}; }
+  }
+  function save(s) {
+    try { localStorage.setItem(PREFIX + 'state', JSON.stringify(s)); } catch (e) {}
+  }
+  // state shape: { beats:{id:true}, capstone:{best:0-100, quiz:bool}, current:idx }
+  var state = load();
+  state.beats = state.beats || {};
+  state.capstone = state.capstone || { best: 0, quiz: false };
+
+  var totalUnits = BEATS.length + 1; // beats + capstone
+
+  function beatDone(id) { return !!state.beats[id]; }
+  function masteredCount() {
+    var n = 0;
+    BEATS.forEach(function (b) { if (beatDone(b.id)) n++; });
+    if (state.capstone.best >= 70 && state.capstone.quiz) n++;
+    return n;
+  }
+  // First unmastered beat index, or BEATS.length to mean capstone.
+  function firstOpen() {
+    for (var i = 0; i < BEATS.length; i++) { if (!beatDone(BEATS[i].id)) return i; }
+    return BEATS.length;
+  }
+  function beatUnlocked(idx) {
+    // a beat is reachable if all earlier beats are done, or it is itself done
+    if (beatDone(BEATS[idx].id)) return true;
+    return idx <= firstOpen();
+  }
+  function capstoneUnlocked() {
+    return BEATS.every(function (b) { return beatDone(b.id); });
+  }
+
+  var cursor = (typeof state.current === 'number') ? state.current : firstOpen();
+  if (cursor > BEATS.length) cursor = BEATS.length;
+  if (!beatUnlocked(Math.min(cursor, BEATS.length - 1)) && cursor < BEATS.length) cursor = firstOpen();
+
+  // ── Normalization for lenient command matching ──────────────────────
+  var IFACE = [
+    [/\bgigabitethernet\b/g, 'g'], [/\bgigethernet\b/g, 'g'], [/\bgig\b/g, 'g'], [/\bge\b/g, 'g'],
+    [/\bfastethernet\b/g, 'f'], [/\bfa\b/g, 'f'],
+    [/\btengigabitethernet\b/g, 'te'], [/\bethernet\b/g, 'e'],
+    [/\bport-channel\b/g, 'po'], [/\bportchannel\b/g, 'po'],
+    [/\bvlan\b/g, 'vlan'], [/\binterface\b/g, 'int'], [/\bint\b/g, 'int']
+  ];
+  function normalize(line) {
+    var s = (line || '').toLowerCase().trim();
+    if (!s) return '';
+    // strip a typed prompt like R(config-if)#
+    s = s.replace(/^[a-z0-9_().\-]+[#>]\s*/i, '');
+    s = s.replace(/[ \t]+/g, ' ');
+    IFACE.forEach(function (r) { s = s.replace(r[0], r[1]); });
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  }
+  function canon(line) {
+    var s = normalize(line);
+    s = s.replace(/^int /, 'interface ');
+    s = s.replace(/\beq www\b/, 'eq 80');
+    s = s.replace(/\beq https\b/, 'eq 443');
+    return s;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── DOM refs ────────────────────────────────────────────────────────
+  var overall = document.getElementById('aclOverall');
+  var rail = document.getElementById('aclRail');
+  var stage = document.getElementById('aclStage');
+
+  function renderOverall() {
+    var done = masteredCount();
+    var pct = Math.round((done / totalUnits) * 100);
+    overall.innerHTML =
+      '<div class="ostat"><span class="val ' + (done === totalUnits ? 'green' : '') + '">' + done + '/' + totalUnits + '</span><span class="lbl">Units mastered</span></div>' +
+      '<div class="ostat"><span class="val">' + pct + '%</span><span class="lbl">Course progress</span></div>' +
+      '<div class="acl-obar-wrap"><div class="acl-obar"><span style="width:' + pct + '%"></span></div></div>' +
+      '<button class="acl-reset" id="aclReset" type="button">Reset progress</button>';
+    document.getElementById('aclReset').addEventListener('click', function () {
+      if (window.confirm('Reset all progress on this ACL course?')) {
+        state = { beats: {}, capstone: { best: 0, quiz: false }, current: 0 };
+        save(state); cursor = 0; renderAll();
+      }
+    });
+  }
+
+  function renderRail() {
+    rail.innerHTML = '';
+    BEATS.forEach(function (b, i) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      var cls = 'acl-chip';
+      if (i === cursor) cls += ' current';
+      if (beatDone(b.id)) cls += ' mastered';
+      if (!beatUnlocked(i)) cls += ' locked';
+      chip.className = cls;
+      chip.setAttribute('aria-label', 'Beat ' + (i + 1) + ': ' + b.title + (beatDone(b.id) ? ', mastered' : (beatUnlocked(i) ? '' : ', locked')));
+      chip.innerHTML = '<span class="dot"></span>' + (i + 1);
+      if (beatUnlocked(i)) {
+        chip.addEventListener('click', function () { cursor = i; persistCursor(); renderAll(); });
+      }
+      rail.appendChild(chip);
+    });
+    // capstone chip
+    var cap = document.createElement('button');
+    cap.type = 'button';
+    var ccls = 'acl-chip';
+    if (cursor === BEATS.length) ccls += ' current';
+    if (state.capstone.best >= 70 && state.capstone.quiz) ccls += ' mastered';
+    if (!capstoneUnlocked()) ccls += ' locked';
+    cap.className = ccls;
+    cap.setAttribute('aria-label', 'Capstone' + (capstoneUnlocked() ? '' : ', locked until all beats are mastered'));
+    cap.innerHTML = '<span class="dot"></span>Capstone';
+    if (capstoneUnlocked()) {
+      cap.addEventListener('click', function () { cursor = BEATS.length; persistCursor(); renderAll(); });
+    }
+    rail.appendChild(cap);
+  }
+
+  function persistCursor() { state.current = cursor; save(state); }
+
+  // ── Render a single beat ────────────────────────────────────────────
+  function guidedHtml(beat) {
+    if (!beat.guided) return '';
+    var lines = beat.guided.map(function (ln) {
+      var rowCls = 'acl-line' + (ln.cls === 'comment' ? ' comment' : '') + (ln.cls === 'alt' ? ' alt' : '');
+      var cmd;
+      if (ln.cls === 'comment') {
+        cmd = '<span class="acl-cmd cmt">' + escapeHtml(ln.c) + '</span>';
+      } else {
+        cmd = '<span class="acl-cmd"><span class="pmt">' + escapeHtml(ln.p) + ' </span>' + escapeHtml(ln.c) + '</span>';
+      }
+      var ann = ln.a ? '<span class="acl-ann">' + ln.a + '</span>' : '';
+      return '<div class="' + rowCls + '">' + cmd + ann + '</div>';
+    }).join('');
+    return '<div class="acl-cli-block">' + lines + '</div>';
+  }
+  function verifyHtml(beat) {
+    if (!beat.verify || !beat.verify.length) return '';
+    var lines = beat.verify.map(function (v) {
+      return '<code>' + escapeHtml(v.c) + '</code><div class="vn">' + escapeHtml(v.n) + '</div>';
+    }).join('');
+    return '<div class="acl-verify"><div class="vh">Verify</div>' + lines + '</div>';
+  }
+  function diagramHtml(beat) {
+    if (beat.ascii) return '<div class="acl-diagram"><pre class="acl-ascii">' + escapeHtml(beat.ascii) + '</pre></div>';
+    return '';
+  }
+  function trapHtml(beat) {
+    if (!beat.trapNote) return '';
+    return '<div class="acl-trapbox"><div class="th">Trap</div><div class="tb">' + beat.trapNote + '</div></div>';
+  }
+
+  function recallHtml(beat, idx) {
+    var r = beat.recall;
+    var head = '<div class="acl-recall-head"><span class="rk">Prove it</span><span class="rtype">' + escapeHtml(r.rtype) + '</span></div>' +
+      '<div class="acl-prompt">' + r.prompt + '</div>';
+    var body = '';
+    if (r.type === 'mcq') {
+      body = '<ul class="acl-mcq" id="aclMcq">' + r.options.map(function (o, i) {
+        return '<li><button type="button" class="acl-opt" data-i="' + i + '"><span class="ltr">' +
+          String.fromCharCode(65 + i) + '</span><span>' + escapeHtml(o) + '</span></button></li>';
+      }).join('') + '</ul>';
+    } else if (r.type === 'cmd') {
+      body = '<div class="acl-term"><label for="aclInput">R(config)#</label>' +
+        '<input class="acl-input" id="aclInput" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type the command...">' +
+        '</div>' +
+        '<div class="acl-recall-actions"><button class="acl-checkbtn" type="button" id="aclCheck">Check</button>' +
+        '<button class="acl-secbtn" type="button" id="aclReveal">Show answer</button></div>';
+    } else if (r.type === 'blank') {
+      body = '<div class="acl-term"><label>fill the blank</label>' +
+        '<div class="acl-cmd" style="line-height:2.2">' + escapeHtml(r.template).replace('____', '<input class="acl-input" id="aclInput" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" style="display:inline-block;width:auto;min-width:140px;border-bottom:2px solid var(--accent)" placeholder="...">') + '</div>' +
+        '</div>' +
+        '<div class="acl-recall-actions"><button class="acl-checkbtn" type="button" id="aclCheck">Check</button>' +
+        '<button class="acl-secbtn" type="button" id="aclReveal">Show answer</button></div>';
+    } else if (r.type === 'cmdblock') {
+      body = '<div class="acl-term"><label for="aclArea">R(config)#</label>' +
+        '<textarea class="acl-termarea" id="aclArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="one command per line..."></textarea>' +
+        '</div>' +
+        '<div class="acl-recall-actions"><button class="acl-checkbtn" type="button" id="aclCheck">Check</button>' +
+        '<button class="acl-secbtn" type="button" id="aclReveal">Show answer</button></div>';
+    }
+    return '<div class="acl-recall">' + head + body +
+      '<div class="acl-fb" id="aclFb" role="status" aria-live="polite"></div>' +
+      '<div class="acl-advance" id="aclAdvance"><button class="acl-nextbtn" type="button" id="aclNext">' +
+      (idx + 1 < BEATS.length ? 'Mastered. Next beat &rarr;' : 'Mastered. Go to Capstone &rarr;') + '</button></div>' +
+      '</div>';
+  }
+
+  function renderBeat(idx) {
+    var beat = BEATS[idx];
+    stage.innerHTML =
+      '<div class="acl-beat">' +
+        '<div class="acl-beat-head">' +
+          '<span class="acl-beat-num">Beat ' + (idx + 1) + ' / ' + BEATS.length + '</span>' +
+          '<h2>' + escapeHtml(beat.title) + '</h2>' +
+          '<span class="acl-beat-kind ' + beat.kind + '">' + beat.kind + '</span>' +
+        '</div>' +
+        '<p class="acl-gist">' + beat.gist + '</p>' +
+        '<div class="acl-why"><div class="mh">' + (beat.kind === 'concept' ? 'Core truth' : 'Why') + '</div><div class="mb">' + beat.why + '</div></div>' +
+        diagramHtml(beat) +
+        guidedHtml(beat) +
+        verifyHtml(beat) +
+        trapHtml(beat) +
+        recallHtml(beat, idx) +
+      '</div>';
+    wireRecall(beat, idx);
+    window.scrollTo(0, 0);
+  }
+
+  // ── Wire up the recall interaction for the current beat ─────────────
+  function showFb(ok, html) {
+    var fb = document.getElementById('aclFb');
+    fb.className = 'acl-fb show ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = html;
+  }
+  function unlockNext() {
+    document.getElementById('aclAdvance').classList.add('show');
+    document.getElementById('aclNext').focus();
+  }
+  function markBeatDone(id) {
+    state.beats[id] = true; save(state);
+    renderOverall(); renderRail();
+  }
+
+  function wireRecall(beat, idx) {
+    var r = beat.recall;
+    var done = beatDone(beat.id);
+
+    function pass(explainExtra) {
+      showFb(true, '<span class="fbh">Correct.</span>' + r.explain + (explainExtra || ''));
+      markBeatDone(beat.id);
+      unlockNext();
+    }
+    function fail(html) { showFb(false, html); }
+
+    var nextBtn = function () {
+      var n = document.getElementById('aclNext');
+      if (n) n.addEventListener('click', function () {
+        cursor = idx + 1; persistCursor(); renderAll();
+      });
+    };
+
+    if (r.type === 'mcq') {
+      var opts = stage.querySelectorAll('.acl-opt');
+      opts.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var i = parseInt(btn.getAttribute('data-i'), 10);
+          opts.forEach(function (b) { b.disabled = true; b.classList.add('dim'); });
+          if (i === r.answer) {
+            btn.classList.remove('dim'); btn.classList.add('correct');
+            pass();
+          } else {
+            btn.classList.remove('dim'); btn.classList.add('wrong');
+            opts[r.answer].classList.remove('dim'); opts[r.answer].classList.add('correct');
+            fail('<span class="fbh">Not quite.</span>' + r.explain + ' Try the reasoning again, then click the correct option.');
+            // allow retry: re-enable after a tick by re-rendering options interaction
+            setTimeout(function () {
+              opts.forEach(function (b) {
+                b.disabled = false;
+                b.classList.remove('dim'); b.classList.remove('wrong'); b.classList.remove('correct');
+              });
+            }, 1400);
+          }
+        });
+      });
+    } else if (r.type === 'cmd' || r.type === 'blank') {
+      var input = document.getElementById('aclInput');
+      function checkCmd() {
+        var val = input.value;
+        var uc = canon(val);
+        var ok = r.accept.some(function (a) { return canon(a) === uc; });
+        if (ok) { pass(); }
+        else { fail('<span class="fbh">Not matched.</span>Check spelling, keyword, and order. Expected something like <code>' + escapeHtml(r.reveal) + '</code>. Fix it and check again.'); }
+      }
+      document.getElementById('aclCheck').addEventListener('click', checkCmd);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); checkCmd(); }
+      });
+      document.getElementById('aclReveal').addEventListener('click', function () {
+        input.value = (r.type === 'blank') ? (r.accept[0]) : r.reveal;
+        showFb(false, '<span class="fbh">Answer shown.</span>Clear it and type it yourself to master this beat. Full line: <code>' + escapeHtml(r.reveal) + '</code>');
+      });
+      setTimeout(function () { input.focus(); }, 50);
+    } else if (r.type === 'cmdblock') {
+      var area = document.getElementById('aclArea');
+      function checkBlock() {
+        var lines = area.value.split('\n').map(canon).filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+        // r.accept is an array of groups; each group must be matched by some user line, in order-independent fashion
+        var used = lines.map(function () { return false; });
+        var allOk = r.accept.every(function (group) {
+          for (var i = 0; i < lines.length; i++) {
+            if (used[i]) continue;
+            if (group.some(function (g) { return canon(g) === lines[i]; })) { used[i] = true; return true; }
+          }
+          return false;
+        });
+        if (allOk) { pass(); }
+        else { fail('<span class="fbh">Not complete.</span>You need both lines. Expected:<br><code>' + escapeHtml(r.reveal).replace(/\n/g, '</code><br><code>') + '</code>'); }
+      }
+      document.getElementById('aclCheck').addEventListener('click', checkBlock);
+      area.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); checkBlock(); }
+      });
+      document.getElementById('aclReveal').addEventListener('click', function () {
+        area.value = r.reveal;
+        showFb(false, '<span class="fbh">Answer shown.</span>Clear it and type it yourself to master this beat.');
+      });
+      setTimeout(function () { area.focus(); }, 50);
+    }
+
+    // if already mastered, surface the next button immediately
+    if (done) {
+      showFb(true, '<span class="fbh">Already mastered.</span>' + r.explain);
+      document.getElementById('aclAdvance').classList.add('show');
+    }
+    nextBtn();
+  }
+
+  // ── Capstone render ─────────────────────────────────────────────────
+  function renderCapstone() {
+    if (!capstoneUnlocked()) {
+      stage.innerHTML = '<div class="acl-locked-note">The capstone unlocks once every beat above is mastered. ' +
+        'Finish the beats first, then reproduce the whole config from a blank terminal.</div>';
+      window.scrollTo(0, 0);
+      return;
+    }
+    var quizHtml = CAPSTONE.quiz.map(function (q, qi) {
+      return '<div class="acl-q" data-q="' + qi + '">' +
+        '<div class="qstem"><strong>Q' + (qi + 1) + '.</strong> ' + q.stem + '</div>' +
+        '<ul class="acl-mcq">' + q.options.map(function (o, oi) {
+          return '<li><button type="button" class="acl-opt" data-q="' + qi + '" data-i="' + oi + '"><span class="ltr">' +
+            String.fromCharCode(65 + oi) + '</span><span>' + escapeHtml(o) + '</span></button></li>';
+        }).join('') + '</ul>' +
+        '<div class="acl-fb" id="aclQfb' + qi + '" role="status" aria-live="polite"></div>' +
+        '</div>';
+    }).join('');
+
+    stage.innerHTML =
+      '<div class="acl-beat">' +
+        '<div class="acl-beat-head">' +
+          '<span class="acl-beat-num">Capstone</span>' +
+          '<h2>Reproduce the whole config, then the triggers</h2>' +
+          '<span class="acl-beat-kind config">config</span>' +
+        '</div>' +
+        '<div class="acl-scenario"><div class="sh">Scenario</div><div class="sb">' + escapeHtml(CAPSTONE.scenario) + '</div></div>' +
+        '<p class="acl-recall-hint">Type the full config from memory, one command per line. Abbreviations like <code>int g0/1</code> and <code>eq https</code> are accepted. End with the verify command. Press Ctrl+Enter to check.</p>' +
+        '<div class="acl-bigterm"><label for="aclCapArea">R(config)#</label>' +
+          '<textarea class="acl-termarea" id="aclCapArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type each config line here..."></textarea>' +
+        '</div>' +
+        '<div class="acl-recall-actions">' +
+          '<button class="acl-checkbtn" type="button" id="aclCapCheck">Check config</button>' +
+          '<button class="acl-secbtn" type="button" id="aclCapClear">Clear</button>' +
+          '<button class="acl-secbtn" type="button" id="aclCapReveal">Show answer</button>' +
+        '</div>' +
+        '<div class="acl-results" id="aclCapResults"></div>' +
+        '<div class="acl-section-title">Exam triggers and MCQs</div>' +
+        '<div class="acl-quiz">' + quizHtml + '</div>' +
+        '<div class="acl-done" id="aclDone"><h3>Topic mastered.</h3><p>You reproduced the config and answered the triggers. That is exam-ready on objective 5.6.</p></div>' +
+      '</div>';
+
+    wireCapstone();
+    window.scrollTo(0, 0);
+  }
+
+  function wireCapstone() {
+    var area = document.getElementById('aclCapArea');
+    var quizState = {};
+
+    function checkConfig() {
+      var raw = area.value;
+      var userLinesRaw = raw.split('\n')
+        .map(function (l) { return l.trim(); })
+        .filter(function (l) { return l.length && l.charAt(0) !== '!'; });
+      var userCanon = userLinesRaw.map(canon);
+      var usedUser = userCanon.map(function () { return false; });
+
+      var rows = [];
+      var got = 0;
+
+      CAPSTONE.expected.forEach(function (exp) {
+        var found = -1;
+        for (var i = 0; i < userCanon.length; i++) {
+          if (usedUser[i]) continue;
+          if (exp.cmds.some(function (c) { return canon(c) === userCanon[i]; })) { found = i; break; }
+        }
+        if (found >= 0) {
+          usedUser[found] = true; got++;
+          rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[found], note: exp.note });
+        } else {
+          rows.push({ cls: 'miss', icon: '✗', text: exp.cmds[0], note: 'missing: ' + exp.note });
+        }
+      });
+
+      var vCanon = canon(CAPSTONE.verifyCmd);
+      var vOk = false, vIdx = -1;
+      for (var j = 0; j < userCanon.length; j++) {
+        if (!usedUser[j] && (userCanon[j] === vCanon || userCanon[j].indexOf(vCanon) === 0)) { vOk = true; vIdx = j; break; }
+      }
+      if (vOk) { usedUser[vIdx] = true; rows.push({ cls: 'ok', icon: '✓', text: userLinesRaw[vIdx], note: 'verify command' }); }
+      else { rows.push({ cls: 'miss', icon: '✗', text: CAPSTONE.verifyCmd, note: 'missing the verify command' }); }
+
+      userCanon.forEach(function (uc, i) {
+        if (!usedUser[i]) rows.push({ cls: 'extra', icon: '~', text: userLinesRaw[i], note: 'not expected for this scenario' });
+      });
+
+      var totalNeeded = CAPSTONE.expected.length + 1;
+      var gotTotal = got + (vOk ? 1 : 0);
+      var pct = Math.round((gotTotal / totalNeeded) * 100);
+
+      if (pct > (state.capstone.best || 0)) state.capstone.best = pct;
+      save(state); renderOverall(); renderRail();
+
+      renderCapResults(pct, gotTotal, totalNeeded, rows);
+      maybeDone();
+    }
+
+    function renderCapResults(pct, got, total, rows) {
+      var box = document.getElementById('aclCapResults');
+      var scoreClass = pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red';
+      var label = pct >= 100 ? 'Perfect. That is exam ready.'
+        : pct >= 70 ? 'Passing. Close the gaps and run it again.'
+        : pct >= 40 ? 'Partial. Review the beats, then retry.'
+        : 'Keep drilling. Re-read the beats and type it again.';
+      var rowsHtml = rows.map(function (rw) {
+        return '<div class="acl-diff-row ' + rw.cls + '"><span class="icon">' + rw.icon + '</span>' +
+          '<span class="ctext">' + escapeHtml(rw.text) + '<span class="cnote">' + escapeHtml(rw.note) + '</span></span></div>';
+      }).join('');
+      box.innerHTML =
+        '<div class="acl-score"><span class="sv ' + scoreClass + '">' + pct + '%</span>' +
+        '<span class="sl">' + got + ' of ' + total + ' lines. ' + label + '</span></div>' +
+        '<div class="acl-diff">' + rowsHtml + '</div>';
+      box.classList.add('show');
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    document.getElementById('aclCapCheck').addEventListener('click', checkConfig);
+    area.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); checkConfig(); }
+    });
+    document.getElementById('aclCapClear').addEventListener('click', function () {
+      area.value = ''; document.getElementById('aclCapResults').classList.remove('show'); area.focus();
+    });
+    document.getElementById('aclCapReveal').addEventListener('click', function () {
+      var lines = CAPSTONE.expected.map(function (e) { return e.cmds[0]; });
+      lines.push(CAPSTONE.verifyCmd);
+      area.value = lines.join('\n');
+    });
+
+    // quiz wiring
+    var opts = stage.querySelectorAll('.acl-q .acl-opt');
+    opts.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var qi = parseInt(btn.getAttribute('data-q'), 10);
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        var q = CAPSTONE.quiz[qi];
+        var group = stage.querySelectorAll('.acl-q[data-q="' + qi + '"] .acl-opt');
+        var fb = document.getElementById('aclQfb' + qi);
+        if (i === q.answer) {
+          group.forEach(function (b) { b.disabled = true; b.classList.add('dim'); });
+          btn.classList.remove('dim'); btn.classList.add('correct');
+          fb.className = 'acl-fb show ok';
+          fb.innerHTML = '<span class="fbh">Correct.</span>' + q.explain;
+          quizState[qi] = true;
+          maybeDone();
+        } else {
+          btn.classList.add('wrong');
+          group[q.answer].classList.remove('dim');
+          fb.className = 'acl-fb show no';
+          fb.innerHTML = '<span class="fbh">Not quite.</span>' + q.explain + ' Pick again.';
+          setTimeout(function () {
+            btn.classList.remove('wrong');
+          }, 1400);
+        }
+      });
+    });
+
+    function maybeDone() {
+      var allQuiz = CAPSTONE.quiz.every(function (q, qi) { return quizState[qi]; });
+      if (allQuiz) { state.capstone.quiz = true; save(state); renderOverall(); renderRail(); }
+      if (state.capstone.best >= 70 && state.capstone.quiz) {
+        document.getElementById('aclDone').classList.add('show');
+      }
+    }
+
+    // restore done state on revisit
+    if (state.capstone.quiz) {
+      CAPSTONE.quiz.forEach(function (q, qi) { quizState[qi] = true; });
+    }
+    maybeDone();
+  }
+
+  // ── Render all ──────────────────────────────────────────────────────
+  function renderAll() {
+    renderOverall();
+    renderRail();
+    if (cursor >= BEATS.length) renderCapstone();
+    else renderBeat(cursor);
+  }
+
+  renderAll();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

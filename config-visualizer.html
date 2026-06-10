@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Config Visualizer - CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.back-wrap{margin-bottom:var(--s-md)}
+.intro{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;max-width:65ch;margin-bottom:var(--s-lg)}
+
+/* ── Scenario picker ──────────────────────────────────────────── */
+.cv-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:var(--s-lg)}
+.cv-card{position:relative;text-align:left;padding:16px 16px 14px;border:1.5px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-surface);cursor:pointer;font-family:var(--font-body);transition:border-color .18s,transform .18s var(--ease-out),box-shadow .2s}
+.cv-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 22px rgba(180,83,9,.12)}
+.cv-card:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(180,83,9,.22)}
+.cv-card.active{border-color:var(--accent);background:linear-gradient(135deg,rgba(217,119,6,.06),rgba(217,119,6,.02))}
+.cv-card .cv-num{font-family:var(--font-mono);font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.06em}
+.cv-card h3{font-family:var(--font-display);font-size:1rem;font-weight:700;margin:3px 0 5px;letter-spacing:-.01em;color:var(--ink)}
+.cv-card p{font-size:.84rem;color:var(--ink-secondary);line-height:1.45;margin:0}
+.cv-done{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--prof-strong);color:#fff;font-family:var(--font-display);font-size:.72rem;font-weight:700;display:none;align-items:center;justify-content:center}
+.cv-card.completed .cv-done{display:flex}
+
+.cv-progress-line{font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted);margin-bottom:var(--s-md);display:flex;align-items:center;gap:8px}
+.cv-progress-line strong{color:var(--accent);font-weight:700}
+
+/* ── Stage ────────────────────────────────────────────────────── */
+.cv-stage{display:none}
+.cv-stage.live{display:block}
+.cv-stage-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:var(--s-md)}
+.cv-stage-head h2{font-family:var(--font-display);font-size:1.25rem;font-weight:700;margin:0;letter-spacing:-.01em}
+.cv-stage-head .cv-back-btn{font-family:var(--font-display);font-size:.78rem;font-weight:600;background:var(--bg-surface);color:var(--ink-secondary);border:1.5px solid var(--border);border-radius:var(--radius);padding:8px 14px;cursor:pointer;transition:all .15s}
+.cv-stage-head .cv-back-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+.cv-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--s-lg);align-items:start}
+@media (max-width:880px){.cv-grid{grid-template-columns:1fr}}
+
+/* ── Diagram panel ───────────────────────────────────────────── */
+.cv-diagram{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.cv-diagram svg{width:100%;height:auto;display:block}
+.cv-node-box{fill:var(--bg-input);stroke:var(--border);stroke-width:1.5}
+.cv-node-label{font-family:var(--font-display);font-size:13px;font-weight:700;fill:var(--ink)}
+.cv-sub-label{font-family:var(--font-mono);font-size:9px;fill:var(--ink-muted)}
+.cv-link{stroke:var(--ink-muted);stroke-width:2.5;fill:none;transition:stroke .4s,stroke-dasharray .4s}
+.cv-badge-txt{font-family:var(--font-mono);font-size:9px;font-weight:700;fill:#fff}
+
+/* ── Side panels ─────────────────────────────────────────────── */
+.cv-side{display:flex;flex-direction:column;gap:var(--s-md)}
+.cv-cmd-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.cv-cmd-label{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-muted);margin-bottom:8px}
+.cv-cmd-line{font-family:var(--font-mono);font-size:.92rem;font-weight:600;color:var(--ink);background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:10px 12px;word-break:break-word;line-height:1.5;min-height:1.2em}
+.cv-cmd-line.is-prompt{color:var(--ink-muted);font-weight:400;font-style:italic}
+.cv-caption{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.55;margin-top:12px}
+
+/* command list */
+.cv-cmdlist{list-style:none;margin:10px 0 0;padding:0;font-family:var(--font-mono);font-size:.82rem}
+.cv-cmdlist li{padding:5px 8px;border-radius:3px;color:var(--ink-muted);line-height:1.4;border-left:2px solid transparent;transition:background .2s,color .2s}
+.cv-cmdlist li.past{color:var(--ink-secondary)}
+.cv-cmdlist li.current{background:rgba(180,83,9,.1);color:var(--ink);border-left-color:var(--accent);font-weight:600}
+
+/* tables */
+.cv-table-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px 16px}
+.cv-table-card h4{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin:0 0 8px}
+table.cv-tbl{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.76rem}
+table.cv-tbl th{text-align:left;font-weight:700;color:var(--ink-secondary);padding:4px 6px;border-bottom:1.5px solid var(--border);font-size:.66rem;text-transform:uppercase;letter-spacing:.04em}
+table.cv-tbl td{padding:5px 6px;border-bottom:1px solid var(--rule);color:var(--ink);white-space:nowrap}
+table.cv-tbl tr:last-child td{border-bottom:none}
+table.cv-tbl tr.new-row td{animation:rowIn .5s var(--ease-out) 1}
+@keyframes rowIn{0%{background:rgba(180,83,9,.18)}100%{background:transparent}}
+.cv-empty-tbl{font-family:var(--font-body);font-style:italic;color:var(--ink-muted);font-size:.84rem;padding:6px 2px}
+.tag-S{color:var(--accent);font-weight:700}
+.tag-O{color:#7c3aed;font-weight:700}
+.tag-C{color:var(--prof-strong);font-weight:700}
+
+/* state ladder (ospf) */
+.cv-ladder{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.cv-ladder li{font-family:var(--font-mono);font-size:.72rem;padding:4px 9px;border-radius:100px;border:1.5px solid var(--border);color:var(--ink-muted);transition:all .3s}
+.cv-ladder li.reached{border-color:var(--prof-mid);color:var(--ink)}
+.cv-ladder li.current{border-color:var(--accent);background:rgba(180,83,9,.12);color:var(--ink);font-weight:600}
+.cv-ladder li.full{border-color:var(--prof-strong);background:rgba(22,163,74,.12);color:#15803d;font-weight:700}
+
+/* controller */
+.cv-controls{display:flex;align-items:center;gap:8px;margin-top:var(--s-md);flex-wrap:wrap}
+.cv-btn{font-family:var(--font-display);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:11px 20px;border-radius:var(--radius);cursor:pointer;border:1.5px solid var(--border);background:var(--bg-surface);color:var(--ink);transition:all .15s}
+.cv-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.cv-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(180,83,9,.22)}
+.cv-btn:disabled{opacity:.4;cursor:not-allowed}
+.cv-btn.primary{background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(180,83,9,.28)}
+.cv-btn.primary:hover:not(:disabled){color:#fff;transform:translateY(-1px);box-shadow:0 7px 20px rgba(180,83,9,.36)}
+.cv-btn.ghost{background:none;border-color:transparent;color:var(--ink-muted);padding:11px 12px}
+.cv-btn.ghost:hover{color:var(--accent)}
+.cv-step-count{margin-left:auto;font-family:var(--font-mono);font-size:.8rem;color:var(--ink-muted)}
+.cv-step-count strong{color:var(--ink);font-weight:700}
+
+.cv-done-banner{display:none;margin-top:12px;padding:12px 14px;border-radius:var(--radius);background:rgba(22,163,74,.1);border:1px solid #15803d;font-family:var(--font-display);font-size:.86rem;font-weight:600;color:#15803d}
+.cv-done-banner.show{display:block}
+
+@media (max-width:640px){
+  .cv-picker{grid-template-columns:1fr}
+  .cv-stage-head h2{font-size:1.1rem}
+  .cv-step-count{margin-left:0;width:100%;text-align:right}
+  .cv-btn{flex:1;text-align:center;padding:12px 10px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cv-card,.cv-link,.cv-ladder li,.cv-btn,.cv-anim{transition:none!important;animation:none!important}
+  table.cv-tbl tr.new-row td{animation:none!important}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+  <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">CONFIG · LIVE VISUAL · STEP-BY-STEP</div>
+    <h1>Config Visualizer</h1>
+    <p class="subtitle">Watch the topology react as you step through each config command.</p>
+  </header>
+
+  <p class="intro">Pick a scenario, then use Next and Prev to step through the real CLI lines. The diagram, routing tables, and neighbor states update to show exactly what each command does. Every command matches the cheatsheet and Config Bootcamp.</p>
+
+  <div class="cv-progress-line">Scenarios completed: <strong id="cvProgress">0 / 7</strong></div>
+
+  <div class="cv-picker" id="cvPicker" role="list"></div>
+
+  <section class="cv-stage" id="cvStage" aria-live="polite">
+    <div class="cv-stage-head">
+      <h2 id="cvStageTitle"></h2>
+      <button class="cv-back-btn" id="cvBackBtn" type="button">&larr; All scenarios</button>
+    </div>
+    <div class="cv-grid">
+      <div class="cv-diagram" id="cvDiagram"></div>
+      <div class="cv-side">
+        <div class="cv-cmd-card">
+          <div class="cv-cmd-label">Current command</div>
+          <div class="cv-cmd-line" id="cvCmdLine"></div>
+          <p class="cv-caption" id="cvCaption"></p>
+          <ol class="cv-cmdlist" id="cvCmdList"></ol>
+        </div>
+        <div id="cvExtra"></div>
+      </div>
+    </div>
+    <div class="cv-controls">
+      <button class="cv-btn" id="cvPrev" type="button" aria-label="Previous step">&larr; Prev</button>
+      <button class="cv-btn primary" id="cvNext" type="button" aria-label="Next step">Next &rarr;</button>
+      <button class="cv-btn ghost" id="cvReset" type="button" aria-label="Reset scenario to start">Reset</button>
+      <div class="cv-step-count">Step <strong id="cvStepNum">0</strong> / <span id="cvStepTotal">0</span></div>
+    </div>
+    <div class="cv-done-banner" id="cvDoneBanner">Scenario complete. You stepped through every command.</div>
+  </section>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+  var PREFIX = 'ccna_config-visualizer_';
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  // ── persistence ────────────────────────────────────────────────
+  function markDone(id) {
+    try { localStorage.setItem(PREFIX + 'done_' + id, '1'); } catch (e) {}
+  }
+  function isDone(id) {
+    try { return localStorage.getItem(PREFIX + 'done_' + id) === '1'; } catch (e) { return false; }
+  }
+
+  // ── SVG helpers ────────────────────────────────────────────────
+  function el(tag, attrs, text) {
+    var n = document.createElementNS(SVGNS, tag);
+    if (attrs) { for (var k in attrs) { n.setAttribute(k, attrs[k]); } }
+    if (text != null) { n.textContent = text; }
+    return n;
+  }
+  // device drawn as box + label + optional sub label
+  function device(x, y, w, h, label, sub) {
+    var g = el('g', {});
+    g.appendChild(el('rect', { x: x, y: y, width: w, height: h, rx: 4, class: 'cv-node-box' }));
+    g.appendChild(el('text', { x: x + w / 2, y: y + h / 2 + 2, 'text-anchor': 'middle', class: 'cv-node-label' }, label));
+    if (sub) { g.appendChild(el('text', { x: x + w / 2, y: y + h + 13, 'text-anchor': 'middle', class: 'cv-sub-label' }, sub)); }
+    return g;
+  }
+  function line(x1, y1, x2, y2, attrs) {
+    var a = { x1: x1, y1: y1, x2: x2, y2: y2, class: 'cv-link' };
+    if (attrs) { for (var k in attrs) { a[k] = attrs[k]; } }
+    return el('line', a);
+  }
+  function badge(x, y, label, color) {
+    var g = el('g', {});
+    g.appendChild(el('rect', { x: x - 16, y: y - 9, width: 32, height: 18, rx: 9, fill: color }));
+    g.appendChild(el('text', { x: x, y: y + 4, 'text-anchor': 'middle', class: 'cv-badge-txt' }, label));
+    return g;
+  }
+  function txt(x, y, str, color, size, anchor, mono) {
+    return el('text', {
+      x: x, y: y, 'text-anchor': anchor || 'middle',
+      'font-family': mono ? 'JetBrains Mono, monospace' : 'Space Grotesk, sans-serif',
+      'font-size': (size || 11) + 'px', 'font-weight': 700, fill: color || '#1C1917'
+    }, str);
+  }
+  function packet(cx, cy, color) {
+    return el('circle', { cx: cx, cy: cy, r: 6, fill: color || '#16A34A', class: 'cv-anim cv-packet' });
+  }
+
+  // colors pulled from token values (variables not readable inside standalone SVG attrs reliably)
+  var C = {
+    bg: '#FAF7F2', surface: '#FFFFFF', ink: '#1C1917', ink2: '#57534E', muted: '#A8A29E',
+    border: '#E2DFD9', accent: '#B45309', green: '#16A34A', red: '#DC2626', mid: '#CA8A04',
+    vlan10: '#2563EB', vlan20: '#7c3aed', purple: '#7c3aed', wan: '#0E7490'
+  };
+
+  // ── scenario definitions ───────────────────────────────────────
+  // Each scenario: id, title, blurb, commands[], captions[], render(stageIndex, refs)
+  // stage 0 = initial state (before any command applied). steps = commands.length, so
+  // stage goes 0..commands.length. Stage N means commands[0..N-1] have been applied.
+
+  var SCEN = [
+    // 1 ── VLAN + Trunk ──────────────────────────────────────────
+    {
+      id: 'vlan-trunk',
+      title: 'VLAN + Trunk',
+      blurb: 'Assign access ports, build an 802.1Q trunk, prune the allowed VLAN list.',
+      commands: [
+        'SW1(config)# vlan 10',
+        'SW1(config)# vlan 20',
+        'SW1(config-if)# interface fa0/1',
+        'SW1(config-if)# switchport mode access',
+        'SW1(config-if)# switchport access vlan 10',
+        'SW1(config-if)# interface fa0/2',
+        'SW1(config-if)# switchport access vlan 20',
+        'SW1(config-if)# interface gi0/1',
+        'SW1(config-if)# switchport mode trunk',
+        'SW1(config-if)# switchport trunk native vlan 99',
+        'SW1(config-if)# switchport trunk allowed vlan 10,20',
+        'SW1(config-if)# switchport trunk allowed vlan remove 20'
+      ],
+      captions: [
+        'VLAN 10 created in the VLAN database. No ports use it yet.',
+        'VLAN 20 created. Two broadcast domains now exist on SW1.',
+        'Selecting fa0/1 to configure the port facing PC-A.',
+        'fa0/1 forced to access mode: it carries exactly one untagged VLAN.',
+        'fa0/1 assigned to VLAN 10. PC-A now lives in the blue broadcast domain.',
+        'Selecting fa0/2, the port facing PC-B.',
+        'fa0/2 assigned to VLAN 20. PC-B is in the purple broadcast domain.',
+        'Selecting gi0/1, the uplink toward R1.',
+        'gi0/1 forced to trunk mode. It can now carry many VLANs with 802.1Q tags.',
+        'Native VLAN set to 99. Native VLAN traffic crosses the trunk untagged.',
+        'Allowed list pinned to 10,20. Only these tagged VLANs may cross.',
+        'VLAN 20 removed from the allowed list. Purple frames are now dropped at the trunk.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 260);
+        // PCs
+        var aColor = s >= 5 ? C.vlan10 : C.border;
+        var bColor = s >= 7 ? C.vlan20 : C.border;
+        svg.appendChild(coloredDevice(20, 40, 70, 40, 'PC-A', 'vlan 10', aColor));
+        svg.appendChild(coloredDevice(20, 170, 70, 40, 'PC-B', 'vlan 20', bColor));
+        // switch
+        svg.appendChild(device(170, 100, 90, 50, 'SW1', 'gi0/1 trunk'));
+        // R1
+        svg.appendChild(device(350, 100, 70, 50, 'R1'));
+        // access links
+        svg.appendChild(line(90, 60, 170, 115, { stroke: s >= 5 ? C.vlan10 : C.muted }));
+        svg.appendChild(line(90, 190, 170, 135, { stroke: s >= 7 ? C.vlan20 : C.muted }));
+        // trunk link
+        var trunkUp = s >= 8;
+        svg.appendChild(line(260, 125, 350, 125, { stroke: trunkUp ? C.accent : C.muted, 'stroke-width': trunkUp ? 3.5 : 2.5 }));
+        // tag badges on trunk
+        if (s >= 9) {
+          // VLAN10 tag (always allowed once trunk up + allowed set, here show from trunk)
+          var v10dropped = false;
+          var v20dropped = s >= 12; // removed at last step
+          svg.appendChild(badge(290, 105, '10', C.vlan10));
+          if (!v20dropped) {
+            svg.appendChild(badge(320, 105, '20', C.vlan20));
+          } else {
+            // show 20 with a red strike near switch (dropped)
+            svg.appendChild(badge(320, 105, '20', C.red));
+            svg.appendChild(el('line', { x1: 308, y1: 96, x2: 332, y2: 114, stroke: '#fff', 'stroke-width': 2 }));
+          }
+        }
+        if (s >= 10) { svg.appendChild(txt(305, 148, 'native 99 untagged', C.ink2, 8, 'middle', true)); }
+        if (s >= 8 && s < 9) { svg.appendChild(txt(305, 115, 'trunk', C.accent, 9, 'middle', true)); }
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 2 ── Inter-VLAN routing (SVI) ───────────────────────────────
+    {
+      id: 'inter-vlan-svi',
+      title: 'Inter-VLAN Routing (SVI)',
+      blurb: 'VLAN 10 and VLAN 20 cannot reach each other until ip routing plus SVIs come up.',
+      commands: [
+        'SW1(config)# ip routing',
+        'SW1(config)# interface vlan 10',
+        'SW1(config-if)# ip address 10.0.10.1 255.255.255.0',
+        'SW1(config-if)# no shutdown',
+        'SW1(config-if)# interface vlan 20',
+        'SW1(config-if)# ip address 10.0.20.1 255.255.255.0',
+        'SW1(config-if)# no shutdown'
+      ],
+      captions: [
+        'ip routing turns on Layer 3 forwarding. The SVIs still need addresses.',
+        'Creating SVI for VLAN 10, the default gateway for the blue subnet.',
+        'SVI 10 gets 10.0.10.1/24. Blue PCs will point here as their gateway.',
+        'no shutdown brings SVI 10 up (a member access port must be up too).',
+        'Creating SVI for VLAN 20, the gateway for the purple subnet.',
+        'SVI 20 gets 10.0.20.1/24. Both gateways now live on SW1.',
+        'no shutdown brings SVI 20 up. Routing between VLAN 10 and 20 is live.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 260);
+        var routed = s >= 7; // both SVIs up
+        svg.appendChild(coloredDevice(20, 40, 70, 40, 'PC-A', '10.0.10.5', C.vlan10));
+        svg.appendChild(coloredDevice(20, 170, 70, 40, 'PC-B', '10.0.20.5', C.vlan20));
+        svg.appendChild(device(180, 95, 100, 60, 'SW1', 'L3 switch'));
+        // SVI labels inside switch region
+        var svi10up = s >= 4, svi20up = s >= 7;
+        svg.appendChild(txt(230, 80, 'SVI10 ' + (svi10up ? 'up' : 'down'), svi10up ? C.green : C.muted, 8, 'middle', true));
+        svg.appendChild(txt(230, 175, 'SVI20 ' + (svi20up ? 'up' : 'down'), svi20up ? C.green : C.muted, 8, 'middle', true));
+        // links
+        svg.appendChild(line(90, 60, 180, 110, { stroke: C.vlan10 }));
+        svg.appendChild(line(90, 190, 180, 140, { stroke: C.vlan20 }));
+        // path indicator across the switch
+        if (routed) {
+          // green path PC-A -> SW1 -> PC-B
+          svg.appendChild(el('path', { d: 'M55 60 L230 125 L55 190', fill: 'none', stroke: C.green, 'stroke-width': 3, 'stroke-dasharray': '6 5', class: 'cv-anim cv-flow' }));
+          svg.appendChild(packet(55, 60, C.green));
+          var p = svg.lastChild;
+          var anim = el('animateMotion', { dur: '2.2s', repeatCount: 'indefinite', path: 'M0 0 L175 65 L-175 65', rotate: '0' });
+          p.appendChild(anim);
+          svg.appendChild(txt(310, 125, 'reachable', C.green, 10, 'middle'));
+        } else {
+          // red X at the switch
+          svg.appendChild(txt(310, 120, 'no route', C.red, 10, 'middle'));
+          svg.appendChild(el('line', { x1: 300, y1: 138, x2: 322, y2: 160, stroke: C.red, 'stroke-width': 3 }));
+          svg.appendChild(el('line', { x1: 322, y1: 138, x2: 300, y2: 160, stroke: C.red, 'stroke-width': 3 }));
+        }
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 3 ── Static route install ───────────────────────────────────
+    {
+      id: 'static-route',
+      title: 'Static Route Install',
+      blurb: 'Each ip route line inserts a row into the routing table. A default route sets the gateway of last resort.',
+      commands: [
+        'R1(config)# ip route 10.0.20.0 255.255.255.0 192.168.12.2',
+        'R1(config)# ip route 172.16.0.0 255.255.0.0 192.168.12.2',
+        'R1(config)# ip route 0.0.0.0 0.0.0.0 192.168.12.2'
+      ],
+      captions: [
+        'Static route to 10.0.20.0/24 via R2. Code S, AD 1, next-hop 192.168.12.2.',
+        'Static route to 172.16.0.0/16 via R2 added as a second S row.',
+        'Default route 0.0.0.0/0 installed. It becomes the gateway of last resort for unknown destinations.'
+      ],
+      table: {
+        title: 'R1 Routing Table',
+        cols: ['Code', 'Prefix', 'AD/Metric', 'Next-hop'],
+        baseRows: [['<span class="tag-C">C</span>', '192.168.12.0/30', '0/0', 'connected']],
+        stepRows: [
+          ['<span class="tag-S">S</span>', '10.0.20.0/24', '1/0', '192.168.12.2'],
+          ['<span class="tag-S">S</span>', '172.16.0.0/16', '1/0', '192.168.12.2'],
+          ['<span class="tag-S">S*</span>', '0.0.0.0/0', '1/0', '192.168.12.2']
+        ]
+      },
+      render: function (s, refs) {
+        var svg = blankSvg(440, 200);
+        svg.appendChild(device(40, 80, 80, 50, 'R1'));
+        svg.appendChild(device(320, 80, 80, 50, 'R2'));
+        svg.appendChild(line(120, 105, 320, 105, { stroke: C.ink2, 'stroke-width': 3 }));
+        svg.appendChild(txt(220, 95, '192.168.12.0/30', C.ink2, 9, 'middle', true));
+        // gateway of last resort indicator
+        var gw = s >= 3;
+        svg.appendChild(el('rect', { x: 150, y: 150, width: 140, height: 30, rx: 4, fill: gw ? 'rgba(180,83,9,.12)' : C.bg, stroke: gw ? C.accent : C.border, 'stroke-width': 1.5 }));
+        svg.appendChild(txt(220, 169, gw ? 'gateway of last resort: 192.168.12.2' : 'no default route', gw ? C.accent : C.muted, 8, 'middle', true));
+        if (s >= 1) { svg.appendChild(badge(190, 105, 'S', C.accent)); }
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 4 ── OSPF adjacency ─────────────────────────────────────────
+    {
+      id: 'ospf-adjacency',
+      title: 'OSPF Adjacency',
+      blurb: 'Stepping config walks the neighbor state machine to FULL, then O routes populate the table.',
+      commands: [
+        'R1(config)# router ospf 1',
+        'R1(config-router)# network 192.168.12.0 0.0.0.3 area 0',
+        'R1(config-router)# network 10.0.10.0 0.0.0.255 area 0',
+        '! R2 sends Hello on 224.0.0.5',
+        '! Both routers see each other (2-Way)',
+        '! Master/slave elected (Exstart)',
+        '! DBD packets traded (Exchange)',
+        '! Missing LSAs requested (Loading)',
+        '! Adjacency FULL, routes exchanged'
+      ],
+      captions: [
+        'OSPF process 1 started on R1. No interfaces enabled yet, so neighbor is Down.',
+        'network statement matches the link to R2 with wildcard 0.0.0.3 in area 0.',
+        'network statement advertises the 10.0.10.0/24 LAN into area 0.',
+        'Hellos go to 224.0.0.5. R1 hears R2: state Init (one-way).',
+        'R1 sees its own RID in R2 Hello: state 2-Way. DR/BDR done on this segment.',
+        'Exstart: master and slave elected by RID to control DBD sequence.',
+        'Exchange: routers swap DBD summaries. (MTU mismatch would stall HERE.)',
+        'Loading: each router requests the LSAs it is missing.',
+        'FULL adjacency. Link-state DBs match. O routes install at AD 110.'
+      ],
+      ladder: ['Down', 'Init', '2-Way', 'Exstart', 'Exchange', 'Loading', 'Full'],
+      // map step index -> ladder index reached
+      ladderAt: function (s) {
+        // steps: 0 down,1 down,2 down,3 down(config done, hello next),4 init? we tie it:
+        // s0..2 config => Down(0); s3 Init(1); s4 2-Way(2); s5 Exstart(3); s6 Exchange(4); s7 Loading(5); s8/9 Full(6)
+        if (s <= 3) { return 0; }
+        return Math.min(s - 3, 6);
+      },
+      table: {
+        title: 'R1 Routing Table',
+        cols: ['Code', 'Prefix', 'AD/Metric', 'Next-hop'],
+        baseRows: [['<span class="tag-C">C</span>', '192.168.12.0/30', '0/0', 'connected']],
+        // only appears at FULL
+        fullRows: [['<span class="tag-O">O</span>', '10.0.20.0/24', '110/2', '192.168.12.2']]
+      },
+      render: function (s, refs) {
+        var svg = blankSvg(440, 200);
+        var ladderIdx = SCEN[3].ladderAt(s);
+        var full = ladderIdx >= 6;
+        svg.appendChild(device(40, 75, 80, 50, 'R1', 'RID highest'));
+        svg.appendChild(device(320, 75, 80, 50, 'R2'));
+        var lc = full ? C.green : (ladderIdx >= 1 ? C.mid : C.muted);
+        svg.appendChild(line(120, 100, 320, 100, { stroke: lc, 'stroke-width': full ? 3.5 : 2.5 }));
+        svg.appendChild(txt(220, 90, 'area 0', C.ink2, 9, 'middle', true));
+        var stateName = ['Down', 'Init', '2-Way', 'Exstart', 'Exchange', 'Loading', 'FULL'][ladderIdx];
+        svg.appendChild(badge(220, 100, '', full ? C.green : C.mid));
+        svg.appendChild(txt(220, 122, stateName, full ? C.green : C.ink, 11, 'middle'));
+        svg.appendChild(txt(220, 150, 'Hello 10s / Dead 40s', C.muted, 8, 'middle', true));
+        svg.appendChild(txt(220, 165, '224.0.0.5 all-OSPF', C.muted, 8, 'middle', true));
+        if (full) {
+          svg.appendChild(packet(120, 100, C.green));
+          var p = svg.lastChild;
+          p.appendChild(el('animateMotion', { dur: '1.8s', repeatCount: 'indefinite', path: 'M0 0 L200 0' }));
+        }
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 5 ── NAT (PAT) ──────────────────────────────────────────────
+    {
+      id: 'nat-pat',
+      title: 'NAT Overload (PAT)',
+      blurb: 'A packet from inside 10.0.0.5 crosses R1. The translation row appears and the source IP is rewritten on the WAN side.',
+      commands: [
+        'R1(config)# ip nat inside source list 1 interface gi0/1 overload',
+        'R1(config)# access-list 1 permit 10.0.0.0 0.0.0.255',
+        'R1(config)# interface gi0/0',
+        'R1(config-if)# ip nat inside',
+        'R1(config-if)# interface gi0/1',
+        'R1(config-if)# ip nat outside',
+        '! PC 10.0.0.5 opens a session to the internet'
+      ],
+      captions: [
+        'PAT rule: translate inside sources matched by ACL 1, overloading the gi0/1 IP.',
+        'ACL 1 permits the inside 10.0.0.0/24 hosts that get translated.',
+        'Selecting gi0/0, the LAN-facing interface.',
+        'gi0/0 marked ip nat inside (the private side).',
+        'Selecting gi0/1, the WAN-facing interface.',
+        'gi0/1 marked ip nat outside (the public side). NAT boundary is set.',
+        'PC sends traffic. R1 rewrites the source to its global IP plus a port and logs the row.'
+      ],
+      table: {
+        title: 'NAT Translation Table',
+        cols: ['Pro', 'Inside local', 'Inside global', 'Outside'],
+        baseRows: [],
+        fullRows: [['tcp', '10.0.0.5:51000', '203.0.113.1:1024', '93.184.216.34:443']]
+      },
+      render: function (s, refs) {
+        var svg = blankSvg(440, 210);
+        var translated = s >= 7;
+        svg.appendChild(coloredDevice(20, 80, 80, 44, 'PC', '10.0.0.5', C.vlan10));
+        svg.appendChild(device(180, 75, 90, 54, 'R1', 'in | out'));
+        // WAN cloud
+        var cloud = el('path', { d: 'M340 95 q-16 -22 8 -26 q4 -18 26 -10 q18 -14 30 6 q22 -2 14 20 q12 14 -8 22 q-2 16 -22 8 q-16 12 -30 -4 q-22 4 -18 -16 z', fill: C.surface, stroke: C.wan, 'stroke-width': 2 });
+        svg.appendChild(cloud);
+        svg.appendChild(txt(376, 96, 'WAN', C.wan, 11, 'middle'));
+        // links
+        svg.appendChild(line(100, 102, 180, 102, { stroke: C.vlan10, 'stroke-width': 3 }));
+        svg.appendChild(line(270, 102, 338, 96, { stroke: C.ink2, 'stroke-width': 3 }));
+        svg.appendChild(txt(140, 92, 'inside', C.muted, 8, 'middle', true));
+        svg.appendChild(txt(305, 90, 'outside', C.muted, 8, 'middle', true));
+        // source IP label on WAN side
+        if (translated) {
+          svg.appendChild(txt(305, 122, 'src 203.0.113.1:1024', C.green, 8, 'middle', true));
+          svg.appendChild(txt(140, 122, 'src 10.0.0.5', C.ink2, 8, 'middle', true));
+          svg.appendChild(packet(100, 102, C.accent));
+          var p = svg.lastChild;
+          p.appendChild(el('animateMotion', { dur: '2.4s', repeatCount: 'indefinite', path: 'M0 0 L80 0 L238 -6' }));
+        } else {
+          svg.appendChild(txt(140, 122, 'src 10.0.0.5', C.ink2, 8, 'middle', true));
+        }
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 6 ── STP ────────────────────────────────────────────────────
+    {
+      id: 'stp-root',
+      title: 'STP Root Election',
+      blurb: 'Lowest bridge ID wins root. Lowering SW1 priority re-elects the root and re-colors the blocked link.',
+      commands: [
+        '! Default: all priorities 32768, lowest MAC wins',
+        'SW1(config)# show spanning-tree  (SW2 is root)',
+        'SW1(config)# spanning-tree vlan 1 priority 4096',
+        '! SW1 BID now lowest, re-election runs',
+        '! SW1 becomes root, blocked link moves'
+      ],
+      captions: [
+        'All switches default to priority 32768. Tie is broken by lowest MAC address.',
+        'SW2 has the lowest MAC, so SW2 is currently root. SW3 has an Alternate (blocking) port.',
+        'SW1 priority set to 4096 (steps of 4096). Its bridge ID is now the lowest.',
+        'A new election runs. Bridge IDs are compared: priority first, then MAC.',
+        'SW1 is the new root. Every other switch port toward SW1 is a Root or Designated port; the redundant link blocks elsewhere.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 240);
+        var sw1Root = s >= 5;
+        // triangle of 3 switches
+        var p1 = { x: 200, y: 30 };   // SW1 top
+        var p2 = { x: 70, y: 170 };   // SW2 left
+        var p3 = { x: 330, y: 170 };  // SW3 right
+        // links
+        // SW1-SW2, SW1-SW3, SW2-SW3 (this is the redundant ring)
+        svg.appendChild(line(p1.x, p1.y + 26, p2.x + 30, p2.y, { stroke: C.green, 'stroke-width': 3 }));
+        svg.appendChild(line(p1.x, p1.y + 26, p3.x + 10, p3.y, { stroke: C.green, 'stroke-width': 3 }));
+        // bottom link is the one that blocks (alternate port)
+        var blockBottom = true; // bottom link always has the blocked end; which end blocks flips with root
+        svg.appendChild(line(p2.x + 40, p2.y + 18, p3.x + 5, p3.y + 18, { stroke: blockBottom ? C.red : C.green, 'stroke-width': 3, 'stroke-dasharray': blockBottom ? '5 5' : '0' }));
+        // block marker: which end is Alternate/Discarding
+        var bx = sw1Root ? p3.x + 2 : p2.x + 44;
+        svg.appendChild(el('circle', { cx: bx, cy: p2.y + 18, r: 9, fill: C.red }));
+        svg.appendChild(txt(bx, p2.y + 22, 'x', '#fff', 11, 'middle'));
+        svg.appendChild(txt(200, p2.y + 38, 'blocked link (Alternate / Discarding)', C.red, 8, 'middle', true));
+        // switches
+        svg.appendChild(rootDevice(p1.x - 35, p1.y, 70, 40, 'SW1', sw1Root ? 'pri 4096' : 'pri 32768', sw1Root));
+        svg.appendChild(rootDevice(p2.x, p2.y - 20, 70, 40, 'SW2', 'pri 32768', !sw1Root));
+        svg.appendChild(rootDevice(p3.x - 30, p3.y - 20, 70, 40, 'SW3', 'pri 32768', false));
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 7 ── Port security violation ────────────────────────────────
+    {
+      id: 'port-security',
+      title: 'Port Security Violation',
+      blurb: 'A third MAC hits a max-2 port. Compare default shutdown (err-disable) versus restrict (just drops).',
+      commands: [
+        'SW1(config-if)# switchport mode access',
+        'SW1(config-if)# switchport port-security',
+        'SW1(config-if)# switchport port-security maximum 2',
+        'SW1(config-if)# switchport port-security violation shutdown',
+        '! MAC #1 learned (1 of 2)',
+        '! MAC #2 learned (2 of 2)',
+        '! MAC #3 arrives: VIOLATION under shutdown',
+        'SW1(config-if)# switchport port-security violation restrict',
+        '! MAC #3 arrives again: dropped, port stays up'
+      ],
+      captions: [
+        'Port forced to access mode, required before port-security can be enabled.',
+        'Port security enabled on the interface.',
+        'Maximum 2 secure MAC addresses allowed on this port.',
+        'Violation mode set to shutdown (the default): a violation err-disables the port.',
+        'First host MAC learned. Count 1 of 2.',
+        'Second host MAC learned. Count 2 of 2, the port is now full.',
+        'A third MAC arrives. Under shutdown the port goes err-disable: link down, all traffic stops.',
+        'Violation mode changed to restrict. The port is re-enabled (after recovery) and stays up.',
+        'Under restrict the third MAC is simply dropped and counted. The port keeps forwarding the first two.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 230);
+        var mode = s >= 8 ? 'restrict' : 'shutdown';
+        var mac1 = s >= 5, mac2 = s >= 6, mac3 = s >= 7;
+        var errDisable = (mode === 'shutdown' && s === 7) || (mode === 'shutdown' && s >= 7 && s < 8);
+        // switch port
+        var portColor = errDisable ? C.red : (mac3 && mode === 'restrict' ? C.mid : C.green);
+        svg.appendChild(device(290, 90, 120, 60, 'SW1', 'fa0/3 max 2'));
+        svg.appendChild(el('rect', { x: 290, y: 90, width: 120, height: 60, rx: 4, fill: 'none', stroke: portColor, 'stroke-width': 3 }));
+        var statusTxt = errDisable ? 'err-disabled' : (mac3 && mode === 'restrict' ? 'up (dropping)' : 'forwarding');
+        svg.appendChild(txt(350, 170, 'port ' + statusTxt, portColor, 9, 'middle', true));
+        svg.appendChild(txt(350, 184, 'violation ' + mode, C.muted, 8, 'middle', true));
+        // hub of hosts
+        var hosts = [
+          { y: 40, on: mac1, label: 'MAC 1', ok: true },
+          { y: 100, on: mac2, label: 'MAC 2', ok: true },
+          { y: 160, on: mac3, label: 'MAC 3', ok: false }
+        ];
+        for (var i = 0; i < hosts.length; i++) {
+          var h = hosts[i];
+          if (!h.on) { continue; }
+          var col = h.ok ? C.green : (mode === 'restrict' ? C.mid : C.red);
+          svg.appendChild(coloredDevice(30, h.y, 70, 36, h.label, h.ok ? 'allowed' : (mode === 'restrict' ? 'dropped' : 'triggers'), col));
+          var lc = errDisable ? C.red : (h.ok ? C.green : col);
+          svg.appendChild(line(100, h.y + 18, 290, 120, { stroke: lc, 'stroke-width': 2.5, 'stroke-dasharray': (errDisable || !h.ok) ? '5 5' : '0' }));
+        }
+        if (errDisable) {
+          svg.appendChild(el('line', { x1: 195, y1: 105, x2: 215, y2: 135, stroke: C.red, 'stroke-width': 3 }));
+          svg.appendChild(el('line', { x1: 215, y1: 105, x2: 195, y2: 135, stroke: C.red, 'stroke-width': 3 }));
+        }
+        refs.diagram.appendChild(svg);
+      }
+    }
+  ];
+
+  // ── shared svg builders ────────────────────────────────────────
+  function blankSvg(w, h) {
+    var svg = el('svg', { viewBox: '0 0 ' + w + ' ' + h, role: 'img' });
+    return svg;
+  }
+  function coloredDevice(x, y, w, h, label, sub, color) {
+    var g = el('g', {});
+    g.appendChild(el('rect', { x: x, y: y, width: w, height: h, rx: 4, fill: C.surface, stroke: color, 'stroke-width': 2.5 }));
+    g.appendChild(el('text', { x: x + w / 2, y: y + h / 2 - 1, 'text-anchor': 'middle', class: 'cv-node-label' }, label));
+    if (sub) { g.appendChild(el('text', { x: x + w / 2, y: y + h / 2 + 12, 'text-anchor': 'middle', class: 'cv-sub-label' }, sub)); }
+    return g;
+  }
+  function rootDevice(x, y, w, h, label, sub, isRoot) {
+    var g = el('g', {});
+    g.appendChild(el('rect', { x: x, y: y, width: w, height: h, rx: 4, fill: isRoot ? 'rgba(22,163,74,.12)' : C.bg, stroke: isRoot ? C.green : C.border, 'stroke-width': isRoot ? 2.5 : 1.5 }));
+    g.appendChild(el('text', { x: x + w / 2, y: y + h / 2 - 1, 'text-anchor': 'middle', class: 'cv-node-label' }, label));
+    g.appendChild(el('text', { x: x + w / 2, y: y + h / 2 + 12, 'text-anchor': 'middle', class: 'cv-sub-label' }, sub));
+    if (isRoot) { g.appendChild(el('text', { x: x + w / 2, y: y - 5, 'text-anchor': 'middle', 'font-family': 'Space Grotesk', 'font-size': '8px', 'font-weight': 700, fill: C.green }, 'ROOT')); }
+    return g;
+  }
+
+  // ── DOM refs ───────────────────────────────────────────────────
+  var picker = document.getElementById('cvPicker');
+  var stage = document.getElementById('cvStage');
+  var refs = {
+    title: document.getElementById('cvStageTitle'),
+    diagram: document.getElementById('cvDiagram'),
+    cmdLine: document.getElementById('cvCmdLine'),
+    caption: document.getElementById('cvCaption'),
+    cmdList: document.getElementById('cvCmdList'),
+    extra: document.getElementById('cvExtra'),
+    stepNum: document.getElementById('cvStepNum'),
+    stepTotal: document.getElementById('cvStepTotal'),
+    prev: document.getElementById('cvPrev'),
+    next: document.getElementById('cvNext'),
+    reset: document.getElementById('cvReset'),
+    banner: document.getElementById('cvDoneBanner'),
+    progress: document.getElementById('cvProgress')
+  };
+
+  var current = null;  // active scenario
+  var step = 0;        // 0..commands.length
+
+  // ── build picker ───────────────────────────────────────────────
+  function buildPicker() {
+    picker.innerHTML = '';
+    SCEN.forEach(function (sc, i) {
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'cv-card' + (isDone(sc.id) ? ' completed' : '');
+      card.setAttribute('role', 'listitem');
+      card.setAttribute('aria-label', 'Scenario ' + (i + 1) + ': ' + sc.title);
+      card.innerHTML =
+        '<span class="cv-done" aria-hidden="true">&#10003;</span>' +
+        '<div class="cv-num">SCENARIO ' + (i + 1) + '</div>' +
+        '<h3>' + sc.title + '</h3>' +
+        '<p>' + sc.blurb + '</p>';
+      card.addEventListener('click', function () { openScenario(i); });
+      picker.appendChild(card);
+    });
+    updateProgress();
+  }
+
+  function updateProgress() {
+    var n = 0;
+    SCEN.forEach(function (sc) { if (isDone(sc.id)) { n++; } });
+    refs.progress.textContent = n + ' / ' + SCEN.length;
+  }
+
+  // ── open / render ──────────────────────────────────────────────
+  function openScenario(i) {
+    current = SCEN[i];
+    step = 0;
+    refs.title.textContent = (i + 1) + '. ' + current.title;
+    refs.stepTotal.textContent = current.commands.length;
+    stage.classList.add('live');
+    // build the command list once
+    refs.cmdList.innerHTML = '';
+    current.commands.forEach(function (cmd, idx) {
+      var li = document.createElement('li');
+      li.textContent = cmd;
+      li.dataset.idx = idx;
+      refs.cmdList.appendChild(li);
+    });
+    render();
+    stage.scrollIntoView({ behavior: prefersReduced() ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  function prefersReduced() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function render() {
+    var sc = current;
+    // diagram
+    refs.diagram.innerHTML = '';
+    sc.render(step, refs);
+    // command line (step 0 = nothing applied yet)
+    if (step === 0) {
+      refs.cmdLine.textContent = 'Ready. Press Next to apply the first command.';
+      refs.cmdLine.className = 'cv-cmd-line is-prompt';
+      refs.caption.textContent = 'Start state. Nothing applied yet.';
+    } else {
+      refs.cmdLine.textContent = sc.commands[step - 1];
+      refs.cmdLine.className = 'cv-cmd-line';
+      refs.caption.textContent = sc.captions[step - 1];
+    }
+    // highlight command list
+    Array.prototype.forEach.call(refs.cmdList.children, function (li, idx) {
+      li.className = '';
+      if (idx < step - 1) { li.className = 'past'; }
+      else if (idx === step - 1) { li.className = 'current'; }
+    });
+    // step counter
+    refs.stepNum.textContent = step;
+    refs.prev.disabled = (step === 0);
+    refs.next.disabled = (step === sc.commands.length);
+    // extra panel (table / ladder)
+    renderExtra();
+    // completion
+    if (step === sc.commands.length) {
+      refs.banner.classList.add('show');
+      if (!isDone(sc.id)) { markDone(sc.id); markCardDone(sc.id); updateProgress(); }
+    } else {
+      refs.banner.classList.remove('show');
+    }
+  }
+
+  function markCardDone(id) {
+    var idx = SCEN.findIndex(function (s) { return s.id === id; });
+    if (idx >= 0 && picker.children[idx]) { picker.children[idx].classList.add('completed'); }
+  }
+
+  function renderExtra() {
+    var sc = current;
+    refs.extra.innerHTML = '';
+    // OSPF ladder
+    if (sc.ladder) {
+      var card = document.createElement('div');
+      card.className = 'cv-table-card';
+      card.innerHTML = '<h4>Neighbor state</h4>';
+      var ol = document.createElement('ul');
+      ol.className = 'cv-ladder';
+      var reached = sc.ladderAt(step);
+      sc.ladder.forEach(function (st, idx) {
+        var li = document.createElement('li');
+        li.textContent = st;
+        if (idx < reached) { li.className = 'reached'; }
+        if (idx === reached && reached < sc.ladder.length - 1) { li.className = 'current'; }
+        if (idx === reached && idx === sc.ladder.length - 1) { li.className = 'full'; }
+        ol.appendChild(li);
+      });
+      card.appendChild(ol);
+      refs.extra.appendChild(card);
+    }
+    // table
+    if (sc.table) {
+      var t = sc.table;
+      var rows = [];
+      (t.baseRows || []).forEach(function (r) { rows.push({ cells: r, isNew: false }); });
+      // stepRows: one new row per applied command (clamped)
+      if (t.stepRows) {
+        var n = Math.min(step, t.stepRows.length);
+        for (var i = 0; i < n; i++) { rows.push({ cells: t.stepRows[i], isNew: (i === step - 1) }); }
+      }
+      // fullRows appear only at last step
+      if (t.fullRows && step === sc.commands.length) {
+        t.fullRows.forEach(function (r) { rows.push({ cells: r, isNew: true }); });
+      }
+      var card2 = document.createElement('div');
+      card2.className = 'cv-table-card';
+      var html = '<h4>' + t.title + '</h4>';
+      if (rows.length === 0) {
+        html += '<div class="cv-empty-tbl">Table empty. No translations yet.</div>';
+      } else {
+        html += '<table class="cv-tbl"><thead><tr>';
+        t.cols.forEach(function (c) { html += '<th>' + c + '</th>'; });
+        html += '</tr></thead><tbody>';
+        rows.forEach(function (r) {
+          html += '<tr class="' + (r.isNew ? 'new-row' : '') + '">';
+          r.cells.forEach(function (cell) { html += '<td>' + cell + '</td>'; });
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+      }
+      card2.innerHTML = html;
+      refs.extra.appendChild(card2);
+    }
+  }
+
+  // ── controls ───────────────────────────────────────────────────
+  refs.next.addEventListener('click', function () {
+    if (current && step < current.commands.length) { step++; render(); }
+  });
+  refs.prev.addEventListener('click', function () {
+    if (current && step > 0) { step--; render(); }
+  });
+  refs.reset.addEventListener('click', function () {
+    if (current) { step = 0; render(); }
+  });
+  document.getElementById('cvBackBtn').addEventListener('click', function () {
+    stage.classList.remove('live');
+    current = null;
+    picker.scrollIntoView({ behavior: prefersReduced() ? 'auto' : 'smooth', block: 'start' });
+  });
+
+  // keyboard: arrows step when a scenario is live
+  document.addEventListener('keydown', function (e) {
+    if (!current || !stage.classList.contains('live')) { return; }
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') { return; }
+    if (e.key === 'ArrowRight') { if (step < current.commands.length) { step++; render(); e.preventDefault(); } }
+    else if (e.key === 'ArrowLeft') { if (step > 0) { step--; render(); e.preventDefault(); } }
+  });
+
+  buildPicker();
+});
+</script>
+</body>
+</html>
