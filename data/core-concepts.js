@@ -1,11 +1,10 @@
 /**
  * core-concepts.js - "Active filtering" layer for the book reader.
- * One entry per CCNA 200-301 objective topic: the SIGNAL only.
- * core, why, memorize[], understand[], trap, visuals[{id,anim,caption}].
+ * One entry per CCNA 200-301 objective topic: core, why, memorize[], understand[],
+ * trap, visuals[{id,anim,caption}], and (config topics) config[{label,cmds[]}] + verify[].
+ * Configuration is rendered TOP PRIORITY in the reading view.
  * Source of truth: official CCNA 200-301 v1.1 objective sheet.
- * Generated + verified by the ccna-core-concept-fanout agent crew
- * (generator -> overseer/verifier, one pair per topic).
- * Presets: cascade (stagger-reveal), flow (marching dashes), pulse (pulse bold labels).
+ * Generated + verified by agent crews (generator/finder -> overseer/verifier).
  */
 window.coreConcepts = {
   "1.1": {
@@ -189,6 +188,61 @@ window.coreConcepts = {
         "anim": "cascade",
         "caption": "Builds the VLSM allocation step by step, reinforcing the largest-first sizing that avoids the wasted-address trap."
       }
+    ],
+    "config": [
+      {
+        "label": "Configure IPv4 address on a router interface",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "interface GigabitEthernet0/0",
+          "ip address 172.16.1.1 255.255.255.0",
+          "no shutdown",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure a second router interface (different subnet)",
+        "cmds": [
+          "configure terminal",
+          "interface GigabitEthernet0/1",
+          "ip address 172.16.2.1 255.255.255.0",
+          "no shutdown",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure the switch management IP (SVI) and default gateway",
+        "cmds": [
+          "configure terminal",
+          "interface vlan 1",
+          "ip address 172.16.1.2 255.255.255.0",
+          "no shutdown",
+          "exit",
+          "ip default-gateway 172.16.1.1",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure a router-based DHCP pool to hand out addresses and the default gateway for the subnet",
+        "cmds": [
+          "configure terminal",
+          "ip dhcp excluded-address 172.16.1.1 172.16.1.10",
+          "ip dhcp pool LAN1",
+          "network 172.16.1.0 255.255.255.0",
+          "default-router 172.16.1.1",
+          "exit",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show ip interface brief",
+      "show interfaces GigabitEthernet0/0",
+      "show ip interface GigabitEthernet0/0",
+      "show running-config interface GigabitEthernet0/0",
+      "show ip route",
+      "show ip route connected"
     ]
   },
   "1.7": {
@@ -246,6 +300,56 @@ window.coreConcepts = {
         "anim": "cascade pulse",
         "caption": "Cascade-builds the SLAAC/NDP exchange and pulses the FE80 link-local and EUI-64 labels, reinforcing how a host auto-derives its interface ID and address that the exam asks you to identify."
       }
+    ],
+    "config": [
+      {
+        "label": "Enable IPv6 routing globally",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ipv6 unicast-routing",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure full (static) global unicast address on an interface",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet0/0",
+          "ipv6 address 2001:db8:1111:1::1/64",
+          "no shutdown",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure global unicast using EUI-64 (host bits from interface MAC)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet0/1",
+          "ipv6 address 2001:db8:1111:2::/64 eui-64",
+          "no shutdown",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Add an explicit link-local address (optional override of auto-derived)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet0/0",
+          "ipv6 address fe80::1 link-local",
+          "exit",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show ipv6 interface brief",
+      "show ipv6 interface gigabitethernet0/0",
+      "show ipv6 route",
+      "show ipv6 route connected",
+      "show running-config interface gigabitethernet0/0"
     ]
   },
   "1.9": {
@@ -400,6 +504,67 @@ window.coreConcepts = {
         "anim": "cascade pulse",
         "caption": "Reveal each 802.1Q subinterface in turn and pulse the gateway labels to reinforce that inter-VLAN traffic must hit a Layer 3 hop, the core verify-connectivity point of 2.1."
       }
+    ],
+    "config": [
+      {
+        "label": "Create VLANs and name them (data + voice)",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "vlan 10",
+          "name DATA",
+          "exit",
+          "vlan 110",
+          "name VOICE",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure access port with data + voice VLAN (do this on every switch the VLANs span)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet 0/1",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "switchport voice vlan 110",
+          "spanning-tree portfast",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure 802.1Q trunk so VLANs span multiple switches (switch-to-switch link)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet 0/24",
+          "switchport trunk encapsulation dot1q",
+          "switchport mode trunk",
+          "switchport trunk allowed vlan 1,10,110",
+          "exit"
+        ]
+      },
+      {
+        "label": "Enable InterVLAN routing with SVIs on a Layer 3 switch",
+        "cmds": [
+          "configure terminal",
+          "ip routing",
+          "interface vlan 10",
+          "ip address 10.1.10.1 255.255.255.0",
+          "no shutdown",
+          "exit",
+          "interface vlan 110",
+          "ip address 10.1.110.1 255.255.255.0",
+          "no shutdown",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show vlan brief",
+      "show interfaces gigabitethernet 0/1 switchport",
+      "show interfaces trunk",
+      "show interfaces status",
+      "show ip route connected",
+      "show ip interface brief"
     ]
   },
   "2.2": {
@@ -421,7 +586,55 @@ window.coreConcepts = {
       "If the allowed VLAN list excludes a VLAN, that VLAN's traffic is silently dropped across the trunk even though the link is up."
     ],
     "trap": "A native VLAN mismatch between the two ends of a trunk does NOT bring the link down; both ends stay up/up, but traffic from the two native VLANs gets bridged into each other (a security/VLAN-hopping risk), and CDP logs a mismatch warning rather than disabling the port.",
-    "visuals": []
+    "visuals": [],
+    "config": [
+      {
+        "label": "Statically configure a 802.1Q trunk port",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "interface gigabitethernet 0/1",
+          "switchport trunk encapsulation dot1q",
+          "switchport mode trunk",
+          "exit"
+        ]
+      },
+      {
+        "label": "Set the native VLAN on the trunk (match both ends)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet 0/1",
+          "switchport trunk native vlan 99",
+          "exit"
+        ]
+      },
+      {
+        "label": "Limit which VLANs the trunk allows",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet 0/1",
+          "switchport trunk allowed vlan 1,10,20,99",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure dynamic trunking with DTP (alternative to static)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet 0/2",
+          "switchport mode dynamic desirable",
+          "exit",
+          "end"
+        ]
+      }
+    ],
+    "verify": [
+      "show interfaces trunk",
+      "show interfaces gigabitethernet 0/1 switchport",
+      "show vlan brief",
+      "show dtp interface gigabitethernet 0/2",
+      "show interfaces gigabitethernet 0/1 trunk"
+    ]
   },
   "2.3": {
     "core": "CDP is Cisco's proprietary Layer 2 neighbor-discovery protocol while LLDP (IEEE 802.1AB) is the open-standard equivalent, both letting directly-connected devices learn each other's identity over the data link.",
@@ -448,6 +661,69 @@ window.coreConcepts = {
         "anim": "cascade pulse",
         "caption": "Cascade-reveals each neighbor entry then pulses the device-ID and port labels, mirroring how 'show cdp/lldp neighbors' exposes who is connected to which local interface (the exact output the exam asks you to read)."
       }
+    ],
+    "config": [
+      {
+        "label": "Enable/disable CDP globally and per-interface",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "cdp run",
+          "interface gigabitethernet0/1",
+          "cdp enable",
+          "exit",
+          "interface gigabitethernet0/2",
+          "no cdp enable",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Tune CDP timers",
+        "cmds": [
+          "configure terminal",
+          "cdp timer 60",
+          "cdp holdtime 180",
+          "exit"
+        ]
+      },
+      {
+        "label": "Enable LLDP globally and set per-interface direction",
+        "cmds": [
+          "configure terminal",
+          "lldp run",
+          "interface gigabitethernet0/1",
+          "lldp transmit",
+          "lldp receive",
+          "exit",
+          "interface gigabitethernet0/2",
+          "no lldp transmit",
+          "no lldp receive",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Tune LLDP timers",
+        "cmds": [
+          "configure terminal",
+          "lldp timer 30",
+          "lldp holdtime 120",
+          "lldp reinit 3",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show cdp",
+      "show cdp neighbors",
+      "show cdp neighbors detail",
+      "show cdp interface",
+      "show cdp entry *",
+      "show lldp",
+      "show lldp neighbors",
+      "show lldp neighbors detail",
+      "show lldp interface"
     ]
   },
   "2.4": {
@@ -475,6 +751,42 @@ window.coreConcepts = {
         "anim": "cascade flow pulse",
         "caption": "Cascade-reveal the parallel physical links bundling into one logical port, flow the dashed traffic paths to show per-flow load balancing, and pulse the LACP/802.3ad labels: the exam tests that the bundle looks like a single STP interface while aggregating bandwidth across members."
       }
+    ],
+    "config": [
+      {
+        "label": "Configure a Layer 2 LACP EtherChannel (PortChannel as trunk)",
+        "cmds": [
+          "configure terminal",
+          "interface range gigabitethernet 0/1 - 2",
+          "channel-group 1 mode active",
+          "exit",
+          "interface port-channel 1",
+          "switchport mode trunk",
+          "exit"
+        ]
+      },
+      {
+        "label": "Configure a Layer 3 (routed) LACP EtherChannel",
+        "cmds": [
+          "configure terminal",
+          "interface range gigabitethernet 0/1 - 2",
+          "no switchport",
+          "channel-group 2 mode active",
+          "exit",
+          "interface port-channel 2",
+          "no switchport",
+          "ip address 10.1.1.1 255.255.255.0",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show etherchannel summary",
+      "show etherchannel 1 port-channel",
+      "show interfaces port-channel 1",
+      "show etherchannel summary",
+      "show interfaces port-channel 2",
+      "show ip interface brief"
     ]
   },
   "2.5": {
@@ -672,6 +984,58 @@ window.coreConcepts = {
         "anim": "cascade flow",
         "caption": "Cascade reveals the primary static route then the floating backup with its higher AD, and flow animates the dashed next-hop paths so you see traffic shift to the backup only after the primary link drops, the exact behavior tested on the exam."
       }
+    ],
+    "config": [
+      {
+        "label": "IPv4 network route (static route to a remote subnet)",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ip route 172.16.3.0 255.255.255.0 172.16.2.2",
+          "exit"
+        ]
+      },
+      {
+        "label": "IPv4 default route + host route",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ip route 0.0.0.0 0.0.0.0 192.168.1.1",
+          "ip route 10.1.1.10 255.255.255.255 172.16.2.2",
+          "exit"
+        ]
+      },
+      {
+        "label": "IPv4 floating static route (higher AD as backup)",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ip route 172.16.3.0 255.255.255.0 172.16.4.2 130",
+          "exit"
+        ]
+      },
+      {
+        "label": "IPv6 static, default, host, and floating routes",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ipv6 unicast-routing",
+          "ipv6 route 2001:DB8:1:3::/64 2001:DB8:1:2::2",
+          "ipv6 route ::/0 2001:DB8:1:2::2",
+          "ipv6 route 2001:DB8:1:3::A/128 2001:DB8:1:2::2",
+          "ipv6 route 2001:DB8:1:3::/64 2001:DB8:1:4::2 130",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show ip route",
+      "show ip route static",
+      "show ip route 172.16.3.0",
+      "show ipv6 route",
+      "show ipv6 route static",
+      "show running-config | include ip route",
+      "show ipv6 route 2001:DB8:1:3::"
     ]
   },
   "3.4": {
@@ -699,6 +1063,60 @@ window.coreConcepts = {
         "anim": "cascade pulse",
         "caption": "Cascade-revealing the router roles then pulsing the bold DR/BDR/DROTHER labels reinforces that DR/BDR election only happens on broadcast segments, the exam's favorite distinction from point-to-point links."
       }
+    ],
+    "config": [
+      {
+        "label": "Enable OSPFv2 process and advertise networks (network command method)",
+        "cmds": [
+          "configure terminal",
+          "router ospf 1",
+          "network 10.1.1.0 0.0.0.255 area 0",
+          "network 10.1.2.0 0.0.0.255 area 0",
+          "network 192.168.99.1 0.0.0.0 area 0",
+          "exit"
+        ]
+      },
+      {
+        "label": "Set an explicit OSPF router ID (highest priority, survives reload)",
+        "cmds": [
+          "configure terminal",
+          "router ospf 1",
+          "router-id 1.1.1.1",
+          "end",
+          "clear ip ospf process"
+        ]
+      },
+      {
+        "label": "Force point-to-point network type and set hello/dead timers on a serial link",
+        "cmds": [
+          "configure terminal",
+          "interface serial0/0/0",
+          "ip ospf network point-to-point",
+          "ip ospf hello-interval 10",
+          "ip ospf dead-interval 40",
+          "exit"
+        ]
+      },
+      {
+        "label": "Influence DR/BDR election and quiet a LAN interface (broadcast segment)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet0/0",
+          "ip ospf priority 255",
+          "exit",
+          "router ospf 1",
+          "passive-interface gigabitethernet0/1",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show ip ospf neighbor",
+      "show ip ospf interface brief",
+      "show ip ospf interface gigabitethernet0/0",
+      "show ip protocols",
+      "show ip ospf",
+      "show ip route ospf"
     ]
   },
   "3.5": {
@@ -753,6 +1171,70 @@ window.coreConcepts = {
         "anim": "cascade pulse",
         "caption": "Stagger-reveal the inside-local to inside-global rewrite while pulsing the bold address-type and port labels, drilling the four NAT terms and PAT port multiplexing the exam tests directly."
       }
+    ],
+    "config": [
+      {
+        "label": "Static NAT (one-to-one inside source mapping)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet0/0",
+          "ip address 10.1.1.1 255.255.255.0",
+          "ip nat inside",
+          "exit",
+          "interface gigabitethernet0/1",
+          "ip address 200.1.1.1 255.255.255.0",
+          "ip nat outside",
+          "exit",
+          "ip nat inside source static 10.1.1.10 200.1.1.10",
+          "ip nat inside source static 10.1.1.11 200.1.1.11",
+          "end"
+        ]
+      },
+      {
+        "label": "Dynamic NAT using a pool (many private to a pool of public)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet0/0",
+          "ip address 10.1.1.1 255.255.255.0",
+          "ip nat inside",
+          "exit",
+          "interface gigabitethernet0/1",
+          "ip address 200.1.1.1 255.255.255.0",
+          "ip nat outside",
+          "exit",
+          "ip nat pool POOL1 200.1.1.10 200.1.1.20 netmask 255.255.255.0",
+          "access-list 1 permit 10.1.1.0 0.0.0.255",
+          "ip nat inside source list 1 pool POOL1",
+          "end"
+        ]
+      },
+      {
+        "label": "PAT (overload) using a NAT pool",
+        "cmds": [
+          "configure terminal",
+          "ip nat pool POOL1 200.1.1.10 200.1.1.11 netmask 255.255.255.0",
+          "access-list 1 permit 10.1.1.0 0.0.0.255",
+          "ip nat inside source list 1 pool POOL1 overload",
+          "end"
+        ]
+      },
+      {
+        "label": "PAT (overload) using the outside interface address",
+        "cmds": [
+          "configure terminal",
+          "access-list 1 permit 10.1.1.0 0.0.0.255",
+          "ip nat inside source list 1 interface gigabitethernet0/1 overload",
+          "end"
+        ]
+      }
+    ],
+    "verify": [
+      "show ip nat translations",
+      "show ip nat translations verbose",
+      "show ip nat statistics",
+      "clear ip nat translation *",
+      "show running-config | include ip nat",
+      "show ip interface brief"
     ]
   },
   "4.2": {
@@ -779,6 +1261,51 @@ window.coreConcepts = {
         "anim": "cascade",
         "caption": "Cascade-reveals the NTP stratum hierarchy from reference clock down to client, reinforcing the exam-critical idea that lower stratum numbers sit closer to the authoritative time source."
       }
+    ],
+    "config": [
+      {
+        "label": "NTP client mode (point router at an NTP server)",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ntp server 192.168.1.1",
+          "end"
+        ]
+      },
+      {
+        "label": "Source NTP packets from a loopback (stable source address)",
+        "cmds": [
+          "configure terminal",
+          "interface loopback 0",
+          "ip address 10.1.1.1 255.255.255.255",
+          "exit",
+          "ntp source loopback 0",
+          "end"
+        ]
+      },
+      {
+        "label": "Make this router an NTP master (internal reference clock)",
+        "cmds": [
+          "configure terminal",
+          "ntp master 3",
+          "end"
+        ]
+      },
+      {
+        "label": "Set the local clock/time zone (so synced time is shown correctly)",
+        "cmds": [
+          "configure terminal",
+          "clock timezone EST -5 0",
+          "exit",
+          "clock set 14:30:00 9 June 2026"
+        ]
+      }
+    ],
+    "verify": [
+      "show ntp status",
+      "show ntp associations",
+      "show clock",
+      "show clock detail"
     ]
   },
   "4.3": {
@@ -886,7 +1413,39 @@ window.coreConcepts = {
       "A router interface set with ip address dhcp acts as a DHCP client and obtains its address dynamically, common on ISP-facing links."
     ],
     "trap": "ip helper-address goes on the router interface CLOSEST to the clients (the broadcast-receiving LAN side), NOT on the interface near the DHCP server, and it points to the server's IP, not the client subnet.",
-    "visuals": []
+    "visuals": [],
+    "config": [
+      {
+        "label": "Configure a router interface as a DHCP client",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "interface GigabitEthernet0/0/0",
+          "ip address dhcp",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "label": "Configure DHCP relay (IP helper-address) on the LAN-facing interface",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "interface GigabitEthernet0/1",
+          "ip address 10.1.1.1 255.255.255.0",
+          "ip helper-address 172.16.2.9",
+          "no shutdown",
+          "end"
+        ]
+      }
+    ],
+    "verify": [
+      "show ip interface brief",
+      "show interfaces GigabitEthernet0/0/0",
+      "show ip interface GigabitEthernet0/1",
+      "show running-config interface GigabitEthernet0/1",
+      "show dhcp lease"
+    ]
   },
   "4.7": {
     "core": "QoS per-hop behavior (PHB) is the set of tools each device applies to traffic on a hop-by-hop basis: classify it, mark it, queue it, manage/avoid congestion, then police or shape the rate.",
@@ -939,6 +1498,46 @@ window.coreConcepts = {
         "anim": "cascade",
         "caption": "Stagger-revealing the encrypted SSH (TCP 22) path beside the cleartext Telnet (TCP 23) path drives home the core exam point: SSH protects credentials in transit while Telnet exposes them."
       }
+    ],
+    "config": [
+      {
+        "label": "Set hostname and domain name (required to generate RSA keys)",
+        "cmds": [
+          "configure terminal",
+          "hostname R1",
+          "ip domain-name example.com"
+        ]
+      },
+      {
+        "label": "Generate RSA crypto keys for SSH",
+        "cmds": [
+          "crypto key generate rsa modulus 1024"
+        ]
+      },
+      {
+        "label": "Force SSHv2 and create a local user for login",
+        "cmds": [
+          "ip ssh version 2",
+          "username admin secret cisco123"
+        ]
+      },
+      {
+        "label": "Enable SSH on the VTY lines (local login, SSH only)",
+        "cmds": [
+          "line vty 0 15",
+          "login local",
+          "transport input ssh",
+          "exit",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show ip ssh",
+      "show ssh",
+      "show crypto key mypubkey rsa",
+      "show running-config | section vty",
+      "show users"
     ]
   },
   "4.9": {
@@ -1020,7 +1619,63 @@ window.coreConcepts = {
       "'login local' ties line access to the username database, which is the same local-user foundation that SSH and local AAA build on."
     ],
     "trap": "enable secret vs enable password: candidates assume 'enable password' is used, but when BOTH are configured the device ALWAYS uses enable secret (the stronger hash) and ignores enable password entirely.",
-    "visuals": []
+    "visuals": [],
+    "config": [
+      {
+        "label": "Console line password (simple) + enable secret",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "enable secret cisco123",
+          "line console 0",
+          "password conpass",
+          "login",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Telnet VTY line password (simple)",
+        "cmds": [
+          "configure terminal",
+          "line vty 0 15",
+          "password vtypass",
+          "login",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Local username/password authentication (login local) on console and VTY, restricting VTY to SSH (requires SSH crypto prerequisites separately)",
+        "cmds": [
+          "configure terminal",
+          "username wendell secret odom123",
+          "line console 0",
+          "login local",
+          "exit",
+          "line vty 0 15",
+          "login local",
+          "transport input ssh",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Encrypt all plaintext line passwords",
+        "cmds": [
+          "configure terminal",
+          "service password-encryption",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show running-config",
+      "show running-config | section line",
+      "show users",
+      "show running-config | include username",
+      "show running-config | include service password-encryption"
+    ]
   },
   "5.4": {
     "core": "Strong password policy means enforcing length and complexity, managing passwords over their lifecycle (expiration, history, lockout), and replacing or augmenting passwords with MFA, digital certificates, or biometrics.",
@@ -1099,6 +1754,77 @@ window.coreConcepts = {
         "anim": "cascade pulse",
         "caption": "Cascade builds the inverse-mask bit pattern step by step while pulse emphasizes the 0=match / 1=ignore labels the exam tests in subnet-range questions."
       }
+    ],
+    "config": [
+      {
+        "label": "Numbered standard ACL (filter by source IP) + apply near destination",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "access-list 10 remark Block host 192.168.1.50, permit rest of LAN",
+          "access-list 10 deny host 192.168.1.50",
+          "access-list 10 permit 192.168.1.0 0.0.0.255",
+          "interface GigabitEthernet0/1",
+          "ip access-group 10 out",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Named standard ACL (insertable entries via sequence numbers)",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ip access-list standard BLOCK-SALES",
+          "10 deny 10.1.1.0 0.0.0.255",
+          "20 permit any",
+          "exit",
+          "interface GigabitEthernet0/2",
+          "ip access-group BLOCK-SALES out",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Numbered extended ACL (5-tuple match) + apply inbound near source",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "access-list 100 remark Block HTTPS from LAN to server, allow else",
+          "access-list 100 deny tcp 192.168.1.0 0.0.0.255 host 10.10.10.10 eq 443",
+          "access-list 100 deny icmp host 192.168.1.50 10.20.20.0 0.0.0.255",
+          "access-list 100 permit ip any any",
+          "interface GigabitEthernet0/0",
+          "ip access-group 100 in",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Named extended ACL (protocol/port match, insertable)",
+        "cmds": [
+          "enable",
+          "configure terminal",
+          "ip access-list extended WEB-FILTER",
+          "10 permit tcp 192.168.10.0 0.0.0.255 host 10.10.10.10 eq 80",
+          "20 permit tcp 192.168.10.0 0.0.0.255 host 10.10.10.10 eq 443",
+          "30 deny ip any host 10.10.10.10",
+          "40 permit ip any any",
+          "exit",
+          "interface GigabitEthernet0/0",
+          "ip access-group WEB-FILTER in",
+          "exit",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show access-lists",
+      "show access-lists 100",
+      "show ip access-lists BLOCK-SALES",
+      "show ip interface GigabitEthernet0/0",
+      "show running-config | include access-list",
+      "show running-config interface GigabitEthernet0/0"
     ]
   },
   "5.7": {
@@ -1131,6 +1857,76 @@ window.coreConcepts = {
         "anim": "cascade",
         "caption": "Reveal the trusted uplink versus untrusted access ports in sequence, reinforcing that DHCP snooping must be enabled before DAI works."
       }
+    ],
+    "config": [
+      {
+        "label": "Port security (sticky MAC, max 2, violation restrict)",
+        "cmds": [
+          "configure terminal",
+          "interface gigabitethernet 0/1",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "switchport port-security",
+          "switchport port-security maximum 2",
+          "switchport port-security mac-address sticky",
+          "switchport port-security violation restrict",
+          "switchport port-security aging time 60",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "DHCP snooping (trust uplink, untrust access, limit rate)",
+        "cmds": [
+          "configure terminal",
+          "ip dhcp snooping",
+          "ip dhcp snooping vlan 10",
+          "no ip dhcp snooping information option",
+          "interface gigabitethernet 0/24",
+          "ip dhcp snooping trust",
+          "exit",
+          "interface gigabitethernet 0/1",
+          "ip dhcp snooping limit rate 5",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "Dynamic ARP Inspection (DAI) on VLAN, trust uplink",
+        "cmds": [
+          "configure terminal",
+          "ip arp inspection vlan 10",
+          "interface gigabitethernet 0/24",
+          "ip arp inspection trust",
+          "exit",
+          "interface gigabitethernet 0/1",
+          "ip arp inspection limit rate 15",
+          "exit",
+          "exit"
+        ]
+      },
+      {
+        "label": "DAI for hosts with static IPs (ARP ACL)",
+        "cmds": [
+          "configure terminal",
+          "arp access-list ARP-PERMIT-HOSTS",
+          "permit ip host 10.1.10.10 mac host 0200.0000.0a0a",
+          "exit",
+          "ip arp inspection filter ARP-PERMIT-HOSTS vlan 10",
+          "exit"
+        ]
+      }
+    ],
+    "verify": [
+      "show port-security",
+      "show port-security interface gigabitethernet 0/1",
+      "show port-security address",
+      "show ip dhcp snooping",
+      "show ip dhcp snooping binding",
+      "show ip arp inspection",
+      "show ip arp inspection interfaces",
+      "show ip arp inspection vlan 10",
+      "show arp access-list"
     ]
   },
   "5.8": {
