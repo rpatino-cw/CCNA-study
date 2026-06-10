@@ -147,7 +147,7 @@
   <div class="back-wrap"><a class="back-link" href="practice-hub.html">&larr; Back to Practice Hub</a></div>
 
   <header class="page-header">
-    <div class="kicker">META TRAINER · 20 PILLARS · HARDEST FIRST</div>
+    <div class="kicker">META TRAINER · ALL OBJECTIVES · HARDEST FIRST</div>
     <h1>Pillars Trainer</h1>
     <p class="subtitle">Every core subject, grouped P1 to P4 by priority. Routes you to your weakest pillar and proves mastery.</p>
   </header>
@@ -285,9 +285,14 @@
   var checks = load(KEY_CHECKS);
   var blocks = load(KEY_BLOCKS);
 
+  // Single-source the mastery denominator: count over the ACTIVE pillar set
+  // (zero-check pillars excluded) so the trainer never disagrees with the
+  // readiness strip in pillar-value. Defensive guard if the helper is absent.
+  function activeSet() { return window.activePillars ? window.activePillars() : PILLARS; }
+
   function masteredCount() {
     var c = 0;
-    PILLARS.forEach(function (p) { if (window.pillarMastered(p, checks)) c++; });
+    activeSet().forEach(function (p) { if (window.pillarMastered(p, checks)) c++; });
     return c;
   }
 
@@ -306,8 +311,11 @@
   function renderTracker() {
     var c = masteredCount();
     $('ptMastered').textContent = c;
-    var ptt = $('ptTotal'); if (ptt) ptt.textContent = PILLARS.length;
-    $('ptFill').style.width = (PILLARS.length ? (c / PILLARS.length * 100) : 0) + '%';
+    var ptt = $('ptTotal'); if (ptt) ptt.textContent = activeSet().length;
+    // Drive the bar from the shared readiness model so the trainer fill and
+    // the pillar-value readiness strip can never report two different numbers.
+    var ov = window.readiness ? window.readiness(checks).overall : 0;
+    $('ptFill').style.width = ov + '%';
     renderRecommend();
   }
 
@@ -316,7 +324,7 @@
     var w = topROIPillar();
     if (!w) {
       el.innerHTML =
-        '<strong>All ' + PILLARS.length + ' pillars mastered.</strong> Run a full mixed set and the 6-block engine to keep them sharp. You are exam-ready on the full map.' +
+        '<strong>All ' + activeSet().length + ' pillars mastered.</strong> Run a full mixed set and the 6-block engine to keep them sharp. You are exam-ready on the full map.' +
         '<br><a class="rec-pill" href="pillar-value.html">See full value ranking &rarr;</a>';
       return;
     }

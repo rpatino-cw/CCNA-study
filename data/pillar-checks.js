@@ -21,6 +21,12 @@
    Pillar number map (P1, build numbers 1-12):
      1 OSPF | 2 routing | 3 static | 4 NAT | 5 STP | 6 VLAN
      7 EtherChannel | 8 ACL | 9 L2sec | 10 access | 11 ipv6 | 12 subnetting
+
+   INTENTIONAL zero-check pillars (no authored drills, recognize-only):
+   P14, P15, P18, P20, P25, P31, P34-42, P45, P46. These are EXCLUDED from
+   the readiness denominator by design (Option A in pillars-data.js
+   _isZeroCheck/readiness) so the ceiling can reach 100%. Their absence here
+   is documented design, not an omission.
    ══════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -57,13 +63,13 @@
       ],
       config: {
         type: 'config',
-        stem: 'Enable OSPF process 1, advertise 10.0.0.0/24 in area 0, then show the neighbor table.',
+        stem: 'Enable OSPF process 1, advertise 10.0.0.0/24 in area 0, then verify the adjacency.',
         lines: [
           'router ospf 1',
           'network 10.0.0.0 0.0.0.255 area 0'
         ],
         show: 'show ip ospf neighbor',
-        hint: 'network statements use a WILDCARD mask (0.0.0.255), not a subnet mask.'
+        hint: 'these statements match interfaces with an inverse (wildcard) mask, not the subnet mask. Remember to tie the matched interfaces to the correct area.'
       },
       sequence: {
         type: 'sequence',
@@ -217,10 +223,10 @@
       ],
       config: {
         type: 'config',
-        stem: 'Add a default route pointing to next-hop 203.0.113.1, then display the routing table.',
+        stem: 'Add a default route pointing to next-hop 203.0.113.1, then verify it is installed.',
         lines: ['ip route 0.0.0.0 0.0.0.0 203.0.113.1'],
         show: 'show ip route',
-        hint: 'Static routes use a SUBNET mask. The default route is all-zeros network and mask.'
+        hint: 'a default route is the catch-all: its network and mask are written in the form that matches every destination, not a specific subnet. Point it at the next-hop toward the unknown destinations.'
       },
       sequence: {
         type: 'sequence',
@@ -305,7 +311,7 @@
           'ip nat inside'
         ],
         show: 'show ip nat translations',
-        hint: 'You must tag both inside (ip nat inside) and outside (ip nat outside) interfaces for NAT to work.'
+        hint: 'NAT needs each interface tagged with its role. Here you are marking the LAN-facing interface as the inside of the translation boundary.'
       },
       sequence: {
         type: 'sequence',
@@ -392,7 +398,7 @@
         stem: 'Make this switch the root for VLAN 10 by setting priority 4096, then verify STP for VLAN 10.',
         lines: ['spanning-tree vlan 10 priority 4096'],
         show: 'show spanning-tree vlan 10',
-        hint: 'Bridge priority must be a multiple of 4096 (default 32768).'
+        hint: 'bridge priority is only valid in fixed increments, so the lower-than-default value you set must be one of those legal steps. Lowest priority wins the root election.'
       },
       sequence: {
         type: 'sequence',
@@ -477,7 +483,7 @@
           'switchport mode trunk'
         ],
         show: 'show interfaces trunk',
-        hint: 'switchport mode trunk forces trunking. On switches that support it, set encapsulation dot1q first.'
+        hint: 'force the port into the mode that carries multiple VLANs rather than leaving it negotiable. On platforms that support more than one tagging type, set the encapsulation before forcing the mode.'
       },
       sequence: {
         type: 'sequence',
@@ -568,7 +574,7 @@
           'channel-group 1 mode active'
         ],
         show: 'show etherchannel summary',
-        hint: 'mode active = LACP. PAgP uses desirable/auto; static (no protocol) uses mode on.'
+        hint: 'pick the bundling mode that matches the open-standard negotiation protocol, not the Cisco-proprietary one and not the unconditional static option. Both ends must use compatible modes to form the channel.'
       },
       sequence: {
         type: 'sequence',
@@ -660,7 +666,7 @@
           'access-class 10 in'
         ],
         show: 'show access-lists',
-        hint: 'VTY lines use access-class (not ip access-group). There is an implicit deny any at the end.'
+        hint: 'remote-login lines are filtered with a different apply keyword than the one used on data interfaces. Remember the invisible deny at the end means you only need to permit the host you want.'
       },
       sequence: {
         type: 'sequence',
@@ -753,7 +759,7 @@
           'switchport port-security violation restrict'
         ],
         show: 'show port-security interface g0/3',
-        hint: 'Port security only works on access ports. sticky learns and saves MACs dynamically.'
+        hint: 'this feature only applies once the port carries a single VLAN, not on trunks. Choose the learning option that lets the port pick up allowed addresses on its own and keep them, cap how many it will hold, and decide what action it takes when that cap is exceeded.'
       },
       sequence: {
         type: 'sequence',
@@ -850,7 +856,7 @@
           'login local'
         ],
         show: 'show ip ssh',
-        hint: 'Order: hostname -> ip domain-name -> crypto key generate rsa -> username secret -> ip ssh version 2 -> line vty -> transport input ssh -> login local.'
+        hint: 'order matters: identity and domain come before the key (the key name is built from them), then the local user, then force the secure version, and finally lock the remote lines to that protocol and to local authentication.'
       },
       sequence: {
         type: 'sequence',
@@ -930,14 +936,14 @@
       ],
       config: {
         type: 'config',
-        stem: 'Enable IPv6 routing globally and assign 2001:db8:1::1/64 to g0/0, then verify the IPv6 interface brief.',
+        stem: 'Enable IPv6 routing globally and assign 2001:db8:1::1/64 to g0/0, then verify the interface addressing.',
         lines: [
           'ipv6 unicast-routing',
           'interface g0/0',
           'ipv6 address 2001:db8:1::1/64'
         ],
         show: 'show ipv6 interface brief',
-        hint: 'ipv6 unicast-routing turns on IPv6 forwarding. Use ipv6 address ... eui-64 to autobuild the host portion.'
+        hint: 'IPv6 forwarding is off by default, so enable it globally before addressing. You can type the full address, or let the device autobuild the host portion from the MAC if you prefer.'
       },
       sequence: {
         type: 'sequence',
@@ -1090,7 +1096,7 @@
           'ip ssh version 2'
         ],
         show: 'show ip ssh',
-        hint: 'Order matters: hostname -> ip domain-name -> crypto key generate rsa -> ip ssh version 2.'
+        hint: 'order matters: the domain name must exist before you generate the key (the key name depends on it), and only then can you force the secure version.'
       },
       scope: {
         type: 'mcq',
@@ -1121,6 +1127,24 @@
         choices: ['ip helper-address on the client interface', 'A static route', 'A trunk port', 'PAT overload'],
         answer: 0,
         explain: 'ip helper-address on the router interface relays DHCP broadcasts as unicast to the server across subnets.'
+      }
+    },
+
+    // ── Pillar 19: FHRP HSRP/VRRP/GLBP ────────────────────────────
+    19: {
+      concept: {
+        type: 'mcq',
+        stem: 'Which FHRP is an open standard, and what multicast address does its master use?',
+        choices: ['HSRP, 224.0.0.2', 'VRRP, 224.0.0.18', 'GLBP, 224.0.0.102', 'HSRP, 224.0.0.18'],
+        answer: 1,
+        explain: 'VRRP is the open standard; its master uses 224.0.0.18. HSRP (Cisco) uses 224.0.0.2 for v1 and 224.0.0.102 for v2. GLBP is also Cisco. All provide a virtual IP + virtual MAC redundant gateway.'
+      },
+      scope: {
+        type: 'mcq',
+        stem: 'Which FHRP is Cisco-proprietary and load-balances across MULTIPLE active gateways simultaneously?',
+        choices: ['VRRP', 'HSRP', 'GLBP', 'All FHRPs load-balance equally'],
+        answer: 2,
+        explain: 'GLBP (Cisco) load-balances across multiple active forwarders. HSRP (Cisco) and VRRP (open) use one active gateway with standby. Virtual IP + virtual MAC give the redundant default gateway.'
       }
     },
 
@@ -1157,6 +1181,24 @@
         choices: ['172.32.0.0/12', '192.169.0.0/16', '10.0.0.0/8', '169.254.0.0/16'],
         answer: 2,
         explain: 'Private: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16. 169.254/16 is APIPA, not RFC 1918.'
+      }
+    },
+
+    // ── Pillar 23: Switching concepts (MAC) ───────────────────────
+    23: {
+      concept: {
+        type: 'mcq',
+        stem: 'A switch receives a frame for a destination MAC that is NOT in its MAC address table. What does it do?',
+        choices: ['Drops the frame', 'Floods it out all ports except the one it arrived on', 'Sends it to the default gateway', 'Buffers it until the MAC is learned'],
+        answer: 1,
+        explain: 'Unknown unicast = flood out all ports except the ingress port. The switch learns source MACs and floods unknown destinations.'
+      },
+      scope: {
+        type: 'mcq',
+        stem: 'What is the default MAC address table aging time on a Cisco switch?',
+        choices: ['30 seconds', '120 seconds', '300 seconds', '600 seconds'],
+        answer: 2,
+        explain: 'Default MAC aging is 300 seconds (5 minutes). Verify entries with show mac address-table.'
       }
     },
 
@@ -1211,6 +1253,24 @@
         choices: ['ntp master', 'ntp server <ip>', 'clock set', 'ntp peer-group'],
         answer: 1,
         explain: 'ntp server <ip> makes the device a client of that source. ntp master makes the device itself the source.'
+      }
+    },
+
+    // ── Pillar 28: DHCP & DNS roles ───────────────────────────────
+    28: {
+      concept: {
+        type: 'mcq',
+        stem: 'What is the correct order of the DHCP lease process?',
+        choices: ['Offer, Discover, Request, Ack', 'Discover, Offer, Request, Ack', 'Request, Discover, Offer, Ack', 'Discover, Request, Offer, Ack'],
+        answer: 1,
+        explain: 'DORA: Discover (client broadcast), Offer (server), Request (client), Ack (server). DHCP uses UDP ports 67 (server) and 68 (client).'
+      },
+      scope: {
+        type: 'mcq',
+        stem: 'Which port pair and protocol does DHCP use, and what port does DNS use?',
+        choices: ['DHCP UDP 67/68, DNS port 53', 'DHCP TCP 67/68, DNS port 80', 'DHCP UDP 53, DNS UDP 67', 'DHCP UDP 69, DNS TCP 22'],
+        answer: 0,
+        explain: 'DHCP uses UDP 67 (server) and 68 (client). DNS uses port 53 (both UDP and TCP). DNS resolves a name to an IP.'
       }
     },
 

@@ -14,7 +14,7 @@
   var TIER_FACTOR   = { P1: 1.0, P2: 0.70, P3: 0.45, P4: 0.25 };
 
   // Domain exam weights (Cisco 200-301 blueprint, percent).
-  var DOMAIN_WEIGHT = { 1: 20, 2: 20, 3: 25, 4: 20, 5: 15, 6: 10 };
+  var DOMAIN_WEIGHT = { 1: 20, 2: 20, 3: 25, 4: 10, 5: 15, 6: 10 };
 
   // ── Pillars (verbatim from pillars-trainer.html, augmented) ──
   var PILLARS_DATA = [
@@ -383,18 +383,63 @@
   // applicable dims for a pillar (the list it ships with).
   function _dimsOf(p) { return (p.dims && p.dims.length) ? p.dims : ['concept', 'scope']; }
 
+  // Backed dims = the pillar's declared dims that ALSO have a drill authored
+  // in window.PILLAR_CHECKS at call time. We intersect against PILLAR_CHECKS
+  // KEYS (authored dims), never against the passed-checks object, so a pillar
+  // cannot falsely reach gap 0 just because a dim was marked passed.
+  // Returns null when PILLAR_CHECKS is unavailable (so callers fall back to
+  // _dimsOf and current behavior).
+  function _backedDimsOf(p) {
+    var pc = (typeof window !== 'undefined') ? window.PILLAR_CHECKS : null;
+    if (!pc) { return null; }            // PILLAR_CHECKS not loaded -> caller falls back
+    var authored = pc[p.n];
+    if (!authored) { return []; }        // pillar has no entry at all -> zero-check (dead-end)
+    var declared = _dimsOf(p);
+    var out = [];
+    for (var i = 0; i < declared.length; i++) {
+      if (Object.prototype.hasOwnProperty.call(authored, declared[i])) { out.push(declared[i]); }
+    }
+    return out;
+  }
+
+  // Applicable dims for gap math: the declared dims that actually have a
+  // backing drill. If a pillar has SOME authored dims, only those count
+  // (so the 26 authored pillars can reach gap 0). If a pillar has ZERO
+  // authored dims, it is a dead-end with no drills to clear.
+  // Option A (council-recommended, documented): zero-check pillars are
+  // EXCLUDED from readiness and study-next so the readiness ceiling can
+  // reach 100%. _applicableDims returns an empty array for those; callers
+  // (readiness, studyNext, pillarROI) treat an empty applicable set as
+  // "exclude from the denominator / drop from the list".
+  function _applicableDims(p) {
+    var backed = _backedDimsOf(p);
+    if (backed === null) { return _dimsOf(p); }  // PILLAR_CHECKS not loaded: current behavior
+    return backed;                                // [] when zero-check -> excluded by callers
+  }
+
   // Gap 0..1 = 1 - (applicable dims passed / applicable dims count).
   // checks = { <n>: { dim:true, ... }, ... }. Only true counts as passed.
+  // Applicable dims are intersected with the authored drills in PILLAR_CHECKS.
   function pillarGap(p, checks) {
-    var dims = _dimsOf(p);
+    var dims = _applicableDims(p);
     var c = (checks && checks[p.n]) || {};
     var passed = 0;
     for (var i = 0; i < dims.length; i++) { if (c[dims[i]] === true) passed++; }
     return dims.length ? (1 - passed / dims.length) : 1;
   }
 
+  // True when a pillar has zero backing drills (a dead-end). Such pillars
+  // are excluded from readiness and study-next under option A.
+  function _isZeroCheck(p) {
+    var backed = _backedDimsOf(p);
+    return backed !== null && backed.length === 0;
+  }
+
   // ROI = ExamValue * Gap. What you gain by studying this next.
+  // Zero-check pillars have no clearable drills, so their ROI is 0 (they
+  // never surface in study-next).
   function pillarROI(p, checks) {
+    if (_isZeroCheck(p)) { return 0; }
     return Math.round(pillarValue(p) * pillarGap(p, checks) * 100) / 100;
   }
 
@@ -410,6 +455,10 @@
     var domV = {}, domVR = {};
     for (var i = 0; i < PILLARS_DATA.length; i++) {
       var p = PILLARS_DATA[i];
+      // Option A: zero-check pillars have no clearable drills, so they are
+      // excluded from the readiness denominator. Otherwise their gap would
+      // stay 1.0 forever and cap readiness below 100%.
+      if (_isZeroCheck(p)) { continue; }
       var v = pillarValue(p);
       var r = 1 - pillarGap(p, checks);
       sumV += v; sumVR += v * r;
@@ -431,7 +480,9 @@
   // Study-Next: highest ROI first, tie-break tier (P1 first) then pillar number.
   var _TIER_RANK = { P1: 0, P2: 1, P3: 2, P4: 3 };
   function studyNext(checks) {
-    return PILLARS_DATA.slice().sort(function (a, b) {
+    // Option A: drop zero-check pillars (no authored drills) so dead-ends
+    // like FHRP (n:19) never surface as something to study next.
+    return PILLARS_DATA.filter(function (p) { return !_isZeroCheck(p); }).sort(function (a, b) {
       var ra = pillarROI(a, checks), rb = pillarROI(b, checks);
       if (rb !== ra) return rb - ra;
       var ta = _TIER_RANK[a.tier], tb = _TIER_RANK[b.tier];
@@ -451,4 +502,6 @@
   window.pillarMastered = pillarMastered;
   window.readiness      = readiness;
   window.studyNext      = studyNext;
+  window.isZeroCheck   = _isZeroCheck;
+  window.activePillars = function () { return PILLARS_DATA.filter(function (p) { return !_isZeroCheck(p); }); };
 })();

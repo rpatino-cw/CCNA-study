@@ -200,6 +200,7 @@
       <button class="pv-reset" id="pvReset">Reset proof</button>
     </div>
     <div class="pv-read-domains" id="pvDomains"></div>
+    <p class="pv-read-note" style="margin:10px 0 0;font-size:13px;color:var(--text-muted);">Readiness covers the pillars with authored drills. Recognize-only topics (FHRP, QoS, SDN, wireless security, and others) are not scored here. Review them in the Pillars Trainer.</p>
   </section>
 
   <!-- ── 2. Study Next ─────────────────────────────────────────── -->
@@ -281,14 +282,12 @@
 
   function load(k, fb) {
     try {
-      if (window.Store && typeof Store.get === 'function') { var v = Store.get(k); if (v != null) return v; }
       var raw = localStorage.getItem(k);
       return raw ? JSON.parse(raw) : fb;
     } catch (e) { return fb; }
   }
   function save(k, v) {
     try {
-      if (window.Store && typeof Store.set === 'function') { Store.set(k, v); return; }
       localStorage.setItem(k, JSON.stringify(v));
     } catch (e) {}
   }
@@ -580,14 +579,28 @@
   // ── ENGINE: config (type CLI + show, lenient line-by-line) ────
   function normLine(s) {
     s = (s || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    // Space-separated abbreviations (detached forms): "gi 0/0", "no sh", "int gi".
     s = s.replace(/\bno sh\b/g, 'no shutdown')
          .replace(/\bint\b/g, 'interface')
          .replace(/\bgig\b/g, 'gigabitethernet')
          .replace(/\bgi\b/g, 'gigabitethernet')
+         .replace(/\bge\b/g, 'gigabitethernet')
          .replace(/\bfa\b/g, 'fastethernet')
          .replace(/\bte\b/g, 'tengigabitethernet')
          .replace(/\beth\b/g, 'ethernet')
          .replace(/\bsh\b/g, 'show');
+    // Attached-form interface tokens (digit glued on): "gi0/0", "g0/0", "fa0/1", "te0/1", "e0/1".
+    // Lookahead keeps the digit. Longest prefixes first so a later shorter rule
+    // cannot re-fire on an already-expanded token (e.g. "gigabitethernet0/0").
+    s = s.replace(/\bgig(?=\d)/g, 'gigabitethernet')
+         .replace(/\bgi(?=\d)/g, 'gigabitethernet')
+         .replace(/\bge(?=\d)/g, 'gigabitethernet')
+         .replace(/\bg(?=\d)/g, 'gigabitethernet')
+         .replace(/\bfa(?=\d)/g, 'fastethernet')
+         .replace(/\bf(?=\d)/g, 'fastethernet')
+         .replace(/\bte(?=\d)/g, 'tengigabitethernet')
+         .replace(/\beth(?=\d)/g, 'ethernet')
+         .replace(/\be(?=\d)/g, 'ethernet');
     return s;
   }
   function renderConfig(progressHtml, item) {
@@ -596,7 +609,7 @@
     var showCmd = item.show || '';
     body.innerHTML = progressHtml +
       '<div class="pv-q-stem">' + item.stem + '</div>' +
-      '<div class="pv-config-meta">Type the CLI lines' + (showCmd ? ', then the verification command <code>' + showCmd + '</code>' : '') + '. Interface abbreviations and extra spacing are accepted.</div>' +
+      '<div class="pv-config-meta">Type the CLI lines' + (showCmd ? ', then end with the command that verifies it' : '') + '. Interface abbreviations and extra spacing are accepted.</div>' +
       (item.hint ? '<div class="pv-config-meta">Hint: ' + item.hint + '</div>' : '') +
       '<textarea class="pv-config-ta" id="pvCfgTa" spellcheck="false" placeholder="one command per line"></textarea>' +
       '<div class="pv-config-check" id="pvCfgCheck"></div>' +
@@ -604,19 +617,29 @@
       '<div class="pv-drill-actions"><button id="pvCfgGrade">Grade</button>' +
       '<button class="primary" id="pvNext" style="display:none">Next dimension</button></div>';
 
-    var expected = need.concat(showCmd ? [showCmd] : []);
-
     $('pvCfgGrade').onclick = function () {
       var typed = ($('pvCfgTa').value || '').split('\n').map(normLine).filter(function (l) { return l; });
       var rowsHtml = '';
       var allOk = true;
-      expected.forEach(function (exp) {
+      // Required config lines: EXACT match only. A typed line that merely starts
+      // with the expected text (wrong trailing tokens, e.g. a bogus AD on a static
+      // route) must NOT pass. Exam-accurate: "ip route ... 250" != canonical AD 1.
+      need.forEach(function (exp) {
         var want = normLine(exp);
-        var hit = typed.some(function (t) { return t === want || t.indexOf(want) === 0; });
+        var hit = typed.some(function (t) { return t === want; });
         if (!hit) allOk = false;
         rowsHtml += '<div class="pv-config-line ' + (hit ? 'ok' : 'miss') + '">' +
           '<span class="tick">' + (hit ? '✓' : '✗') + '</span><code>' + exp + '</code></div>';
       });
+      // Optional show/verify command: lenient prefix match (a learner may append
+      // qualifiers, e.g. "show ip ospf neighbor detail" for "show ip ospf neighbor").
+      if (showCmd) {
+        var swant = normLine(showCmd);
+        var shit = typed.some(function (t) { return t === swant || t.indexOf(swant) === 0; });
+        if (!shit) allOk = false;
+        rowsHtml += '<div class="pv-config-line ' + (shit ? 'ok' : 'miss') + '">' +
+          '<span class="tick">' + (shit ? '✓' : '✗') + '</span><code>' + showCmd + '</code></div>';
+      }
       $('pvCfgCheck').innerHTML = rowsHtml;
       var fb = $('pvFb');
       fb.className = 'pv-feedback ' + (allOk ? 'ok' : 'err');
