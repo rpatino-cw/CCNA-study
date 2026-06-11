@@ -423,12 +423,24 @@
   // ══════════════════════════════════════════════════════════════
   var drill = { pillar: null, dims: [], idx: 0, answered: false };
 
-  function getItem(n, dim) {
+  function getItems(n, dim) {
     var p = CHECKS_DATA[n];
-    if (!p) return null;
+    if (!p) return [];
     var it = p[dim];
-    if (!it) return null;
-    return Array.isArray(it) ? it[0] : it;
+    if (!it) return [];
+    return Array.isArray(it) ? it : [it];
+  }
+  function advanceLabel() {
+    var items = getItems(drill.pillar.n, drill.dims[drill.idx]);
+    if (drill.itemIdx + 1 < items.length) return 'Next question';
+    return (drill.idx + 1 >= drill.dims.length) ? 'Finish' : 'Next dimension';
+  }
+  function advance() {
+    var items = getItems(drill.pillar.n, drill.dims[drill.idx]);
+    if (drill.itemIdx + 1 < items.length) { drill.itemIdx++; }
+    else { passCurrentDim(); drill.idx++; drill.itemIdx = 0; }
+    renderStep();
+    refreshBoards();
   }
 
   function openDrill(n) {
@@ -439,6 +451,7 @@
     drill.dims = all.filter(function (d) { return !passedDim(n, d); });
     if (!drill.dims.length) drill.dims = all; // already owned: allow re-run
     drill.idx = 0;
+    drill.itemIdx = 0;
     drill.answered = false;
 
     $('pvModalTitle').textContent = p.title;
@@ -493,22 +506,24 @@
     }
 
     var dim = drill.dims[drill.idx];
-    var item = getItem(p.n, dim);
+    var items = getItems(p.n, dim);
     renderDimChips();
 
     var progressHtml = '<div class="pv-q-progress">Dimension ' + (drill.idx + 1) + ' of ' + drill.dims.length +
-      ' / ' + CONFIG.DIM_LABEL[dim] + '</div>';
+      ' / ' + CONFIG.DIM_LABEL[dim] +
+      (items.length > 1 ? ', Question ' + (drill.itemIdx + 1) + ' of ' + items.length : '') + '</div>';
 
-    if (!item) {
+    if (!items.length) {
       body.innerHTML = progressHtml +
         '<div class="pv-soon"><span class="soon-tag">Drill coming soon</span><br>' +
         'The ' + CONFIG.DIM_LABEL[dim] + ' check for this pillar is not written yet. Skip it for now.</div>' +
         '<div class="pv-drill-actions"><button class="primary" id="pvNextSoon">' +
         (drill.idx + 1 >= drill.dims.length ? 'Finish' : 'Next dimension') + '</button></div>';
-      $('pvNextSoon').onclick = function () { drill.idx++; renderStep(); };
+      $('pvNextSoon').onclick = function () { drill.idx++; drill.itemIdx = 0; renderStep(); };
       return;
     }
 
+    var item = items[drill.itemIdx];
     var engine = item.type;
     if (engine === 'mcq' || engine === 'topology') renderMCQ(progressHtml, item);
     else if (engine === 'config') renderConfig(progressHtml, item);
@@ -517,7 +532,7 @@
       body.innerHTML = progressHtml + '<div class="pv-soon"><span class="soon-tag">Drill coming soon</span></div>' +
         '<div class="pv-drill-actions"><button class="primary" id="pvNextSoon">' +
         (drill.idx + 1 >= drill.dims.length ? 'Finish' : 'Next dimension') + '</button></div>';
-      $('pvNextSoon').onclick = function () { drill.idx++; renderStep(); };
+      $('pvNextSoon').onclick = function () { drill.idx++; drill.itemIdx = 0; renderStep(); };
     }
   }
 
@@ -530,14 +545,14 @@
 
   function advanceControls(passed) {
     return '<div class="pv-drill-actions">' +
-      (passed ? '' : '<button id="pvRetry">Try again</button>') +
-      '<button class="primary" id="pvDrillNext">' + (drill.idx + 1 >= drill.dims.length ? 'Finish' : 'Next dimension') + '</button>' +
+      (passed ? '<button class="primary" id="pvDrillNext">' + advanceLabel() + '</button>'
+              : '<button id="pvRetry">Try again</button>') +
       '</div>';
   }
 
   function wireAdvance() {
     var nx = $('pvDrillNext');
-    if (nx) nx.onclick = function () { drill.idx++; renderStep(); refreshBoards(); };
+    if (nx) nx.onclick = function () { advance(); };
     var rt = $('pvRetry');
     if (rt) rt.onclick = function () { renderStep(); };
   }
@@ -569,7 +584,6 @@
         var fb = $('pvFb');
         fb.className = 'pv-feedback ' + (correct ? 'ok' : 'err');
         fb.textContent = (correct ? 'Correct. ' : 'Not quite. ') + (item.explain || '');
-        if (correct) passCurrentDim();
         $('pvAdvance').innerHTML = advanceControls(correct);
         wireAdvance();
       };
@@ -645,12 +659,11 @@
       fb.className = 'pv-feedback ' + (allOk ? 'ok' : 'err');
       fb.textContent = allOk ? 'All lines present. Dimension proven.' : 'Some required lines are missing. Fix them and grade again.';
       if (allOk) {
-        passCurrentDim();
         $('pvCfgGrade').style.display = 'none';
         var nx = $('pvDrillNext');
         nx.style.display = '';
-        nx.textContent = drill.idx + 1 >= drill.dims.length ? 'Finish' : 'Next dimension';
-        nx.onclick = function () { drill.idx++; renderStep(); refreshBoards(); };
+        nx.textContent = advanceLabel();
+        nx.onclick = function () { advance(); };
         renderDimChips();
       }
     };
@@ -716,12 +729,11 @@
       fb.textContent = ok ? 'Correct order. Dimension proven.' : 'Order is off. Adjust and check again.';
       if (ok) {
         drill.answered = true;
-        passCurrentDim();
         $('pvSeqGrade').style.display = 'none';
         var nx = $('pvDrillNext');
         nx.style.display = '';
-        nx.textContent = drill.idx + 1 >= drill.dims.length ? 'Finish' : 'Next dimension';
-        nx.onclick = function () { drill.idx++; renderStep(); refreshBoards(); };
+        nx.textContent = advanceLabel();
+        nx.onclick = function () { advance(); };
         renderDimChips();
       }
     };
