@@ -435,17 +435,25 @@
     if (!it) return [];
     return Array.isArray(it) ? it : [it];
   }
+  function solvedCount(items) { var c = 0; for (var i = 0; i < items.length; i++) { if (drill.correct[i]) c++; } return c; }
+  function nextUnsolved(items, from) { for (var k = 1; k <= items.length; k++) { var i = (from + k) % items.length; if (!drill.correct[i]) return i; } return -1; }
   function advanceLabel() {
     var items = getItems(drill.pillar.n, drill.dims[drill.idx]);
-    if (drill.itemIdx + 1 < items.length) return 'Next question';
+    if (solvedCount(items) + 1 < items.length) return 'Next question';
     return (drill.idx + 1 >= drill.dims.length) ? 'Finish' : 'Next dimension';
   }
   function advance() {
     var items = getItems(drill.pillar.n, drill.dims[drill.idx]);
-    if (drill.itemIdx + 1 < items.length) { drill.itemIdx++; }
-    else { passCurrentDim(); drill.idx++; drill.itemIdx = 0; }
+    drill.correct[drill.itemIdx] = true;
+    if (solvedCount(items) >= items.length) { passCurrentDim(); drill.idx++; drill.itemIdx = 0; drill.correct = {}; }
+    else { var nx = nextUnsolved(items, drill.itemIdx); if (nx >= 0) drill.itemIdx = nx; }
     renderStep();
     refreshBoards();
+  }
+  function retryDifferent() {
+    var items = getItems(drill.pillar.n, drill.dims[drill.idx]);
+    if (items.length > 1) { var nx = nextUnsolved(items, drill.itemIdx); drill.itemIdx = (nx >= 0) ? nx : (drill.itemIdx + 1) % items.length; }
+    renderStep();
   }
 
   function tierWord(p) {
@@ -517,6 +525,7 @@
     if (!drill.dims.length) drill.dims = all; // already owned: allow re-run
     drill.idx = 0;
     drill.itemIdx = 0;
+    drill.correct = {};
     drill.answered = false;
 
     $('pvModalTitle').textContent = p.title;
@@ -569,7 +578,7 @@
 
     var progressHtml = '<div class="pv-q-progress">Dimension ' + (drill.idx + 1) + ' of ' + drill.dims.length +
       ' / ' + CONFIG.DIM_LABEL[dim] +
-      (items.length > 1 ? ', Question ' + (drill.itemIdx + 1) + ' of ' + items.length : '') + '</div>';
+      (items.length > 1 ? ', Question ' + (solvedCount(items) + 1) + ' of ' + items.length : '') + '</div>';
 
     if (!items.length) {
       body.innerHTML = progressHtml +
@@ -577,7 +586,7 @@
         'The ' + CONFIG.DIM_LABEL[dim] + ' check for this pillar is not written yet. Skip it for now.</div>' +
         '<div class="pv-drill-actions"><button class="primary" id="pvNextSoon">' +
         (drill.idx + 1 >= drill.dims.length ? 'Finish' : 'Next dimension') + '</button></div>';
-      $('pvNextSoon').onclick = function () { drill.idx++; drill.itemIdx = 0; renderStep(); };
+      $('pvNextSoon').onclick = function () { drill.idx++; drill.itemIdx = 0; drill.correct = {}; renderStep(); };
       return;
     }
 
@@ -590,7 +599,7 @@
       body.innerHTML = progressHtml + '<div class="pv-soon"><span class="soon-tag">Drill coming soon</span></div>' +
         '<div class="pv-drill-actions"><button class="primary" id="pvNextSoon">' +
         (drill.idx + 1 >= drill.dims.length ? 'Finish' : 'Next dimension') + '</button></div>';
-      $('pvNextSoon').onclick = function () { drill.idx++; drill.itemIdx = 0; renderStep(); };
+      $('pvNextSoon').onclick = function () { drill.idx++; drill.itemIdx = 0; drill.correct = {}; renderStep(); };
     }
   }
 
@@ -612,7 +621,7 @@
     var nx = $('pvDrillNext');
     if (nx) nx.onclick = function () { advance(); };
     var rt = $('pvRetry');
-    if (rt) rt.onclick = function () { renderStep(); };
+    if (rt) rt.onclick = retryDifferent;
   }
 
   // ── ENGINE: MCQ (concept / applied / scope) + topology (svg+mcq) ──
