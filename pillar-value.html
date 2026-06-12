@@ -51,10 +51,10 @@
   .pv-next-num { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-muted); }
   .pv-next-title { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--ink); }
   .pv-tier { font-family: var(--font-mono); font-size: .66rem; font-weight: 700; padding: 2px 7px; border-radius: 100px; letter-spacing: .04em; color: #fff; }
-  .pv-tier.p1 { background: var(--prof-weak); }
-  .pv-tier.p2 { background: var(--accent); }
-  .pv-tier.p3 { background: var(--prof-mid); }
-  .pv-tier.p4 { background: var(--ink-secondary); }
+  .pv-tier.p1 { background: #7C3AED; }
+  .pv-tier.p2 { background: #2563EB; }
+  .pv-tier.p3 { background: #0D9488; }
+  .pv-tier.p4 { background: #94A3B8; }
   .pv-ev { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-secondary); }
   .pv-ev b { color: var(--ink); }
   .pv-gapbar { height: 6px; background: var(--prof-strong-bg); border-radius: 3px; overflow: hidden; margin-top: 8px; }
@@ -207,7 +207,7 @@
   <section class="pv-section">
     <div class="pv-section-head">
       <h2>Study Next</h2>
-      <span class="sub">Sorted by ROI (ExamValue times gap). Prove a dimension to close the gap.</span>
+      <span class="sub">Ranked by ExamValue (fixed order, never moves). Prove dimensions to close the gap bar; proven pillars stay in place.</span>
     </div>
     <div id="pvNext"></div>
     <button class="pv-owned-toggle" id="pvOwnedToggle" aria-expanded="false" aria-controls="pvOwned">Owned (0) &#9656;</button>
@@ -335,43 +335,39 @@
 
   // ── 2. Study Next + Owned ─────────────────────────────────────
   function renderStudyNext() {
-    var sorted = window.studyNext(checks);
-    var active = sorted.filter(function (p) { return !window.pillarMastered(p, checks); });
-    var owned = sorted.filter(function (p) { return window.pillarMastered(p, checks); });
-
+    // STATIC rank: fixed by ExamValue (then pillar number). Proving a pillar never moves it.
+    var sorted = (window.PILLARS_DATA || []).slice().sort(function (a, b) {
+      var d = window.pillarValue(b) - window.pillarValue(a);
+      return d !== 0 ? d : a.n - b.n;
+    });
     var html = '';
-    active.forEach(function (p) {
+    sorted.forEach(function (p) {
       var ev = window.pillarValue(p);
       var gap = window.pillarGap(p, checks);
-      var roi = window.pillarROI(p, checks);
+      var mastered = window.pillarMastered(p, checks);
+      var g = gemini[p.n] || {};
       var weak = weakDims(p);
-      var weakHtml = weak.map(function (d) {
-        return '<span class="pv-weakdim">' + CONFIG.DIM_LABEL[d] + '</span>';
-      }).join('');
-      html += '<div class="pv-next-row">' +
-        '<div class="pv-next-roi"><span class="roi">' + roi.toFixed(1) + '</span><span class="roi-lbl">ROI</span></div>' +
+      var weakHtml = mastered
+        ? '<span class="pv-weakdim" style="background:var(--prof-strong-bg);color:var(--prof-strong);border-color:var(--prof-strong)">proven &#10003;</span>'
+        : weak.map(function (d) { return '<span class="pv-weakdim">' + CONFIG.DIM_LABEL[d] + '</span>'; }).join('');
+      var gbadge = g.ready === true ? ' <span class="pv-weakdim" style="background:var(--accent);color:#fff;border-color:var(--accent)">Gemini READY</span>' : '';
+      html += '<div class="pv-next-row"' + (mastered ? ' style="opacity:.65"' : '') + '>' +
+        '<div class="pv-next-roi"><span class="roi">' + ev.toFixed(1) + '</span><span class="roi-lbl">Value</span></div>' +
         '<div class="pv-next-main">' +
           '<div class="pv-next-titlerow">' +
             '<span class="pv-tier ' + tierClass(p.tier) + '">' + p.tier + '</span>' +
             '<span class="pv-next-title">' + p.title + '</span>' +
             '<span class="pv-next-num">#' + p.n + ' obj ' + p.obj + '</span>' +
-            '<span class="pv-ev">ExamValue <b>' + ev.toFixed(1) + '</b></span>' +
           '</div>' +
           '<div class="pv-gapbar"><span style="width:' + (gap * 100).toFixed(0) + '%"></span></div>' +
-          '<div class="pv-weakdims">' + weakHtml + '</div>' +
+          '<div class="pv-weakdims">' + weakHtml + gbadge + '</div>' +
         '</div>' +
-        '<button class="pv-proveit" data-pillar="' + p.n + '">Prove it</button>' +
+        '<button class="pv-proveit" data-pillar="' + p.n + '">' + (mastered ? 'Re-check' : 'Prove it') + '</button>' +
       '</div>';
     });
-    $('pvNext').innerHTML = html || '<p class="pv-soon">Every pillar is owned. Reset proof to drill again.</p>';
-
-    var ownedHtml = owned.map(function (p) {
-      return '<span class="pv-owned-chip"><b>#' + p.n + '</b> ' + p.title + ' &#10003;</span>';
-    }).join('');
-    $('pvOwned').innerHTML = ownedHtml;
-    var tog = $('pvOwnedToggle');
-    var open = tog.getAttribute('aria-expanded') === 'true';
-    tog.innerHTML = 'Owned (' + owned.length + ') ' + (open ? '&#9662;' : '&#9656;');
+    $('pvNext').innerHTML = html;
+    if ($('pvOwned')) $('pvOwned').innerHTML = '';
+    var tog = $('pvOwnedToggle'); if (tog) tog.style.display = 'none';
 
     Array.prototype.forEach.call(document.querySelectorAll('.pv-proveit'), function (btn) {
       btn.onclick = function () { openDrill(+btn.getAttribute('data-pillar')); };
