@@ -59,6 +59,16 @@
 .cv-cmd-line.is-prompt{color:var(--ink-muted);font-weight:400;font-style:italic}
 .cv-caption{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.55;margin-top:12px}
 
+/* goal banner / why context / guess gate */
+.cv-goal{font-family:var(--font-display);font-size:.8rem;font-weight:600;color:var(--ink);background:linear-gradient(135deg,rgba(217,119,6,.08),rgba(217,119,6,.02));border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:8px 12px;margin-bottom:12px;line-height:1.5}
+.cv-goal::before{content:'GOAL ';font-family:var(--font-mono);font-size:.6rem;font-weight:700;letter-spacing:.1em;color:var(--accent)}
+.cv-why{font-family:var(--font-body);font-size:.86rem;color:var(--ink-secondary);line-height:1.55;background:var(--bg-input);border-radius:var(--radius);padding:9px 11px;margin-top:10px;border-left:2px solid var(--prof-mid)}
+.cv-why::before{content:'WHY ';display:block;font-family:var(--font-mono);font-size:.58rem;font-weight:700;letter-spacing:.1em;color:var(--prof-strong);margin-bottom:3px}
+.cv-guess{display:none;font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.55;background:rgba(217,119,6,.08);border:1px dashed var(--accent);border-radius:var(--radius);padding:10px 12px;margin-top:10px}
+.cv-toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ink-secondary);cursor:pointer;user-select:none}
+.cv-toggle input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;margin:0}
+.cv-cmdlist li.pending{opacity:.9;font-style:italic;border-left:2px dashed var(--accent);color:var(--ink-secondary)}
+
 /* command list */
 .cv-cmdlist{list-style:none;margin:10px 0 0;padding:0;font-family:var(--font-mono);font-size:.82rem}
 .cv-cmdlist li{padding:5px 8px;border-radius:3px;color:var(--ink-muted);line-height:1.4;border-left:2px solid transparent;transition:background .2s,color .2s}
@@ -127,7 +137,7 @@ table.cv-tbl tr.new-row td{animation:rowIn .5s var(--ease-out) 1}
 
   <p class="intro">Pick a scenario, then use Next and Prev to step through the real CLI lines. The diagram, routing tables, and neighbor states update to show exactly what each command does. Every command matches the cheatsheet and Config Bootcamp.</p>
 
-  <div class="cv-progress-line">Scenarios completed: <strong id="cvProgress">0 / 7</strong></div>
+  <div class="cv-progress-line">Scenarios completed: <strong id="cvProgress">0 / 11</strong></div>
 
   <div class="cv-picker" id="cvPicker" role="list"></div>
 
@@ -140,8 +150,11 @@ table.cv-tbl tr.new-row td{animation:rowIn .5s var(--ease-out) 1}
       <div class="cv-diagram" id="cvDiagram"></div>
       <div class="cv-side">
         <div class="cv-cmd-card">
+          <div class="cv-goal" id="cvGoal"></div>
           <div class="cv-cmd-label">Current command</div>
           <div class="cv-cmd-line" id="cvCmdLine"></div>
+          <div class="cv-guess" id="cvGuess"></div>
+          <div class="cv-why" id="cvWhy"></div>
           <p class="cv-caption" id="cvCaption"></p>
           <ol class="cv-cmdlist" id="cvCmdList"></ol>
         </div>
@@ -152,6 +165,7 @@ table.cv-tbl tr.new-row td{animation:rowIn .5s var(--ease-out) 1}
       <button class="cv-btn" id="cvPrev" type="button" aria-label="Previous step">&larr; Prev</button>
       <button class="cv-btn primary" id="cvNext" type="button" aria-label="Next step">Next &rarr;</button>
       <button class="cv-btn ghost" id="cvReset" type="button" aria-label="Reset scenario to start">Reset</button>
+      <label class="cv-toggle" title="Hide the next result so you can predict it before revealing"><input type="checkbox" id="cvGuessToggle" checked> Guess mode</label>
       <div class="cv-step-count">Step <strong id="cvStepNum">0</strong> / <span id="cvStepTotal">0</span></div>
     </div>
     <div class="cv-done-banner" id="cvDoneBanner">Scenario complete. You stepped through every command.</div>
@@ -230,6 +244,21 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'vlan-trunk',
       title: 'VLAN + Trunk',
       blurb: 'Assign access ports, build an 802.1Q trunk, prune the allowed VLAN list.',
+      goal: 'Split one switch into separate broadcast domains and carry them safely over a single uplink.',
+      whys: [
+        'Each VLAN is its own broadcast domain. Segmenting limits broadcast noise and isolates traffic (a security baseline).',
+        'A second domain so two host groups cannot see each other\'s L2 traffic without routing.',
+        'Pick the access port before assigning it. Config is per interface.',
+        'Force access mode so the port never negotiates a trunk. DTP off blocks VLAN hopping.',
+        'Drop PC-A into VLAN 10. PC-A should reach only VLAN 10 hosts.',
+        'Move to the next host port.',
+        'PC-B isolated in VLAN 20. Separate subnet, separate domain.',
+        'Select the uplink that must carry both VLANs to R1.',
+        'Trunk tags frames with 802.1Q so multiple VLANs share one link.',
+        'Move native off VLAN 1. Defends against double tagging VLAN hop attacks.',
+        'Whitelist only the needed VLANs. Least privilege on the trunk.',
+        'Prune VLAN 20. Now only VLAN 10 crosses, tightening the trunk.'
+      ],
       commands: [
         'SW1(config)# vlan 10',
         'SW1(config)# vlan 20',
@@ -300,6 +329,16 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'inter-vlan-svi',
       title: 'Inter-VLAN Routing (SVI)',
       blurb: 'VLAN 10 and VLAN 20 cannot reach each other until ip routing plus SVIs come up.',
+      goal: 'Let VLAN 10 and VLAN 20 talk by adding a Layer 3 gateway on the switch itself.',
+      whys: [
+        'Turn on L3 forwarding. Without it the switch only bridges and VLANs stay isolated.',
+        'Create the gateway interface for the blue subnet.',
+        'This SVI IP is the default gateway the blue PCs point to.',
+        'SVIs are admin down by default. Bring it up.',
+        'Gateway interface for the purple subnet.',
+        'The purple PCs default gateway lives here.',
+        'Both gateways up, so routing between VLAN 10 and 20 is live. Goal met.'
+      ],
       commands: [
         'SW1(config)# ip routing',
         'SW1(config)# interface vlan 10',
@@ -355,6 +394,12 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'static-route',
       title: 'Static Route Install',
       blurb: 'Each ip route line inserts a row into the routing table. A default route sets the gateway of last resort.',
+      goal: 'Hand feed R1 the paths to remote networks it cannot learn on its own.',
+      whys: [
+        'R1 runs no dynamic protocol. Tell it explicitly how to reach the remote LAN via R2.',
+        'A second remote network added by hand. Static routes have AD 1, trusted over learned routes.',
+        'The default route is the catch all. Anything unknown (the internet) goes to R2 as gateway of last resort.'
+      ],
       commands: [
         'R1(config)# ip route 10.0.20.0 255.255.255.0 192.168.12.2',
         'R1(config)# ip route 172.16.0.0 255.255.0.0 192.168.12.2',
@@ -395,6 +440,18 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'ospf-adjacency',
       title: 'OSPF Adjacency',
       blurb: 'Stepping config walks the neighbor state machine to FULL, then O routes populate the table.',
+      goal: 'Let R1 and R2 learn each other\'s networks automatically by forming an OSPF adjacency.',
+      whys: [
+        'Start the OSPF process. The process id is local only, not a domain wide ID.',
+        'Enable OSPF on the R2 facing link so Hellos go out there.',
+        'Advertise the LAN so R2 learns the 10.0.10.0/24 route.',
+        'Hellos discover neighbors on 224.0.0.5. Still one way (Init).',
+        'Each router sees its own RID in the other\'s Hello. Two way confirmed.',
+        'Elect master and slave to order the database sync.',
+        'Trade database summaries. An MTU mismatch stalls the adjacency right here.',
+        'Request the specific LSAs each router is missing.',
+        'Databases match. O routes install at AD 110. Auto learned reachability achieved.'
+      ],
       commands: [
         'R1(config)# router ospf 1',
         'R1(config-router)# network 192.168.12.0 0.0.0.3 area 0',
@@ -460,6 +517,16 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'nat-pat',
       title: 'NAT Overload (PAT)',
       blurb: 'A packet from inside 10.0.0.5 crosses R1. The translation row appears and the source IP is rewritten on the WAN side.',
+      goal: 'Let many private hosts share one public IP to reach the internet.',
+      whys: [
+        'Define the rule: translate ACL matched hosts. overload means many to one using ports (PAT).',
+        'Pick which inside hosts may be translated. This is the security scope.',
+        'Select the LAN side interface.',
+        'Mark the private side of the NAT boundary.',
+        'Select the WAN side interface.',
+        'Mark the public side. NAT only works once both sides are tagged.',
+        'Real traffic creates a translation row. The source is rewritten to the public IP plus a port, hiding private IPs.'
+      ],
       commands: [
         'R1(config)# ip nat inside source list 1 interface gi0/1 overload',
         'R1(config)# access-list 1 permit 10.0.0.0 0.0.0.255',
@@ -517,6 +584,14 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'stp-root',
       title: 'STP Root Election',
       blurb: 'Lowest bridge ID wins root. Lowering SW1 priority re-elects the root and re-colors the blocked link.',
+      goal: 'Control which switch becomes the root bridge instead of leaving it to chance.',
+      whys: [
+        'All priorities tie at 32768, so root falls to the lowest MAC (often the oldest switch, a bad spot).',
+        'Verify the current root before changing anything.',
+        'A lower priority wins the election. Put the root where you want traffic to converge.',
+        'Switches recompute: priority first, then MAC.',
+        'The root is now deterministic. Predictable paths and correct port blocking. Goal met.'
+      ],
       commands: [
         '! Default: all priorities 32768, lowest MAC wins',
         'SW1(config)# show spanning-tree  (SW2 is root)',
@@ -563,6 +638,18 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'port-security',
       title: 'Port Security Violation',
       blurb: 'A third MAC hits a max-2 port. Compare default shutdown (err-disable) versus restrict (just drops).',
+      goal: 'Stop unauthorized devices from plugging into an access port.',
+      whys: [
+        'Port security only works on a static access port.',
+        'Arm the feature on the interface.',
+        'Allow at most 2 MACs (for example a PC plus a phone). Caps who can connect.',
+        'The default action err disables the port on a violation. The hardest stance.',
+        'First device accepted.',
+        'Second device accepted. The port is now full.',
+        'A third MAC trips the rule. The port err disables, all traffic stops. Strong but needs manual recovery.',
+        'Switch to restrict. The port stays up while it drops and logs offenders.',
+        'The rogue MAC is dropped, legit hosts keep working. Balances security against uptime.'
+      ],
       commands: [
         'SW1(config-if)# switchport mode access',
         'SW1(config-if)# switchport port-security',
@@ -617,6 +704,234 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         refs.diagram.appendChild(svg);
       }
+    },
+
+    // 8 ── Secure device access (SSH) ─────────────────────────────
+    {
+      id: 'ssh-access',
+      title: 'Secure Device Access (SSH)',
+      blurb: 'Swap clear-text Telnet for encrypted SSH and force a real login on the VTY lines.',
+      goal: 'Lock down the management plane: encrypted SSH login instead of clear-text Telnet.',
+      commands: [
+        'R1(config)# hostname R1',
+        'R1(config)# ip domain-name lab.local',
+        'R1(config)# username admin secret C1sco123',
+        'R1(config)# enable secret C1sco123',
+        'R1(config)# crypto key generate rsa modulus 2048',
+        'R1(config)# ip ssh version 2',
+        'R1(config)# line vty 0 4',
+        'R1(config-line)# transport input ssh',
+        'R1(config-line)# login local'
+      ],
+      captions: [
+        'Hostname set. Needed because the RSA key name is built from hostname plus domain.',
+        'Domain name set. Hostname plus domain gives the fully qualified name for the key.',
+        'Local user admin created with an encrypted secret.',
+        'Enable secret protects privileged EXEC mode with a hashed password.',
+        'RSA key pair generated (2048 bit). This is what actually enables SSH crypto.',
+        'Force SSH version 2. Version 1 is weak and should never be used.',
+        'Enter the VTY lines (0 to 4), the remote login lines.',
+        'transport input ssh blocks Telnet on the VTY lines. SSH only.',
+        'login local makes the VTY lines authenticate against the local username database.'
+      ],
+      whys: [
+        'Management starts wide open. First step toward a named device and a valid key.',
+        'RSA key generation fails without a domain name. This is a prerequisite, not optional.',
+        'SSH needs a real username and password pair. Create the account that will log in.',
+        'Protect the jump from user mode to config mode. Defense in depth.',
+        'No key means no SSH. This single command flips encryption on.',
+        'SSHv1 has known crypto flaws. Pin v2 to stay secure and exam correct.',
+        'VTY lines are the doors attackers knock on. Configure them deliberately.',
+        'Clear-text Telnet (port 23) exposes passwords on the wire. Kill it, allow SSH only.',
+        'Tie login to real credentials so anonymous access is impossible. Management plane locked.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 200);
+        var hasName = s >= 1, hasKey = s >= 5, sshV2 = s >= 6, sshOnly = s >= 8, loginLocal = s >= 9;
+        var secure = sshOnly && loginLocal && hasKey && s >= 9;
+        svg.appendChild(coloredDevice(20, 80, 80, 44, 'Admin', 'SSH client', C.vlan10));
+        svg.appendChild(device(190, 70, 110, 64, 'R1', hasName ? 'R1 vty 0 4' : 'vty 0 4'));
+        svg.appendChild(line(100, 102, 190, 102, { stroke: secure ? C.green : C.red, 'stroke-width': 3, 'stroke-dasharray': secure ? '0' : '5 5' }));
+        svg.appendChild(txt(145, 92, secure ? 'SSH :22' : 'Telnet :23', secure ? C.green : C.red, 9, 'middle', true));
+        svg.appendChild(txt(145, 116, secure ? 'encrypted' : 'clear text', secure ? C.green : C.red, 8, 'middle', true));
+        svg.appendChild(txt(355, 84, 'RSA key: ' + (hasKey ? '2048' : 'none'), hasKey ? C.green : C.muted, 9, 'start', true));
+        svg.appendChild(txt(355, 102, 'SSH ver: ' + (sshV2 ? '2' : '-'), sshV2 ? C.green : C.muted, 9, 'start', true));
+        svg.appendChild(txt(355, 120, 'input: ' + (sshOnly ? 'ssh only' : (s >= 7 ? 'all' : 'telnet')), sshOnly ? C.green : C.muted, 9, 'start', true));
+        svg.appendChild(txt(355, 138, 'login: ' + (loginLocal ? 'local' : 'none'), loginLocal ? C.green : C.muted, 9, 'start', true));
+        svg.appendChild(txt(220, 170, secure ? 'Management plane secured' : 'Insecure: Telnet open', secure ? C.green : C.red, 10, 'middle'));
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 9 ── ACLs (standard + extended) ─────────────────────────────
+    {
+      id: 'acl-filter',
+      title: 'ACLs (Standard + Extended)',
+      blurb: 'Guard the VTY lines with a standard ACL, then permit only web traffic with a named extended ACL.',
+      goal: 'Filter traffic: protect the VTY lines and permit only web traffic inbound on the LAN.',
+      commands: [
+        'R1(config)# access-list 10 permit 192.168.1.0 0.0.0.255',
+        'R1(config)# line vty 0 4',
+        'R1(config-line)# access-class 10 in',
+        'R1(config)# ip access-list extended WEB',
+        'R1(config-ext-nacl)# permit tcp 10.0.0.0 0.0.0.255 any eq 80',
+        'R1(config-ext-nacl)# permit tcp 10.0.0.0 0.0.0.255 any eq 443',
+        'R1(config-ext-nacl)# deny ip any any',
+        'R1(config)# interface gi0/0',
+        'R1(config-if)# ip access-group WEB in'
+      ],
+      captions: [
+        'Standard ACL 10 permits only the 192.168.1.0/24 admin subnet.',
+        'Enter the VTY lines to apply the management filter.',
+        'access-class 10 in lets only ACL 10 sources open a remote session. Everyone else is refused.',
+        'Start a named extended ACL called WEB. Extended ACLs match source, destination, protocol, and port.',
+        'Permit inside hosts to reach any web server on TCP 80 (HTTP).',
+        'Also permit TCP 443 (HTTPS).',
+        'Explicit deny ip any any. Makes the implicit drop visible and countable.',
+        'Select gi0/0, the interface where the filter is applied.',
+        'ip access-group WEB in filters traffic entering gi0/0. Only web traffic survives.'
+      ],
+      whys: [
+        'Decide who is even allowed to manage the router. Name the trusted subnet first.',
+        'The filter does nothing until it is bound to the lines it protects.',
+        'Restrict remote management to the admin subnet. Stops the rest of the world from trying to log in.',
+        'Standard ACLs only match source. To allow web but block everything else you need an extended ACL.',
+        'Least privilege: open exactly the ports the goal needs, nothing more.',
+        'HTTPS is the secure web port. Allow it alongside HTTP.',
+        'There is always an implicit deny at the end. Writing it makes intent obvious and enables hit counters.',
+        'Pick the interface and direction. Inbound here means traffic entering from the LAN.',
+        'Bind the ACL so it actually enforces. Non web traffic is now dropped at the door.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 220);
+        var vtyLocked = s >= 3, extApplied = s >= 9;
+        svg.appendChild(coloredDevice(20, 25, 80, 40, 'Admin', '192.168.1.10', C.vlan10));
+        svg.appendChild(coloredDevice(20, 150, 80, 40, 'Host', '10.0.0.5', C.vlan20));
+        svg.appendChild(device(200, 85, 90, 60, 'R1', 'ACL gate'));
+        svg.appendChild(device(360, 90, 70, 50, 'Server'));
+        svg.appendChild(line(100, 45, 200, 100, { stroke: vtyLocked ? C.green : C.muted, 'stroke-width': 2.5 }));
+        svg.appendChild(txt(150, 62, vtyLocked ? 'vty: admin only' : 'vty: open', vtyLocked ? C.green : C.muted, 8, 'middle', true));
+        svg.appendChild(line(100, 170, 200, 130, { stroke: C.ink2, 'stroke-width': 2.5 }));
+        svg.appendChild(line(290, 115, 360, 115, { stroke: extApplied ? C.green : C.ink2, 'stroke-width': 3 }));
+        if (extApplied) {
+          svg.appendChild(txt(325, 104, '80/443 ok', C.green, 8, 'middle', true));
+          svg.appendChild(txt(250, 165, 'other = deny', C.red, 8, 'middle', true));
+          svg.appendChild(packet(100, 170, C.green));
+          var p = svg.lastChild;
+          p.appendChild(el('animateMotion', { dur: '2.4s', repeatCount: 'indefinite', path: 'M0 0 L100 -40 L260 -55' }));
+        } else {
+          svg.appendChild(txt(300, 165, 'no filter yet', C.muted, 8, 'middle', true));
+        }
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 10 ── EtherChannel (LACP) ───────────────────────────────────
+    {
+      id: 'etherchannel',
+      title: 'EtherChannel (LACP)',
+      blurb: 'Bundle two links with LACP into one Port-channel so both forward and STP blocks nothing.',
+      goal: 'Bundle two links into one logical channel for double bandwidth and fast failover, with no STP block.',
+      commands: [
+        'SW1(config)# interface range gi0/1 - 2',
+        'SW1(config-if-range)# channel-group 1 mode active',
+        'SW1(config-if-range)# exit',
+        'SW1(config)# interface port-channel 1',
+        'SW1(config-if)# switchport mode trunk',
+        '! SW2 set to channel-group 1 mode active',
+        '! LACP negotiates, Po1 comes up'
+      ],
+      captions: [
+        'Select both physical uplinks at once with interface range.',
+        'channel-group 1 mode active starts LACP on both ports. active means it actively negotiates.',
+        'Leave the range. The logical Port-channel 1 interface is created automatically.',
+        'Enter Port-channel 1. Settings here apply to the whole bundle.',
+        'Make the bundle a trunk so it carries VLAN tagged traffic.',
+        'SW2 must also be active (or passive) for LACP to agree. Both active works.',
+        'LACP forms the bundle. Both links are active, no link is blocked by STP.'
+      ],
+      whys: [
+        'One config touch for both ports keeps the bundle members identical, which LACP requires.',
+        'Without a channel group STP would block one link as a loop. The bundle is how you use both safely.',
+        'The Po1 interface is the single handle for the group. Stop configuring members individually.',
+        'Configure once on Po1 and it pushes to every member. Mismatched members break the bundle.',
+        'A trunk on the bundle carries all VLANs over the doubled bandwidth.',
+        'LACP is a two way agreement: active plus passive, or active plus active, both form. passive plus passive never does.',
+        'Goal reached: 2 links, 2x bandwidth, fast failover, and STP sees one logical link so nothing blocks.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 200);
+        var bundled = s >= 7;
+        svg.appendChild(device(40, 75, 90, 54, 'SW1'));
+        svg.appendChild(device(310, 75, 90, 54, 'SW2'));
+        if (bundled) {
+          svg.appendChild(line(130, 95, 310, 95, { stroke: C.green, 'stroke-width': 5 }));
+          svg.appendChild(line(130, 109, 310, 109, { stroke: C.green, 'stroke-width': 5 }));
+          svg.appendChild(txt(220, 80, 'Po1 (gi0/1+gi0/2) trunk', C.green, 9, 'middle', true));
+          svg.appendChild(txt(220, 145, '2 links active · 2x bandwidth · no STP block', C.green, 8, 'middle', true));
+          svg.appendChild(packet(130, 102, C.green));
+          var p = svg.lastChild;
+          p.appendChild(el('animateMotion', { dur: '1.6s', repeatCount: 'indefinite', path: 'M0 0 L180 0' }));
+        } else {
+          svg.appendChild(line(130, 92, 310, 92, { stroke: C.green, 'stroke-width': 3 }));
+          svg.appendChild(line(130, 114, 310, 114, { stroke: C.red, 'stroke-width': 3, 'stroke-dasharray': '5 5' }));
+          svg.appendChild(el('circle', { cx: 300, cy: 114, r: 9, fill: C.red }));
+          svg.appendChild(txt(300, 118, 'x', '#fff', 11, 'middle'));
+          svg.appendChild(txt(220, 145, 'STP blocks 1 link (loop prevention)', C.red, 8, 'middle', true));
+        }
+        refs.diagram.appendChild(svg);
+      }
+    },
+
+    // 11 ── IPv6 addressing (EUI-64) ──────────────────────────────
+    {
+      id: 'ipv6-addr',
+      title: 'IPv6 Addressing (EUI-64)',
+      blurb: 'Turn on IPv6 routing and address two interfaces, including an EUI-64 auto host id.',
+      goal: 'Enable IPv6 routing and address two interfaces, including an auto built EUI-64 host portion.',
+      commands: [
+        'R1(config)# ipv6 unicast-routing',
+        'R1(config)# interface gi0/0',
+        'R1(config-if)# ipv6 address 2001:db8:acad:1::1/64',
+        'R1(config-if)# ipv6 address fe80::1 link-local',
+        'R1(config-if)# interface gi0/1',
+        'R1(config-if)# ipv6 address 2001:db8:acad:2::/64 eui-64',
+        'R1(config-if)# no shutdown'
+      ],
+      captions: [
+        'ipv6 unicast-routing turns on IPv6 forwarding. Off by default, unlike IPv4.',
+        'Select gi0/0 to address the first subnet.',
+        'Static global unicast address (GUA) 2001:db8:acad:1::1 with a /64 prefix.',
+        'Manually set the link-local to fe80::1. Otherwise it is auto generated.',
+        'Select gi0/1 for the second subnet.',
+        'eui-64 builds the host half from the MAC: split it, flip the 7th bit, insert fffe in the middle.',
+        'Bring the interface up so the addresses become active.'
+      ],
+      whys: [
+        'A router will not forward IPv6 until this is on. An easy exam trap and an easy real world miss.',
+        'Addresses are per interface. Choose the interface first.',
+        'The GUA is the routable, internet style address hosts and routers use.',
+        'Every IPv6 interface needs a link-local (fe80::/10) for neighbor discovery and next hop. Set it predictably.',
+        'Move to the second link that needs an address.',
+        'EUI-64 saves typing and guarantees a unique host id derived from hardware. Know the fffe insertion for the exam.',
+        'Interfaces must be up for the addresses to be usable. Goal: dual subnet IPv6 routing live.'
+      ],
+      render: function (s, refs) {
+        var svg = blankSvg(440, 220);
+        var routing = s >= 1, gua = s >= 3, ll = s >= 4, eui = s >= 6, up = s >= 7;
+        svg.appendChild(device(170, 85, 100, 60, 'R1', 'IPv6'));
+        svg.appendChild(txt(220, 72, 'unicast-routing: ' + (routing ? 'on' : 'off'), routing ? C.green : C.red, 9, 'middle', true));
+        svg.appendChild(line(60, 110, 170, 112, { stroke: up ? C.green : C.muted, 'stroke-width': 3 }));
+        svg.appendChild(txt(95, 100, 'gi0/0', C.ink2, 8, 'middle', true));
+        svg.appendChild(txt(95, 165, gua ? '2001:db8:acad:1::1/64' : '(no addr)', gua ? C.purple : C.muted, 8, 'middle', true));
+        svg.appendChild(txt(95, 179, ll ? 'fe80::1' : '', C.ink2, 8, 'middle', true));
+        svg.appendChild(line(270, 112, 380, 110, { stroke: up ? C.green : C.muted, 'stroke-width': 3 }));
+        svg.appendChild(txt(345, 100, 'gi0/1', C.ink2, 8, 'middle', true));
+        svg.appendChild(txt(345, 165, eui ? '2001:db8:acad:2::/64' : '(no addr)', eui ? C.purple : C.muted, 8, 'middle', true));
+        svg.appendChild(txt(345, 179, eui ? '+ EUI-64 host' : '', C.ink2, 8, 'middle', true));
+        if (eui) { svg.appendChild(txt(220, 205, 'EUI-64: MAC split, flip 7th bit, insert fffe', C.ink2, 8, 'middle', true)); }
+        refs.diagram.appendChild(svg);
+      }
     }
   ];
 
@@ -647,7 +962,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var refs = {
     title: document.getElementById('cvStageTitle'),
     diagram: document.getElementById('cvDiagram'),
+    goal: document.getElementById('cvGoal'),
     cmdLine: document.getElementById('cvCmdLine'),
+    why: document.getElementById('cvWhy'),
+    guess: document.getElementById('cvGuess'),
     caption: document.getElementById('cvCaption'),
     cmdList: document.getElementById('cvCmdList'),
     extra: document.getElementById('cvExtra'),
@@ -656,12 +974,31 @@ document.addEventListener('DOMContentLoaded', function () {
     prev: document.getElementById('cvPrev'),
     next: document.getElementById('cvNext'),
     reset: document.getElementById('cvReset'),
+    guessToggle: document.getElementById('cvGuessToggle'),
     banner: document.getElementById('cvDoneBanner'),
     progress: document.getElementById('cvProgress')
   };
 
-  var current = null;  // active scenario
-  var step = 0;        // 0..commands.length
+  var current = null;   // active scenario
+  var step = 0;         // 0..commands.length (commands revealed/applied)
+  var guessOpen = false; // true while predicting the upcoming command
+  function guessMode() { return refs.guessToggle.checked; }
+  function setWhy(sc, i) {
+    if (sc.whys && sc.whys[i]) { refs.why.textContent = sc.whys[i]; refs.why.style.display = 'block'; }
+    else { refs.why.style.display = 'none'; }
+  }
+  function highlightList(gating) {
+    Array.prototype.forEach.call(refs.cmdList.children, function (li, idx) {
+      li.className = '';
+      if (gating) {
+        if (idx < step) { li.className = 'past'; }
+        else if (idx === step) { li.className = 'current pending'; }
+      } else {
+        if (idx < step - 1) { li.className = 'past'; }
+        else if (idx === step - 1) { li.className = 'current'; }
+      }
+    });
+  }
 
   // ── build picker ───────────────────────────────────────────────
   function buildPicker() {
@@ -693,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function openScenario(i) {
     current = SCEN[i];
     step = 0;
+    guessOpen = false;
     refs.title.textContent = (i + 1) + '. ' + current.title;
     refs.stepTotal.textContent = current.commands.length;
     stage.classList.add('live');
@@ -714,33 +1052,52 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function render() {
     var sc = current;
-    // diagram
+    var N = sc.commands.length;
+    // goal banner
+    refs.goal.textContent = sc.goal || '';
+    refs.goal.style.display = sc.goal ? 'block' : 'none';
+    // diagram always reflects `step` (the gate keeps the old state visible)
     refs.diagram.innerHTML = '';
     sc.render(step, refs);
-    // command line (step 0 = nothing applied yet)
+    renderExtra();
+
+    if (guessOpen) {
+      // predicting commands[step] (the upcoming, not-yet-applied command)
+      refs.cmdLine.textContent = sc.commands[step];
+      refs.cmdLine.className = 'cv-cmd-line';
+      setWhy(sc, step);                       // forward-looking context (the "before" reasoning)
+      refs.guess.style.display = 'block';
+      refs.guess.textContent = 'Predict: what will this command change on the diagram? Then hit Reveal.';
+      refs.caption.style.display = 'none';
+      highlightList(true);
+      refs.stepNum.textContent = step;
+      refs.next.textContent = 'Reveal ▶';
+      refs.next.disabled = false;
+      refs.prev.disabled = false;
+      refs.banner.classList.remove('show');
+      return;
+    }
+
+    // normal view
+    refs.guess.style.display = 'none';
+    refs.caption.style.display = '';
+    refs.next.textContent = 'Next →';
     if (step === 0) {
-      refs.cmdLine.textContent = 'Ready. Press Next to apply the first command.';
+      refs.cmdLine.textContent = guessMode() ? 'Ready. Press Next to preview the first command, then Reveal it.' : 'Ready. Press Next to apply the first command.';
       refs.cmdLine.className = 'cv-cmd-line is-prompt';
       refs.caption.textContent = 'Start state. Nothing applied yet.';
+      refs.why.style.display = 'none';
     } else {
       refs.cmdLine.textContent = sc.commands[step - 1];
       refs.cmdLine.className = 'cv-cmd-line';
-      refs.caption.textContent = sc.captions[step - 1];
+      setWhy(sc, step - 1);
+      refs.caption.textContent = sc.captions[step - 1];   // the "after" result
     }
-    // highlight command list
-    Array.prototype.forEach.call(refs.cmdList.children, function (li, idx) {
-      li.className = '';
-      if (idx < step - 1) { li.className = 'past'; }
-      else if (idx === step - 1) { li.className = 'current'; }
-    });
-    // step counter
+    highlightList(false);
     refs.stepNum.textContent = step;
     refs.prev.disabled = (step === 0);
-    refs.next.disabled = (step === sc.commands.length);
-    // extra panel (table / ladder)
-    renderExtra();
-    // completion
-    if (step === sc.commands.length) {
+    refs.next.disabled = (step === N);
+    if (step === N) {
       refs.banner.classList.add('show');
       if (!isDone(sc.id)) { markDone(sc.id); markCardDone(sc.id); updateProgress(); }
     } else {
@@ -812,27 +1169,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ── controls ───────────────────────────────────────────────────
   refs.next.addEventListener('click', function () {
-    if (current && step < current.commands.length) { step++; render(); }
+    if (!current) { return; }
+    var N = current.commands.length;
+    if (guessOpen) { guessOpen = false; step++; render(); }       // Reveal
+    else if (step < N) {
+      if (guessMode()) { guessOpen = true; render(); }            // open the predict gate
+      else { step++; render(); }                                   // straight step
+    }
   });
   refs.prev.addEventListener('click', function () {
-    if (current && step > 0) { step--; render(); }
+    if (!current) { return; }
+    if (guessOpen) { guessOpen = false; render(); }                // back out of the gate
+    else if (step > 0) { step--; render(); }
   });
   refs.reset.addEventListener('click', function () {
-    if (current) { step = 0; render(); }
+    if (current) { step = 0; guessOpen = false; render(); }
+  });
+  refs.guessToggle.addEventListener('change', function () {
+    if (current) { guessOpen = false; render(); }
   });
   document.getElementById('cvBackBtn').addEventListener('click', function () {
     stage.classList.remove('live');
     current = null;
+    guessOpen = false;
     picker.scrollIntoView({ behavior: prefersReduced() ? 'auto' : 'smooth', block: 'start' });
   });
 
-  // keyboard: arrows step when a scenario is live
+  // keyboard: arrows drive the same Next/Prev logic when a scenario is live
   document.addEventListener('keydown', function (e) {
     if (!current || !stage.classList.contains('live')) { return; }
     var tag = (e.target && e.target.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA') { return; }
-    if (e.key === 'ArrowRight') { if (step < current.commands.length) { step++; render(); e.preventDefault(); } }
-    else if (e.key === 'ArrowLeft') { if (step > 0) { step--; render(); e.preventDefault(); } }
+    if (e.key === 'ArrowRight') { refs.next.click(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { refs.prev.click(); e.preventDefault(); }
   });
 
   buildPicker();
