@@ -443,6 +443,32 @@
     refreshBoards();
   }
 
+  function tierWord(p) {
+    var v = window.pillarValue(p);
+    return v >= 8 ? 'very high' : v >= 6 ? 'high' : v >= 4 ? 'moderate' : 'lower';
+  }
+  function buildGeminiPrompt(p) {
+    var all = orderedDims(p);
+    var proven = all.filter(function (d) { return passedDim(p.n, d); }).map(function (d) { return CONFIG.DIM_LABEL[d]; });
+    var weak = weakDims(p).map(function (d) { return CONFIG.DIM_LABEL[d]; });
+    var bullets = (p.bullets || []).map(function (b) { return '- ' + b.replace(/<[^>]+>/g, ''); }).join('\n');
+    return [
+      'You are a strict CCNA 200-301 examiner. Stay STRICTLY inside the official Cisco CCNA 200-301 exam scope. Do not drift to anything outside that exam.',
+      '',
+      'Topic: ' + p.title + ' (exam objective ' + p.obj + ').',
+      'Exam weighting for this topic is ' + tierWord(p) + ' (value ' + window.pillarValue(p).toFixed(1) + ' of 10, frequency ' + p.freq + ' of 100, difficulty ' + p.load + ' of 100). Match your depth to this weighting: push harder where the exam tests harder.',
+      '',
+      'Must-know points for this topic:',
+      bullets,
+      '',
+      'I just drilled this topic. Dimensions I have proven: ' + (proven.length ? proven.join(', ') : 'none') + '. Still weak: ' + (weak.length ? weak.join(', ') : 'none') + '.',
+      '',
+      'Your job: go DEEPER than basic recall. Probe the details and edge cases, and confirm I truly UNDERSTAND the concept, not just memorize it. Spend extra time on my weak dimensions.',
+      'Rules: ask ONE question at a time and wait for my typed answer. After each answer, say correct or incorrect, give the exact correct answer, explain why, and name the classic exam trap. Keep every question inside CCNA 200-301 scope and realistic to how Cisco phrases it. Mix concept, configuration, show or verify, and scenario questions.',
+      'Start now with question 1.'
+    ].join('\n');
+  }
+
   function openDrill(n) {
     var p = PILLARS.filter(function (x) { return x.n === n; })[0];
     if (!p) return;
@@ -499,7 +525,23 @@
         : 'All applicable dimensions proven. This pillar stays owned until you reset.';
       body.innerHTML = '<div class="pv-done"><div class="done-title">' + doneTitle + '</div>' +
         '<div class="done-body">' + doneBody + '</div></div>' +
+        '<div class="pv-ai" style="border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px 16px;margin-bottom:var(--s-md)">' +
+          '<div style="font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:.95rem;margin-bottom:4px">AI Deep Check (Gemini)</div>' +
+          '<div style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.5;margin-bottom:10px">Copy this into Gemini and answer by typing. It pushes past recall, probes the details, and checks you understand the concept. Grounded to this objective and its exam weight, CCNA 200-301 only.</div>' +
+          '<textarea id="pvAiPrompt" readonly rows="9" style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:.76rem;line-height:1.5;color:var(--ink);background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:10px;resize:vertical"></textarea>' +
+          '<div class="pv-drill-actions" style="margin-top:10px">' +
+            '<button id="pvAiCopy">Copy prompt</button>' +
+            '<a id="pvAiOpen" class="primary" href="https://gemini.google.com/app" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">Open Gemini</a>' +
+          '</div>' +
+        '</div>' +
         '<div class="pv-drill-actions"><button class="primary" id="pvDrillClose2">Done</button></div>';
+      $('pvAiPrompt').value = buildGeminiPrompt(p);
+      $('pvAiCopy').onclick = function () {
+        var ta = $('pvAiPrompt'); ta.focus(); ta.select();
+        try { navigator.clipboard.writeText(ta.value); } catch (e) { try { document.execCommand('copy'); } catch (e2) {} }
+        $('pvAiCopy').textContent = 'Copied';
+        setTimeout(function () { $('pvAiCopy').textContent = 'Copy prompt'; }, 1500);
+      };
       $('pvDrillClose2').onclick = function () { closeDrill(); };
       renderDimChips();
       return;
