@@ -68,6 +68,7 @@
 .cv-toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ink-secondary);cursor:pointer;user-select:none}
 .cv-toggle input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;margin:0}
 .cv-cmdlist li.pending{opacity:.9;font-style:italic;border-left:2px dashed var(--accent);color:var(--ink-secondary)}
+.cv-cmdlist li.masked{color:var(--ink-muted);opacity:.4;letter-spacing:.12em;font-style:italic;border-left-color:transparent;user-select:none}
 
 /* command list */
 .cv-cmdlist{list-style:none;margin:10px 0 0;padding:0;font-family:var(--font-mono);font-size:.82rem}
@@ -987,9 +988,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (sc.whys && sc.whys[i]) { refs.why.textContent = sc.whys[i]; refs.why.style.display = 'block'; }
     else { refs.why.style.display = 'none'; }
   }
-  function highlightList(gating) {
+  // paint the command list. With guess mode on, future commands are masked
+  // (you can't read ahead). gating=true means the gate is open and commands[step]
+  // is the one being predicted, so it is revealed too.
+  function paintList(gating) {
+    var mask = guessMode();
     Array.prototype.forEach.call(refs.cmdList.children, function (li, idx) {
+      var revealed = !mask || (gating ? idx <= step : idx <= step - 1);
+      li.textContent = revealed ? li.dataset.cmd : '••• hidden •••';
       li.className = '';
+      if (!revealed) { li.className = 'masked'; return; }
       if (gating) {
         if (idx < step) { li.className = 'past'; }
         else if (idx === step) { li.className = 'current pending'; }
@@ -1038,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function () {
     refs.cmdList.innerHTML = '';
     current.commands.forEach(function (cmd, idx) {
       var li = document.createElement('li');
-      li.textContent = cmd;
+      li.dataset.cmd = cmd;     // real text stored; painted per reveal state
       li.dataset.idx = idx;
       refs.cmdList.appendChild(li);
     });
@@ -1069,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', function () {
       refs.guess.style.display = 'block';
       refs.guess.textContent = 'Predict: what will this command change on the diagram? Then hit Reveal.';
       refs.caption.style.display = 'none';
-      highlightList(true);
+      paintList(true);
       refs.stepNum.textContent = step;
       refs.next.textContent = 'Reveal ▶';
       refs.next.disabled = false;
@@ -1093,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function () {
       setWhy(sc, step - 1);
       refs.caption.textContent = sc.captions[step - 1];   // the "after" result
     }
-    highlightList(false);
+    paintList(false);
     refs.stepNum.textContent = step;
     refs.prev.disabled = (step === 0);
     refs.next.disabled = (step === N);
