@@ -186,6 +186,7 @@
   <p class="kicker">Study ROI</p>
   <h1 class="pv-title">Where your hour buys the most exam.</h1>
   <p class="intro">Every pillar carries an ExamValue, how much it weighs on the 200-301. Readiness rises only when you PROVE a dimension in a drill, never by rating yourself. Study Next sorts by return on investment: high value times big gap goes first. The examination is the sole judge.</p>
+  <p style="margin:-6px 0 var(--s-md)"><a style="display:inline-block;border:1px solid var(--accent);border-radius:var(--radius);padding:9px 16px;color:var(--accent);text-decoration:none;font-weight:700;font-family:var(--font-display);font-size:.84rem" href="p34-knockout.html">Neglecting P3 + P4? Run the Knockout &rarr;</a> <span style="font-family:var(--font-body);font-size:.86rem;color:var(--ink-secondary)">All 26 low-tier pillars, learned by recall and spacing in one pass.</span></p>
 
   <!-- ── 1. Readiness strip ────────────────────────────────────── -->
   <section class="pv-readiness" aria-label="Readiness">
@@ -426,7 +427,14 @@
     if (!p) return [];
     var it = p[dim];
     if (!it) return [];
-    return Array.isArray(it) ? it : [it];
+    var arr = Array.isArray(it) ? it : [it];
+    // Shuffle question order per drill session (stable within a session, reshuffled on reopen).
+    if (drill.pillar && drill.pillar.n === n) {
+      drill.pool = drill.pool || {};
+      if (!drill.pool[dim]) drill.pool[dim] = shuffle(arr);
+      return drill.pool[dim];
+    }
+    return arr;
   }
   function solvedCount(items) { var c = 0; for (var i = 0; i < items.length; i++) { if (drill.correct[i]) c++; } return c; }
   function nextUnsolved(items, from) { for (var k = 1; k <= items.length; k++) { var i = (from + k) % items.length; if (!drill.correct[i]) return i; } return -1; }
@@ -519,6 +527,7 @@
     drill.idx = 0;
     drill.itemIdx = 0;
     drill.correct = {};
+    drill.pool = {};
     drill.answered = false;
 
     $('pvModalTitle').textContent = p.title;
@@ -630,8 +639,11 @@
   function renderMCQ(progressHtml, item) {
     var body = $('pvDrillBody');
     var svgHtml = (item.type === 'topology' && item.svg) ? '<div class="pv-q-svg">' + item.svg + '</div>' : '';
-    var choicesHtml = item.choices.map(function (c, i) {
-      return '<button class="pv-choice" data-i="' + i + '">' + c + '</button>';
+    // Shuffle answer positions each render so the correct option is not memorized by position.
+    var order = shuffle(item.choices.map(function (c, i) { return { c: c, ok: i === item.answer }; }));
+    var correctIdx = 0; for (var ci = 0; ci < order.length; ci++) { if (order[ci].ok) correctIdx = ci; }
+    var choicesHtml = order.map(function (o, i) {
+      return '<button class="pv-choice" data-i="' + i + '">' + o.c + '</button>';
     }).join('');
     body.innerHTML = progressHtml +
       '<div class="pv-q-stem">' + item.stem + '</div>' + svgHtml +
@@ -644,10 +656,10 @@
         if (drill.answered) return;
         drill.answered = true;
         var i = +btn.getAttribute('data-i');
-        var correct = i === item.answer;
+        var correct = i === correctIdx;
         Array.prototype.forEach.call(body.querySelectorAll('.pv-choice'), function (b, bi) {
           b.disabled = true;
-          if (bi === item.answer) b.classList.add('correct');
+          if (bi === correctIdx) b.classList.add('correct');
           else if (bi === i) b.classList.add('wrong');
         });
         var fb = $('pvFb');
