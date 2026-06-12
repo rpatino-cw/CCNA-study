@@ -252,7 +252,7 @@
           <h3 id="pvModalTitle">Pillar</h3>
           <div class="mh-sub" id="pvModalSub"></div>
         </div>
-        <button id="pvAskGemini" style="font-family:var(--font-display);font-size:.72rem;font-weight:700;padding:6px 12px;background:var(--bg-input);color:var(--accent);border:1px solid var(--accent);border-radius:100px;cursor:pointer;margin-right:8px;white-space:nowrap">Ask Gemini</button>
+        <button id="pvAskGemini" style="font-family:var(--font-display);font-size:.72rem;font-weight:700;padding:6px 12px;background:var(--bg-input);color:var(--accent);border:1px solid var(--accent);border-radius:100px;cursor:pointer;margin-right:8px;white-space:nowrap">Final Valuation</button>
         <button class="pv-modal-close" id="pvModalClose" aria-label="Close drill">&times;</button>
       </div>
       <div class="pv-dimchips" id="pvDimChips"></div>
@@ -278,6 +278,7 @@
   };
 
   var KEY_CHECKS = 'ccna_pillars-trainer_checks';
+  var KEY_GEMINI = 'ccna_pillars-trainer_gemini';
   var PILLARS = window.PILLARS_DATA || [];
   var CHECKS_DATA = window.PILLAR_CHECKS || {};
 
@@ -294,6 +295,7 @@
   }
 
   var checks = load(KEY_CHECKS, {}) || {};
+  var gemini = load(KEY_GEMINI, {}) || {};
   var $ = function (id) { return document.getElementById(id); };
 
   function dimsOf(p) { return (p.dims && p.dims.length) ? p.dims : ['concept', 'scope']; }
@@ -318,6 +320,8 @@
 
     var doms = Object.keys(r.byDomain).sort(function (a, b) { return (+a) - (+b); });
     var html = '';
+    var gReady = 0; for (var gi = 1; gi <= 12; gi++) { if (gemini[gi] && gemini[gi].ready === true) gReady++; }
+    html += '<div class="pv-dom"><div class="dh"><span class="dname" style="font-weight:700;color:var(--accent)">Gemini verified ready</span><span class="dpct">' + gReady + ' / 12</span></div></div>';
     doms.forEach(function (d) {
       var pct = r.byDomain[d];
       html += '<div class="pv-dom">' +
@@ -454,42 +458,54 @@
     var weak = weakDims(p).map(function (d) { return CONFIG.DIM_LABEL[d]; });
     var bullets = (p.bullets || []).map(function (b) { return '- ' + b.replace(/<[^>]+>/g, ''); }).join('\n');
     return [
-      'You are a strict CCNA 200-301 examiner. Stay STRICTLY inside the official Cisco CCNA 200-301 exam scope. Do not drift to anything outside that exam.',
+      'You are the FINAL CCNA 200-301 examiner. This is my readiness check on ONE topic. Stay STRICTLY inside official Cisco CCNA 200-301 scope.',
       '',
       'Topic: ' + p.title + ' (exam objective ' + p.obj + ').',
-      'Exam weighting for this topic is ' + tierWord(p) + ' (value ' + window.pillarValue(p).toFixed(1) + ' of 10, frequency ' + p.freq + ' of 100, difficulty ' + p.load + ' of 100). Match your depth to this weighting: push harder where the exam tests harder.',
+      'Exam weighting: ' + tierWord(p) + ' (value ' + window.pillarValue(p).toFixed(1) + ' of 10, frequency ' + p.freq + ' of 100, difficulty ' + p.load + ' of 100). Weight the exam toward what Cisco tests more.',
       '',
-      'Must-know points for this topic:',
+      'Must-know points:',
       bullets,
       '',
-      'I just drilled this topic. Dimensions I have proven: ' + (proven.length ? proven.join(', ') : 'none') + '. Still weak: ' + (weak.length ? weak.join(', ') : 'none') + '.',
+      'Dimensions I have proven in drills: ' + (proven.length ? proven.join(', ') : 'none') + '. Still weak: ' + (weak.length ? weak.join(', ') : 'none') + '.',
       '',
-      'Your job: go DEEPER than basic recall. Probe the details and edge cases, and confirm I truly UNDERSTAND the concept, not just memorize it. Spend extra time on my weak dimensions.',
-      'Rules: ask ONE question at a time and wait for my typed answer. After each answer, say correct or incorrect, give the exact correct answer, explain why, and name the classic exam trap. Keep every question inside CCNA 200-301 scope and realistic to how Cisco phrases it. Mix concept, configuration, show or verify, and scenario questions.',
+      'Give me a SHORT HARD readiness exam: 6 to 8 mixed questions (concept, configuration, show or verify, scenario), ONE at a time. Wait for my typed answer. After each, say correct or incorrect, give the exact answer, explain why, and name the classic trap. Push harder on my weak dimensions. Keep every question realistic to how Cisco phrases it.',
+      'At the END, give your VERDICT: the single word READY or NOT READY for the CCNA 200-301 exam on this topic, a readiness score from 0 to 100, and the top 3 gaps I must fix. Be strict, this decides if I am ready.',
       'Start now with question 1.'
     ].join('\n');
   }
-  function showAi() {
+  function copyAi() {
+    var ta = $('pvAiPrompt'); ta.focus(); ta.select();
+    try { navigator.clipboard.writeText(ta.value); } catch (e) { try { document.execCommand('copy'); } catch (e2) {} }
+    $('pvAiCopy').textContent = 'Copied';
+    setTimeout(function () { $('pvAiCopy').textContent = 'Copy prompt'; }, 1500);
+  }
+  function showAi(fromDone) {
     if (!drill.pillar) return;
-    var body = $('pvDrillBody');
-    body.innerHTML = '<div class="pv-ai" style="border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px 16px">' +
-        '<div style="font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:.95rem;margin-bottom:4px">AI Deep Check (Gemini)</div>' +
-        '<div style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.5;margin-bottom:10px">Copy this into Gemini and answer by typing. It pushes past recall, probes the details, and checks you understand the concept. Grounded to this objective and its exam weight, CCNA 200-301 only.</div>' +
-        '<textarea id="pvAiPrompt" readonly rows="10" style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:.76rem;line-height:1.5;color:var(--ink);background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:10px;resize:vertical"></textarea>' +
+    var p = drill.pillar, body = $('pvDrillBody');
+    var g = gemini[p.n] || {};
+    var onStyle = 'background:var(--accent);color:#fff;border-color:var(--accent)';
+    var lead = fromDone ? (weakDims(p).length ? 'Dimensions still in progress. You can still run the final valuation.' : 'All dimensions proven. The final valuation decides if you are ready.') : '';
+    body.innerHTML = '<div class="pv-ai" style="border:1px solid var(--accent);border-radius:var(--radius-lg);background:var(--bg);padding:14px 16px">' +
+        '<div style="font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:1rem;margin-bottom:4px">Final Valuation (Gemini)</div>' +
+        '<div style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.5;margin-bottom:10px">' + (lead ? lead + ' ' : '') + 'Copy this into Gemini and answer by typing. Gemini runs a hard readiness exam and gives a READY or NOT READY verdict for this topic. CCNA 200-301 only.</div>' +
+        '<textarea id="pvAiPrompt" readonly rows="11" style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:.76rem;line-height:1.5;color:var(--ink);background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:10px;resize:vertical"></textarea>' +
         '<div class="pv-drill-actions" style="margin-top:10px">' +
           '<button id="pvAiCopy">Copy prompt</button>' +
           '<a id="pvAiOpen" class="primary" href="https://gemini.google.com/app" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">Open Gemini</a>' +
-          '<button id="pvAiBack">Back to questions</button>' +
         '</div>' +
+        '<div style="font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin:14px 0 6px">Record Gemini verdict</div>' +
+        '<div class="pv-drill-actions">' +
+          '<button id="pvGready" style="' + (g.ready === true ? onStyle : '') + '">Gemini: READY</button>' +
+          '<button id="pvGno" style="' + (g.ready === false ? 'background:var(--prof-weak);color:#fff;border-color:var(--prof-weak)' : '') + '">Not yet</button>' +
+          '<button id="pvAiTrail" class="primary">' + (fromDone ? 'Done' : 'Back to questions') + '</button>' +
+        '</div>' +
+        '<div id="pvGstatus" style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);margin-top:8px">' + (g.ready === true ? 'Gemini marked you READY on this topic.' : g.ready === false ? 'Gemini said NOT YET. Close the gaps and re-run.' : 'Run it, then record what Gemini decided.') + '</div>' +
       '</div>';
-    $('pvAiPrompt').value = buildGeminiPrompt(drill.pillar);
-    $('pvAiCopy').onclick = function () {
-      var ta = $('pvAiPrompt'); ta.focus(); ta.select();
-      try { navigator.clipboard.writeText(ta.value); } catch (e) { try { document.execCommand('copy'); } catch (e2) {} }
-      $('pvAiCopy').textContent = 'Copied';
-      setTimeout(function () { $('pvAiCopy').textContent = 'Copy prompt'; }, 1500);
-    };
-    $('pvAiBack').onclick = function () { renderStep(); };
+    $('pvAiPrompt').value = buildGeminiPrompt(p);
+    $('pvAiCopy').onclick = copyAi;
+    $('pvGready').onclick = function () { gemini[p.n] = { ready: true }; save(KEY_GEMINI, gemini); refreshBoards(); showAi(fromDone); };
+    $('pvGno').onclick = function () { gemini[p.n] = { ready: false }; save(KEY_GEMINI, gemini); refreshBoards(); showAi(fromDone); };
+    $('pvAiTrail').onclick = function () { if (fromDone) { closeDrill(); } else { renderStep(); } };
   }
 
   function openDrill(n) {
@@ -515,7 +531,7 @@
     drill.pillar = null;
   }
   $('pvModalClose').onclick = closeDrill;
-  $('pvAskGemini').onclick = showAi;
+  $('pvAskGemini').onclick = function () { showAi(false); };
   $('pvModalOverlay').addEventListener('click', function (e) {
     if (e.target === $('pvModalOverlay')) closeDrill();
   });
@@ -542,32 +558,8 @@
     var body = $('pvDrillBody');
 
     if (drill.idx >= drill.dims.length) {
-      var remaining = weakDims(p);
-      var doneTitle = remaining.length ? 'Progress saved' : 'Pillar owned';
-      var doneBody = remaining.length
-        ? 'Remaining to own this pillar: ' + remaining.map(function (d) { return CONFIG.DIM_LABEL[d]; }).join(', ') + '.'
-        : 'All applicable dimensions proven. This pillar stays owned until you reset.';
-      body.innerHTML = '<div class="pv-done"><div class="done-title">' + doneTitle + '</div>' +
-        '<div class="done-body">' + doneBody + '</div></div>' +
-        '<div class="pv-ai" style="border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px 16px;margin-bottom:var(--s-md)">' +
-          '<div style="font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:.95rem;margin-bottom:4px">AI Deep Check (Gemini)</div>' +
-          '<div style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.5;margin-bottom:10px">Copy this into Gemini and answer by typing. It pushes past recall, probes the details, and checks you understand the concept. Grounded to this objective and its exam weight, CCNA 200-301 only.</div>' +
-          '<textarea id="pvAiPrompt" readonly rows="9" style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:.76rem;line-height:1.5;color:var(--ink);background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:10px;resize:vertical"></textarea>' +
-          '<div class="pv-drill-actions" style="margin-top:10px">' +
-            '<button id="pvAiCopy">Copy prompt</button>' +
-            '<a id="pvAiOpen" class="primary" href="https://gemini.google.com/app" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">Open Gemini</a>' +
-          '</div>' +
-        '</div>' +
-        '<div class="pv-drill-actions"><button class="primary" id="pvDrillClose2">Done</button></div>';
-      $('pvAiPrompt').value = buildGeminiPrompt(p);
-      $('pvAiCopy').onclick = function () {
-        var ta = $('pvAiPrompt'); ta.focus(); ta.select();
-        try { navigator.clipboard.writeText(ta.value); } catch (e) { try { document.execCommand('copy'); } catch (e2) {} }
-        $('pvAiCopy').textContent = 'Copied';
-        setTimeout(function () { $('pvAiCopy').textContent = 'Copy prompt'; }, 1500);
-      };
-      $('pvDrillClose2').onclick = function () { closeDrill(); };
       renderDimChips();
+      showAi(true);
       return;
     }
 
