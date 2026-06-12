@@ -467,9 +467,9 @@ const LABS = [
       { text: 'HSRP group 1 VIP: 192.168.1.254', hint: 'standby 1 ip 192.168.1.254', check: d => d.custom.hsrpVip === '192.168.1.254' },
       { text: 'HSRP group 1 priority: 110', hint: 'standby 1 priority 110', check: d => d.custom.hsrpPriority === 110 },
       { text: 'Enable HSRP preempt', hint: 'standby 1 preempt', check: d => d.custom.hsrpPreempt === true },
-    
+
       { text: 'Verify HSRP — run: show standby brief', hint: 'end → show standby brief', check: (d, log) => log.some(c => /^(do\s+)?show\s+standby/i.test(c.cmd)) },
-    
+
       { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
     ],
     extraCmds: (dev, raw, lower) => {
@@ -875,67 +875,6 @@ const LABS = [
       if (drMatch && dev.mode === 'config-dhcp') { dev.custom.dhcpRouter = drMatch[1]; return ''; }
     }
   },
-  // ─── Lab 29: Multi-Area OSPF + Default Route + MD5 Auth (HARD) ─
-  {
-    id: 'cl29', title: 'Multi-Area OSPF + Default Route + MD5 Auth', diff: 'advanced', topics: ['3.2','3.4'],
-    desc: 'R1 is the ABR between Area 0 (backbone to R2 over 10.0.0.0/30 on Gi0/0, plus the server LAN 172.16.10.0/24 on Gi0/2) and Area 1 (branch LAN 192.168.1.0/24 on Gi0/1). ISP uplink lives on Gi0/3 to 203.0.113.1. Three jobs: (1) bring up OSPF process 100 router-id 1.1.1.1, advertise all three networks in the right areas, mark Gi0/2 passive — servers must not see hellos; (2) static default route to ISP plus default-information originate so R2/branch learn it; (3) secure Area 1 only with MD5 — area 1 authentication message-digest and key-id 1 / key cisco on Gi0/1.',
-    device: { name: 'R1', type: 'router', hostname: 'R1', interfaces: { 'GigabitEthernet0/0': { up: true, ip: '10.0.0.1' }, 'GigabitEthernet0/1': { up: true, ip: '192.168.1.1' }, 'GigabitEthernet0/2': { up: true, ip: '172.16.10.1' }, 'GigabitEthernet0/3': { up: true, ip: '203.0.113.2' }, Loopback0: { up: true, ip: '1.1.1.1' } }, custom: { _noise: { cdpNeighbors: [{ deviceId: 'R2', localIf: 'Gi0/0', portId: 'Gi0/0', platform: 'ISR4451', capability: 'R', ip: '10.0.0.2', holdtime: 162 }, { deviceId: 'BRANCH-SW1', localIf: 'Gi0/1', portId: 'Gi0/1', platform: 'WS-C2960', capability: 'S I', ip: '192.168.1.10', holdtime: 148 }, { deviceId: 'SERVER-SW1', localIf: 'Gi0/2', portId: 'Gi0/24', platform: 'WS-C2960', capability: 'S I', ip: '172.16.10.10', holdtime: 173 }, { deviceId: 'ISP-EDGE', localIf: 'Gi0/3', portId: 'Gi0/0', platform: 'ASR1001', capability: 'R', ip: '203.0.113.1', holdtime: 156 }] } } },
-    ptTopo: {devices:[{name:'R1',type:'4321',x:300,y:200},{name:'R2',type:'4321',x:550,y:120},{name:'BranchLAN',type:'2960',x:120,y:340},{name:'ServerVLAN',type:'2960',x:340,y:380},{name:'ISP',type:'4321',x:550,y:300}],links:[{d1:'R1',p1:'Gi0/0',d2:'R2',p2:'Gi0/0'},{d1:'R1',p1:'Gi0/1',d2:'BranchLAN',p2:'Gi0/1'},{d1:'R1',p1:'Gi0/2',d2:'ServerVLAN',p2:'Gi0/1'},{d1:'R1',p1:'Gi0/3',d2:'ISP',p2:'Gi0/0'}]},
-    objectives: [
-      { text: 'Start OSPF process 100', hint: 'router ospf 100', check: d => d.ospf && d.ospf.processId === 100 },
-      { text: 'OSPF router-id: 1.1.1.1', hint: 'router-id 1.1.1.1', check: d => d.ospf && d.ospf.routerId === '1.1.1.1' },
-      { text: 'Advertise 10.0.0.0/30 in Area 0', hint: 'network 10.0.0.0 0.0.0.3 area 0', check: d => d.ospf && d.ospf.networks.some(n => n.net === '10.0.0.0' && n.wildcard === '0.0.0.3' && n.area === '0') },
-      { text: 'Advertise 172.16.10.0/24 in Area 0', hint: 'network 172.16.10.0 0.0.0.255 area 0', check: d => d.ospf && d.ospf.networks.some(n => n.net === '172.16.10.0' && n.area === '0') },
-      { text: 'Advertise 192.168.1.0/24 in Area 1', hint: 'network 192.168.1.0 0.0.0.255 area 1', check: d => d.ospf && d.ospf.networks.some(n => n.net === '192.168.1.0' && n.area === '1') },
-      { text: 'Mark Gi0/2 as passive-interface', hint: 'passive-interface GigabitEthernet0/2', check: d => d.custom.passiveIfs && d.custom.passiveIfs.includes('GigabitEthernet0/2') },
-      { text: 'Add static default route via 203.0.113.1', hint: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1', check: d => d.routes.some(r => r.net === '0.0.0.0' && r.nh === '203.0.113.1') },
-      { text: 'Inject default route into OSPF', hint: 'router ospf 100 → default-information originate', check: d => d.custom.defaultInfoOrig === true },
-      { text: 'Enable Area 1 MD5 authentication', hint: 'area 1 authentication message-digest', check: d => d.custom.areaAuth && d.custom.areaAuth['1'] === 'message-digest' },
-      { text: 'Apply MD5 key 1 "cisco" on Gi0/1', hint: 'interface Gi0/1 → ip ospf message-digest-key 1 md5 cisco', check: d => { const i = d.interfaces['GigabitEthernet0/1']; return i && i.ospfMd5KeyId === 1 && i.ospfMd5Key === 'cisco'; } },
-    
-      { text: 'Verify OSPF — run: show ip ospf neighbor', hint: 'end → show ip ospf neighbor', check: (d, log) => log.some(c => /^(do\s+)?show\s+ip\s+ospf/i.test(c.cmd)) },
-    
-      { text: 'Save config — type: wr (or copy running-config startup-config)', hint: 'wr', check: (d, log) => d.custom && d.custom.configSaved === true },
-    ],
-    extraCmds: (dev, raw, lower) => {
-      const netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+area\s+(\S+)/i);
-      if (netMatch && dev.mode === 'config-router' && dev.ospf) {
-        dev.ospf.networks.push({ net: netMatch[1], wildcard: netMatch[2], area: netMatch[3] });
-        return '';
-      }
-      const ridMatch = raw.match(/^router-id\s+(\d+\.\d+\.\d+\.\d+)/i);
-      if (ridMatch && dev.mode === 'config-router' && dev.ospf) { dev.ospf.routerId = ridMatch[1]; return ''; }
-      const passMatch = raw.match(/^passive-interface\s+(\S+)/i);
-      if (passMatch && dev.mode === 'config-router') {
-        if (!dev.custom.passiveIfs) dev.custom.passiveIfs = [];
-        const norm = passMatch[1]
-          .replace(/^gi(?:gabitethernet)?/i, 'GigabitEthernet')
-          .replace(/^fa(?:stethernet)?/i, 'FastEthernet');
-        if (!dev.custom.passiveIfs.includes(norm)) dev.custom.passiveIfs.push(norm);
-        return '';
-      }
-      if (lower === 'default-information originate' && dev.mode === 'config-router') {
-        dev.custom.defaultInfoOrig = true; return '';
-      }
-      const areaAuthMatch = raw.match(/^area\s+(\S+)\s+authentication\s+message-digest/i);
-      if (areaAuthMatch && dev.mode === 'config-router') {
-        if (!dev.custom.areaAuth) dev.custom.areaAuth = {};
-        dev.custom.areaAuth[areaAuthMatch[1]] = 'message-digest';
-        return '';
-      }
-      const md5Match = raw.match(/^ip ospf message-digest-key\s+(\d+)\s+md5\s+(\S+)/i);
-      if (md5Match && dev.mode === 'config-if' && dev.currentInterface) {
-        if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
-        dev.interfaces[dev.currentInterface].ospfMd5KeyId = parseInt(md5Match[1]);
-        dev.interfaces[dev.currentInterface].ospfMd5Key = md5Match[2];
-        return '';
-      }
-      const rtMatch = raw.match(/^ip route (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
-      if (rtMatch && dev.mode === 'config') {
-        dev.routes.push({ net: rtMatch[1], mask: rtMatch[2], nh: rtMatch[3] }); return '';
-      }
-    }
-  },
 ];
 
 // ── Cert Track ───────────────────────────────────────────────
@@ -1176,7 +1115,6 @@ const LAB_VERIFY = {
   cl26: ['show ip route', 'show ip route 0.0.0.0'],
   cl27: ['show etherchannel summary', 'show etherchannel port-channel'],
   cl28: ['show ip interface brief', 'show ip dhcp pool', 'show running-config | section dhcp'],
-  cl29: ['show ip ospf neighbor', 'show ip ospf interface gi0/1', 'show ip route ospf'],
 };
 
 function showHint(id) {

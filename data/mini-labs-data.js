@@ -1051,24 +1051,18 @@ window.miniLabsData = {
   title: "VPN and IPsec Concepts",
   instructions: "Match each VPN/IPsec term on the left to its correct description on the right.",
   left: [
+    "VPN",
     "Site-to-site VPN",
     "Remote access VPN",
-    "ESP (Encapsulating Security Payload)",
-    "AH (Authentication Header)",
-    "Tunnel mode",
-    "Transport mode",
-    "GRE over IPsec"
+    "IPsec"
   ],
   right: [
+    "A secure, encrypted tunnel across an untrusted network like the internet",
     "Router-to-router, always on, connects entire networks",
     "Client-to-network, on-demand, individual user connects in",
-    "Encrypts AND authenticates the payload",
-    "Authenticates only — no encryption",
-    "Encrypts entire original packet and adds new IP header",
-    "Encrypts only the payload, original IP header unchanged",
-    "Adds multicast/broadcast support to IPsec tunnels"
+    "Provides confidentiality (encryption), integrity, and authentication"
   ],
-  connections: [[0,0],[1,1],[2,2],[3,3],[4,4],[5,5],[6,6]]
+  connections: [[0,0],[1,1],[2,2],[3,3]]
 },
 
 "5.6": {

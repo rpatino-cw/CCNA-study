@@ -89,7 +89,7 @@
 
 <div class="why">
   <strong>WHY this matters</strong>
-  Every router has one job: pick the next-hop for a packet. The routing table is the answer key. Each row tells you <em>where it learned the route</em> (code), <em>how much it trusts the source</em> (AD), and <em>how far it is</em> (metric). If two protocols know the same destination, AD breaks the tie — not metric, not preference, AD. Memorize this surface and OSPF, EIGRP, BGP, and static all collapse into one decision.
+  Every router has one job: pick the next-hop for a packet. The routing table is the answer key. Each row tells you <em>where it learned the route</em> (code), <em>how much it trusts the source</em> (AD), and <em>how far it is</em> (metric). If two protocols know the same destination, AD breaks the tie — not metric, not preference, AD. Memorize this surface and OSPF, static, and connected routes all collapse into one decision.
 </div>
 
 <div class="panel">
@@ -115,9 +115,7 @@
 <div class="panel">
   <h2>Two-protocol race — same destination, different source</h2>
   <div class="scenario">
-    <button class="btn accent" data-sc="ospf-eigrp">OSPF (AD 110) vs EIGRP (AD 90) → 10.5.0.0/16</button>
     <button class="btn accent" data-sc="static-ospf">Static (AD 1) vs OSPF (AD 110) → 10.6.0.0/16</button>
-    <button class="btn accent" data-sc="ebgp-ospf">eBGP (AD 20) vs OSPF (AD 110) → 10.7.0.0/16</button>
     <button class="btn ghost" id="scReset">Reset</button>
   </div>
   <table class="ad-table" id="raceTable">
@@ -134,13 +132,9 @@
     <tbody>
       <tr><td>Connected</td><td>0</td><td>Cannot be overridden</td></tr>
       <tr><td>Static</td><td>1</td><td>Operator promise — beats most protocols</td></tr>
-      <tr><td>eBGP</td><td>20</td><td>External BGP only</td></tr>
-      <tr><td>EIGRP (internal)</td><td>90</td><td>Cisco proprietary; replaced by EIGRP open</td></tr>
       <tr><td>OSPF</td><td>110</td><td>Same for intra-area, inter-area, external</td></tr>
       <tr><td>IS-IS</td><td>115</td><td>Common in service provider cores</td></tr>
       <tr><td>RIP</td><td>120</td><td>Legacy — hop-count metric capped at 15</td></tr>
-      <tr><td>EIGRP (external)</td><td>170</td><td>Routes redistributed into EIGRP</td></tr>
-      <tr><td>iBGP</td><td>200</td><td>Internal BGP — least trusted by default</td></tr>
       <tr><td>Floating static</td><td>&gt;protocol AD</td><td>Backup only — installs when primary dies</td></tr>
     </tbody>
   </table>
@@ -172,8 +166,6 @@
     {code:'S*',dest:'0.0.0.0/0',    rest:'[1/0] via 203.0.113.1',                    ad:'1/0',     desc:'Static default — the * means candidate default. Catches anything not in the table.'},
     {code:'O', dest:'10.3.3.0/24',  rest:'[110/2] via 192.168.1.5, 00:14:22, Gi0/1', ad:'110/2',   desc:'OSPF intra-area. AD 110, cost 2 = sum of outgoing interface costs.'},
     {code:'O', dest:'10.4.0.0/16',  rest:'[110/3] via 192.168.1.5, 00:14:22, Gi0/1', ad:'110/3',   desc:'OSPF intra-area, longer path (cost 3).'},
-    {code:'D', dest:'10.5.5.0/24',  rest:'[90/2195456] via 192.168.1.6, 00:08:11, Gi0/2', ad:'90/2195456', desc:'EIGRP internal. AD 90 — more trusted than OSPF. Composite metric is bandwidth + delay scaled.'},
-    {code:'B', dest:'10.6.0.0/16',  rest:'[20/0] via 203.0.113.5, 00:01:33',          ad:'20/0',   desc:'eBGP. AD 20. Metric 0 = MED. Used between autonomous systems.'},
     {code:'i', dest:'10.7.7.0/24',  rest:'[115/20] via 192.168.1.7, 00:22:01, Gi0/3', ad:'115/20', desc:'IS-IS. AD 115. Common in SP cores; rare in enterprise.'},
     {code:'O', dest:'10.8.0.0/16',  rest:'[110/4] via 192.168.1.5, 00:14:22, Gi0/1', ad:'110/4',   desc:'OSPF intra-area, farther reach.'}
   ];
@@ -219,9 +211,7 @@
   renderShow(null);
 
   var SC = {
-    'ospf-eigrp':{rows:[{src:'OSPF',ad:110,m:2,trust:'less'},{src:'EIGRP',ad:90,m:2195456,trust:'more — installed'}],winner:'EIGRP', why:'EIGRP AD 90 < OSPF AD 110. EIGRP wins regardless of metric values.'},
-    'static-ospf':{rows:[{src:'Static',ad:1,m:0,trust:'more — installed'},{src:'OSPF',ad:110,m:2,trust:'less'}],winner:'Static', why:'Static AD 1 beats OSPF AD 110. Operator intent > learned route.'},
-    'ebgp-ospf':{rows:[{src:'eBGP',ad:20,m:0,trust:'more — installed'},{src:'OSPF',ad:110,m:2,trust:'less'}],winner:'eBGP', why:'eBGP AD 20 < OSPF AD 110. eBGP wins. (Only true for eBGP — iBGP AD 200 would lose.)'}
+    'static-ospf':{rows:[{src:'Static',ad:1,m:0,trust:'more — installed'},{src:'OSPF',ad:110,m:2,trust:'less'}],winner:'Static', why:'Static AD 1 beats OSPF AD 110. Operator intent > learned route.'}
   };
   function renderRace(key){
     var v = document.getElementById('raceVerdict');
@@ -244,14 +234,12 @@
 
   var QUIZ = [
     {q:'A route shows <code>O 10.3.3.0/24 [110/2]</code>. What does the 110 mean?', a:'Administrative Distance — how trusted the source is', opts:['Hop count','Metric / cost','Administrative Distance — how trusted the source is','Number of equal-cost paths']},
-    {q:'Same destination learned via OSPF (AD 110) and EIGRP (AD 90). Which installs in the routing table?', a:'EIGRP — lower AD wins', opts:['OSPF — higher AD wins','EIGRP — lower AD wins','Both load-balance','Whichever arrived first']},
+    {q:'Same destination learned via OSPF (AD 110) and a static route (AD 1). Which installs in the routing table?', a:'Static — lower AD wins', opts:['OSPF — higher AD wins','Static — lower AD wins','Both load-balance','Whichever arrived first']},
     {q:'What is the AD of a connected route?', a:'0', opts:['0','1','5','110']},
     {q:'What does the L code mean in show ip route?', a:'Local — /32 of the router\'s own interface IP', opts:['Loopback','Learned via LSA','Local — /32 of the router\'s own interface IP','Last-hop']},
     {q:'A floating static route is configured with AD 200. When does it install?', a:'Only when the primary route disappears', opts:['Always — it overrides protocols','Only when the primary route disappears','Never — AD too high','Only on weekends']},
     {q:'What is the default AD of a static route?', a:'1', opts:['0','1','20','110']},
-    {q:'Which is more trusted: eBGP or iBGP?', a:'eBGP (AD 20) is more trusted than iBGP (AD 200)', opts:['iBGP — internal is safer','eBGP (AD 20) is more trusted than iBGP (AD 200)','They are equal','Depends on metric']},
     {q:'A route shows <code>S* 0.0.0.0/0 [1/0]</code>. What does the * mean?', a:'Candidate default route', opts:['Wildcard match','Candidate default route','Stale entry','Summary route']},
-    {q:'EIGRP internal AD is 90. What is EIGRP external AD?', a:'170', opts:['90','110','170','200']},
     {q:'Two OSPF routes to the same destination — one cost 2, one cost 3. Which installs?', a:'Cost 2 — same AD, lower metric wins', opts:['Cost 3','Cost 2 — same AD, lower metric wins','Both load-balance equally','Neither — drops']},
     {q:'What is the IS-IS code in show ip route?', a:'i', opts:['I','i','IS','S']},
     {q:'Why does a connected route\'s AD of 0 matter?', a:'Nothing can override it — physical layer truth wins', opts:['It hides the route','Nothing can override it — physical layer truth wins','It blocks all other protocols','Cisco accidentally set it']}

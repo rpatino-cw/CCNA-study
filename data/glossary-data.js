@@ -165,7 +165,6 @@ window.glossaryTerms = [
   // ── IEEE 802 Standards ──────────────────────────────────────
   {t:"802.1D",d:"IEEE standard for Spanning Tree Protocol (STP). Prevents Layer 2 loops by placing redundant ports in blocking state.",domains:["2"],related:["STP","802.1w","Root Bridge"]},
   {t:"802.1w",d:"IEEE standard for Rapid Spanning Tree Protocol (RSTP). Faster convergence than 802.1D; replaces blocking with discarding state.",domains:["2"],related:["RSTP","802.1D","802.1s"]},
-  {t:"802.1s",d:"IEEE standard for Multiple Spanning Tree (MST). Maps multiple VLANs to fewer STP instances to reduce overhead.",domains:["2"],related:["STP","RSTP","VLAN"]},
   {t:"802.3",d:"IEEE standard defining Ethernet. Covers framing, media access, physical signaling, and speed specifications for wired LANs.",domains:["1"],related:["Ethernet","MAC Address","Frame"]},
   {t:"802.3af",d:"IEEE Power over Ethernet standard. Delivers up to 15.4W per port. Class 0-3 devices.",domains:["1"],cmd:"show power inline",related:["PoE","802.3at","802.3bt"]},
   {t:"802.3at",d:"IEEE PoE+ standard. Delivers up to 30W per port. Supports Class 4 devices like IP phones with color screens and dual-radio APs.",domains:["1"],related:["PoE","802.3af","802.3bt"]},
@@ -209,10 +208,6 @@ window.glossaryTerms = [
   {t:"Data Plane",d:"The part of a network device that forwards packets/frames based on decisions made by the control plane. Also called forwarding plane.",domains:["1","3"],related:["Control Plane","Management Plane","CEF"]},
   {t:"Management Plane",d:"The part of a network device used for administrative access — SSH, SNMP, syslog, NTP. Separate from data/control planes.",domains:["1","3"],related:["Control Plane","Data Plane","SSH"]},
   {t:"OSPF Neighbor States",d:"The progression of OSPF adjacency: Down, Init, 2-Way, ExStart, Exchange, Loading, Full.",domains:["3"],related:["OSPF","DR","Adjacency"]},
-  {t:"OSPF LSA Types",d:"Type 1 (Router), Type 2 (Network), Type 3 (Summary), Type 4 (ASBR Summary), Type 5 (External), Type 7 (NSSA External).",domains:["3"],related:["LSA","OSPF","Area"]},
-  {t:"Stub Area",d:"An OSPF area that does not accept external (Type 5) LSAs. Uses a default route to reach external destinations.",domains:["3"],cmd:"area 1 stub",related:["OSPF","NSSA","Totally Stubby Area"]},
-  {t:"NSSA",d:"Not-So-Stubby Area — an OSPF stub area that allows limited external route injection via Type 7 LSAs.",domains:["3"],cmd:"area 1 nssa",related:["Stub Area","OSPF","LSA"]},
-  {t:"Totally Stubby Area",d:"An OSPF area that blocks both external (Type 5) and inter-area (Type 3) LSAs. Only default route injected by ABR.",domains:["3"],cmd:"area 1 stub no-summary",related:["Stub Area","NSSA","ABR"]},
   {t:"HSRP Preemption",d:"HSRP feature where a higher-priority router reclaims active role when it comes back online. Must be explicitly enabled.",domains:["3"],cmd:"standby 1 preempt",related:["HSRP","FHRP"]},
   {t:"Gratuitous ARP",d:"An ARP reply sent without a request. Used by FHRP to update MAC tables when a virtual IP moves between routers.",domains:["1","3"],related:["ARP","HSRP","FHRP"]},
   {t:"Proxy ARP",d:"A router answers ARP requests on behalf of hosts on another subnet, making remote hosts appear to be on the local LAN.",domains:["1","3"],cmd:"ip proxy-arp",related:["ARP","Default Gateway"]},
@@ -260,8 +255,6 @@ window.glossaryTerms = [
   {t:"Named ACL",d:"An ACL identified by a descriptive name instead of a number. Easier to manage and allows insertion/deletion of specific entries.",domains:["5"],cmd:"ip access-list extended BLOCK_TELNET",related:["ACL","Standard ACL","Extended ACL"]},
   {t:"Site-to-Site VPN",d:"An IPsec tunnel connecting two networks (e.g., branch to HQ). Traffic is encrypted between the two VPN endpoints.",domains:["5"],related:["VPN","IPsec","GRE"]},
   {t:"Remote Access VPN",d:"VPN allowing individual users to connect securely to a corporate network from any location. Uses SSL or IPsec.",domains:["5"],related:["VPN","SSL VPN","IPsec"]},
-  {t:"GRE Tunnel",d:"Generic Routing Encapsulation — creates a point-to-point tunnel that can encapsulate many protocols. No encryption by itself.",domains:["3","5"],cmd:"interface Tunnel0",related:["IPsec","VPN"]},
-
   // ── WAN & Tunneling ─────────────────────────────────────────
   {t:"MPLS",d:"Multiprotocol Label Switching — WAN technology that forwards packets using labels instead of IP lookups for faster, flexible routing.",domains:["1","3"],related:["Metro Ethernet","SD-WAN"]},
   {t:"VXLAN",d:"Virtual Extensible LAN — overlay technology that encapsulates Layer 2 frames in UDP for transport over Layer 3 networks. 24-bit VNI.",domains:["1","6"],related:["Overlay","Underlay","Fabric"]},
@@ -281,7 +274,6 @@ window.glossaryTerms = [
   // ── Additional Fundamentals ─────────────────────────────────
   {t:"Decapsulation",d:"The process of removing protocol headers as data moves up the OSI layers at the receiving host. Reverse of encapsulation.",domains:["1"],related:["Encapsulation","OSI Model","PDU"]},
   {t:"Wireshark",d:"Open-source packet capture and protocol analyzer. Captures traffic on a NIC and decodes all protocol layers for troubleshooting.",domains:["1"],related:["Packet Capture","Encapsulation"]},
-  {t:"EIGRP",d:"Enhanced Interior Gateway Routing Protocol — Cisco advanced distance-vector (hybrid). Uses DUAL algorithm. Composite metric. AD=90.",domains:["3"],cmd:"router eigrp 100",related:["OSPF","Distance Vector","Administrative Distance"]},
   {t:"LSDB",d:"Link-State Database — the complete topology map built by an OSPF router from received LSAs. Input for Dijkstra's SPF algorithm.",domains:["3"],related:["LSA","OSPF","SPF Algorithm"]},
   {t:"Adjacency",d:"A two-way relationship between OSPF neighbors that have fully exchanged LSDBs. Required for route sharing.",domains:["3"],related:["OSPF","OSPF Neighbor States","DR"]},
   {t:"ASBR",d:"Autonomous System Boundary Router — an OSPF router that redistributes routes from another routing protocol or AS into OSPF.",domains:["3"],related:["ABR","OSPF","Area"]},

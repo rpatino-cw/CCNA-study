@@ -196,54 +196,6 @@
     "fixHint": "On R2 Gi0/x: `ip ospf message-digest-key 1 md5 CISCO123` and `ip ospf authentication message-digest`."
   },
   {
-    "id": "ts-l3-05",
-    "title": "EIGRP K-value mismatch",
-    "category": "L3",
-    "difficulty": "advanced",
-    "topics": [
-      "3.5"
-    ],
-    "scenario": "R1 and R2 are configured for EIGRP AS 100 over Gi0/0. The neighbor flapped after R2 was reloaded with a new template config. R1's neighbor table is empty.",
-    "initialView": [
-      {
-        "cmd": "R1# show ip eigrp neighbors",
-        "output": "EIGRP-IPv4 Neighbors for AS(100)\nH   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq\n                                                   (sec)         (ms)       Cnt Num"
-      }
-    ],
-    "showCommands": {
-      "show ip eigrp interfaces": "EIGRP-IPv4 Interfaces for AS(100)\n                              Xmit Queue   PeerQ        Mean   Pacing Time   Multicast    Pending\nInterface              Peers  Un/Reliable  Un/Reliable  SRTT   Un/Reliable   Flow Timer   Routes\nGi0/0                    0      0/0          0/0           0    0/0             0           0",
-      "show running-config | section router eigrp": "router eigrp 100\n network 10.0.12.0 0.0.0.255\n metric weights 0 2 0 1 0 0",
-      "show log | include EIGRP|DUAL": "%DUAL-5-NBRCHANGE: EIGRP-IPv4 100: Neighbor 10.0.12.2 (GigabitEthernet0/0) is down: K-value mismatch\n%DUAL-5-NBRCHANGE: EIGRP-IPv4 100: Neighbor 10.0.12.2 (GigabitEthernet0/0) is down: K-value mismatch",
-      "show ip protocols": "*** IP Routing is NSF aware ***\n\nRouting Protocol is \"eigrp 100\"\n  Outgoing update filter list for all interfaces is not set\n  Incoming update filter list for all interfaces is not set\n  Default networks flagged in outgoing updates\n  Default networks accepted from incoming updates\n  EIGRP-IPv4 Protocol for AS(100)\n    Metric weight K1=2, K2=0, K3=1, K4=0, K5=0\n    NSF-aware route hold timer is 240\n    Router-ID: 1.1.1.1\n    Topology : 0 (base)\n      Active Timer: 3 min\n      Distance: internal 90 external 170",
-      "show running-config interface gi0/0": "interface GigabitEthernet0/0\n ip address 10.0.12.1 255.255.255.0\n duplex auto\n speed auto\nend"
-    },
-    "question": "What is the root cause?",
-    "choices": [
-      {
-        "text": "EIGRP AS number mismatch",
-        "correct": false,
-        "explain": "AS mismatch produces no log entry \u2014 packets are silently dropped because the AS doesn't match. Here R1 explicitly logs 'K-value mismatch'."
-      },
-      {
-        "text": "R1 has non-default K-values (K1=2,K3=1) \u2014 R2 likely uses defaults (K1=K3=1)",
-        "correct": true,
-        "explain": "Syslog shows 'K-value mismatch'. `show ip protocols` confirms R1's K-values are K1=2, K3=1 (non-default). R2 with default K1=1,K3=1 won't peer."
-      },
-      {
-        "text": "Interface Gi0/0 is shut",
-        "correct": false,
-        "explain": "`show ip eigrp interfaces` lists Gi0/0 as active \u2014 the interface is enabled in EIGRP."
-      },
-      {
-        "text": "Authentication mismatch",
-        "correct": false,
-        "explain": "No 'authentication mismatch' log. The specific error is K-value mismatch."
-      }
-    ],
-    "rootCause": "`%DUAL-5-NBRCHANGE: ... K-value mismatch` plus `metric weights 0 2 0 1 0 0` in R1's running-config shows R1 has K1=2, K3=1 \u2014 non-default. R2 still has defaults (1,0,1,0,0), so EIGRP refuses adjacency.",
-    "fixHint": "On R1: `router eigrp 100` \u2192 `no metric weights 0 2 0 1 0 0` to return to defaults (or set R2 to match)."
-  },
-  {
     "id": "ts-l3-06",
     "title": "Static route with unreachable next-hop",
     "category": "L3",

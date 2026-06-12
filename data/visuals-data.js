@@ -505,45 +505,6 @@ window.visualsData = [
           </svg>`
   },
   {
-    id: "ospf-areas-router-roles",
-    title: "OSPF Areas & Router Roles",
-    desc: "OSPF is the most tested routing protocol. Know areas (all non-backbone must connect to Area 0), DR/BDR election on broadcast segments, cost = reference BW / interface BW, and ABR vs ASBR roles.",
-    domain: "3",
-    topic: "3.4",
-    group: null,
-    deepDive: "visuals/ospf.html",
-    svg: `<svg viewBox="0 0 360 230" xmlns="http://www.w3.org/2000/svg">
-            <!-- Area 0 backbone -->
-            <rect x="80" y="40" width="200" height="80" rx="8" fill="none" stroke="#D97706" stroke-width="2"/>
-            <text x="180" y="34" class="anno-bold" text-anchor="middle" style="fill:#D97706">Area 0 (Backbone)</text>
-
-            <!-- Internal routers in Area 0 -->
-            <circle cx="130" cy="75" r="14" fill="#D97706"/><text x="130" y="79" class="pkt-label" text-anchor="middle">IR</text>
-            <circle cx="230" cy="75" r="14" fill="#D97706"/><text x="230" y="79" class="pkt-label" text-anchor="middle">IR</text>
-            <line x1="144" y1="75" x2="216" y2="75" stroke="#D97706" stroke-width="1.5"/>
-
-            <!-- ABR to Area 1 -->
-            <circle cx="80" cy="80" r="14" fill="#2563EB" stroke="#D97706" stroke-width="2"/><text x="80" y="84" class="pkt-label" text-anchor="middle">ABR</text>
-            <rect x="10" y="130" width="110" height="60" rx="8" fill="none" stroke="#2563EB" stroke-width="2"/>
-            <text x="65" y="148" class="anno-bold" text-anchor="middle" style="fill:#2563EB">Area 1</text>
-            <line x1="72" y1="94" x2="55" y2="130" stroke="#2563EB" stroke-width="1.5"/>
-            <circle cx="45" cy="165" r="10" fill="#2563EB"/><text x="45" y="169" style="font-size:7px;fill:#fff;font-weight:700" text-anchor="middle">IR</text>
-            <circle cx="85" cy="165" r="10" fill="#2563EB"/><text x="85" y="169" style="font-size:7px;fill:#fff;font-weight:700" text-anchor="middle">IR</text>
-
-            <!-- ABR to Area 2 -->
-            <circle cx="280" cy="80" r="14" fill="#7C3AED" stroke="#D97706" stroke-width="2"/><text x="280" y="84" class="pkt-label" text-anchor="middle">ABR</text>
-            <rect x="240" y="130" width="110" height="60" rx="8" fill="none" stroke="#7C3AED" stroke-width="2"/>
-            <text x="295" y="148" class="anno-bold" text-anchor="middle" style="fill:#7C3AED">Area 2</text>
-            <line x1="288" y1="94" x2="305" y2="130" stroke="#7C3AED" stroke-width="1.5"/>
-            <circle cx="275" cy="165" r="10" fill="#7C3AED"/><text x="275" y="169" style="font-size:7px;fill:#fff;font-weight:700" text-anchor="middle">IR</text>
-            <circle cx="315" cy="165" r="10" fill="#7C3AED"/><text x="315" y="169" style="font-size:7px;fill:#fff;font-weight:700" text-anchor="middle">IR</text>
-
-            <!-- Legend -->
-            <text x="20" y="215" class="anno">ABR = Area Border Router (connects non-backbone to Area 0)</text>
-            <text x="20" y="228" class="anno">IR = Internal Router (all interfaces in one area)</text>
-          </svg>`
-  },
-  {
     id: "administrative-distance-ad",
     title: "Administrative Distance (AD)",
     desc: "AD values are heavily tested. Memorize: Connected=0, Static=1, eBGP=20, EIGRP=90, OSPF=110, IS-IS=115, RIP=120, iBGP=200. When two protocols know the same route, lowest AD wins.",
@@ -1779,12 +1740,12 @@ window.visualsData = [
   {
     id: "ipsec-vpn",
     title: "IPsec VPN Tunnel",
-    desc: "Site-to-site VPN encrypts traffic between two locations over the internet. Know IKE Phase 1 (SA negotiation) and Phase 2 (IPsec SA for actual data encryption).",
+    desc: "A VPN creates a secure connection over an untrusted network like the internet. Remote-access VPNs connect an individual user to the network; site-to-site VPNs connect two entire locations. IPsec secures the tunnel by providing encryption (confidentiality), data integrity, and authentication.",
     domain: "5",
     topic: "5.5",
     group: null,
     deepDive: null,
-    svg: `<svg viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg">
+    svg: `<svg viewBox="0 0 360 230" xmlns="http://www.w3.org/2000/svg">
             <!-- R1 -->
             <rect x="20" y="40" width="70" height="32" rx="4" fill="#2563EB"/>
             <text x="55" y="56" class="layer-label" text-anchor="middle">R1</text>
@@ -1818,24 +1779,12 @@ window.visualsData = [
             <text x="310" y="123" class="cmd-text" text-anchor="middle">10.2.0.0/24</text>
             <line x1="310" y1="72" x2="310" y2="98" stroke="#94A3B8" stroke-width="1"/>
 
-            <!-- IKE Phase 1 -->
-            <rect x="15" y="145" width="155" height="65" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#D97706" stroke-width="1"/>
-            <text x="92" y="162" class="anno-bold" text-anchor="middle" style="fill:#D97706">IKE Phase 1</text>
-            <text x="92" y="176" class="anno" text-anchor="middle">ISAKMP SA negotiation</text>
-            <text x="30" y="190" class="dim-text">Auth, Encryption, Hash</text>
-            <text x="30" y="202" class="dim-text">DH Group, Lifetime</text>
-
-            <!-- IKE Phase 2 -->
-            <rect x="190" y="145" width="155" height="65" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#16A34A" stroke-width="1"/>
-            <text x="267" y="162" class="anno-bold" text-anchor="middle" style="fill:#16A34A">IKE Phase 2</text>
-            <text x="267" y="176" class="anno" text-anchor="middle">IPsec SA (data tunnel)</text>
-            <text x="205" y="190" class="dim-text">ESP (encrypt+auth) or</text>
-            <text x="205" y="202" class="dim-text">AH (auth only), Transform set</text>
-
-            <!-- Key protocols -->
-            <rect x="15" y="225" width="330" height="44" rx="4" fill="#1C1917"/>
-            <text x="25" y="241" style="font-size:8px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">ESP (Protocol 50): Encrypts + authenticates</text>
-            <text x="25" y="256" style="font-size:8px;fill:#94A3B8;font-family:'JetBrains Mono',monospace">AH  (Protocol 51): Authenticates only (no encryption)</text>
+            <!-- What IPsec provides (describe-level) -->
+            <rect x="15" y="145" width="330" height="70" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#D97706" stroke-width="1"/>
+            <text x="180" y="162" class="anno-bold" text-anchor="middle" style="fill:#D97706">IPsec protects the tunnel</text>
+            <text x="30" y="180" class="anno">Confidentiality — traffic is encrypted</text>
+            <text x="30" y="194" class="anno">Integrity — data cannot be altered undetected</text>
+            <text x="30" y="208" class="anno">Authentication — verifies the remote peer</text>
           </svg>`
   },
   {
