@@ -26,6 +26,7 @@
       { text: 'Config Visualizer', href: 'config-visualizer.html' },
       { text: 'Port & Numbers Flash', href: 'port-flash.html' },
       { text: 'P1: OSPF Deep', href: 'p1-ospf.html' },
+      { text: 'OSPF Troubleshoot Sim ✦', href: 'ospf-troubleshoot.html' },
       { text: 'P1: Routing Table', href: 'p1-routing.html' },
       { text: 'P1: Static Routing', href: 'p1-static.html' },
       { text: 'P1: NAT and PAT', href: 'p1-nat.html' },
@@ -263,7 +264,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.3.1</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.3.2</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
