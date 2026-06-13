@@ -216,9 +216,7 @@
     <thead><tr><th>Primary protocol</th><th>Default AD</th><th>Floating-static AD to use</th></tr></thead>
     <tbody>
       <tr><td>OSPF</td><td>110</td><td>≥111 (typical: 130)</td></tr>
-      <tr><td>EIGRP internal</td><td>90</td><td>≥91 (typical: 130)</td></tr>
       <tr><td>RIP</td><td>120</td><td>≥121 (typical: 130 or 200)</td></tr>
-      <tr><td>iBGP</td><td>200</td><td>≥201 (typical: 250)</td></tr>
     </tbody>
   </table>
   <p><strong>HA pattern:</strong> primary path = dynamic protocol. Backup = floating static via secondary uplink. If OSPF withdraws the route, floating static takes over. Failover = sub-second to seconds.</p>
@@ -532,7 +530,6 @@
     {id:33,cat:'float',sub:'3.3.d',stem:'A floating static route is:',opts:['/32 to a loopback','A static route with manually-raised AD, used as backup behind a primary protocol','Tunnel','Multicast'],ans:'A static route with manually-raised AD, used as backup behind a primary protocol',why:'<strong>Floating = static + raised AD.</strong> AD &gt; primary protocol = inactive until primary fails.'},
     {id:34,cat:'float',sub:'3.3.d',stem:'Configure a floating static for 10.10.20.0/24 via 10.10.10.99 to back up OSPF:',opts:['ip route 10.10.20.0 255.255.255.0 10.10.10.99','ip route 10.10.20.0 255.255.255.0 10.10.10.99 130','ip floating 10.10.20.0 10.10.10.99','floating-static 10.10.20.0 10.10.10.99'],ans:'ip route 10.10.20.0 255.255.255.0 10.10.10.99 130',why:'<strong>AD 130 &gt; OSPF AD 110.</strong> While OSPF route is up, this static is dormant. OSPF withdraws → floating takes over.'},
     {id:35,cat:'float',sub:'3.3.d',stem:'You\'re backing up RIP (AD 120). Which floating-static AD works?',opts:['10','100','120 (same)','125 or higher'],ans:'125 or higher',why:'<strong>Must EXCEED primary AD.</strong> Same AD = ECMP (both used). Lower = always wins (not floating). 125+ = backup.'},
-    {id:36,cat:'float',sub:'3.3.d',stem:'Backing up iBGP (AD 200) with floating static — minimum AD?',opts:['100','110','201 or higher','255 always'],ans:'201 or higher',why:'<strong>Above primary AD.</strong> iBGP = 200, so floating &gt;= 201. AD 255 = unreachable (route never installs); avoid.'},
     {id:37,cat:'float',sub:'3.3.d',stem:'Floating static is currently DORMANT (primary OSPF up). What does show ip route show?',opts:['Floating route in active table with AD 130','Only OSPF route — floating not in RIB','Both','Drops'],ans:'Only OSPF route — floating not in RIB',why:'<strong>Loser of AD comparison = suppressed.</strong> Not in RIB. Static is configured (visible in <code>show running-config</code>) but not active. When OSPF withdraws, static gets installed.'},
     {id:38,cat:'float',sub:'3.3.d',stem:'Failover time when OSPF dies and floating static activates?',opts:['Instant','Hours','Sub-second to seconds (depends on OSPF dead-interval, typically 40s default)','Days'],ans:'Sub-second to seconds (depends on OSPF dead-interval, typically 40s default)',why:'<strong>Driven by primary protocol convergence.</strong> OSPF detects neighbor down via Hello/dead timers (default 40s on Ethernet). BFD can shorten to ms.'},
     {id:39,cat:'float',sub:'3.3.d',stem:'Floating static for IPv6?',opts:['Not supported','<code>ipv6 route PREFIX/LEN NEXT-HOP AD</code> — same concept','Different syntax entirely','Auto-only'],ans:'<code>ipv6 route PREFIX/LEN NEXT-HOP AD</code> — same concept',why:'<strong>Same syntax + behavior as IPv4.</strong> Just IPv6 prefix instead. <code>ipv6 route 2001:db8::/32 2001:db8:99::1 130</code>.'},

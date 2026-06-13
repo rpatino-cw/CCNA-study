@@ -595,25 +595,23 @@
       "id": "1.2.c.8",
       "term": "VXLAN overlay",
       "weight": "med",
-      "info": "<p><strong>VXLAN (Virtual Extensible LAN)</strong> is the overlay protocol almost always paired with a spine-leaf fabric. It encapsulates Ethernet frames inside UDP packets so Layer 2 segments can extend across a Layer 3 fabric.</p><p><strong>The problem VXLAN solves:</strong> spine-leaf is pure L3 — every link is routed, no STP, no native L2 extension. But applications and VMs often expect L2 adjacency (same subnet, same broadcast domain), especially for VM mobility. Without an overlay, you would have to give every leaf L2 membership in every VLAN, which doesn't scale and defeats the L3 design.</p><p><strong>How VXLAN works:</strong></p><ul><li>Each leaf acts as a <strong>VTEP (VXLAN Tunnel Endpoint)</strong>.</li><li>A VM sends an Ethernet frame destined for another VM.</li><li>The ingress VTEP (local leaf) wraps the frame with a VXLAN header (24-bit VNI — VXLAN Network Identifier) and a UDP/IP header.</li><li>The encapsulated packet is routed across the L3 fabric via ECMP across spines.</li><li>The egress VTEP (remote leaf) strips the encapsulation and delivers the original frame to the destination VM.</li></ul><p><strong>Key numbers:</strong> VXLAN VNI is <strong>24 bits</strong> → 16 million segments (vs 4094 VLANs with 12-bit VLAN IDs). UDP port <strong>4789</strong>. Adds 50 bytes of overhead (so MTU on fabric links should be 1600+ or jumbo).</p><p><strong>Control plane:</strong> modern VXLAN uses <strong>EVPN (Ethernet VPN)</strong> via BGP to distribute MAC/IP reachability between VTEPs. This is called <strong>VXLAN EVPN</strong> and is the standard deployment model. Cisco's ACI is a VXLAN EVPN implementation.</p>",
+      "info": "<p><strong>VXLAN (Virtual Extensible LAN)</strong> is an overlay used in data-center fabrics, almost always paired with a spine-leaf design. Conceptually it lets a Layer 2 segment extend across a Layer 3 fabric — it tunnels L2 over L3.</p><p><strong>The problem VXLAN solves:</strong> spine-leaf is pure L3 — every link is routed, no STP, no native L2 extension. But applications and VMs often expect L2 adjacency (same subnet, same broadcast domain), especially for VM mobility. An overlay like VXLAN carries those L2 segments across the routed fabric so the L3 design still works.</p><p><strong>CCNA scope:</strong> you only need the concept — VXLAN is the overlay that tunnels Layer 2 over a Layer 3 data-center fabric. The encapsulation details and control-plane internals are beyond CCNA.</p>",
       "visual": {
         "type": "encapsulation",
         "params": {
           "layers": [
-            "VM sends Ethernet frame",
-            "Ingress VTEP adds VXLAN + UDP + IP",
-            "Routed across spine-leaf fabric (ECMP)",
-            "Egress VTEP strips encap",
-            "Destination VM receives original frame"
+            "L2 segment on Leaf A",
+            "Tunneled across the L3 spine-leaf fabric",
+            "Same L2 segment reachable on Leaf B"
           ],
           "highlight": 1
         }
       },
       "hack": {
-        "memory": "VXLAN = shipping a letter (Ethernet frame) inside a shipping box (UDP/IP). The L3 fabric sees only the box. When the box arrives at the remote leaf, it opens the box and hands the letter to the VM. 24-bit VNI = 16 million possible boxes.",
-        "practice": "Research a simple VXLAN diagram. Identify the inner Ethernet frame, the VXLAN header (VNI), the outer UDP (port 4789), the outer IP (VTEP-to-VTEP). You won't configure VXLAN on CCNA, but know the encapsulation and the acronym VTEP.",
-        "effort": "medium",
-        "meta": "CCNA exposure is conceptual. Wendell Odom OCG Chapter 11 touches it. Exam: know VXLAN is the overlay used with spine-leaf, VNI is 24-bit, runs over UDP 4789, and EVPN is the control plane."
+        "memory": "VXLAN = an overlay that lets a Layer 2 segment ride across a Layer 3 data-center fabric. Picture the same VLAN appearing on two different leaves even though the fabric between them is fully routed.",
+        "practice": "Sketch a spine-leaf fabric and show one L2 segment present on two separate leaves, carried over the routed fabric between them. You won't configure VXLAN on CCNA — just hold the concept: overlay that tunnels L2 over L3.",
+        "effort": "low",
+        "meta": "CCNA exposure is conceptual only. Wendell Odom OCG Chapter 11 touches it. Exam: know VXLAN is the overlay used with spine-leaf data-center fabrics that extends Layer 2 over a Layer 3 fabric."
       }
     }
   ],
@@ -647,25 +645,25 @@
       "id": "1.2.d.2",
       "term": "MPLS",
       "weight": "high",
-      "info": "<p><strong>MPLS (Multiprotocol Label Switching)</strong> is a provider-managed, private WAN service that uses short <strong>labels</strong> instead of IP routing to forward packets across the provider's backbone. To the customer, it looks like a private network where every site can reach every other site with guaranteed performance.</p><p><strong>How MPLS forwards:</strong></p><ul><li>At the provider edge (PE router), each incoming packet gets one or more labels pushed onto its header.</li><li>Inside the provider core (P routers), forwarding is done by <strong>label lookup</strong> instead of IP lookup — faster, simpler, and independent of customer IP routes.</li><li>At the egress PE, the label is popped and the original packet is delivered to the destination site.</li></ul><p><strong>Common MPLS service types on CCNA:</strong></p><ul><li><strong>MPLS L3 VPN</strong> — the provider runs a separate routing instance (VRF) per customer and routes between your sites. You peer with the provider via BGP or static routes. Each site looks like a neighbor.</li><li><strong>MPLS L2 VPN / VPLS</strong> — the provider gives you an Ethernet-like L2 service between sites. Your routers see each other as L2 neighbors, even though the provider is actually using MPLS underneath.</li></ul><p><strong>Strengths:</strong></p><ul><li><strong>Guaranteed SLAs</strong> — bandwidth, latency, jitter, packet loss all contractually guaranteed.</li><li><strong>QoS support</strong> — provider honors QoS markings end-to-end.</li><li><strong>Any-to-any connectivity</strong> — no hub-and-spoke limitation.</li><li><strong>Mature and reliable</strong> — 20+ years of enterprise deployment.</li></ul><p><strong>Weaknesses:</strong></p><ul><li><strong>Expensive</strong> — dollars per Mbps is much higher than broadband.</li><li><strong>Slow to provision</strong> — adding a new site can take weeks.</li><li><strong>Being displaced</strong> — SD-WAN is taking enterprise share because it runs over cheap internet.</li></ul>",
+      "info": "<p><strong>MPLS (Multiprotocol Label Switching)</strong> is a provider-managed, private WAN service offered by service providers. To the customer, it looks like a private network where every site can reach every other site with guaranteed performance. On CCNA you only need to recognize MPLS as one of the WAN connectivity options and know when it might be chosen.</p><p><strong>Strengths:</strong></p><ul><li><strong>Guaranteed SLAs</strong> — bandwidth, latency, jitter, packet loss all contractually guaranteed.</li><li><strong>QoS support</strong> — provider honors QoS markings end-to-end.</li><li><strong>Any-to-any connectivity</strong> — no hub-and-spoke limitation.</li><li><strong>Mature and reliable</strong> — 20+ years of enterprise deployment.</li></ul><p><strong>Weaknesses:</strong></p><ul><li><strong>Expensive</strong> — dollars per Mbps is much higher than broadband.</li><li><strong>Slow to provision</strong> — adding a new site can take weeks.</li><li><strong>Being displaced</strong> — SD-WAN is taking enterprise share because it runs over cheap internet. Compare MPLS to SD-WAN when choosing a WAN.</li></ul>",
       "visual": {
         "type": "packet-flow",
         "params": {
           "nodes": [
-            "CE (customer)",
-            "PE (push label)",
-            "P (label switch)",
-            "PE (pop label)",
-            "CE (customer)"
+            "Site A (customer)",
+            "Provider edge",
+            "Provider MPLS backbone",
+            "Provider edge",
+            "Site B (customer)"
           ],
           "color": "#8b5cf6"
         }
       },
       "hack": {
-        "memory": "MPLS = private toll road. You pay for guaranteed lane width (bandwidth), speed limit (latency), and you can haul anything (QoS respected). Provider slaps a colored sticker (label) on your truck at the entrance and routes by sticker color across the backbone, not by the address on the package.",
-        "practice": "Draw a customer with HQ + 3 branches connected via MPLS. Each site has a CE router connected to a provider PE. Inside the cloud, packets are label-switched. Compare to internet VPN — MPLS has SLAs, internet doesn't.",
+        "memory": "MPLS = private toll road. You pay for guaranteed lane width (bandwidth), speed limit (latency), and you can haul anything (QoS respected). It is a private WAN option from the provider — compare it to SD-WAN, which runs over cheap internet without the SLA.",
+        "practice": "Draw a customer with HQ + 3 branches connected via MPLS, each site linked to the provider cloud. Compare to an internet VPN — MPLS has SLAs, internet doesn't. That tradeoff (private SLA vs cheap internet) is the MPLS-vs-SD-WAN comparison.",
         "effort": "medium",
-        "meta": "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam favorite: 'Which WAN provides guaranteed SLAs?' = MPLS. Know L3VPN vs L2VPN at a high level."
+        "meta": "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam favorite: 'Which WAN provides guaranteed SLAs?' = MPLS. CCNA covers MPLS at name-recognition level only and tests the MPLS-vs-SD-WAN comparison."
       }
     },
     {

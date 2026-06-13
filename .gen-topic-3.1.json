@@ -53,19 +53,6 @@
       }
     },
     {
-      "id": "3.1.a.5",
-      "term": "Code D (EIGRP)",
-      "weight": "high",
-      "info": "<p>The <strong>D</strong> code marks a route learned via <strong>EIGRP (Enhanced Interior Gateway Routing Protocol)</strong>. The letter D is used because EIGRP's core algorithm is called <strong>DUAL — Diffusing Update Algorithm</strong>. Cisco couldn't use E (already taken for Egp/Exterior), so they picked D for DUAL.</p><p>Example entry:</p><pre>D  10.1.1.0/24 [90/2172416] via 192.168.1.2, 00:10:04, GigabitEthernet0/1</pre><p>Key fields: <strong>D</strong> = EIGRP. <strong>[90/2172416]</strong> = AD 90, metric (composite, large number). <strong>via 192.168.1.2</strong> = next-hop. The metric looks large because EIGRP multiplies bandwidth and delay values to form a composite metric — often in the millions.</p><p><strong>EIGRP has two related codes:</strong></p><ul><li><strong>D</strong> — internal EIGRP route (learned from another router running EIGRP in the same AS). <strong>AD = 90.</strong></li><li><strong>D EX</strong> — external EIGRP route (redistributed into EIGRP from another protocol). <strong>AD = 170.</strong> Cisco trusts redistributed routes less than native EIGRP routes.</li></ul><p><strong>Why EIGRP internal AD is 90 (lower than OSPF 110):</strong> Cisco designed EIGRP to be preferred over OSPF when both are running. This reflects Cisco's historical bias — EIGRP was proprietary for decades. Today EIGRP is technically open (RFC 7868) but still heavily Cisco.</p><p><strong>EIGRP composite metric</strong> uses (by default) <strong>bandwidth + delay</strong>. Cisco's formula: <code>metric = (10^7 / min-bandwidth + sum-of-delays) × 256</code>. You won't need to calculate this on CCNA, but you should recognize why EIGRP metrics look astronomically larger than OSPF costs.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "D (internal)", "items": ["AD 90", "Learned from EIGRP neighbor", "Native EIGRP route", "Preferred over OSPF"] }, "right": { "label": "D EX (external)", "items": ["AD 170", "Redistributed into EIGRP", "From OSPF/RIP/static", "Lower trust"] } } },
-      "hack": {
-        "memory": "D = 'DUAL told me.' EIGRP's algorithm is DUAL = Diffusing Update Algorithm, so D is the code. AD 90 internal (lower than OSPF 110 — Cisco loves EIGRP). AD 170 external (D EX) because redistributed routes are less trusted. Huge metric numbers because composite (bandwidth × delay × 256).",
-        "practice": "In Packet Tracer, enable EIGRP on two routers: 'router eigrp 1' + 'network 10.0.0.0' on both. Run 'show ip route eigrp' on one — see D entries with [90/big-number]. Then redistribute a static route: 'redistribute static metric 10000 100 255 1 1500'. Check the neighbor's routing table — the route appears as D EX [170/...]. Notice the AD jumped from 90 to 170.",
-        "effort": "medium",
-        "meta": "Jeremy's IT Lab has EIGRP videos (Days ~32-34 depending on playlist version). Wendell Odom OCG Chapters 24-25 cover EIGRP deeply. On the 200-301 exam, EIGRP is lightly tested — know AD 90 internal, 170 external, code letter D, and that metric is composite."
-      }
-    },
-    {
       "id": "3.1.a.6",
       "term": "Code R (RIP)",
       "weight": "med",
@@ -76,19 +63,6 @@
         "practice": "In Packet Tracer build a 4-router chain R1-R2-R3-R4. Enable RIPv2 on each: 'router rip', 'version 2', 'no auto-summary', 'network 10.0.0.0'. On R1, run 'show ip route rip' and look at the metric for R4's LAN — it should be 3 (three hops). Then add 13 more routers in a chain to push the hop count past 15 — watch the farthest network become unreachable.",
         "effort": "low",
         "meta": "Jeremy's IT Lab briefly covers RIP as a historical/comparative protocol. Wendell Odom OCG Chapter 15 mentions RIP in the AD and metric discussions. Exam focus: AD 120, hop-count metric, 15-hop max, and code letter R. Not a deep topic on 200-301."
-      }
-    },
-    {
-      "id": "3.1.a.7",
-      "term": "Code B (BGP)",
-      "weight": "med",
-      "info": "<p>The <strong>B</strong> code marks a route learned via <strong>BGP (Border Gateway Protocol)</strong> — the routing protocol of the internet itself. BGP runs between autonomous systems (ASes) and determines how traffic flows between different organizations' networks.</p><p>Example entry:</p><pre>B  203.0.113.0/24 [20/0] via 198.51.100.1, 00:15:32</pre><p>Fields: <strong>B</strong> = BGP. <strong>[20/0]</strong> = AD 20 (eBGP), metric 0 (BGP uses complex path attributes, not a single metric). <strong>via 198.51.100.1</strong> = next-hop.</p><p><strong>Two AD values for BGP:</strong></p><ul><li><strong>eBGP (External BGP) = AD 20</strong> — routes from a neighbor in a DIFFERENT autonomous system. The 2nd-lowest AD in the Cisco table, beaten only by connected (0) and static (1). Cisco trusts eBGP highly because these routes come directly from peered organizations.</li><li><strong>iBGP (Internal BGP) = AD 200</strong> — routes from a neighbor in the SAME autonomous system. Much higher AD because iBGP routes may have traversed many routers within the AS before you learned them.</li></ul><p><strong>BGP path selection</strong> does not use a simple metric. Instead, BGP uses a long list of <strong>path attributes</strong> compared in strict order: Weight, Local Preference, AS-Path length, Origin, MED, eBGP over iBGP, IGP metric, router ID, etc. CCNA 200-301 does not deeply test BGP internals — just know the AD values, the code B, and that BGP is used for inter-AS routing.</p><p><strong>Where you'll see BGP on the exam:</strong> Usually in the AD table (20 for eBGP, 200 for iBGP) and in conceptual questions about how the internet exchanges routing information between organizations.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "eBGP", "items": ["AD 20", "Between different AS", "Peer across org boundary", "Used by ISPs"] }, "right": { "label": "iBGP", "items": ["AD 200", "Within same AS", "Peer within org", "Full-mesh or route reflector"] } } },
-      "hack": {
-        "memory": "B = 'BGP, the internet's backbone protocol.' Two ADs: eBGP = 20 (external, trusted like static-level), iBGP = 200 (internal, trusted less than most IGPs). Rule: E-xternal = 2-0, I-nternal = 2-0-0. BGP is for ASes — used between ISPs, between your company and your ISP.",
-        "practice": "BGP config is beyond scope of most CCNA practice labs, but you can memorize: 'router bgp 65001' + 'neighbor 198.51.100.1 remote-as 65002'. If you have access to a Cisco sandbox, build two routers in different AS numbers and peer them — watch 'show ip route bgp' display B entries. Otherwise, focus on memorizing the two AD values cold.",
-        "effort": "low",
-        "meta": "Jeremy's IT Lab has limited BGP content for CCNA. Wendell Odom OCG Chapter 17 introduces BGP. For 200-301, the required knowledge is thin — know the B code letter, eBGP AD 20, iBGP AD 200, and that BGP routes between autonomous systems."
       }
     },
     {
@@ -321,32 +295,6 @@
       }
     },
     {
-      "id": "3.1.e.4",
-      "term": "eBGP AD = 20",
-      "weight": "high",
-      "info": "<p><strong>eBGP (External BGP) routes have an administrative distance of 20</strong> — Cisco's 3rd-lowest AD, beaten only by connected (0) and static (1). This reflects high trust in routes learned from a neighbor in a <strong>different autonomous system</strong>.</p><p><strong>Why AD 20 (lower than any IGP)?</strong> eBGP peers are peered intentionally between organizations (or between an organization and its ISP). The peering is explicitly configured, and the routes received reflect the external organization's direct announcement of its own networks. Cisco treats this as more trustworthy than hearing about the same network via an IGP like OSPF, which could have many hops of uncertainty.</p><p><strong>Example:</strong> If your edge router has both an eBGP session to an ISP announcing 0.0.0.0/0 (default route) and an OSPF-injected default from another internal router, the eBGP route wins because AD 20 < AD 110.</p><p><strong>eBGP vs iBGP AD difference:</strong> eBGP = AD 20, iBGP = AD 200. That's a 10× difference! Why? Because iBGP routes have typically traveled through the internal AS already — they're less directly sourced than eBGP routes coming straight from an external peer. The high iBGP AD keeps iBGP from overriding IGP routes during redistribution scenarios.</p><p><strong>When you'll see eBGP in the routing table:</strong></p><pre>B  203.0.113.0/24 [20/0] via 198.51.100.1</pre><p><strong>B</strong> = BGP, <strong>[20/0]</strong> = AD 20 eBGP, metric 0 (BGP has no simple metric).</p><p><strong>CCNA scope:</strong> You don't need deep BGP knowledge — just memorize AD 20 eBGP and AD 200 iBGP. Recognize B routes in <code>show ip route</code> output and understand their source.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["Connected 0", "Static 1", "eBGP 20 ← trusted", "EIGRP 90", "OSPF 110", "iBGP 200 ← less trusted"], "highlight": 2 } },
-      "hack": {
-        "memory": "eBGP 20 = 'trusted external partner.' 20 because eBGP sits between C (0) / Static (1) and the IGPs (EIGRP 90, OSPF 110). Routes from a partner AS are seen as direct announcements — highly trusted. iBGP 200 = internal version, less direct so lower trust.",
-        "practice": "Hard to lab eBGP easily on Packet Tracer (limited BGP support), but memorization is key. Drill: 'eBGP AD?' → 20. 'iBGP AD?' → 200. 'What does B represent in show ip route?' → BGP. Flash cards until instant. For hands-on, Cisco DevNet or GNS3 offer free sandbox environments with full BGP support.",
-        "effort": "low",
-        "meta": "Jeremy's IT Lab has limited BGP coverage for CCNA. Wendell Odom OCG Chapter 17 introduces BGP. For 200-301, just know the AD values (20/200) and the code letter B."
-      }
-    },
-    {
-      "id": "3.1.e.5",
-      "term": "EIGRP AD = 90 (internal)",
-      "weight": "high",
-      "info": "<p><strong>EIGRP internal routes have AD 90</strong> — the lowest AD of any IGP (Interior Gateway Protocol). This is lower than OSPF (110), IS-IS (115), and RIP (120). Cisco designed EIGRP to be preferred when it runs alongside other IGPs on the same router.</p><p><strong>What 'internal' means:</strong> An EIGRP 'internal' route is one learned from a neighbor that also runs EIGRP in the same AS. The route was propagated natively through EIGRP from its origin. 'External' (AD 170) means the route was redistributed into EIGRP from another protocol.</p><p><strong>Why 90 (lower than OSPF 110)?</strong> Historical reasons. EIGRP is Cisco's proprietary IGP (now open per RFC 7868) and Cisco engineers wanted it to win when enterprises ran both EIGRP and OSPF during migrations. The AD difference ensures EIGRP wins any tiebreak with equal prefix length.</p><p><strong>Routing table appearance:</strong></p><pre>D  10.1.1.0/24 [90/2172416] via 192.168.1.2, Gi0/1</pre><p>Code <strong>D</strong> (for DUAL algorithm), <strong>[90/2172416]</strong> = AD 90, composite metric (bandwidth + delay × 256 — hence the large number).</p><p><strong>Configuration for EIGRP to work:</strong></p><pre>router eigrp 1<br> network 10.0.0.0<br> no auto-summary</pre><p>Simpler than OSPF — no areas, no process-level tuning usually needed for small networks.</p><p><strong>EIGRP features unique to this protocol:</strong></p><ul><li><strong>DUAL</strong> — Diffusing Update Algorithm, converges fast with pre-calculated backup paths (feasible successors)</li><li><strong>Unequal-cost load balancing</strong> — via 'variance' command, load-balance across paths with different metrics</li><li><strong>Composite metric</strong> — bandwidth + delay (default), optionally load + reliability + MTU</li></ul><p>CCNA 200-301 does not deeply test EIGRP config but you should know AD 90, composite metric, and that EIGRP routes are coded D.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "EIGRP Internal (AD 90)", "items": ["D in show ip route", "Learned from EIGRP neighbor", "Native to this AS", "Default preferred IGP"] }, "right": { "label": "EIGRP External (AD 170)", "items": ["D EX in show ip route", "Redistributed into EIGRP", "From OSPF/RIP/static", "Lower trust"] } } },
-      "hack": {
-        "memory": "EIGRP internal 90 = Cisco's favorite IGP. LOWER than OSPF 110 on purpose — Cisco wanted EIGRP to win when both are running. 90 internal (D), 170 external (D EX). 'Diffusing Update Algorithm' → D code letter.",
-        "practice": "In Packet Tracer, enable EIGRP and OSPF on the same 3-router network, both redistributing into each other. Run 'show ip route' — EIGRP (AD 90) wins over OSPF (AD 110). Now delete EIGRP config on one router — OSPF takes over as the routes transition. Watch the AD column shift from 90 to 110.",
-        "effort": "medium",
-        "meta": "Jeremy's IT Lab EIGRP videos (depend on playlist). Wendell Odom OCG Chapters 24-25 cover EIGRP internals. CCNA tests: AD 90 internal, AD 170 external, code D, and that it uses DUAL. Deep config rare but recognize in routing tables."
-      }
-    },
-    {
       "id": "3.1.e.6",
       "term": "OSPF AD = 110",
       "weight": "high",
@@ -370,32 +318,6 @@
         "practice": "In Packet Tracer, build a 4-router chain. Enable RIPv2 on all: 'router rip', 'version 2', 'no auto-summary', 'network 10.0.0.0'. 'show ip route rip' on R1 — see [120/3] for R4's LAN. Extend the chain with 13 more routers → push beyond 15 hops. Confirm the farthest network shows as 'unreachable' due to hop limit.",
         "effort": "low",
         "meta": "Jeremy's IT Lab briefly covers RIP. Wendell Odom OCG Chapter 15 mentions RIP in AD discussions. Exam expects you to know AD 120, hop-count metric, 15-hop max, and the R code letter."
-      }
-    },
-    {
-      "id": "3.1.e.8",
-      "term": "EIGRP external AD = 170",
-      "weight": "med",
-      "info": "<p><strong>EIGRP external routes have AD 170</strong> — significantly higher than EIGRP internal (AD 90). The 80-point gap reflects Cisco's lower trust in routes that were <strong>redistributed into EIGRP</strong> from another routing source.</p><p><strong>What 'external' means in EIGRP:</strong> A route marked <strong>D EX</strong> was not learned natively by EIGRP. It was learned by some other protocol (OSPF, RIP, static) on this or another router, and then redistributed into EIGRP via the <code>redistribute</code> command. External routes carry metadata about their origin protocol.</p><p><strong>Routing table appearance:</strong></p><pre>D EX  10.1.1.0/24 [170/2681856] via 192.168.1.2, Gi0/1</pre><p>Code <strong>D EX</strong>, <strong>[170/big-metric]</strong>. The EX suffix clearly distinguishes external from internal.</p><p><strong>Why the big AD gap (90 → 170) for external routes?</strong> To prevent routing loops during redistribution. If two routers both redistribute between OSPF and EIGRP, a route that originated in OSPF could be redistributed into EIGRP on Router A, propagated to Router B via EIGRP, then redistributed back into OSPF on Router B. Without an AD bump, Router B might prefer the re-learned EIGRP version over the original OSPF — creating a loop. The 170 external AD makes EIGRP external routes less preferred than OSPF (110), avoiding this reflection issue.</p><p><strong>Practical scenarios:</strong></p><ul><li>OSPF-to-EIGRP border router: OSPF routes redistributed into EIGRP appear as D EX (AD 170)</li><li>Static-to-EIGRP: A static route redistributed with 'redistribute static' appears as D EX</li><li>Default route redistribution: Often D EX (depending on method)</li></ul><p><strong>Exam detail:</strong> When you see D EX in routing table output, know it's AD 170, not 90. The EX is the visual cue.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "D (internal) AD 90", "items": ["Native EIGRP route", "Learned from EIGRP neighbor", "Trusted, preferred", "Beats OSPF (110)"] }, "right": { "label": "D EX (external) AD 170", "items": ["Redistributed into EIGRP", "From OSPF/RIP/static", "Lower trust to prevent loops", "Loses to OSPF (110)"] } } },
-      "hack": {
-        "memory": "D EX = 'redistributed into EIGRP from somewhere else.' AD 170 because Cisco trusts re-learned routes less than native ones. The 90→170 gap prevents redistribution loops. Rule: if it originated in EIGRP, 90. If it came from outside and got redistributed in, 170.",
-        "practice": "In Packet Tracer: configure OSPF on R1-R2 and EIGRP on R2-R3. On R2, 'router eigrp 1' → 'redistribute ospf 1 metric 10000 100 255 1 1500'. On R3, 'show ip route eigrp' — the OSPF-originated routes now appear as 'D EX [170/big-number]'. Notice the EX suffix and AD 170.",
-        "effort": "medium",
-        "meta": "Jeremy's IT Lab EIGRP deep-dives cover redistribution. Wendell Odom OCG Chapter 25. Exam: recognize D EX in routing tables and know it's AD 170. Deep redistribution config is Professional-level material."
-      }
-    },
-    {
-      "id": "3.1.e.9",
-      "term": "iBGP AD = 200",
-      "weight": "med",
-      "info": "<p><strong>iBGP (Internal BGP) has an AD of 200</strong> — one of the highest ADs in the Cisco table, beaten only by the 'unusable' AD 255. This is a stark contrast to eBGP's AD of 20.</p><p><strong>Why 200 for iBGP vs 20 for eBGP?</strong> The key difference:</p><ul><li><strong>eBGP (AD 20)</strong> — peer is in a DIFFERENT autonomous system, typically an ISP or partner. Routes come from direct external sources.</li><li><strong>iBGP (AD 200)</strong> — peer is in the SAME autonomous system. Routes have typically traversed the internal network already (possibly via IGP) before being redistributed into iBGP.</li></ul><p>Cisco wants IGP routes (OSPF 110, EIGRP 90) to win over iBGP routes within the same AS, because the IGP has fresher, more direct information about internal topology. The high AD of 200 ensures iBGP is only used when no IGP provides the route.</p><p><strong>Use case — full-mesh iBGP inside an AS:</strong> In an AS running BGP, every BGP router typically has an iBGP session to every other BGP router (full mesh) or connects through route reflectors. iBGP carries routes learned from external peers across the AS. When an iBGP router receives a prefix, AD 200 defers to any IGP that also has a route — a smart design.</p><p><strong>Routing table appearance:</strong></p><pre>B  203.0.113.0/24 [200/0] via 10.10.10.1</pre><p>Both eBGP and iBGP show code B. The AD in brackets distinguishes them: [20/0] = eBGP, [200/0] = iBGP. Always check the bracket when reading BGP output.</p><p><strong>CCNA relevance:</strong> You won't configure iBGP on the exam. Know the AD 200 value, know it's higher than every IGP, and recognize B routes with [200/X] as iBGP.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "eBGP (AD 20)", "items": ["Across AS boundary", "Direct from external peer", "Trusted like static-level", "Beats all IGPs"] }, "right": { "label": "iBGP (AD 200)", "items": ["Within same AS", "May have traversed internal path", "Lower trust than IGPs", "Loses to OSPF/EIGRP/RIP"] } } },
-      "hack": {
-        "memory": "iBGP 200 = 'BGP from inside, lower trust.' External BGP 20 (outside-direct, trusted). Internal BGP 200 (already routed through the AS, less direct). Simple rule: E-xternal = 2-0, I-nternal = 2-0-0. iBGP intentionally loses to IGPs to prevent routing loops during redistribution.",
-        "practice": "iBGP is hard to lab in Packet Tracer (limited BGP). Use Cisco DevNet sandboxes or GNS3 for real BGP labs. Memorize the 20/200 split cold. Drill: 'Router in same AS? iBGP. AD?' → 200. 'Different AS?' → eBGP, AD 20.",
-        "effort": "low",
-        "meta": "Jeremy's IT Lab BGP coverage is limited for CCNA. Wendell Odom OCG Chapter 17. Exam: know 20 vs 200, recognize the gap, understand why (routing loop prevention). Deep BGP is CCNP territory."
       }
     },
     {
@@ -450,19 +372,6 @@
         "practice": "In Packet Tracer: enable RIPv2 on a 4-router chain. On R1 'show ip route rip' — R4's network should show [120/3] (3 hops: R2, R3, R4). Extend the chain to 16 routers — watch the farthest network's hop count hit 16 in an intermediate state, then become unreachable. This is the '15 is max' rule in action.",
         "effort": "low",
         "meta": "Jeremy's IT Lab covers RIP briefly. Wendell Odom OCG Chapter 15. Exam: know RIP hop count metric, max 15, 16 = unreachable. Classic exam trivia."
-      }
-    },
-    {
-      "id": "3.1.f.4",
-      "term": "EIGRP composite metric",
-      "weight": "med",
-      "info": "<p><strong>EIGRP uses a composite metric</strong> based primarily on <strong>bandwidth and delay</strong>. The formula combines multiple factors into a single number used for path comparison.</p><p><strong>The default formula (simplified):</strong></p><pre>metric = (10^7 / min-bandwidth + sum-of-delays) × 256</pre><p>Where:</p><ul><li><strong>min-bandwidth</strong> = the lowest bandwidth along the path (Kbps)</li><li><strong>sum-of-delays</strong> = sum of all interface delays along the path (in tens of microseconds, divided by 10)</li></ul><p>The ×256 is a scaling factor to expand precision. This is why EIGRP metrics look massive — often in the millions (2172416, 3072000, etc.).</p><p><strong>Optional components:</strong> EIGRP can include load and reliability in the metric, controlled by 'K values' (K1 through K5). Default: K1=1, K2=0, K3=1, K4=0, K5=0 — meaning only bandwidth (K1) and delay (K3) are used. Load (K2), reliability (K4/K5) are off by default. Changing K values requires matching them on all EIGRP neighbors.</p><p><strong>Why composite is better than RIP's hop count:</strong> EIGRP picks the path with the best bandwidth AND accounts for delay. A 3-hop 1-Gbps path beats a 2-hop 10-Mbps path — which is the correct real-world choice, and which RIP would get WRONG.</p><p><strong>MTU in EIGRP metric:</strong> MTU is carried in EIGRP updates but is NOT used in the metric calculation by default. It's tracked as metadata for visibility.</p><p><strong>Routing table appearance:</strong></p><pre>D  10.1.1.0/24 [90/2172416] via 192.168.1.2, Gi0/1</pre><p>2172416 is the composite metric value. The exact number depends on bandwidth and delay along the path.</p><p><strong>CCNA depth:</strong> You need to know that EIGRP uses bandwidth and delay by default. You don't need to calculate the composite number — just recognize that EIGRP's large metric values come from the composite formula.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["Bandwidth (K1=1, default)", "Load (K2=0, default off)", "Delay (K3=1, default)", "Reliability (K4=0, default off)", "MTU (tracked but unused)"], "highlight": 0 } },
-      "hack": {
-        "memory": "EIGRP metric = COMPOSITE (bandwidth + delay by default). K-values: K1=BW, K2=Load, K3=Delay, K4=Reliability, K5=Reliability. Defaults: K1+K3 only. ×256 scaling makes numbers huge (millions). MTU is tracked but NOT in the metric.",
-        "practice": "In Packet Tracer: enable EIGRP between R1-R2-R3. 'show ip route eigrp' — note big metric values. 'show ip eigrp topology' — see the feasible distance (FD) calculation. Change one interface's bandwidth ('bandwidth 100' for 100 Kbps) — watch metric change on neighbor routers. This illustrates bandwidth's role.",
-        "effort": "medium",
-        "meta": "Jeremy's IT Lab EIGRP videos cover metric deeply. Wendell Odom OCG Chapter 24. Exam: know it's composite, bandwidth + delay default, K values, MTU tracked but unused. Metric calc is NOT required on CCNA."
       }
     },
     {

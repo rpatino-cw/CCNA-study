@@ -95,7 +95,7 @@
       <g class="part" data-id="rib">
         <rect x="60" y="160" width="220" height="50" rx="6" fill="#16A34A" stroke="#14532D"/>
         <text x="170" y="184" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#fff">RIB (routing table)</text>
-        <text x="170" y="200" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#DCFCE7">static + OSPF + BGP merged</text>
+        <text x="170" y="200" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#DCFCE7">static + OSPF merged</text>
       </g>
 
       <g class="part" data-id="fib">
@@ -142,7 +142,7 @@
   <h2>Router vs. switch — what tells them apart</h2>
   <div class="compare">
     <div><h3>Router (Layer 3)</h3>
-      Connects <strong>different IP networks</strong>. Decides per-packet using destination <em>IP</em>. Each interface = its own subnet + its own broadcast domain. Runs routing protocols (OSPF/BGP/EIGRP). Lives in IP, ARP, ICMP, NAT, ACL.
+      Connects <strong>different IP networks</strong>. Decides per-packet using destination <em>IP</em>. Each interface = its own subnet + its own broadcast domain. Runs routing protocols (OSPF). Lives in IP, ARP, ICMP, NAT, ACL.
     </div>
     <div><h3>Switch (Layer 2)</h3>
       Connects <strong>devices in the same broadcast domain</strong>. Decides per-frame using destination <em>MAC</em>. All access ports = one VLAN/broadcast domain by default. Runs STP, CDP/LLDP, learns MACs. Has no IP smarts (unless it's a layer-3 switch).
@@ -155,7 +155,7 @@
   <p style="font-family:var(--font-body);font-size:.94rem;color:var(--ink-secondary);margin-bottom:6px">Click each chip to cycle through unset → YES → NO. Then click <strong>Check</strong>.</p>
   <div class="chips" id="roleChips">
     <button type="button" class="chip" data-id="r1" data-ans="yes">forward IP packets between IP networks</button>
-    <button type="button" class="chip" data-id="r2" data-ans="yes">run OSPF / BGP to learn paths</button>
+    <button type="button" class="chip" data-id="r2" data-ans="yes">run OSPF to learn paths</button>
     <button type="button" class="chip" data-id="r3" data-ans="yes">ARP for the next-hop MAC</button>
     <button type="button" class="chip" data-id="r4" data-ans="yes">translate inside-private to outside-public (NAT)</button>
     <button type="button" class="chip" data-id="r5" data-ans="yes">filter traffic with an ACL</button>
@@ -189,12 +189,12 @@
   var info = {
     lan: { h:'LAN interface', b:'The downstream port. Configured with an IP from the local subnet (here 10.0.0.1/24). Hosts on the LAN use this address as their default gateway. Each LAN interface = its own broadcast domain.' },
     wan: { h:'WAN interface', b:'The upstream port. Connects to the next router (ISP, distribution, internet). Often a /30 or /31 point-to-point IP. Routing protocols form neighborships across this kind of link.' },
-    rib: { h:'RIB — Routing Information Base', b:'The full routing table. Built by combining static routes + every routing protocol (OSPF, BGP, EIGRP). Each prefix has an admin distance (preference) and a metric. The winner per prefix gets pushed into the FIB.' },
+    rib: { h:'RIB — Routing Information Base', b:'The full routing table. Built by combining static routes + routing protocols (OSPF). Each prefix has an admin distance (preference) and a metric. The winner per prefix gets pushed into the FIB.' },
     fib: { h:'FIB — Forwarding Information Base', b:'The hardware-ready forwarding table. Lives in TCAM/ASIC. Used for line-rate per-packet lookup. Built FROM the RIB but optimized for fast match. The data plane consults this for every packet.' },
     arp: { h:'ARP cache', b:'Maps next-hop IP addresses to MAC addresses. The router needs the MAC of the next hop to write a new L2 header before forwarding. Empty cache → ARP request, populated cache → instant rewrite.' },
     acl: { h:'ACL engine', b:'Per-interface, per-direction filter. Matches on src/dst IP, src/dst port, protocol. Permits or denies. Standard ACLs (1–99) match source only; extended (100–199) match the full 5-tuple.' },
     nat: { h:'NAT engine', b:'Translates IP addresses (and ports, in PAT) at the boundary. Inside-local 10.x → inside-global 203.x. Static, dynamic, and PAT/overload modes. Edge routers always run NAT toward the public internet; core routers usually do not.' },
-    ctrl:{ h:'Control plane', b:'CPU-driven. Runs the routing protocols, ARP, ICMP. Builds the RIB. Slow path. If the CPU melts, control protocols fail (OSPF neighbors flap, BGP sessions drop).' },
+    ctrl:{ h:'Control plane', b:'CPU-driven. Runs the routing protocols, ARP, ICMP. Builds the RIB. Slow path. If the CPU melts, control protocols fail (OSPF neighbors flap).' },
     data:{ h:'Data plane', b:'ASIC-driven. Per-packet forwarding using the FIB. Line-rate (millions of pps). Doesn\'t make routing decisions — it executes the decisions the control plane already made.' }
   };
   document.querySelectorAll('.part').forEach(function(g){
@@ -241,15 +241,15 @@
   var qC=0,qW=0;
   var pool=[
     {q:'Which device connects different IP networks?',a:'Router',o:['Router','Switch (L2 only)','Hub','Bridge'],why:'Routing = L3 forwarding between IP networks. Switching = L2 forwarding inside one broadcast domain. The router is the L3 boundary device.'},
-    {q:'Which device runs OSPF?',a:'Router (or L3 switch)',o:['Router (or L3 switch)','Pure L2 switch','Hub','End host'],why:'Routing protocols are control-plane software on L3 devices. L2-only switches do NOT run OSPF/BGP. L3 switches CAN because they have routing capability.'},
+    {q:'Which device runs OSPF?',a:'Router (or L3 switch)',o:['Router (or L3 switch)','Pure L2 switch','Hub','End host'],why:'Routing protocols are control-plane software on L3 devices. L2-only switches do NOT run OSPF. L3 switches CAN because they have routing capability.'},
     {q:'A new prefix learned by OSPF lands where first?',a:'RIB, then pushed to FIB',o:['FIB only','RIB, then pushed to FIB','ARP cache','MAC table'],why:'OSPF runs on the control plane → adds to RIB → RIB winner pushes into FIB (hardware fast-path). The data plane uses the FIB to forward.'},
     {q:'Which router component is most directly involved in line-rate per-packet forwarding?',a:'FIB / TCAM (data plane)',o:['FIB / TCAM (data plane)','OSPF process (control plane)','SSH daemon (management plane)','Syslog'],why:'Data plane in TCAM/ASIC handles per-packet forwarding at line rate. Control plane builds the table; data plane uses it.'},
     {q:'What is the role of an edge router?',a:'Translate, filter, and forward between private inside and public outside',o:['Translate, filter, and forward between private inside and public outside','Run STP for the LAN','Switch frames between access ports','Maintain the MAC table for users'],why:'Edge router = NAT + ACL + routing. STP and MAC tables are switch responsibilities — different layer, different device.'},
     {q:'Which is NOT a router\'s job?',a:'Build a MAC address table per port',o:['Forward IP packets','Build a MAC address table per port','Run a routing protocol','Resolve next-hop MAC via ARP'],why:'MAC table is a switch construct. Routers DO have an ARP cache (next-hop IP → MAC), but they don\'t build a per-port MAC table. That\'s the switch\'s job.'},
     {q:'Why does a router need an ARP cache?',a:'To learn the next-hop MAC before rewriting the L2 header',o:['To learn the next-hop MAC before rewriting the L2 header','To run OSPF','To filter packets','To build the FIB'],why:'When forwarding, the router strips the inbound L2 header and writes a NEW one for the next hop. To do that it needs the next hop\'s MAC, learned via ARP. Without ARP, no L2 rewrite, no forward.'},
     {q:'A router has 4 interfaces, each in a different IP subnet. How many broadcast domains?',a:'4',o:['1','2','4','depends on STP'],why:'Each router interface = its own L2 segment = its own broadcast domain. Routers BREAK broadcast domains; switches EXTEND them.'},
-    {q:'Pure L2 switch vs L3 switch — main practical difference for CCNA?',a:'L3 switch can route between VLANs in hardware (SVIs, RIB)',o:['L3 switch can route between VLANs in hardware (SVIs, RIB)','L3 switch supports more PoE','L3 switch is faster on copper','L3 switch supports more VLANs'],why:'L3 switches add routing (SVIs, routing table, OSPF/EIGRP). They\'re effectively switch + router in one chassis. Pure L2 switches only forward frames within VLANs.'},
-    {q:'Which plane does an SSH session into a router live on?',a:'Management plane',o:['Data plane','Control plane','Management plane','Forwarding plane'],why:'SSH/SNMP/NETCONF/syslog = management plane (humans + tools talking TO the device). Control plane = router talking to other routers (OSPF/BGP). Data plane = packets going through the device.'}
+    {q:'Pure L2 switch vs L3 switch — main practical difference for CCNA?',a:'L3 switch can route between VLANs in hardware (SVIs, RIB)',o:['L3 switch can route between VLANs in hardware (SVIs, RIB)','L3 switch supports more PoE','L3 switch is faster on copper','L3 switch supports more VLANs'],why:'L3 switches add routing (SVIs, routing table, OSPF). They\'re effectively switch + router in one chassis. Pure L2 switches only forward frames within VLANs.'},
+    {q:'Which plane does an SSH session into a router live on?',a:'Management plane',o:['Data plane','Control plane','Management plane','Forwarding plane'],why:'SSH/SNMP/NETCONF/syslog = management plane (humans + tools talking TO the device). Control plane = router talking to other routers (OSPF). Data plane = packets going through the device.'}
   ];
   function pick(){
     var q=pool[Math.floor(Math.random()*pool.length)];

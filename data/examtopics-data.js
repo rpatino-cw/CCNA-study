@@ -1812,21 +1812,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-1"
  },
  {
-  "id": "examtopics-1_q631",
-  "num": 631,
-  "question": "When a site-to-site VPN is used, which protocol is responsible for the transport of user data?",
-  "options": [
-   "IPsec",
-   "IKEv1",
-   "MD5",
-   "IKEv2"
-  ],
-  "correct": "A",
-  "explanation": "A site-to-site VPN allows offices in multiple fixed locations to establish secure connections with each other over a public network such as the\nInternet. A site-to-site\nVPN means that two sites create a VPN tunnel by encrypting and sending data between two devices. One set of rules for creating a site-to-site\nVPN is defined by\nIPsec.\n\n\uf147 \uf007 alexiro Highly Voted \uf164 3 years, 1 month ago\nIPsec The term referring to the IP Security protocols, which is an architecture for providing encryption and authentication services, usually when\ncreating VPN services through an IP network\nSite-to-site IPSec VPNs offer scalability as a benefit. This is because each remote office only needs an Internet connection to create a VPN tunnel\nback to the main office.",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
   "id": "examtopics-1_q632",
   "num": 632,
   "question": "Which type of wireless encryption is used for WPA2 in preshared key mode?",
@@ -2175,21 +2160,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-1"
  },
  {
-  "id": "examtopics-1_q657",
-  "num": 657,
-  "question": "What mechanism carries multicast traffic between remote sites and supports encryption?",
-  "options": [
-   "ISATAP",
-   "IPsec over ISATAP",
-   "GRE",
-   "GRE over IPsec"
-  ],
-  "correct": "D",
-  "explanation": "\uf147 \uf007 Raooff Highly Voted \uf164 2 years, 8 months ago\nCCNA security course\nIpsec dosent support multicast, that is why GRE used with VPN, and as long as the GRE is not totally secure, the whole GRE. Encapsulation can be\nencapsulated in ipsec header so nlw we have both \" mulitcast ability and security\"",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
   "id": "examtopics-1_q658",
   "num": 658,
   "question": "Refer to the exhibit. An access-list is required to permit traffic from any host on interface Gi0/0 and deny traffic from interface Gi0/1. Which\naccess list must be applied?",
@@ -2337,21 +2307,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "C",
   "explanation": "\uf147 \uf007 Garfieldcat Highly Voted \uf164 11 months, 1 week ago\nSAE is refer to authentication. encryption method should be B -AES",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
-  "id": "examtopics-1_q671",
-  "num": 671,
-  "question": "Which type of traffic is sent with pure IPsec?",
-  "options": [
-   "multicast traffic from a server at one site to hosts at another location",
-   "broadcast packets from a switch that is attempting to locate a MAC address at one of several remote sites",
-   "unicast messages from a host at a remote site to a server at headquarters",
-   "spanning-tree updates between switches that are at two different sites"
-  ],
-  "correct": "C",
-  "explanation": "\uf147 \uf007 StingVN 3 months, 3 weeks ago\nSelected Answer: C\n\nC. Unicast messages from a host at a remote site to a server at headquarters.\nPure IPsec is typically used to secure unicast traffic between two endpoints. Unicast traffic refers to one-to-one communication between a specific\nsender and receiver. In this case, it would involve unicast messages from a host at a remote site to a server at headquarters.\nIPsec is a protocol suite used to provide secure communication over IP networks. It can be used to encrypt and authenticate IP packets, ensuring\nthe confidentiality, integrity, and authenticity of the transmitted data. While IPsec can also support multicast and broadcast traffic, the term \"pure\nIPsec\" generally refers to the use of IPsec in a point-to-point unicast communication scenario.",
   "topic": "1",
   "deck": "examtopics-1"
  },
@@ -2585,21 +2540,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-1"
  },
  {
-  "id": "examtopics-1_q690",
-  "num": 690,
-  "question": "Which IPsec transport mode encrypts the IP header and the payload?",
-  "options": [
-   "pipe",
-   "transport",
-   "control",
-   "tunnel"
-  ],
-  "correct": "D",
-  "explanation": "\uf147 \uf007 Goena 7 months, 4 weeks ago\nSelected Answer: D\n\nIPsec is used in tunnel mode or transport mode. Security gateways use tunnel mode because they can provide point-to-point IPsec tunnels. ESP\ntunnel mode encrypts the entire packet, including the original packet headers.",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
   "id": "examtopics-1_q691",
   "num": 691,
   "question": "What is the default port-security behavior on a trunk link?",
@@ -2656,21 +2596,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "A",
   "explanation": "\uf147 \uf007 Ciscoman021 5 months, 2 weeks ago\nSelected Answer: A\n\nForward security and SAE in personal mode for secure initial key exchange were implemented as part of WPA3.",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
-  "id": "examtopics-1_q695",
-  "num": 695,
-  "question": "When a site-to-site VPN is configured which IPsec mode provides encapsulation and encryption of the entire original IP packet?",
-  "options": [
-   "IPsec transport mode with AH",
-   "IPsec tunnel mode with AH",
-   "IPsec transport mode with ESP",
-   "IPsec tunnel mode with ESP"
-  ],
-  "correct": "D",
-  "explanation": "\uf147 \uf007 michael1001 Highly Voted \uf164 9 months, 1 week ago\nSelected Answer: D\n\nAuthentication Header (AH)\nEncapsulating Security Payload (ESP)",
   "topic": "1",
   "deck": "examtopics-1"
  },
@@ -5461,36 +5386,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-1"
  },
  {
-  "id": "examtopics-1_q907",
-  "num": 907,
-  "question": "Refer to the exhibit. An engineer must configure a floating static route on an external EIGRP network. The destination subnet is the /29 on the LAN\ninterface of R86. Which command must be executed on R14?",
-  "options": [
-   "ip route 10.80.65.0 255.255.248.0 10.73.65.66 1",
-   "ip route 10.80.65.0 255.255.255.240 fa0/1 89",
-   "ip route 10.80.65.0 255.255.255.248 10.73.65.66 171",
-   "ip route 10.73.65.66 0.0.0.224 10.80.65.0 255"
-  ],
-  "correct": "C",
-  "explanation": "\uf147 \uf007 SVN05 Highly Voted \uf164 6 months, 3 weeks ago\nSelected Answer: C\n\nExternal EIGRP has an AD of 170 unlike Regular EIGRP that has an AD of 90. So by putting 171 makes it a floating static route.",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
-  "id": "examtopics-1_q908",
-  "num": 908,
-  "question": "Refer to the exhibit. What is the next-hop IP address for R2 so that PC2 reaches the application server via EIGRP?",
-  "options": [
-   "192.168.30.1",
-   "10.10.10.6",
-   "10.10.10.5",
-   "192.168.20.1"
-  ],
-  "correct": "B",
-  "explanation": "\uf147 \uf007 [Removed] 2 months, 2 weeks ago\nSelected Answer: B\n\nAnswer B is correct",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
   "id": "examtopics-1_q910",
   "num": 910,
   "question": "Refer to the exhibit. An IPv6 address must be obtained automatically on the LAN interface on R1. Which command must be implemented to\naccomplish the task?",
@@ -6448,22 +6343,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-1"
  },
  {
-  "id": "examtopics-1_q983",
-  "num": 983,
-  "question": "What are two protocols within the IPsec suite? (Choose two.)",
-  "options": [
-   "3DES",
-   "AES",
-   "ESP",
-   "TLS",
-   "AH"
-  ],
-  "correct": "CE",
-  "explanation": "\uf147 \uf007 mageknight Highly Voted \uf164 6 months, 3 weeks ago\nIPsec (Internet Protocol Security) is a suite of protocols used for securing internet protocol (IP) communications. The two protocols within the IPsec\nsuite are:\nAuthentication Header (AH): AH provides data authentication and integrity protection for IP packets, but does not provide encryption. AH\ncalculates a hash value over the IP packet and some additional data, and places the result in a new header that is added to the packet.\nEncapsulating Security Payload (ESP): ESP provides both encryption and data authentication for IP packets. ESP encrypts the original IP packet and\nplaces it inside a new packet, along with a new ESP header that provides data authentication and integrity protection.\nBoth AH and ESP protocols can be used alone or in combination to provide secure communication between two network devices. AH and ESP are\noften used in conjunction with the Internet Key Exchange (IKE) protocol, which is used to negotiate and establish security associations (SAs)\nbetween devices.",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
   "id": "examtopics-1_q984",
   "num": 984,
   "question": "Refer to the exhibit. Local access for R4 must be established and these requirements must be met:\n\u2022 Only Telnet access is allowed.\n\u2022 The enable password must be stored securely.\n\u2022 The enable password must be applied in plain text.\n\u2022 Full access to R4 must be permitted upon successful login.\nWhich configuration script meets the requirements?",
@@ -6551,22 +6430,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "C",
   "explanation": "\uf147 \uf007 Yinxs 3 weeks ago\nI tried all commands on GNS3 Cisco C3725 router, all are wrong.",
-  "topic": "1",
-  "deck": "examtopics-1"
- },
- {
-  "id": "examtopics-1_q991",
-  "num": 991,
-  "question": "Which two VPN technologies are recommended by Cisco for multiple branch offices and large-scale deployments? (Choose two.)",
-  "options": [
-   "GETVPN",
-   "DMVPN",
-   "site-to-site VPN",
-   "clientless VPN",
-   "IPsec remote access"
-  ],
-  "correct": "AB",
-  "explanation": "\uf147 \uf007 mageknight Highly Voted \uf164 6 months, 3 weeks ago\nDMVPN and FlexVPN are more commonly recommended by Cisco for large-scale VPN deployments, GETVPN can be a viable alternative in certain\nsituations where a tunnel-less VPN solution is desirable. Ultimately, the choice between these VPN technologies will depend on specific\nrequirements and factors, such as the underlying network topology, transport technologies, and security policies",
   "topic": "1",
   "deck": "examtopics-1"
  },
@@ -11306,21 +11169,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-2"
  },
  {
-  "id": "examtopics-2_q344",
-  "num": 344,
-  "question": "By default, how does EIGRP determine the metric of a route for the routing table?",
-  "options": [
-   "It uses the bandwidth and delay values of the path to calculate the route metric.",
-   "It uses a default metric of 10 for all routes that are learned by the router.",
-   "It counts the number of hops between the receiving and destination routers and uses that value as the metric.",
-   "It uses a reference bandwidth and the actual bandwidth of the connected link to calculate the route metric."
-  ],
-  "correct": "A",
-  "explanation": "\uf147 \uf007 Harryjio Highly Voted \uf164 3 years, 1 month ago\nA- EIGRP,\nC- RIP\nD-OSPF",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
   "id": "examtopics-2_q345",
   "num": 345,
   "question": "Router R1 must send all traffic without a matching routing-table entry to 192.168.1.1. Which configuration accomplishes this task?",
@@ -11655,22 +11503,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-2"
  },
  {
-  "id": "examtopics-2_q367",
-  "num": 367,
-  "question": "Which two actions influence the EIGRP route selection process? (Choose two.)",
-  "options": [
-   "The advertised distance is calculated by a downstream neighbor to inform the local router of the bandwidth on the link.",
-   "The router calculates the feasible distance of all paths to the destination route.",
-   "The router must use the advertised distance as the metric for any given route.",
-   "The router calculates the best backup path to the destination route and assigns it as the feasible successor.",
-   "The router calculates the reported distance by multiplying the delay on the exiting interface by 256."
-  ],
-  "correct": "BD",
-  "explanation": "The reported distance (or advertised distance) is the cost from the neighbor to the destination. It is calculated from the router advertising the\nroute to the network.\nFor example in the topology below, suppose router A & B are exchanging their routing tables for the first time. Router B says \u202b\u05d2\u202c\u20acHey, the best\nmetric (cost) from me to IOWA is 50 and the metric from you to IOWA is 90\u202b\u05d2\u202c\u20ac and advertises it to router A. Router A considers the first metric\n(50) as the Advertised distance. The second metric (90), which is from NEVADA to IOWA (through IDAHO), is called the Feasible distance.\n\nThe reported distance is calculated in the same way of calculating the metric. By default (K1 = 1, K2 = 0, K3 = 1, K4 = 0, K5 = 0), the metric is\ncalculated as follows:\n\nFeasible successor is the backup route. To be a feasible successor, the route must have an Advertised distance (AD) less than the Feasible\ndistance (FD) of the current successor route.\nFeasible distance (FD): The sum of the AD plus the cost between the local router and the next-hop router. The router must calculate the FD of all\npaths to choose the best path to put into the routing table.\nNote: Although the new CCNA exam does not have EIGRP topic but you should learn the basic knowledge of this routing protocol.\n\n\uf147 \uf007 Shamwedge Highly Voted \uf164 1 year, 6 months ago\nThe two answers with feasible in it, make them feasible answers.",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
   "id": "examtopics-2_q368",
   "num": 368,
   "question": "Refer to the exhibit. If OSPF is running on this network, how does Router2 handle traffic from Site B to 10.10.13.128/25 at Site A?",
@@ -11793,22 +11625,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-2"
  },
  {
-  "id": "examtopics-2_q376",
-  "num": 376,
-  "question": "Which of the following dynamic routing protocols are Distance Vector routing protocols?",
-  "options": [
-   "IS-IS",
-   "EIGRP",
-   "OSPF",
-   "BGP",
-   "RIP"
-  ],
-  "correct": "BE",
-  "explanation": "\uf147 \uf007 Stonetales987 Highly Voted \uf164 1 year, 10 months ago\nDistance Vector - RIP & EIGRP\nOSPF - Link State & IS IS\nBGP - Path State\nhttps://packetlife.net/media/library/40/IOS_Interior_Routing_Protocols.pdf",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
   "id": "examtopics-2_q377",
   "num": 377,
   "question": "You have configured a router with an OSPF router ID, but its IP address still reflects the physical interface.\nWhich action can you take to correct the problem in the least disruptive way?",
@@ -11824,21 +11640,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-2"
  },
  {
-  "id": "examtopics-2_q378",
-  "num": 378,
-  "question": "Which command should you enter to view the error log in an EIGRP for IPv6 environment?",
-  "options": [
-   "show ipv6 eigrp neighbors",
-   "show ipv6 eigrp topology",
-   "show ipv6 eigrp traffic",
-   "show ipv6 eigrp events"
-  ],
-  "correct": "D",
-  "explanation": "\uf147 \uf007 Rockrl Highly Voted \uf164 1 year, 9 months ago\nA lot of EIGRP question when it is not listed in the topics to cover",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
   "id": "examtopics-2_q379",
   "num": 379,
   "question": "Refer to the exhibit. Which two statements about the network environment of router R1 must be true? (Choose two.)\n\nRefer to the exhibit. Router R1 must be configured to reach the 10.0.3.0/24 network from the 10.0.1.0/24 segment. Which command must be used\nto configure the route?",
@@ -11850,37 +11651,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "D",
   "explanation": "\uf147 \uf007 Request7108 8 months, 2 weeks ago\nThe prompt says choose two?",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q381",
-  "num": 381,
-  "question": "Which two statements about exterior routing protocols are true? (Choose two.)",
-  "options": [
-   "They determine the optimal within an autonomous system.",
-   "They determine the optimal path between autonomous systems.",
-   "BGP is the current standard exterior routing protocol.",
-   "Most modern networking supports both EGP and BGP for external routing.",
-   "Most modern network routers support both EGP and EIGRP for external routing."
-  ],
-  "correct": "BC",
-  "explanation": "\uf147 \uf007 Clinques Highly Voted \uf164 1 year, 8 months ago\nSelected Answer: BC\n\nExterior Gateway Protocols (EGP): Used for routing between autonomous systems. It is also referred to as inter-AS routing. Service providers and\nlarge companies may interconnect using an EGP. The Border Gateway Protocol (BGP) is the only currently viable EGP and is the official routing\nprotocol used by the Internet.\nNOTE\nBecause BGP is the only EGP available, the term EGP is rarely used; instead, most engineers simply refer to BGP.\nhttps://www.ciscopress.com/articles/article.asp?p=2180210&seqNum=7",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q382",
-  "num": 382,
-  "question": "You have two paths for the 10.10.10.0 network - one that has a feasible distance of 3072 and the other of 6144.\nWhat do you need to do to load balance your EIGRP routes?",
-  "options": [
-   "Change the maximum paths to 2",
-   "Change the configuration so they both have the same feasible distance",
-   "Change the variance for the path that has a feasible distance of 3072 to 2",
-   "Change the IP addresses so both paths have the same source IP address"
-  ],
-  "correct": "BC",
-  "explanation": "Every routing protocol supports equal cost path load balancing. In addition, Interior Gateway Routing Protocol (IGRP) and EIGRP also support\nunequal cost path load balancing. Use the variance n command in order to instruct the router to include routes with a metric of less than n\ntimes the minimum metric route for that destination. The variable n can take a value between 1 and 128. The default is 1, which means equal\ncost load balancing. Traffic is also distributed among the links with unequal costs, proportionately, with respect to the metric.\nReference:\nhttps://www.cisco.com/c/en/us/support/docs/ip/enhanced-interior-gateway-routing-protocol-eigrp/13677-19.html#topic1\n\n\uf147 \uf007 jehangt3 Highly Voted \uf164 2 years, 3 months ago\nTHE QUESTION DOES NOT STATE TO \"CHOOSE 2 ANSWERS\" !",
   "topic": "1",
   "deck": "examtopics-2"
  },
@@ -11933,38 +11703,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-2"
  },
  {
-  "id": "examtopics-2_q387",
-  "num": 387,
-  "question": "Refer to the exhibit. On R1 which routing protocol is in use on the route to 192.168.10.1?",
-  "options": [
-   "RIP",
-   "OSPF",
-   "IGRP",
-   "EIGRP"
-  ],
-  "correct": "D",
-  "explanation": "\uf147 \uf007 Robin999 Highly Voted \uf164 2 years, 6 months ago\nno AD needed. Rule most specified Prefix you need.",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q388",
-  "num": 388,
-  "question": "Refer to the exhibit. Which Command do you enter so that R1 advertises the loopback0 interface to the BGP Peers?",
-  "options": [
-   "Network 172.16.1.32 mask 255.255.255.224",
-   "Network 172.16.1.0 0.0.0.255",
-   "Network 172.16.1.32 255.255.255.224",
-   "Network 172.16.1.33 mask 255.255.255.224",
-   "Network 172.16.1.32 mask 0.0.0.31",
-   "Network 172.16.1.32 0.0.0.31"
-  ],
-  "correct": "A",
-  "explanation": "\uf147 \uf007 nakres64 Highly Voted \uf164 2 years, 7 months ago\nBGP is out of content.",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
   "id": "examtopics-2_q389",
   "num": 389,
   "question": "Refer to exhibit. What Administrative distance has route to 192.168.10.1?",
@@ -11991,23 +11729,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "B",
   "explanation": "Q. If there is no priority configured for a standby group, what determines which router is active?\nA. The priority field is used to elect the active router and the standby router for the specific group. In the case of an equal priority, the router with\nthe highest IP address for the respective group is elected as active. Furthermore, if there are more than two routers in the group, the second\nhighest IP address determines the standby router and the other router/routers are in the listen state.\n\n\uf147 \uf007 xsp Highly Voted \uf164 2 years, 7 months ago\nkeyword default configuration, means that priorities of both routers are the same (100).",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q391",
-  "num": 391,
-  "question": "Refer to the exhibit. If RTR01 is configured as shown, which three addresses will be received by other routers that are running EIGRP on the\nnetwork? (Choose three.)",
-  "options": [
-   "192.168.2.0",
-   "10.4.3.0",
-   "10.0.0.0",
-   "172.16.0.0",
-   "172.16.4.0",
-   "192.168.0.0"
-  ],
-  "correct": "ACD",
-  "explanation": "\uf147 \uf007 sdokmak Highly Voted \uf164 2 years, 3 months ago\nA, C and D\nauto summary uses \"classful boundary\"\n- 10.4.3.0 with mask 255.0.0.0 gives 10.0.0.0\n- 172.16.4.0 with mask 255.255.0.0 gives 172.16.0.0\n- 192.168.2.0 with mask 255.255.255.0 gives 192.168.2.0",
   "topic": "1",
   "deck": "examtopics-2"
  },
@@ -12122,38 +11843,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-2"
  },
  {
-  "id": "examtopics-2_q399",
-  "num": 399,
-  "question": "Refer to the exhibit. C-router is to be used as a \"router-on-a-stick\" to route between the VLANs. All the interfaces have been properly configured\nand IP routing is operational. The hosts in the VLANs have been configured with the appropriate default gateway. What is true about this\nconfiguration?",
-  "options": [
-   "These commands need to be added to the configuration: C-router(config)# router eigrp 123 C-router(config-router)# network 172.19.0.0",
-   "These commands need to be added to the configuration: C-router(config)# router ospf 1 C-router(config-router)# network 172.19.0.0\n0.0.3.255 area 0",
-   "These commands need to be added to the configuration: C-router(config)# router rip C-router(config-router)# network 172.19.0.0",
-   "No further routing configuration is required."
-  ],
-  "correct": "D",
-  "explanation": "Since all the same router (C-router) is the default gateway for all three VLANs, all traffic destined to a different VLA will be sent to the C-router.\nThe C-router will have knowledge of all three networks since they will appear as directly connected in the routing table. Since the C-router\nalready knows how to get to all three networks, no routing protocols need to be configured.\n\n\uf147 \uf007 LTTAM Highly Voted \uf164 2 years, 8 months ago\nD is correct. However... tricky question though. They list the routing protocols to throw you off. The question is actually testing your knowledge of\nVLAN routing.",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q400",
-  "num": 400,
-  "question": "Refer to the exhibit. Which address and mask combination represents a summary of the routes learned by EIGRP?",
-  "options": [
-   "192.168.25.0 255.255.255.240",
-   "192.168.25.0 255.255.255.252",
-   "192.168.25.16 255.255.255.240",
-   "192.168.25.16 255.255.255.252",
-   "192.168.25.28 255.255.255.240",
-   "192.168.25.28 255.255.255.252"
-  ],
-  "correct": "C",
-  "explanation": "The binary version of 20 is 10100.\nThe binary version of 16 is 10000.\nThe binary version of 24 is 11000.\nThe binary version of 28 is 11100.\nThe subnet mask is /28. The mask is 255.255.255.240.\nNote:\nFrom the output above, EIGRP learned 4 routes and we need to find out the summary of them:\n\u2711 192.168.25.16\n192.168.25.20\n\u2711 192.168.25.24\n\u2711 192.168.25.28\n-> The increment should be 28 ?16 = 12 but 12 is not an exponentiation of 2; so we must choose 16 (24). Therefore the subnet mask is /28\n(=1111 1111.1111\n1111.1111 1111.11110000) = 255.255.255.240.\nSo the best answer should be 192.168.25.16 255.255.255.240.\n\n\uf147 \uf007 Kareemelkh Highly Voted \uf164 2 years, 8 months ago\nAli526 check this link it will clear you confusion , I hade the same doubt\nhttps://youtu.be/QqEcCzhlWis",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
   "id": "examtopics-2_q401",
   "num": 401,
   "question": "Refer to the exhibit. Given the output for this command, if the router ID has not been manually set, what router ID will OSPF use for this router?",
@@ -12165,21 +11854,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "C",
   "explanation": "The highest IP address of all loopback interfaces will be chosen -> Loopback 0 will be chosen as the router ID.\n\n\uf147 \uf007 Ali526 Highly Voted \uf164 2 years, 8 months ago\nC is correct and so is the reasoning. If router ID is not manually setup, the highest loopback IP is selected and if there is no loopback, highest IP\nfrom the interface IPs is selected.",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q402",
-  "num": 402,
-  "question": "Refer to the exhibit. When running EIGRP, what is required for RouterA to exchange routing updates with RouterC?",
-  "options": [
-   "AS numbers must be changed to match on all the routers",
-   "Loopback interfaces must be configured so a DR is elected",
-   "The no auto-summary command is needed on Router A and Router C",
-   "Router B needs to have two network statements, one for each connected network"
-  ],
-  "correct": "A",
-  "explanation": "This question is to examine the understanding of the interaction between EIGRP routers. The following information must be matched so as to\ncreate neighborhood. EIGRP routers to establish, must match the following information:\n1. AS Number;\n2. K value.\n\n\uf147 \uf007 Stonetales987 Highly Voted \uf164 1 year, 10 months ago\nTo become neighbors, the following parameters must match on both routers:\nASN (Autonomous System Number)\nsubnet\nK values (components of metric)\nhttps://geek-university.com/ccna/eigrp-neighbors/",
   "topic": "1",
   "deck": "examtopics-2"
  },
@@ -12475,21 +12149,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "BD",
   "explanation": "\uf147 \uf007 shumps 3 weeks, 2 days ago\nI was vex a bit, pay close attention to the New York router ipv6 address as next hop. B & D is correct",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q423",
-  "num": 423,
-  "question": "A router running EIGRP has learned the same route from two different paths. Which parameter does the router use to select the best path?",
-  "options": [
-   "as-path",
-   "administrative distance",
-   "metric",
-   "cost"
-  ],
-  "correct": "D",
-  "explanation": "If a router learns two different paths for the same network from the same routing protocol, it has to decide which route is better and will be\nplaced in the routing table. Metric is the measure used to decide which route is better (lower number is better). Each routing protocol uses its\nown metric.\nFor example, RIP uses hop counts as a metric, while OSPF uses cost.\nReference:\nhttps://study-ccna.com/administrative-distance-metric/\n\n\uf147 \uf007 Mcsonic00 Highly Voted \uf164 2 years, 10 months ago\n1 routing protocol for 2 learned paths = Metric\n1 learned path from 2 routing protocols = Administrative Distance",
   "topic": "1",
   "deck": "examtopics-2"
  },
@@ -12935,21 +12594,6 @@ window.EXAMTOPICS_CARDS = [
   "deck": "examtopics-2"
  },
  {
-  "id": "examtopics-2_q453",
-  "num": 453,
-  "question": "Refer to the exhibit. Which prefix did router R1 learn from internal EIGRP?",
-  "options": [
-   "192.168.3.0/24",
-   "192.168.1.0/24",
-   "172.16.1.0/24",
-   "192.168.2.0/24"
-  ],
-  "correct": "D",
-  "explanation": "\uf147 \uf007 Mili2023 7 months, 3 weeks ago\nyou can also get the answer as the AD for internal EIGRP is 90. and External in 170 so in the question they have asked the internal EIGRP which is\nonly with ip address in D.\nthe AD for OSPF is110 so options A and B is out of question anyway!",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
   "id": "examtopics-2_q454",
   "num": 454,
   "question": "Refer to the exhibit. R5 is the current DR on the network, and R4 is the BDR. Their interfaces are flapping, so a network engineer wants the OSPF\nnetwork to elect a different DR and BDR. Which set of configurations must the engineer implement?",
@@ -13156,21 +12800,6 @@ window.EXAMTOPICS_CARDS = [
   ],
   "correct": "B",
   "explanation": "\uf147 \uf007 splashy Highly Voted \uf164 11 months, 3 weeks ago\nSelected Answer: B\n\nref BW 100000 MB\nref BW BW\nG0/0\n100000MB divided by 10000MB (or 10000000KB) = 10 cost\nG0/1\n100000MB divided by 100000MB (or 100000000KB) = 1 cost",
-  "topic": "1",
-  "deck": "examtopics-2"
- },
- {
-  "id": "examtopics-2_q468",
-  "num": 468,
-  "question": "Refer to the exhibit. Which network prefix was learned via EIGRP?",
-  "options": [
-   "172.160.0/16",
-   "207.165.200.0/24",
-   "192.168.1.0/24",
-   "192.168.2.0/24"
-  ],
-  "correct": "D",
-  "explanation": "\uf147 \uf007 Eyad_Alotaibi Highly Voted \uf164 9 months, 1 week ago\nD = EIGRP\nC = connected\nS = static\nI = IGRP\nR = RIP\nB = BGP\nO = OSPF\nE = EGP\ni = IS-IS\n* = default route",
   "topic": "1",
   "deck": "examtopics-2"
  },
@@ -15132,21 +14761,6 @@ window.EXAMTOPICS_CARDS = [
    "G0/1"
   ],
   "correct": "B",
-  "explanation": "",
-  "topic": "1",
-  "deck": "examtopics-3"
- },
- {
-  "id": "examtopics-3_q1140",
-  "num": 1140,
-  "question": "Which IPsec encryption mode is appropriate when the destination of a packet differs from the security termination point?",
-  "options": [
-   "transport",
-   "main",
-   "aggressive",
-   "tunnel"
-  ],
-  "correct": "D",
   "explanation": "",
   "topic": "1",
   "deck": "examtopics-3"

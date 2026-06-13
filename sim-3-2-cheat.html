@@ -249,7 +249,6 @@
       <tr><td>OSPF</td><td>Cost (10⁸ / bandwidth)</td></tr>
       <tr><td>EIGRP</td><td>Composite (BW + delay)</td></tr>
       <tr><td>IS-IS</td><td>Cost (default 10 per hop)</td></tr>
-      <tr><td>BGP</td><td>Path attributes (weight → local pref → AS path → ...)</td></tr>
       <tr><td>Static</td><td>0 (n/a)</td></tr>
     </tbody>
   </table>
@@ -460,13 +459,13 @@ D       10.10.20.50/32   [90/256000] via 10.10.10.5</div>
 </section>
 
 <section id="drill" style="border:2px solid var(--accent)">
-  <h2>16. Drill — 50 Forwarding-Decision Qs <span class="pill">pass = 95%+</span></h2>
+  <h2>16. Drill — 48 Forwarding-Decision Qs <span class="pill">pass = 95%+</span></h2>
   <p>Read everything above first, then drill until 95%+. Wrong answers re-queue. 2 right in a row retires a Q. 100% = "3.2 Mastered" badge.</p>
   <div class="filter-row" id="filterRow">
-    <span class="filter-pill active" data-cat="all">all (50)</span>
+    <span class="filter-pill active" data-cat="all">all (48)</span>
     <span class="filter-pill" data-cat="lpm">LPM (12)</span>
-    <span class="filter-pill" data-cat="ad">AD tiebreaker (8)</span>
-    <span class="filter-pill" data-cat="metric">metric tiebreaker (8)</span>
+    <span class="filter-pill" data-cat="ad">AD tiebreaker (7)</span>
+    <span class="filter-pill" data-cat="metric">metric tiebreaker (7)</span>
     <span class="filter-pill" data-cat="ribfib">RIB/FIB/CEF (6)</span>
     <span class="filter-pill" data-cat="output">show outputs (8)</span>
     <span class="filter-pill" data-cat="ecmp">ECMP / floating (5)</span>
@@ -532,14 +531,12 @@ D       10.10.20.50/32   [90/256000] via 10.10.10.5</div>
     {id:15,cat:'ad',sub:'3.2.b',stem:'Two routes: connected /24 (AD 0) and static /24 (AD 1) for the SAME prefix (admin made a typo). Which wins?',opts:['Static','Connected — AD 0 < AD 1','Both','Drops'],ans:'Connected — AD 0 < AD 1',why:'<strong>Connected is most trusted (AD 0).</strong> Beats static. Beats everything. Logic: the router can SEE the link directly.'},
     {id:16,cat:'ad',sub:'3.2.b',stem:'When does AD comparison happen?',opts:['Per-packet','When 2+ protocols/sources have routes for the SAME prefix','Always','Random'],ans:'When 2+ protocols/sources have routes for the SAME prefix',why:'<strong>AD = tiebreaker for SAME-prefix routes from DIFFERENT sources.</strong> If only one source has the prefix, AD is irrelevant.'},
     {id:17,cat:'ad',sub:'3.2.b',stem:'A floating static route is:',opts:['A static route to /32','A static route with manually-raised AD, used as backup','A dynamic route','HSRP'],ans:'A static route with manually-raised AD, used as backup',why:'<strong>Floating static.</strong> <code>ip route 10.0.0.0 255.0.0.0 X.X.X.X 130</code> — AD 130 makes it less trusted than RIP. Doesn\'t install unless RIP fails.'},
-    {id:18,cat:'ad',sub:'3.2.b',stem:'iBGP AD vs eBGP AD?',opts:['Both 200','Both 20','iBGP=200 (least trusted), eBGP=20 (very trusted)','iBGP=20, eBGP=200'],ans:'iBGP=200 (least trusted), eBGP=20 (very trusted)',why:'<strong>Counterintuitive but correct.</strong> eBGP=20 because external peering is explicit. iBGP=200 because internal BGP requires loop-prevention setup (mesh/RR).'},
     {id:19,cat:'ad',sub:'3.2.b',stem:'OSPF AD?',opts:['90','100','110','115'],ans:'110',why:'<strong>OSPF = 110.</strong> Common trap: 100 = legacy IGRP. Memorize 110 cold.'},
     {id:20,cat:'ad',sub:'3.2.b',stem:'AD ladder, low-to-high?',opts:['Static-Connected-OSPF','Connected (0) → Static (1) → eBGP (20) → EIGRP (90) → OSPF (110) → IS-IS (115) → RIP (120) → EIGRP-ext (170) → iBGP (200)','OSPF first','Random'],ans:'Connected (0) → Static (1) → eBGP (20) → EIGRP (90) → OSPF (110) → IS-IS (115) → RIP (120) → EIGRP-ext (170) → iBGP (200)',why:'<strong>Memorize cold.</strong> Connected/Static/eBGP/EIGRP/OSPF/ISIS/RIP/EIGRP-ext/iBGP. Backbone of cross-protocol decisions.'},
     // metric tiebreaker — 8
     {id:21,cat:'metric',sub:'3.2.c',stem:'Two OSPF routes for 10.10.0.0/16 — cost 65 and cost 100. Which is installed?',opts:['Both','Cost 65 (lower)','Cost 100','First-learned'],ans:'Cost 65 (lower)',why:'<strong>Same protocol → metric tiebreak.</strong> Lower OSPF cost wins. Cost 100 sits in OSPF DB but not RIB.'},
     {id:22,cat:'metric',sub:'3.2.c',stem:'OSPF cost 65 vs RIP hop 1, same prefix. Which wins?',opts:['RIP — fewer hops','OSPF — lower AD (110 < 120)','Both','Tie'],ans:'OSPF — lower AD (110 < 120)',why:'<strong>AD first, NOT metric.</strong> Cross-protocol metric comparisons are meaningless. OSPF AD 110 < RIP AD 120.'},
     {id:23,cat:'metric',sub:'3.2.c',stem:'When does metric matter?',opts:['Always','Only when 2+ routes from the SAME protocol have the SAME prefix','Only on default routes','Never'],ans:'Only when 2+ routes from the SAME protocol have the SAME prefix',why:'<strong>Metric = within-protocol tiebreaker.</strong> OSPF cost compared only to other OSPF costs. RIP hops only to other RIP hops.'},
-    {id:24,cat:'metric',sub:'3.2.c',stem:'EIGRP composite metric is based on:',opts:['Hops','Bandwidth + delay (default; can also use load + reliability + MTU)','MTU only','Cost'],ans:'Bandwidth + delay (default; can also use load + reliability + MTU)',why:'<strong>EIGRP composite.</strong> K-values control which factors. Default: K1=1 (BW), K3=1 (delay). Others typically 0.'},
     {id:25,cat:'metric',sub:'3.2.c',stem:'OSPF default cost formula?',opts:['Hop count','10⁸ / bandwidth in bps (configurable reference BW)','Random','MTU'],ans:'10⁸ / bandwidth in bps (configurable reference BW)',why:'<strong>OSPF cost.</strong> 10G link → cost 1. 1G → cost 10. 100M → 100. <code>auto-cost reference-bandwidth</code> can raise the reference for modern speeds.'},
     {id:26,cat:'metric',sub:'3.2.c',stem:'RIP metric?',opts:['Cost','Composite','Hop count (max 15, 16=infinity)','Path attrs'],ans:'Hop count (max 15, 16=infinity)',why:'<strong>RIP = hop count.</strong> Each router = +1 hop. Max 15. Hop 16 = unreachable. Limits RIP to small networks.'},
     {id:27,cat:'metric',sub:'3.2.c',stem:'In <code>O 10.10.20.0/24 [110/65]</code>, the 65 is:',opts:['AD','OSPF cost (metric)','Hop count','Lifetime'],ans:'OSPF cost (metric)',why:'<strong>[AD/Metric].</strong> 110 = OSPF AD. 65 = sum of OSPF costs along the path.'},
