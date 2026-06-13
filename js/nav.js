@@ -19,6 +19,7 @@
 
   var CCNA_NAV = [
     { text: 'Core v2 ✦', href: 'core-v2.html' },
+    { text: 'Cram Driller 🔥', href: 'exam-cram-driller.html' },
     { text: 'P1 Deep Dives ✦', children: [
       { text: 'Pillars Trainer', href: 'pillars-trainer.html' },
       { text: 'Pillar Value (ROI)', href: 'pillar-value.html' },
@@ -264,7 +265,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.3.3</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.4.0</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
