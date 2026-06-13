@@ -377,15 +377,23 @@ document.addEventListener('DOMContentLoaded', function() {
         var fixFb = card.querySelector('.fix-feedback');
         var runFixCheck = function() {
           var typed = normCmd(fixInput.value);
-          if (!typed) return;
+          if (!typed || typed === '?' || typed.length < 3) {
+            fixFb.className = 'fix-feedback no';
+            fixFb.textContent = 'Type the command that would fix it (e.g. an interface or config line).';
+            return;
+          }
           var target = normCmd(lab.fixHint || '');
           // token-overlap match: most fix-hint words present in the typed answer (or vice-versa)
           var tWords = target.split(' ').filter(function(w) { return w.length > 2; });
           var hit = tWords.filter(function(w) { return typed.indexOf(w) !== -1; }).length;
           var ratio = tWords.length ? hit / tWords.length : 0;
           var close = ratio >= 0.5 || target.indexOf(typed) !== -1 || typed.indexOf(target) !== -1;
+          // Never print the fix here — the full fix is revealed in the Root Cause block
+          // only AFTER the multiple-choice is answered (no pre-reveal).
           fixFb.className = 'fix-feedback ' + (close ? 'ok' : 'no');
-          fixFb.textContent = (close ? '✓ On the right track. Fix: ' : '✗ Not quite. Fix: ') + lab.fixHint;
+          fixFb.textContent = close
+            ? '✓ On the right track — lock it in by answering the question below.'
+            : '✗ Not quite. Re-read the terminal output and try again (the full fix shows after you answer below).';
         };
         fixBtn.addEventListener('click', runFixCheck);
         fixInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); runFixCheck(); } });
