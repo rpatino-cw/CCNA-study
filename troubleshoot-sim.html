@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Troubleshoot Sim (pilot) — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  .page-header { padding: var(--s-md) 0 var(--s-sm); margin-bottom: var(--s-lg); border-bottom: 2px solid var(--ink); }
+  .page-header h1 { font-size: 2.4rem; margin-bottom: 4px; }
+  .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 64ch; }
+  .pilot-note { background: #FEF3C7; border: 1px solid #D97706; border-radius: var(--radius); padding: 10px 14px; margin-bottom: var(--s-lg); font-family: var(--font-display); font-size: 0.82rem; color: #7C2D12; }
+
+  .lab-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: var(--s-lg); overflow: hidden; }
+  .lab-card.completed { border-color: #16A34A; }
+  .lab-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .lab-header:hover { background: var(--bg-recessed); }
+  .lab-num { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); min-width: 56px; }
+  .lab-title { font-family: var(--font-display); font-size: 0.92rem; font-weight: 700; color: var(--ink); flex: 1; }
+  .lab-diff { font-family: var(--font-display); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 10px; }
+  .lab-diff.beginner { background: #F0FDF4; color: #16A34A; }
+  .lab-diff.intermediate { background: #FFFBEB; color: #D97706; }
+  .lab-check { color: #16A34A; display: none; }
+  .lab-card.completed .lab-check { display: inline; }
+  .lab-toggle { color: var(--ink-muted); font-size: 0.8rem; transition: transform 0.2s; }
+  .lab-card.open .lab-toggle { transform: rotate(180deg); }
+  .lab-body { display: none; }
+  .lab-card.open .lab-body { display: block; }
+
+  .lab-scenario { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--bg-recessed); }
+  .lab-scenario-label { font-family: var(--font-display); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 6px; }
+  .lab-scenario-text { font-family: var(--font-body); font-size: 0.9rem; color: var(--ink); line-height: 1.6; }
+
+  .lab-objectives { list-style: none; padding: 16px 20px; margin: 0; border-bottom: 1px solid var(--border); }
+  .lab-objectives li { font-family: var(--font-display); font-size: 0.82rem; padding: 5px 0; color: var(--ink-secondary); display: flex; align-items: center; gap: 8px; }
+  .lab-objectives li .obj-check { width: 16px; height: 16px; border: 2px solid var(--border-strong); border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: transparent; }
+  .lab-objectives li.done { color: var(--ink-muted); }
+  .lab-objectives li.done .obj-check { background: #16A34A; border-color: #16A34A; color: #fff; }
+  .lab-objectives li.is-current { color: var(--ink); font-weight: 700; }
+  .lab-objectives li.just-completed { animation: pop 0.5s ease; }
+  @keyframes pop { 50% { transform: scale(1.03); } }
+
+  /* Terminal — console-labs look */
+  .term-wrap { margin: 16px 20px; border-radius: var(--radius); overflow: hidden; border: 1px solid #292524; }
+  .term-chrome { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #0f0d0c; border-bottom: 1px solid rgba(214,211,209,.12); font-family: var(--font-mono); font-size: .7rem; color: #a8a29e; }
+  .term-dots { display: flex; gap: 5px; }
+  .term-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .term-chrome-label { flex: 1; text-align: center; }
+  .term-chrome-label .dev { color: #d6d3d1; font-weight: 600; }
+  .term-output, .term-input-row { background: #1c1917; }
+  .term-wrap .term-output { padding: 12px 16px 0; max-height: 300px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.55; }
+  .term-line { color: #d6d3d1; white-space: pre-wrap; word-break: break-word; }
+  .term-line.cmd { color: #fde68a; font-weight: 600; }
+  .term-line.muted { color: #78716c; font-style: italic; }
+  .term-input-row { display: flex; align-items: center; color: #d6d3d1; padding: 4px 16px 12px; min-height: 26px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; cursor: text; }
+  .term-prompt { color: #a8a29e; white-space: pre; flex-shrink: 0; }
+  .term-input { flex: 1; outline: none; caret-color: #fde68a; color: #fafaf9; min-width: 4px; }
+  .term-wrap:focus-within .term-prompt { color: #fde68a; }
+
+  .lab-actions { padding: 0 20px 16px; display: flex; gap: 8px; }
+  .hint-btn { font-family: var(--font-display); font-size: 0.74rem; background: none; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 6px 14px; color: var(--ink-secondary); cursor: pointer; }
+  .hint-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .hint-box { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); margin: 0 20px 12px; padding: 8px 12px; background: var(--accent-dim); border-radius: var(--radius); display: none; white-space: pre-wrap; }
+
+  .lab-complete-banner { padding: 14px 20px; background: #F0FDF4; border-top: 1px solid #BBF7D0; display: none; font-family: var(--font-display); font-weight: 700; color: #16A34A; }
+  .lab-complete-banner.show { display: block; }
+
+  .progress-strip { display: flex; gap: 3px; margin-bottom: var(--s-lg); }
+  .progress-pip { flex: 1; height: 6px; border-radius: 3px; background: var(--bg-recessed); }
+  .progress-pip.done { background: #16A34A; }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Troubleshoot Sim <span style="font-size:1rem;color:var(--ink-muted)">(pilot)</span></h1>
+    <p class="subtitle">One CLI, like Console Labs — but the network starts broken. Investigate with show commands, then type the fix and watch the device heal. No multiple choice.</p>
+  </header>
+
+  <div class="pilot-note">PILOT — 2 scenarios proving the diagnose → fix → heal model on the real lab engine. Once validated, the full 29 convert to this.</div>
+
+  <div class="progress-strip" id="progressStrip"></div>
+  <div id="labContainer"></div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script defer src="js/lab-engine.js?v=10"></script>
+<script defer src="js/tutor.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.Lab || !window.Lab.LabBase) { document.getElementById('labContainer').innerHTML = '<p style="padding:20px">Lab engine failed to load.</p>'; return; }
+
+  // ── Pilot scenarios: console-labs lab shape, but device starts BROKEN ──
+  var TLABS = [
+    {
+      id: 'tsim-01', title: 'Access port in the wrong VLAN', diff: 'beginner', topics: ['2.1'],
+      scenario: 'A PC on SW1 Gi0/5 cannot reach the SALES servers. SALES is VLAN 10. Find where Gi0/5 actually is, move it to VLAN 10, and confirm.',
+      device: {
+        name: 'SW1', type: 'switch', hostname: 'SW1',
+        vlans: { '10': { name: 'SALES' }, '20': { name: 'VOICE' }, '99': { name: 'PARKING' } },
+        interfaces: { 'GigabitEthernet0/5': { up: true, mode: 'access', accessVlan: 99 } }
+      },
+      objectives: [
+        { text: 'Investigate — run: show vlan brief', hint: 'show vlan brief — see which VLAN Gi0/5 sits in', check: function (d, log) { return log.some(function (c) { return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd); }); } },
+        { text: 'Enter config + select Gi0/5', hint: 'configure terminal → interface gi0/5', check: function (d) { return d.currentInterface === 'GigabitEthernet0/5' || (d.interfaces['GigabitEthernet0/5'] && d.mode && d.mode.indexOf('config') === 0); } },
+        { text: 'Move Gi0/5 into the SALES VLAN', hint: 'switchport access vlan 10', check: function (d) { var i = d.interfaces['GigabitEthernet0/5']; return i && String(i.accessVlan) === '10'; } },
+        { text: 'Confirm the fix — run: show vlan brief', hint: 'end → show vlan brief — Gi0/5 now under VLAN 10', check: function (d, log) { var i = d.interfaces['GigabitEthernet0/5']; var fixed = i && String(i.accessVlan) === '10'; return fixed && log.some(function (c) { return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
+      ],
+      // lab-local: parse the fix command + render show vlan brief with ports derived from accessVlan
+      extraCmds: function (dev, raw, lower) {
+        var m = raw.match(/^switchport\s+access\s+vlan\s+(\d+)/i);
+        if (m && dev.mode === 'config-if' && dev.currentInterface) {
+          if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
+          dev.interfaces[dev.currentInterface].mode = 'access';
+          dev.interfaces[dev.currentInterface].accessVlan = parseInt(m[1], 10);
+          dev.__fixTime = Date.now();
+          return '';
+        }
+        if (/^(do\s+)?show\s+vlan(\s+brief)?$/i.test(lower)) {
+          var abbr = function (n) { return n.replace('GigabitEthernet', 'Gi').replace('FastEthernet', 'Fa'); };
+          var portsFor = function (vid) { return Object.keys(dev.interfaces).filter(function (n) { var i = dev.interfaces[n]; return i && i.mode === 'access' && String(i.accessVlan) === String(vid); }).map(abbr).join(', '); };
+          var out = 'VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n';
+          Object.keys(dev.vlans).forEach(function (vid) { out += vid.padEnd(5) + (dev.vlans[vid].name || '').padEnd(33) + 'active    ' + portsFor(vid) + '\n'; });
+          return out;
+        }
+        return undefined;
+      }
+    },
+    {
+      id: 'tsim-02', title: 'Trunk native VLAN mismatch', diff: 'intermediate', topics: ['2.4'],
+      scenario: 'SW1 logs %CDP-4-NATIVE_VLAN_MISMATCH on Gi0/1. The uplink to DSW1 expects native VLAN 1, but SW1 is sending native 99. Fix SW1 so the native VLANs match.',
+      device: {
+        name: 'SW1', type: 'switch', hostname: 'SW1',
+        vlans: { '1': { name: 'default' }, '99': { name: 'MGMT' } },
+        interfaces: { 'GigabitEthernet0/1': { up: true, mode: 'trunk', nativeVlan: 99 } },
+        custom: { peerNative: 1 }
+      },
+      objectives: [
+        { text: 'Investigate — run: show interfaces trunk', hint: 'show interfaces trunk — read the Native vlan column', check: function (d, log) { return log.some(function (c) { return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+tr/i.test(c.cmd); }); } },
+        { text: 'Select the trunk + set native VLAN to match the peer (1)', hint: 'interface gi0/1 → switchport trunk native vlan 1', check: function (d) { var i = d.interfaces['GigabitEthernet0/1']; return i && String(i.nativeVlan) === '1'; } },
+        { text: 'Confirm — native now matches the peer, no mismatch', hint: 'end → show interfaces trunk', check: function (d, log) { var i = d.interfaces['GigabitEthernet0/1']; return i && String(i.nativeVlan) === String(d.custom.peerNative) && log.some(function (c) { return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+tr/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
+      ],
+      // lab-local: parse the fix command + render the fault-specific show
+      extraCmds: function (dev, raw, lower) {
+        var m = raw.match(/^switchport\s+trunk\s+native\s+vlan\s+(\d+)/i);
+        if (m && dev.mode === 'config-if' && dev.currentInterface) {
+          dev.interfaces[dev.currentInterface].nativeVlan = parseInt(m[1], 10);
+          dev.__fixTime = Date.now();
+          return '';
+        }
+        if (/^(do\s+)?show\s+int(erface)?(s)?\s+tr(unk)?$/i.test(lower)) {
+          var i = dev.interfaces['GigabitEthernet0/1'];
+          var nv = i ? i.nativeVlan : 1;
+          var warn = (String(nv) !== String(dev.custom.peerNative))
+            ? '\n%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/1 (' + nv + '), with DSW1 GigabitEthernet1/0/1 (' + dev.custom.peerNative + ').'
+            : '';
+          return 'Port        Mode             Encapsulation  Status        Native vlan\n'
+            + 'Gi0/1       on               802.1q         trunking      ' + nv + '\n\n'
+            + 'Port        Vlans allowed on trunk\n'
+            + 'Gi0/1       1-4094' + warn;
+        }
+        return undefined;
+      }
+    }
+  ];
+
+  var instances = {};
+
+  function el(html) { var t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
+
+  // Trimmed lab subclass: broken device + fix objectives + heal via base engine.
+  function makeLab(lab) {
+    function TLab() {
+      Lab.LabBase.call(this, { objectives: lab.objectives, hintsAvailable: 3 });
+      this.addDevice(lab.device.name, lab.device.type, {
+        hostname: lab.device.hostname || lab.device.name,
+        vlans: lab.device.vlans ? JSON.parse(JSON.stringify(lab.device.vlans)) : undefined,
+        interfaces: lab.device.interfaces ? JSON.parse(JSON.stringify(lab.device.interfaces)) : {},
+        routes: lab.device.routes || [],
+        custom: lab.device.custom ? JSON.parse(JSON.stringify(lab.device.custom)) : {}
+      });
+      this.labDef = lab;
+    }
+    TLab.prototype = Object.create(Lab.LabBase.prototype);
+    TLab.prototype.constructor = TLab;
+    TLab.prototype.handleCommand = function (dev, raw, lower) {
+      if (lab.extraCmds) { var r = lab.extraCmds(dev, raw, lower); if (r !== undefined) { this.checkObjectives(); return r; } }
+      if (lower === '?' || lower === 'help') return 'show commands to investigate; configure terminal / interface / switchport / no shutdown to fix.';
+      return undefined;
+    };
+    TLab.prototype.checkObjectives = function () {
+      var self = this; var dev = this.activeDevice;
+      lab.objectives.forEach(function (obj, i) {
+        if (self.completedObjectives.has(i)) return;
+        try {
+          if (obj.check(dev, self.commandLog)) {
+            self.completeObjective(i);
+            var li = document.getElementById('obj-' + lab.id + '-' + i);
+            if (li) { li.classList.add('done'); li.classList.add('just-completed'); setTimeout(function () { li.classList.remove('just-completed'); }, 800); }
+          }
+        } catch (e) {}
+      });
+      // spotlight current step
+      var cur = lab.objectives.findIndex(function (_, j) { return !self.completedObjectives.has(j); });
+      lab.objectives.forEach(function (_, j) {
+        var li = document.getElementById('obj-' + lab.id + '-' + j);
+        if (li) li.classList.toggle('is-current', j === cur && !self.completedObjectives.has(j));
+      });
+      if (this.isComplete() && !this._done) {
+        this._done = true;
+        var card = document.getElementById('lab-' + lab.id);
+        if (card) card.classList.add('completed');
+        var banner = document.getElementById('banner-' + lab.id);
+        if (banner) banner.classList.add('show');
+        var pip = document.querySelector('.progress-pip[data-id="' + lab.id + '"]');
+        if (pip) pip.classList.add('done');
+        try { localStorage.setItem('tsim.' + lab.id, '1'); } catch (e) {}
+      }
+    };
+    return new TLab();
+  }
+
+  function render() {
+    var container = document.getElementById('labContainer');
+    container.innerHTML = TLABS.map(function (lab, idx) {
+      var dev = lab.device.name;
+      return ''
+        + '<div class="lab-card" id="lab-' + lab.id + '">'
+        + '  <div class="lab-header" data-toggle="' + lab.id + '">'
+        + '    <span class="lab-num">TS-' + String(idx + 1).padStart(2, '0') + '</span>'
+        + '    <span class="lab-title">' + lab.title + '</span>'
+        + '    <span class="lab-diff ' + lab.diff + '">' + lab.diff + '</span>'
+        + '    <span class="lab-check">✓</span><span class="lab-toggle">▼</span>'
+        + '  </div>'
+        + '  <div class="lab-body">'
+        + '    <div class="lab-scenario"><div class="lab-scenario-label">Scenario</div><div class="lab-scenario-text">' + lab.scenario + '</div></div>'
+        + '    <ul class="lab-objectives">' + lab.objectives.map(function (o, i) { return '<li id="obj-' + lab.id + '-' + i + '"' + (i === 0 ? ' class="is-current"' : '') + '><span class="obj-check">✓</span>' + o.text + '</li>'; }).join('') + '</ul>'
+        + '    <div class="term-wrap" id="term-' + lab.id + '">'
+        + '      <div class="term-chrome"><div class="term-dots" aria-hidden="true"><span class="term-dot" style="background:#ef4444"></span><span class="term-dot" style="background:#fbbf24"></span><span class="term-dot" style="background:#22c55e"></span></div><span class="term-chrome-label"><span class="dev">' + dev + '</span> console</span></div>'
+        + '      <div class="term-output" id="out-' + lab.id + '"></div>'
+        + '      <div class="term-input-row"><span class="term-prompt" id="prompt-' + lab.id + '">' + dev + '&gt; </span><span class="term-input" id="input-' + lab.id + '" contenteditable="true" spellcheck="false"></span></div>'
+        + '    </div>'
+        + '    <div class="hint-box" id="hint-' + lab.id + '"></div>'
+        + '    <div class="lab-actions"><button class="hint-btn" data-hint="' + lab.id + '">Show Hint</button><button class="hint-btn" data-reset="' + lab.id + '">↻ Reset</button></div>'
+        + '    <div class="lab-complete-banner" id="banner-' + lab.id + '">✓ Fixed — network healed. Lab complete.</div>'
+        + '  </div>'
+        + '</div>';
+    }).join('');
+
+    document.getElementById('progressStrip').innerHTML = TLABS.map(function (l) { return '<div class="progress-pip" data-id="' + l.id + '"></div>'; }).join('');
+
+    TLABS.forEach(function (lab) {
+      var inst = makeLab(lab);
+      instances[lab.id] = inst;
+      inst.initTerminal(document.getElementById('term-' + lab.id));
+    });
+
+    container.querySelectorAll('[data-toggle]').forEach(function (h) {
+      h.addEventListener('click', function () { document.getElementById('lab-' + h.getAttribute('data-toggle')).classList.toggle('open'); });
+    });
+    container.querySelectorAll('[data-hint]').forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var id = b.getAttribute('data-hint'); var lab = TLABS.find(function (l) { return l.id === id; });
+        var inst = instances[id];
+        var cur = lab.objectives.findIndex(function (_, j) { return !inst.completedObjectives.has(j); });
+        var box = document.getElementById('hint-' + id);
+        box.textContent = cur === -1 ? '✓ All steps done.' : ('Step ' + (cur + 1) + '/' + lab.objectives.length + ': ' + (lab.objectives[cur].hint || ''));
+        box.style.display = 'block';
+      });
+    });
+    container.querySelectorAll('[data-reset]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); try { localStorage.removeItem('tsim.' + b.getAttribute('data-reset')); } catch (x) {} render(); });
+    });
+    // open the first lab
+    var first = document.querySelector('.lab-card'); if (first) first.classList.add('open');
+  }
+
+  render();
+});
+</script>
+</body>
+</html>
