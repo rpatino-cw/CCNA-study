@@ -13,7 +13,8 @@ cd "$ROOT"
 #   worktrees/*             — git worktree branches (ephemeral)
 #   worker/*                — Cloudflare worker source, not served
 #   ekere-labs/index.html   — TWA-only mobile shell, has its own UI
-EXCLUDES_REGEX='^(chat\.html|regression/|external/|worktrees/|worker/|node_modules/|ekere-labs/index\.html|ccna-prep/index\.html)'
+#   sim-1-1-[abc].html      — legacy redirect stubs (location.replace to lesson-1-1-*), no content
+EXCLUDES_REGEX='^(chat\.html|regression/|external/|worktrees/|worker/|node_modules/|ekere-labs/index\.html|ccna-prep/index\.html|sim-1-1-[abc]\.html)'
 
 MISSING=0
 while IFS= read -r f; do

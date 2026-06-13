@@ -42,6 +42,8 @@ is_redirect() {
 PAGES=$(find . -name "*.html" \
   -not -path "./worktrees/*" \
   -not -path "./node_modules/*" \
+  -not -path "./worker/*" \
+  -not -path "./external/*" \
   -not -path "./.git/*" \
   -not -path "./books/*" \
   -not -path "./exports/*" \
