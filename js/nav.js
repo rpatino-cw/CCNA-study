@@ -37,6 +37,7 @@
       { text: 'P1: STP Deep', href: 'p1-stp.html' },
       { text: 'P1: VLANs and Trunks', href: 'p1-vlan.html' },
       { text: 'P1: EtherChannel', href: 'p1-etherchannel.html' },
+      { text: 'EtherChannel + DTP Sim ✦', href: 'etherchannel-dtp-sim.html' },
       { text: 'P1: ACLs Deep', href: 'p1-acl.html' },
       { text: 'P1: Layer 2 Security', href: 'p1-l2sec.html' },
       { text: 'P1: Device Access', href: 'p1-access.html' },

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>EtherChannel + DTP Negotiation Simulator — CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.section-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:var(--s-sm)}
+.section-title{font-size:1.35rem;margin-top:0;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+.section-desc{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:65ch}
+section{margin-bottom:var(--s-2xl)}
+
+.quick-answer{background:var(--accent-dim);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-2xl)}
+.quick-answer h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--accent);margin:0 0 6px;border:0;padding:0}
+.quick-answer p{font-family:var(--font-body);font-size:.95rem;line-height:1.6;color:var(--ink);max-width:none;margin:6px 0 0}
+
+/* ── simulator shell ── */
+.sim{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px}
+.sim-controls{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:560px){.sim-controls{grid-template-columns:1fr}}
+.swbox{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;text-align:center}
+.swbox h4{font-family:var(--font-display);margin:0 0 10px;font-size:1rem;color:var(--ink)}
+.swicon{font-size:26px}
+label.lbl{display:block;font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);font-weight:700;margin:10px 0 4px;text-align:left}
+select.sim-sel{width:100%;font-family:var(--font-display);font-size:.88rem;font-weight:500;color:var(--ink);
+  background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius);padding:9px 10px;cursor:pointer}
+select.sim-sel:focus{outline:none;border-color:var(--accent)}
+
+.stage{margin-top:24px;text-align:center}
+.swrow{display:flex;align-items:center;justify-content:center;gap:8px}
+.node{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  width:86px;height:62px;border-radius:var(--radius-lg);background:var(--bg-surface);border:1.5px solid var(--border-strong);
+  font-family:var(--font-display);font-weight:700;font-size:.82rem;color:var(--ink);flex:0 0 auto}
+.node small{font-family:var(--font-mono);font-weight:600;color:var(--ink-muted);font-size:.62rem;margin-top:2px}
+.links{flex:1;max-width:300px;display:flex;flex-direction:column;gap:7px;padding:0 4px}
+.lk{height:6px;border-radius:3px;background:var(--border);position:relative;transition:background .3s}
+.lk.up{background:var(--prof-strong)}
+.lk.up::after{content:"";position:absolute;top:50%;width:9px;height:9px;border-radius:50%;
+  background:var(--prof-strong);transform:translateY(-50%);animation:flow 1.8s linear infinite}
+.lk.up:nth-child(2)::after{animation-delay:.45s}
+.lk.up:nth-child(3)::after{animation-delay:.9s}
+.lk.bundled{height:13px;border-radius:7px;background:var(--accent)}
+.lk.bundled::after{background:#fff}
+.lk.trunk{background:#7048e8}
+.lk.trunk::after{background:#fff}
+.lk.access{background:var(--accent)}
+.lk.access::after{background:#fff}
+.lk.down{background:repeating-linear-gradient(90deg,var(--prof-weak) 0 8px,transparent 8px 16px)}
+@keyframes flow{0%{left:-4%}100%{left:100%}}
+@media (prefers-reduced-motion:reduce){.lk.up::after{animation:none;left:46%}}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:14px;height:7px;border-radius:3px;display:inline-block}
+
+.verdict{margin-top:20px;border:1px solid var(--border);border-left:3px solid var(--border-strong);
+  border-radius:var(--radius-lg);padding:16px 18px}
+.verdict.ok{background:var(--prof-strong-bg);border-left-color:var(--prof-strong)}
+.verdict.bad{background:var(--prof-weak-bg);border-left-color:var(--prof-weak)}
+.verdict.warn{background:var(--prof-mid-bg);border-left-color:var(--prof-mid)}
+.verdict .vhead{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin-bottom:6px;color:var(--ink)}
+.verdict .why{font-family:var(--font-body);font-size:.92rem;line-height:1.6;color:var(--ink-secondary);margin:0}
+.verdict .cmd{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);border:1px solid var(--border);
+  border-radius:var(--radius);padding:9px 11px;margin-top:11px;white-space:pre-wrap;color:var(--ink)}
+
+table.matrix{border-collapse:collapse;width:100%;font-family:var(--font-body);font-size:.9rem}
+table.matrix th,table.matrix td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--rule)}
+table.matrix th{font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted)}
+.tag{display:inline-block;font-family:var(--font-mono);font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:100px}
+.tag.ok{background:var(--prof-strong-bg);color:var(--prof-strong)}
+.tag.no{background:var(--prof-weak-bg);color:var(--prof-weak)}
+.tag.tr{background:#f3effe;color:#7048e8}
+.tag.ac{background:var(--accent-dim);color:var(--accent)}
+.callout{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-top:16px;font-family:var(--font-body);font-size:.9rem;line-height:1.6;color:var(--ink-secondary)}
+.mnem{font-family:var(--font-display);font-weight:600;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:var(--radius)}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.subcard{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px}
+.subcard h3{font-family:var(--font-display);font-size:1rem;margin:0 0 10px}
+</style>
+</head>
+<body>
+
+<nav class="top-nav"></nav>
+
+<main class="container">
+
+  <div class="kicker">CCNA 200-301 · Domain 2 · Layer 2 negotiation</div>
+  <h1>EtherChannel + DTP Simulator</h1>
+  <p class="lede">Pick a mode on each switch and watch the link react. EtherChannel decides whether ports <strong>bundle</strong>; DTP decides whether a link becomes a <strong>trunk</strong>. Same exam trap underneath both: two passive sides never agree.</p>
+
+  <section>
+    <div class="quick-answer">
+      <h2>The one-line answer</h2>
+      <p><strong>EtherChannel:</strong> at least one side must actively initiate. LACP needs an <strong>active</strong>; PAgP needs a <strong>desirable</strong>. Two listeners (passive+passive, auto+auto) never bundle. Never mix protocols, and <strong>on</strong> only talks to <strong>on</strong>.</p>
+      <p><strong>DTP:</strong> <strong>dynamic desirable</strong> asks to trunk; <strong>dynamic auto</strong> only waits. auto+auto falls back to <strong>access</strong>. trunk+access = mismatch.</p>
+    </div>
+  </section>
+
+  <!-- ── ETHERCHANNEL SIM ── -->
+  <section id="ec-sim">
+    <div class="section-label">Simulator 1</div>
+    <h2 class="section-title">EtherChannel mode negotiation</h2>
+    <p class="section-desc">Bundle 2–8 physical links into one logical <strong>port-channel</strong>. Both ends must run the same protocol AND use compatible modes, or the channel never forms.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <div class="swbox">
+          <div class="swicon">🔀</div>
+          <h4>SW1</h4>
+          <label class="lbl" for="ec1">channel-group mode</label>
+          <select class="sim-sel" id="ec1">
+            <option value="on">on (static, no protocol)</option>
+            <option value="active" selected>active (LACP)</option>
+            <option value="passive">passive (LACP)</option>
+            <option value="desirable">desirable (PAgP)</option>
+            <option value="auto">auto (PAgP)</option>
+          </select>
+        </div>
+        <div class="swbox">
+          <div class="swicon">🔀</div>
+          <h4>SW2</h4>
+          <label class="lbl" for="ec2">channel-group mode</label>
+          <select class="sim-sel" id="ec2">
+            <option value="on">on (static, no protocol)</option>
+            <option value="active">active (LACP)</option>
+            <option value="passive" selected>passive (LACP)</option>
+            <option value="desirable">desirable (PAgP)</option>
+            <option value="auto">auto (PAgP)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="swrow">
+          <span class="node">SW1<small id="ec1p">LACP</small></span>
+          <div class="links" id="ecLinks"><div class="lk"></div><div class="lk"></div><div class="lk"></div></div>
+          <span class="node">SW2<small id="ec2p">LACP</small></span>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--border)"></span>down</span>
+          <span><span class="dot" style="background:var(--prof-strong)"></span>up, independent</span>
+          <span><span class="dot" style="background:var(--accent)"></span>bundled (Po1)</span>
+        </div>
+      </div>
+
+      <div class="verdict" id="ecVerdict"><div class="vhead">—</div></div>
+    </div>
+  </section>
+
+  <!-- ── EC MATRIX ── -->
+  <section id="ec-table">
+    <div class="section-label">Reference</div>
+    <h2 class="section-title">The mode matrix (memorize)</h2>
+    <div class="cardgrid">
+      <div class="subcard">
+        <h3>LACP <span class="tag tr">802.3ad · open standard</span></h3>
+        <table class="matrix">
+          <tr><th>SW1</th><th>SW2</th><th>Result</th></tr>
+          <tr><td>active</td><td>active</td><td><span class="tag ok">✓ forms</span></td></tr>
+          <tr><td>active</td><td>passive</td><td><span class="tag ok">✓ forms</span></td></tr>
+          <tr><td>passive</td><td>passive</td><td><span class="tag no">✗ no</span></td></tr>
+        </table>
+        <p class="section-desc" style="margin:10px 0 0">Passive only listens. Two listeners = silence. <strong>At least one side active.</strong></p>
+      </div>
+      <div class="subcard">
+        <h3>PAgP <span class="tag ac">Cisco proprietary</span></h3>
+        <table class="matrix">
+          <tr><th>SW1</th><th>SW2</th><th>Result</th></tr>
+          <tr><td>desirable</td><td>desirable</td><td><span class="tag ok">✓ forms</span></td></tr>
+          <tr><td>desirable</td><td>auto</td><td><span class="tag ok">✓ forms</span></td></tr>
+          <tr><td>auto</td><td>auto</td><td><span class="tag no">✗ no</span></td></tr>
+        </table>
+        <p class="section-desc" style="margin:10px 0 0">auto only listens. Two listeners = silence. <strong>At least one side desirable.</strong></p>
+      </div>
+    </div>
+    <div class="subcard" style="margin-top:18px">
+      <h3>Static <span class="tag ac">on — no negotiation protocol</span></h3>
+      <table class="matrix">
+        <tr><th>SW1</th><th>SW2</th><th>Result</th></tr>
+        <tr><td>on</td><td>on</td><td><span class="tag ok">✓ forms (no protocol)</span></td></tr>
+        <tr><td>on</td><td>active / passive / desirable / auto</td><td><span class="tag no">✗ no</span></td></tr>
+      </table>
+    </div>
+    <div class="callout">🧠 <span class="mnem">Never mix protocols.</span> LACP↔LACP, PAgP↔PAgP, on↔on only. The two banned same-protocol combos are <strong>passive+passive</strong> and <strong>auto+auto</strong>. Mnemonic: <strong>A</strong>ctive / <strong>D</strong>esirable are the talkers — "<strong>AD = Always Drives</strong>". Max <strong>8 active</strong> links per channel (LACP can configure 16, 8 hot + 8 standby).</div>
+  </section>
+
+  <!-- ── DTP SIM ── -->
+  <section id="dtp-sim">
+    <div class="section-label">Simulator 2</div>
+    <h2 class="section-title">DTP — Dynamic Trunking Protocol</h2>
+    <p class="section-desc">DTP decides if a link becomes a <strong>trunk</strong> (many VLANs) or stays <strong>access</strong> (one VLAN). Cisco proprietary. Many switch ports default to <span style="font-family:var(--font-mono)">dynamic auto</span>.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <div class="swbox">
+          <div class="swicon">🔀</div>
+          <h4>SW1</h4>
+          <label class="lbl" for="dtp1">switchport mode</label>
+          <select class="sim-sel" id="dtp1">
+            <option value="dynamic auto" selected>dynamic auto</option>
+            <option value="dynamic desirable">dynamic desirable</option>
+            <option value="trunk">trunk (on)</option>
+            <option value="access">access</option>
+          </select>
+        </div>
+        <div class="swbox">
+          <div class="swicon">🔀</div>
+          <h4>SW2</h4>
+          <label class="lbl" for="dtp2">switchport mode</label>
+          <select class="sim-sel" id="dtp2">
+            <option value="dynamic auto">dynamic auto</option>
+            <option value="dynamic desirable" selected>dynamic desirable</option>
+            <option value="trunk">trunk (on)</option>
+            <option value="access">access</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="swrow">
+          <span class="node">SW1</span>
+          <div class="links" id="dtpLinks"><div class="lk"></div></div>
+          <span class="node">SW2</span>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:#7048e8"></span>trunk</span>
+          <span><span class="dot" style="background:var(--accent)"></span>access</span>
+          <span><span class="dot" style="background:var(--border)"></span>down / mismatch</span>
+        </div>
+      </div>
+
+      <div class="verdict" id="dtpVerdict"><div class="vhead">—</div></div>
+    </div>
+  </section>
+
+  <!-- ── DTP MATRIX ── -->
+  <section id="dtp-table">
+    <div class="section-label">Reference</div>
+    <h2 class="section-title">DTP matrix (memorize)</h2>
+    <div class="subcard">
+      <table class="matrix">
+        <tr><th></th><th>dyn auto</th><th>dyn desirable</th><th>trunk</th><th>access</th></tr>
+        <tr><td><strong>dyn auto</strong></td><td><span class="tag ac">access</span></td><td><span class="tag tr">trunk</span></td><td><span class="tag tr">trunk</span></td><td><span class="tag ac">access</span></td></tr>
+        <tr><td><strong>dyn desirable</strong></td><td><span class="tag tr">trunk</span></td><td><span class="tag tr">trunk</span></td><td><span class="tag tr">trunk</span></td><td><span class="tag ac">access</span></td></tr>
+        <tr><td><strong>trunk</strong></td><td><span class="tag tr">trunk</span></td><td><span class="tag tr">trunk</span></td><td><span class="tag tr">trunk</span></td><td><span class="tag no">✗ mismatch</span></td></tr>
+        <tr><td><strong>access</strong></td><td><span class="tag ac">access</span></td><td><span class="tag ac">access</span></td><td><span class="tag no">✗ mismatch</span></td><td><span class="tag ac">access</span></td></tr>
+      </table>
+    </div>
+    <div class="callout">🧠 <strong>auto + auto = access</strong> (both wait, nobody asks) — the DTP twin of LACP passive+passive. <strong>desirable</strong> actively asks → trunks with anything dynamic or trunk. <strong>trunk + access = mismatch</strong> (VLAN leak / errors). <span style="font-family:var(--font-mono)">switchport nonegotiate</span> stops DTP frames — use on hard-set trunk/access and on links to routers, servers, firewalls, or non-Cisco gear.</div>
+  </section>
+
+  <!-- ── TRAPS ── -->
+  <section id="traps">
+    <div class="section-label">Exam traps</div>
+    <h2 class="section-title">If you see this, answer that</h2>
+    <div class="subcard">
+      <table class="matrix">
+        <tr><th>If you see…</th><th>Answer</th></tr>
+        <tr><td>"open standard" / "multivendor" EtherChannel</td><td><strong>LACP</strong> (PAgP is Cisco-only)</td></tr>
+        <tr><td>passive + passive</td><td>channel <strong>does not form</strong></td></tr>
+        <tr><td>auto + auto (PAgP)</td><td>channel <strong>does not form</strong></td></tr>
+        <tr><td>on + active/passive/desirable/auto</td><td><strong>mismatch</strong>, no channel</td></tr>
+        <tr><td>dynamic auto + dynamic auto</td><td>link stays <strong>access</strong> (not trunk)</td></tr>
+        <tr><td>trunk + access</td><td>DTP <strong>mismatch</strong></td></tr>
+        <tr><td>link to a router / server / firewall</td><td>hard-set mode + <span style="font-family:var(--font-mono)">switchport nonegotiate</span></td></tr>
+        <tr><td>max links per EtherChannel</td><td><strong>8 active</strong></td></tr>
+        <tr><td>verify a bundle</td><td><span style="font-family:var(--font-mono)">show etherchannel summary</span> — P=bundled, s=suspended, I=stand-alone</td></tr>
+      </table>
+      <div class="callout">🚫 Members won't bundle if they disagree on <strong>speed, duplex, native/allowed VLANs, trunk mode, or access VLAN</strong>. Mismatched ports get suspended.</div>
+    </div>
+  </section>
+
+</main>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script>
+(function(){
+  // ── EtherChannel ──
+  var PROTO={on:'static',active:'LACP',passive:'LACP',desirable:'PAgP',auto:'PAgP'};
+  var ec1=document.getElementById('ec1'),ec2=document.getElementById('ec2');
+  var ecLinks=document.getElementById('ecLinks'),ecV=document.getElementById('ecVerdict');
+  var ec1p=document.getElementById('ec1p'),ec2p=document.getElementById('ec2p');
+
+  function ecResult(a,b){
+    var pa=PROTO[a],pb=PROTO[b];
+    if(pa!==pb) return {state:'bad',head:'❌ Protocol mismatch',
+      why:'SW1 runs '+pa+', SW2 runs '+pb+'. The two ends speak different languages, so no channel forms. Never mix protocols — LACP only talks to LACP, PAgP only to PAgP, on only to on.',
+      cmd:'SW1(config-if)# channel-group 1 mode '+a+'\nSW2(config-if)# channel-group 1 mode '+b+'  ← wrong protocol'};
+    if(pa==='static') return {state:'ok',head:'✅ Channel forms (static)',mode:'bundled',
+      why:'Both sides set to "on". No negotiation protocol runs — the channel is forced up. Risky: if one side were anything else, this would blackhole traffic.',
+      cmd:'channel-group 1 mode on   (both sides)'};
+    if(pa==='LACP'){
+      if(a==='passive'&&b==='passive') return {state:'bad',head:'❌ No channel — both passive',
+        why:'LACP passive only LISTENS for LACP packets, it never initiates. Two listeners = silence. At least one side must be active.',
+        cmd:'channel-group 1 mode passive  (both)  ← need one active'};
+      return {state:'ok',head:'✅ Channel forms (LACP)',mode:'bundled',
+        why:'At least one side is active and sends LACP packets; the other responds. Port-channel comes up. LACP = open standard (802.3ad), works multi-vendor.',
+        cmd:'channel-group 1 mode '+a+' / '+b};
+    }
+    if(a==='auto'&&b==='auto') return {state:'bad',head:'❌ No channel — both auto',
+      why:'PAgP auto only LISTENS for PAgP packets, never initiates. Two listeners = silence. At least one side must be desirable.',
+      cmd:'channel-group 1 mode auto  (both)  ← need one desirable'};
+    return {state:'ok',head:'✅ Channel forms (PAgP)',mode:'bundled',
+      why:'At least one side is desirable and sends PAgP packets; the other responds. Channel comes up. PAgP is Cisco proprietary — won’t work to a non-Cisco switch.',
+      cmd:'channel-group 1 mode '+a+' / '+b};
+  }
+  function renderEC(){
+    var a=ec1.value,b=ec2.value,r=ecResult(a,b);
+    ec1p.textContent=PROTO[a];ec2p.textContent=PROTO[b];
+    for(var i=0;i<ecLinks.children.length;i++){
+      var lk=ecLinks.children[i];lk.className='lk';
+      if(r.state==='ok'){lk.classList.add('up');if(r.mode==='bundled')lk.classList.add('bundled');}
+      else lk.classList.add('down');
+    }
+    ecV.className='verdict '+r.state;
+    ecV.innerHTML='<div class="vhead">'+r.head+'</div><p class="why">'+r.why+'</p><div class="cmd">'+r.cmd+'</div>';
+  }
+  ec1.addEventListener('change',renderEC);ec2.addEventListener('change',renderEC);renderEC();
+
+  // ── DTP ──
+  var dtp1=document.getElementById('dtp1'),dtp2=document.getElementById('dtp2');
+  var dtpLink=document.getElementById('dtpLinks').children[0],dtpV=document.getElementById('dtpVerdict');
+  var M={
+    'dynamic auto':{'dynamic auto':'access','dynamic desirable':'trunk','trunk':'trunk','access':'access'},
+    'dynamic desirable':{'dynamic auto':'trunk','dynamic desirable':'trunk','trunk':'trunk','access':'access'},
+    'trunk':{'dynamic auto':'trunk','dynamic desirable':'trunk','trunk':'trunk','access':'mismatch'},
+    'access':{'dynamic auto':'access','dynamic desirable':'access','trunk':'mismatch','access':'access'}
+  };
+  function dtpWhy(a,b,res){
+    if(res==='mismatch') return 'One side is hard-set trunk, the other hard-set access. They can’t agree — the link errors and VLANs can leak. Hard-set both ends to match.';
+    if(res==='trunk'){
+      if(a==='trunk'||b==='trunk') return 'A side is forced to trunk. With DTP still on, it pulls the dynamic neighbor up to trunk too.';
+      return 'At least one side is "dynamic desirable" — it actively asks to trunk, and the neighbor agrees. Link becomes a trunk.';
+    }
+    if(a==='dynamic auto'&&b==='dynamic auto') return 'Both sides "dynamic auto" only WAIT to be asked. Nobody initiates → link falls back to ACCESS. Classic trap: you expected a trunk, you got access.';
+    if(a==='access'||b==='access') return 'A side is hard-set access, so the link stays access (single VLAN).';
+    return 'No side actively requests a trunk, so the link stays access.';
+  }
+  function renderDTP(){
+    var a=dtp1.value,b=dtp2.value,res=M[a][b];
+    dtpLink.className='lk';
+    if(res==='trunk')dtpLink.classList.add('up','trunk');
+    else if(res==='access')dtpLink.classList.add('up','access');
+    else dtpLink.classList.add('down');
+    var head=res==='trunk'?'🟣 Link becomes a TRUNK':res==='access'?'🟠 Link stays ACCESS':'❌ DTP mismatch';
+    dtpV.className='verdict '+(res==='trunk'?'ok':res==='access'?'warn':'bad');
+    dtpV.innerHTML='<div class="vhead">'+head+'</div><p class="why">'+dtpWhy(a,b,res)+'</p>'+
+      '<div class="cmd">SW1# switchport mode '+a+'\nSW2# switchport mode '+b+'   → '+res+'</div>';
+  }
+  dtp1.addEventListener('change',renderDTP);dtp2.addEventListener('change',renderDTP);renderDTP();
+})();
+</script>
+</body>
+</html>
