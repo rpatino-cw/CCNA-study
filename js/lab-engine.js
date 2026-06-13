@@ -288,7 +288,7 @@
         if (i.ip && i.up) rt.push('C    ' + i.ip + '/24 is directly connected, ' + n);
       });
       (dev.routes || []).forEach(function(r) {
-        rt.push('S    ' + r.dest + ' [1/0] via ' + r.nextHop);
+        rt.push('S    ' + r.net + ' [1/0] via ' + r.nh);
       });
       return rt.join('\n');
     }
@@ -362,12 +362,29 @@
       if (c2.vtyTransport === 'ssh') lines2.push(' transport input ssh');
       return lines2.join('\n');
     }
-    // show ip ospf neighbor — reads dev.ospf
-    if (lower === 'show ip ospf neighbor' || lower === 'show ip ospf nei') {
+    // show ip ospf neighbor — reads dev.ospf; derives peers from CDP (bug #20)
+    if (lower === 'show ip ospf neighbor' || lower === 'show ip ospf neighbors') {
       if (!dev.ospf || !dev.ospf.processId) return '';
-      var nbrs = (dev.ospf.networks || []).length;
-      if (nbrs === 0) return '';
-      return 'Neighbor ID     Pri   State           Dead Time   Address         Interface\n2.2.2.2           1   FULL/DR         00:00:38    10.0.12.2       GigabitEthernet0/0';
+      if ((dev.ospf.networks || []).length === 0) return '';
+      var ospfNoise = (dev.custom && dev.custom._noise) || {};
+      var ospfCdp = ospfNoise.cdpNeighbors || [];
+      var ifMap = { 'Gi0/0': 'GigabitEthernet0/0', 'Gi0/1': 'GigabitEthernet0/1', 'Gi0/2': 'GigabitEthernet0/2', 'Gi0/3': 'GigabitEthernet0/3' };
+      var ospfPeers = ospfCdp.filter(function (n) {
+        if (!/R/.test(n.capability || '')) return false; // router peers only
+        var full = ifMap[n.localIf] || n.localIf;
+        var iface = dev.interfaces[full] || dev.interfaces[n.localIf];
+        return iface && iface.up; // adjacency only on up links
+      });
+      if (!ospfPeers.length) {
+        // fall back to a generic adjacency line so verify still teaches
+        return 'Neighbor ID     Pri   State           Dead Time   Address         Interface\n2.2.2.2           1   FULL/DR         00:00:38    10.0.12.2       GigabitEthernet0/0';
+      }
+      var ospfRows = ['Neighbor ID     Pri   State           Dead Time   Address         Interface'];
+      ospfPeers.forEach(function (n) {
+        var full = ifMap[n.localIf] || n.localIf;
+        ospfRows.push((n.ip || '0.0.0.0') + '     1   FULL/DR         00:00:38    ' + (n.ip || '') + '       ' + full);
+      });
+      return ospfRows.join('\n');
     }
     // show ip protocols
     if (lower === 'show ip protocols' || lower === 'show ip prot') {
@@ -443,7 +460,7 @@
       return ls5.join('\n');
     }
     // show interfaces trunk
-    if (lower === 'show interfaces trunk' || lower === 'show int trunk' || lower === 'show int tr') {
+    if (lower === 'show interfaces trunk' || lower === 'show interface trunk' || lower === 'show int trunk' || lower === 'show interface tr' || lower === 'show int tr') {
       var ls6 = ['Port      Mode             Encapsulation  Status        Native vlan'];
       Object.keys(dev.interfaces).forEach(function(n) {
         var i = dev.interfaces[n];
@@ -569,13 +586,17 @@
       if (dev.mode === 'config-ext-nacl') { dev.mode = 'config'; this.checkObjectives(); return ''; }
       if (dev.mode === 'config') { dev.mode = 'priv'; this.checkObjectives(); return ''; }
       if (dev.mode === 'priv') { dev.mode = 'user'; this.checkObjectives(); return ''; }
+      if (dev.mode === 'user') { this.terminal && this.terminal.writeLine && this.terminal.writeLine('[Connection closed by foreign host]'); return ''; }
       return '';
     }
     if (lower === 'end') {
-      dev.mode = 'priv';
-      dev.currentInterface = null;
-      this.checkObjectives();
-      return '';
+      if (dev.mode === 'config' || dev.mode.startsWith('config-')) {
+        dev.mode = 'priv';
+        dev.currentInterface = null;
+        this.checkObjectives();
+        return '';
+      }
+      return '% Invalid input detected at \'^\' marker.';
     }
     if (lower === 'disable') {
       dev.mode = 'user';
@@ -595,17 +616,39 @@
       return 'Building configuration...\n[OK]';
     }
 
+    // Interface range — real IOS bundles multiple ports (e.g. EtherChannel members)
+    var rangeMatch = raw.match(/^interface\s+range\s+(.+)/i);
+    if (rangeMatch && (dev.mode === 'config' || dev.mode.startsWith('config-'))) {
+      var spec = rangeMatch[1].trim();
+      var rm = spec.match(/^(.*?)(\d+)\/(\d+)\s*-\s*(\d+)$/i);
+      var members = [];
+      if (rm) {
+        var rangeBase = this.normalizeInterface((rm[1] + rm[2] + '/').trim()); // e.g. GigabitEthernet0/
+        for (var rp = parseInt(rm[3]); rp <= parseInt(rm[4]); rp++) members.push(rangeBase + rp);
+      } else {
+        var self = this;
+        members = spec.split(',').map(function (s) { return self.normalizeInterface(s.trim()); });
+      }
+      dev.currentInterfaceRange = members;
+      dev.currentInterface = members[0];
+      members.forEach(function (n) { if (!dev.interfaces[n]) dev.interfaces[n] = { up: false }; });
+      dev.mode = 'config-if';
+      this.checkObjectives();
+      return '';
+    }
+
     // Interface selection — real IOS allows from any config-* sub-mode
     var ifMatch = raw.match(/^interface\s+(.+)/i);
     if (ifMatch && (dev.mode === 'config' || dev.mode.startsWith('config-'))) {
       var ifName = this.normalizeInterface(ifMatch[1].trim());
       dev.currentInterface = ifName;
+      dev.currentInterfaceRange = null; // single-interface clears any prior range
       if (ifName.includes('.')) {
         dev.mode = 'config-subif';
         if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { subinterface: true, up: false };
       } else {
         dev.mode = 'config-if';
-        if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { up: true };
+        if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { up: false };
       }
       this.checkObjectives();
       return '';
