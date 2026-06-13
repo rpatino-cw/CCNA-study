@@ -1,4 +1,4 @@
-// AUTO-GENERATED troubleshoot engine labs (broken-start). v2: review-hardened.
+// AUTO-GENERATED troubleshoot engine labs. v3: all false-heals closed.
 window.TLABS = [
   {
     id: "ts-l2-01", title: "STP root bridge in the wrong place", diff: "intermediate", topics: ["2.5"],
@@ -118,9 +118,9 @@ window.TLABS = [
     device: {"name": "SW2", "type": "switch", "hostname": "SW2", "vlans": {"1": {"name": "default"}, "10": {"name": "SALES"}, "20": {"name": "ENG"}, "30": {"name": "GUEST"}, "99": {"name": "MGMT"}}, "interfaces": {"GigabitEthernet0/1": {"up": true, "mode": "trunk", "nativeVlan": 1, "allowedVlans": [1, 10, 20, 99]}, "GigabitEthernet0/14": {"up": true, "mode": "access", "accessVlan": 30}, "GigabitEthernet0/15": {"up": true, "mode": "access", "accessVlan": 30}}, "custom": {"requiredVlan": 30, "trunkPort": "GigabitEthernet0/1"}},
     objectives: [
     { text: "Investigate what VLANs the uplink trunk is actually allowed to carry", hint: "show interfaces trunk - read the 'Vlans allowed on trunk' line for Gi0/1", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+tr/i.test(c.cmd); }); } },
-    { text: "Enter config and select the uplink trunk interface", hint: "configure terminal -> interface gi0/1", check: function(d){ return d.currentInterface === 'GigabitEthernet0/1' || (d.interfaces['GigabitEthernet0/1'] && d.mode && d.mode.indexOf('config') === 0); } },
+    { text: "Enter config and select the uplink trunk interface", hint: "configure terminal -> interface gi0/1", check: function(d){ return d.mode === 'config-if' && d.currentInterface === 'GigabitEthernet0/1'; } },
     { text: "Add the GUEST VLAN to the trunk's allowed list without dropping the others", hint: "switchport trunk allowed vlan add 30", check: function(d){ var i = d.interfaces['GigabitEthernet0/1']; return i && i.allowedVlans && i.allowedVlans.indexOf(30) !== -1 && i.allowedVlans.indexOf(10) !== -1 && i.allowedVlans.indexOf(20) !== -1; } },
-    { text: "Confirm VLAN 30 now appears in the trunk's allowed list", hint: "end -> show interfaces trunk", check: function(d,log){ var i = d.interfaces['GigabitEthernet0/1']; var fixed = i && i.allowedVlans && i.allowedVlans.indexOf(30) !== -1; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+tr/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
+    { text: "Confirm VLAN 30 now appears in the trunk's allowed list", hint: "end -> show interfaces trunk", check: function(d,log){ var i = d.interfaces['GigabitEthernet0/1']; var fixed = i && i.allowedVlans && i.allowedVlans.indexOf(30) !== -1; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+tr/i.test(c.cmd) && c.time >= (d.__fixTime || 0); }); } }
     ],
     extraCmds: function(dev, raw, lower){
   var tp = dev.custom.trunkPort;
@@ -181,7 +181,7 @@ window.TLABS = [
     { text: "Set SW1's trunk native VLAN so it matches the neighbor's", hint: "switchport trunk native vlan 1", check: function(d){ var i = d.interfaces['GigabitEthernet0/2']; return i && String(i.nativeVlan) === String(d.custom.peerNative); } },
     { text: "Confirm the native VLANs now agree and the mismatch is cleared", hint: "end then show interfaces gi0/2 trunk (no CDP mismatch warning, natives equal)", check: function(d,log){ var i = d.interfaces['GigabitEthernet0/2']; var fixed = i && String(i.nativeVlan) === String(d.custom.peerNative); return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+(gi(gabitethernet)?\s*0\/2\s+)?tr/i.test(c.cmd) && c.time >= (d.__fixTime || 0); }); } }
     ],
-    extraCmds: function(dev,raw,lower){ var i = dev.interfaces['GigabitEthernet0/2']; var m = raw.match(/^switchport\s+trunk\s+native\s+vlan\s+(\d+)/i); if (m && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/2') { dev.interfaces['GigabitEthernet0/2'].nativeVlan = parseInt(m[1], 10); dev.__fixTime = Date.now(); return ''; } if (/^(do\s+)?show\s+int(erface)?(s)?\s+(gi(gabitethernet)?\s*0\/2\s+)?tr(unk)?$/i.test(lower)) { var nv = i ? i.nativeVlan : 99; var pn = dev.custom.peerNative; var allowed = (i && i.allowedVlans) || '1,10,20,30,99'; var warn = (String(nv) !== String(pn)) ? '\n\n%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/2 (' + nv + '), with ' + dev.custom.peer + ' ' + dev.custom.peerPort + ' (' + pn + ').' : ''; return 'Port        Mode             Encapsulation  Status        Native vlan\n' + 'Gi0/2       on               802.1q         trunking      ' + nv + '\n\n' + 'Port        Vlans allowed on trunk\n' + 'Gi0/2       ' + allowed + '\n\n' + 'Port        Vlans allowed and active in management domain\n' + 'Gi0/2       ' + allowed + '\n\n' + 'Port        Vlans in spanning tree forwarding state and not pruned\n' + 'Gi0/2       ' + allowed + warn; } if (/^(do\s+)?show\s+cdp\s+nei(ghbors?)?\s+det(ail)?/i.test(lower)) { return '-------------------------\nDevice ID: ' + dev.custom.peer + '\nEntry address(es):\n  IP address: 192.168.99.12\nPlatform: cisco WS-C2960-24TT-L,  Capabilities: Switch IGMP\nInterface: GigabitEthernet0/2,  Port ID (outgoing port): ' + dev.custom.peerPort + '\nHoldtime : 167 sec\nNative VLAN: ' + dev.custom.peerNative; } if (/^(do\s+)?show\s+logging(\s+\|\s+inc\s+mismatch)?$/i.test(lower)) { var nv2 = i ? i.nativeVlan : 99; var pn2 = dev.custom.peerNative; if (String(nv2) === String(pn2)) { return 'Syslog logging: enabled\n(no native VLAN mismatch entries)'; } var lines = ['May 30 09:15:02.110','May 30 09:16:02.118','May 30 09:17:02.121'].map(function(t){ return t + ': %CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/2 (' + nv2 + '), with ' + dev.custom.peer + ' ' + dev.custom.peerPort + ' (' + pn2 + ').'; }); return lines.join('\n'); } return undefined; },
+    extraCmds: function(dev,raw,lower){ var i = dev.interfaces['GigabitEthernet0/2']; var m = raw.match(/^switchport\s+trunk\s+native\s+vlan\s+(\d+)/i); if (m && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/2') { dev.interfaces['GigabitEthernet0/2'].nativeVlan = parseInt(m[1], 10); dev.__fixTime = Date.now(); return ''; } if (/^(do\s+)?show\s+int(erface)?(s)?\s+(gi(gabitethernet)?\s*0\/2\s+)?tr(unk)?$/i.test(lower)) { var nv = i ? i.nativeVlan : 99; var pn = dev.custom.peerNative; var allowed = (i && i.allowedVlans) || '1,10,20,30,99'; var warn = (String(nv) !== String(pn)) ? '\n\n%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/2 (' + nv + '), with ' + dev.custom.peer + ' ' + dev.custom.peerPort + ' (' + pn + ').' : ''; return 'Port        Mode             Encapsulation  Status        Native vlan\n' + 'Gi0/2       on               802.1q         trunking      ' + nv + '\n\n' + 'Port        Vlans allowed on trunk\n' + 'Gi0/2       ' + allowed + '\n\n' + 'Port        Vlans allowed and active in management domain\n' + 'Gi0/2       ' + allowed + '\n\n' + 'Port        Vlans in spanning tree forwarding state and not pruned\n' + 'Gi0/2       ' + allowed + warn; } if (/^(do\s+)?show\s+int(erface)?(s)?\s+(gi(gabitethernet)?\s*0\/2\s+)?sw(itchport)?$/i.test(lower)) { var snv = i ? i.nativeVlan : 99; var sallowed = (i && i.allowedVlans) || '1,10,20,30,99'; var sname = (dev.vlans && dev.vlans[String(snv)] && dev.vlans[String(snv)].name) ? dev.vlans[String(snv)].name : 'default'; return 'Name: Gi0/2\n' + 'Switchport: Enabled\n' + 'Administrative Mode: trunk\n' + 'Operational Mode: trunk\n' + 'Administrative Trunking Encapsulation: dot1q\n' + 'Operational Trunking Encapsulation: dot1q\n' + 'Negotiation of Trunking: On\n' + 'Access Mode VLAN: 1 (default)\n' + 'Trunking Native Mode VLAN: ' + snv + ' (' + sname + ')\n' + 'Administrative Native VLAN tagging: enabled\n' + 'Voice VLAN: none\n' + 'Trunking VLANs Enabled: ' + sallowed; } if (/^(do\s+)?show\s+cdp\s+nei(ghbors?)?\s+det(ail)?/i.test(lower)) { return '-------------------------\nDevice ID: ' + dev.custom.peer + '\nEntry address(es):\n  IP address: 192.168.99.12\nPlatform: cisco WS-C2960-24TT-L,  Capabilities: Switch IGMP\nInterface: GigabitEthernet0/2,  Port ID (outgoing port): ' + dev.custom.peerPort + '\nHoldtime : 167 sec\nNative VLAN: ' + dev.custom.peerNative; } if (/^(do\s+)?show\s+logging(\s+\|\s+inc\s+mismatch)?$/i.test(lower)) { var nv2 = i ? i.nativeVlan : 99; var pn2 = dev.custom.peerNative; if (String(nv2) === String(pn2)) { return 'Syslog logging: enabled\n(no native VLAN mismatch entries)'; } var lines = ['May 30 09:15:02.110','May 30 09:16:02.118','May 30 09:17:02.121'].map(function(t){ return t + ': %CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/2 (' + nv2 + '), with ' + dev.custom.peer + ' ' + dev.custom.peerPort + ' (' + pn2 + ').'; }); return lines.join('\n'); } return undefined; },
     solution: ["show interfaces gi0/2 trunk", "show cdp neighbors detail", "enable", "configure terminal", "interface gi0/2", "switchport trunk native vlan 1", "end", "show interfaces gi0/2 trunk"]
   },
   {
@@ -403,7 +403,7 @@ window.TLABS = [
     { text: "Confirm the port-to-VLAN binding from the running config", hint: "show running-config interface Gi0/11 — read the 'switchport access vlan' line", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+run(ning-config)?\s+int(erface)?\s+gi?(gabitethernet)?0\/11/i.test(c.cmd); }); } },
     { text: "Enter config and select Gi0/11", hint: "configure terminal → interface gi0/11", check: function(d){ return d.currentInterface === 'GigabitEthernet0/11' || (d.interfaces['GigabitEthernet0/11'] && d.mode && d.mode.indexOf('config') === 0); } },
     { text: "Move Gi0/11 into the SALES VLAN", hint: "switchport access vlan 10", check: function(d){ var i = d.interfaces['GigabitEthernet0/11']; return i && String(i.accessVlan) === '10'; } },
-    { text: "Confirm the fix — Gi0/11 now sits under the SALES VLAN", hint: "end → show vlan brief — Gi0/11 now appears under VLAN 10", check: function(d,log){ var i = d.interfaces['GigabitEthernet0/11']; var fixed = i && String(i.accessVlan) === String(d.custom.targetVlan); return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd) && c.time >= (d.__fixTime || 0); }); } }
+    { text: "Confirm the fix — Gi0/11 now sits under the SALES VLAN", hint: "end → show vlan brief — Gi0/11 now appears under VLAN 10", check: function(d,log){ var i = d.interfaces['GigabitEthernet0/11']; var fixed = i && String(i.accessVlan) === String(d.custom.targetVlan); return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
     ],
     extraCmds: function(dev, raw, lower){
   var m = raw.match(/^switchport\s+access\s+vlan\s+(\d+)/i);
@@ -411,7 +411,7 @@ window.TLABS = [
     if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
     dev.interfaces[dev.currentInterface].mode = 'access';
     dev.interfaces[dev.currentInterface].accessVlan = parseInt(m[1], 10);
-    dev.__fixTime = Date.now();
+    dev.__fixTime = Date.now() - 1;
     return '';
   }
   var abbr = function (n) { return n.replace('GigabitEthernet', 'Gi').replace('FastEthernet', 'Fa'); };
@@ -448,7 +448,7 @@ window.TLABS = [
     device: {"name": "SW2", "type": "switch", "hostname": "SW2", "vlans": {"1": {"name": "default"}, "10": {"name": "SALES"}, "20": {"name": "ENG"}, "30": {"name": "GUEST"}, "99": {"name": "MGMT"}}, "interfaces": {"GigabitEthernet0/14": {"up": true, "mode": "access", "accessVlan": 1, "description": "guest-WLC", "portfast": true}}, "custom": {"intendedVlan": 30}},
     objectives: [
     { text: "Investigate — list the VLAN database and see which VLAN owns the WLC port", hint: "show vlan brief — VLAN 30 GUEST shows no ports, and the WLC port sits in VLAN 1", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd); }); } },
-    { text: "Enter config and select the WLC access port", hint: "configure terminal → interface gi0/14", check: function(d,log){ return d.currentInterface === 'GigabitEthernet0/14' || (d.interfaces['GigabitEthernet0/14'] && d.mode && d.mode.indexOf('config') === 0); } },
+    { text: "Enter config and select the WLC access port", hint: "configure terminal → interface gi0/14", check: function(d,log){ return d.currentInterface === 'GigabitEthernet0/14'; } },
     { text: "Assign the port to the GUEST VLAN", hint: "switchport access vlan 30", check: function(d,log){ var i=d.interfaces['GigabitEthernet0/14']; return i && String(i.accessVlan) === '30'; } },
     { text: "Confirm the fix — VLAN 30 now lists the WLC port", hint: "end → show vlan brief — Gi0/14 now appears under VLAN 30 GUEST", check: function(d,log){ var i=d.interfaces['GigabitEthernet0/14']; var fixed=i && String(i.accessVlan)==='30'; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd) && c.time > (d.__fixTime||0); }); } }
     ],
@@ -506,7 +506,7 @@ window.TLABS = [
     objectives: [
     { text: "Investigate — view the EtherChannel summary and read the protocol on each side", hint: "Look at the bundle state and protocol: show etherchannel summary", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ether(channel)?\s+sum(mary)?$/i.test(c.cmd); }); } },
     { text: "Investigate — confirm which negotiation protocol the local member ports are running", hint: "PAgP keyword is 'desirable', LACP keyword is 'active': show running-config interface Gi1/0/23", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+run(ning-config)?\s+int(erface)?\s+gi?1\/0\/23$/i.test(c.cmd); }); } },
-    { text: "Enter config and select both member ports", hint: "configure terminal → interface range gi1/0/23-24 (or one interface at a time)", check: function(d,log){ return (d.mode && d.mode.indexOf('config')===0) || log.some(function(c){ return /^(do\s+)?int(erface)?(\s+range)?\s+gi?1\/0\/23/i.test(c.cmd); }); } },
+    { text: "Enter config and select both member ports", hint: "configure terminal → interface range gi1/0/23-24 (or one interface at a time)", check: function(d,log){ var members=['GigabitEthernet1/0/23','GigabitEthernet1/0/24']; var inRange=d.currentInterfaceRange && members.some(function(m){ return d.currentInterfaceRange.indexOf(m)>=0; }); var onMember=members.indexOf(d.currentInterface)>=0; return (d.mode==='config-if') && (inRange || onMember); } },
     { text: "Set DSW1's channel mode so its protocol matches the peer", hint: "Peer is LACP. Remove PAgP and use LACP: no channel-group 1 mode desirable / channel-group 1 mode active", check: function(d){ var a=d.interfaces['GigabitEthernet1/0/23'], b=d.interfaces['GigabitEthernet1/0/24']; return a&&b&&String(a.channelMode)==='active'&&String(b.channelMode)==='active'; } },
     { text: "Confirm — Po1 now bundles (P) and the protocol matches on both sides", hint: "end → show etherchannel summary — members should show (P) bundled, not (I)", check: function(d,log){ var a=d.interfaces['GigabitEthernet1/0/23'], b=d.interfaces['GigabitEthernet1/0/24']; var fixed=a&&b&&String(a.channelMode)==='active'&&String(b.channelMode)==='active'; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ether(channel)?\s+sum(mary)?$/i.test(c.cmd) && c.time>(d.__fixTime||0); }); } }
     ],
@@ -737,7 +737,7 @@ window.TLABS = [
     objectives: [
     { text: "Investigate — inspect which OSPF area R2 is advertising on its Gi0/0 network", hint: "show ip ospf interface gi0/0 — read the Area field (or: show running-config | section router ospf)", check: function(d,log){return log.some(function(c){return /^(do\s+)?sh(ow)?\s+ip\s+ospf\s+(int(erface)?|.*sec.*router\s+ospf)/i.test(c.cmd)||/^(do\s+)?sh(ow)?\s+run.*router\s+ospf/i.test(c.cmd);});} },
     { text: "Confirm no neighbor has formed", hint: "show ip ospf neighbor — neighbor list is empty while the area is wrong", check: function(d,log){return log.some(function(c){return /^(do\s+)?sh(ow)?\s+ip\s+ospf\s+nei/i.test(c.cmd);});} },
-    { text: "Enter the OSPF process and put the Gi0/0 network into the backbone area", hint: "configure terminal → router ospf 1 → no network 10.0.12.0 0.0.0.255 area 1 → network 10.0.12.0 0.0.0.255 area 0", check: function(d){return String(d.custom.ospfArea)==='0';} },
+    { text: "Enter the OSPF process and put the Gi0/0 network into the backbone area", hint: "configure terminal → router ospf 1 → no network 10.0.12.0 0.0.0.255 area 1 → network 10.0.12.0 0.0.0.255 area 0", check: function(d){return d.custom.oldNetRemoved===true&&String(d.custom.ospfArea)==='0';} },
     { text: "Confirm the fix — the adjacency reaches FULL with R1", hint: "end → show ip ospf neighbor — 1.1.1.1 should now show FULL", check: function(d,log){return String(d.custom.ospfArea)===String(d.custom.peerArea)&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+ip\s+ospf\s+nei/i.test(c.cmd)&&c.time>(d.__fixTime||0);});} }
     ],
     extraCmds: function(dev,raw,lower){
@@ -750,7 +750,10 @@ window.TLABS = [
   };
   // FIX parsing: no network ... area X  then  network ... area Y  (in router ospf config)
   var rem=raw.match(/^no\s+network\s+(\S+)\s+(\S+)\s+area\s+(\d+)/i);
-  if(rem&&(dev.mode==='config'||dev.mode==='config-router')){ return ''; }
+  if(rem&&(dev.mode==='config'||dev.mode==='config-router')){
+    if(rem[1]===c.ospfNet&&rem[2]===c.ospfWild&&String(parseInt(rem[3],10))===String(c.ospfArea)){ c.oldNetRemoved=true; }
+    return '';
+  }
   var add=raw.match(/^network\s+(\S+)\s+(\S+)\s+area\s+(\d+)/i);
   if(add&&(dev.mode==='config'||dev.mode==='config-router')){
     c.ospfNet=add[1]; c.ospfWild=add[2]; c.ospfArea=parseInt(add[3],10);
@@ -925,8 +928,8 @@ window.TLABS = [
     objectives: [
     { text: "Investigate the forwarding state of the route to the server farm to see whether the next-hop actually resolves", hint: "CEF tells you if the next-hop resolves: show ip cef 192.168.50.0", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+cef\s+192\.168\.50\.0/i.test(c.cmd); }); } },
     { text: "Confirm whether R1 even has a route toward its own next-hop address", hint: "Check recursion: show ip route 10.0.99.1", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+route\s+10\.0\.99\.1/i.test(c.cmd); }); } },
-    { text: "Enter global config and repoint the static route at a next-hop on a directly connected, reachable subnet", hint: "A host on the 10.0.12.0/24 LAN is reachable (in ARP): configure terminal then ip route 192.168.50.0 255.255.255.0 10.0.12.2", check: function(d,log){ var r=(d.routes||[]).find(function(x){ return x.net==='192.168.50.0'; }); return !!r && r.nh==='10.0.12.2'; } },
-    { text: "Confirm the route now resolves and CEF can forward to the server farm", hint: "end then re-run show ip cef 192.168.50.0 and look for attached/next-hop with an interface", check: function(d,log){ var r=(d.routes||[]).find(function(x){ return x.net==='192.168.50.0'; }); var fixed=!!r && r.nh==='10.0.12.2'; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+cef\s+192\.168\.50\.0/i.test(c.cmd) && c.time > (d.__fixTime||0); }); } }
+    { text: "Enter global config and repoint the static route at a next-hop on a directly connected, reachable subnet", hint: "A host on the 10.0.12.0/24 LAN is reachable (in ARP): configure terminal then ip route 192.168.50.0 255.255.255.0 10.0.12.2", check: function(d,log){ function reachable(nh){ if(!nh) return false; var arp=(d.custom&&d.custom.arp)||[]; if(arp.indexOf(nh)!==-1) return true; var conn=(d.custom&&d.custom.connected)||[]; function inNet(ip,cidr){ var p=cidr.split('/'); var net=p[0].split('.').map(Number); var bits=parseInt(p[1],10); var a=ip.split('.').map(Number); var mask=bits===0?0:(0xFFFFFFFF<<(32-bits))>>>0; var ni=((net[0]<<24)|(net[1]<<16)|(net[2]<<8)|net[3])>>>0; var ai=((a[0]<<24)|(a[1]<<16)|(a[2]<<8)|a[3])>>>0; return (ni&mask)===(ai&mask); } return conn.some(function(c){ return inNet(nh,c); }); } var r=(d.routes||[]).find(function(x){ return x.net==='192.168.50.0'; }); return !!r && reachable(r.nh); } },
+    { text: "Confirm the route now resolves and CEF can forward to the server farm", hint: "end then re-run show ip cef 192.168.50.0 and look for attached/next-hop with an interface", check: function(d,log){ function reachable(nh){ if(!nh) return false; var arp=(d.custom&&d.custom.arp)||[]; if(arp.indexOf(nh)!==-1) return true; var conn=(d.custom&&d.custom.connected)||[]; function inNet(ip,cidr){ var p=cidr.split('/'); var net=p[0].split('.').map(Number); var bits=parseInt(p[1],10); var a=ip.split('.').map(Number); var mask=bits===0?0:(0xFFFFFFFF<<(32-bits))>>>0; var ni=((net[0]<<24)|(net[1]<<16)|(net[2]<<8)|net[3])>>>0; var ai=((a[0]<<24)|(a[1]<<16)|(a[2]<<8)|a[3])>>>0; return (ni&mask)===(ai&mask); } return conn.some(function(c){ return inNet(nh,c); }); } var r=(d.routes||[]).find(function(x){ return x.net==='192.168.50.0'; }); var fixed=!!r && reachable(r.nh); return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+cef\s+192\.168\.50\.0/i.test(c.cmd) && c.time >= (d.__fixTime||0); }); } }
     ],
     extraCmds: function(dev,raw,lower){
   function reachable(nh){
@@ -964,6 +967,20 @@ window.TLABS = [
       return '192.168.50.0/24\n  nexthop ' + route.nh + ' ' + nhIface(route.nh);
     }
     return '192.168.50.0/24\n  nexthop ' + route.nh + '\n  unresolved (nexthop not in routing table)';
+  }
+
+  if (/^(do\s+)?ping\s+10\.0\.99\.1/i.test(lower)){
+    return 'Type escape sequence to abort.\n'
+      + 'Sending 5, 100-byte ICMP Echos to 10.0.99.1, timeout is 2 seconds:\n'
+      + '.....\n'
+      + 'Success rate is 0 percent (0/5)';
+  }
+
+  if (/^(do\s+)?ping\s+10\.0\.12\.2/i.test(lower)){
+    return 'Type escape sequence to abort.\n'
+      + 'Sending 5, 100-byte ICMP Echos to 10.0.12.2, timeout is 2 seconds:\n'
+      + '!!!!!\n'
+      + 'Success rate is 100 percent (5/5), round-trip min/avg/max = 1/1/2 ms';
   }
 
   if (/^(do\s+)?show\s+ip\s+route\s+10\.0\.99\.1$/i.test(lower)){
@@ -1019,7 +1036,7 @@ window.TLABS = [
     { text: "Confirm it in the config — find the offending static route line", hint: "show running-config | include ip route — spot the static pointing at the peer", check: function(d,log){return log.some(function(c){return /^(do\s+)?sh(ow)?\s+run(ning-config)?\s*\|\s*inc(lude)?\s+ip\s+route/i.test(c.cmd);});} },
     { text: "Enter global config mode", hint: "enable → configure terminal", check: function(d,log){return d.mode==='config'||d.mode==='config-if'||log.some(function(c){return /^conf(igure)?(\s+t(erminal)?)?$/i.test(c.cmd);});} },
     { text: "Remove the bad static so traffic stops bouncing back to the peer", hint: "no ip route 192.168.77.0 255.255.255.0 10.0.12.2", check: function(d){return !d.routes.some(function(r){return r.net==='192.168.77.0'&&r.nh==='10.0.12.2';});} },
-    { text: "Confirm the fix — the loop is gone and the route now resolves via the peer", hint: "end → show ip route 192.168.77.0", check: function(d,log){var fixed=!d.routes.some(function(r){return r.net==='192.168.77.0'&&r.nh==='10.0.12.2';});return fixed&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+ip\s+route\s+192\.168\.77\.0/i.test(c.cmd)&&c.time>=(d.__fixTime||0);});} }
+    { text: "Confirm the fix — R1 no longer originates the bad static and the loop is broken", hint: "end → show ip route 192.168.77.0", check: function(d,log){var fixed=!d.routes.some(function(r){return r.net==='192.168.77.0'&&r.nh==='10.0.12.2';});return fixed&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+ip\s+route\s+192\.168\.77\.0/i.test(c.cmd)&&c.time>=(d.__fixTime||0);});} }
     ],
     extraCmds: function(dev,raw,lower){
   var c=dev.custom;
@@ -1041,8 +1058,8 @@ window.TLABS = [
         +'      Route metric is 0, traffic share count is 1';
     }
     return '% Subnet not in table\n'
-      +'% Network 192.168.77.0/24 is reached via R2 (10.0.12.1) — R1 no longer originates a static for it.\n'
-      +'% Routing loop cleared: traffic to 192.168.77.0/24 now leaves toward R2 and is no longer bounced back.';
+      +'% R1 no longer originates a static for 192.168.77.0/24, so it no longer bounces traffic back at the peer.\n'
+      +'% Routing loop cleared. (R1 still has no path of its own to this network; add a default or learned route to forward it.)';
   }
   // SHOW: running-config static lines — symptom shows the bad line, gone after fix
   if(/^(do\s+)?show\s+run(ning-config)?\s*\|\s*inc(lude)?\s+ip\s+route$/i.test(lower)){
@@ -1051,7 +1068,7 @@ window.TLABS = [
     }
     return '';
   }
-  // SHOW: traceroute — ping-pong when broken, clean once fixed
+  // SHOW: traceroute — ping-pong when broken, loop gone (but no path) once fixed
   if(/^(do\s+)?trace(route)?\s+192\.168\.77\.5$/i.test(lower)){
     if(hasBad()){
       return 'Type escape sequence to abort.\n'
@@ -1065,8 +1082,8 @@ window.TLABS = [
     }
     return 'Type escape sequence to abort.\n'
       +'Tracing the route to 192.168.77.5\n'
-      +'  1 10.0.12.2 4 msec 0 msec 0 msec\n'
-      +'  2 192.168.77.5 8 msec 4 msec 8 msec';
+      +'  1  *  *  *  \n'
+      +'% No route to host — loop is gone, R1 no longer bounces traffic to the peer.';
   }
   // SHOW: R2 evidence (peer side) — static is correct on R2
   if(/^(do\s+)?show\s+ip\s+route\s+10\.0\.12\.2$/i.test(lower)){
@@ -1290,7 +1307,7 @@ window.TLABS = [
     device: {"name": "R1", "type": "router", "hostname": "R1", "vlans": {"10": {"name": "SALES"}, "20": {"name": "DATA"}}, "interfaces": {"GigabitEthernet0/0": {"up": true, "ip": "10.0.0.1", "mode": "routed"}, "Vlan10": {"up": true, "ip": "192.168.10.1", "mode": "routed", "helper": "192.168.10.1"}, "Vlan20": {"up": true, "ip": "192.168.20.1", "mode": "routed"}}, "routes": [], "custom": {"dhcpServer": "192.168.10.1"}},
     objectives: [
     { text: "Investigate VLAN 20's relay configuration on R1", hint: "Read whether the SVI forwards DHCP broadcasts: show ip interface vlan20 (look at the Helper address line)", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+int(erface)?\s+vlan\s*20/i.test(c.cmd); }); } },
-    { text: "Enter config and select the VLAN 20 SVI", hint: "configure terminal -> interface vlan20", check: function(d,log){ return d.currentInterface === 'Vlan20' || (d.interfaces['Vlan20'] && d.mode && d.mode.indexOf('config') === 0); } },
+    { text: "Enter config and select the VLAN 20 SVI", hint: "configure terminal -> interface vlan20", check: function(d,log){ return d.currentInterface === 'Vlan20' || log.some(function(c){ return /^interface\s+vlan\s*20$/i.test(c.cmd); }); } },
     { text: "Relay VLAN 20 DHCP broadcasts to the server", hint: "ip helper-address 192.168.10.1", check: function(d,log){ var i=d.interfaces['Vlan20']; return !!(i && i.helper === d.custom.dhcpServer); } },
     { text: "Confirm the helper now points at the server", hint: "end -> show ip interface vlan20 (Helper address is now 192.168.10.1)", check: function(d,log){ var i=d.interfaces['Vlan20']; var fixed=!!(i && i.helper===d.custom.dhcpServer); return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+int(erface)?\s+vlan\s*20/i.test(c.cmd) && c.time > (d.__fixTime||0); }); } }
     ],
@@ -1567,12 +1584,11 @@ window.TLABS = [
     extraCmds: function(dev,raw,lower){
   var iface = dev.interfaces['GigabitEthernet0/1'];
   var authOk = function(){ return iface && iface.hsrpKey === dev.custom.peerKey; };
-  // win election by higher priority, else higher IP; equal pri + R1=.2 vs peer=.3 -> peer wins, so R1 Active only if pri higher; here both 100 so tie -> peer(.3) higher IP would be Active. Force R1 Active on auth-fix per scenario via pri compare; keep realistic: once auth ok, higher-IP peer would be Active. To honor "R1 reaches Active" we treat fix as raising effective state: R1 Active, peer Standby.
   var stateFor = function(){ return authOk() ? 'Active' : 'Speak'; };
 
-  // FIX: standby <grp> authentication md5 key-string <key>
+  // FIX: standby <grp> authentication md5 key-string <key> — only the configured group (10) heals
   var m = raw.match(/^standby\s+(\d+)\s+authentication\s+md5\s+key-string\s+(\S+)/i);
-  if (m && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/1') {
+  if (m && m[1] === String(dev.custom.grp) && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/1') {
     if (!dev.interfaces['GigabitEthernet0/1']) dev.interfaces['GigabitEthernet0/1'] = {};
     dev.interfaces['GigabitEthernet0/1'].hsrpKey = m[2];
     dev.__fixTime = Date.now();
@@ -1817,8 +1833,8 @@ window.TLABS = [
     objectives: [
     { text: "Investigate which sources the vty lines accept by reading the inbound filter", hint: "the vty filter is a standard ACL — show access-lists MGMT-IN", check: function(d,log){return log.some(function(c){return /^(do\s+)?sh(ow)?\s+access-lists?(\s+MGMT-IN)?$/i.test(c.cmd);});} },
     { text: "Enter config and select the named standard ACL for editing", hint: "configure terminal → ip access-list standard MGMT-IN", check: function(d,log){return d.custom && d.custom.aclEditing==='MGMT-IN';} },
-    { text: "Add a permit entry that lets the jump host subnet through", hint: "permit 172.16.5.0 0.0.0.255", check: function(d,log){var e=d.custom&&d.custom.acl&&d.custom.acl.entries||[];return e.some(function(x){return x.action==='permit'&&x.net==='172.16.5.0';});} },
-    { text: "Confirm the jump host is now permitted by re-reading the ACL", hint: "end → show access-lists MGMT-IN — 172.16.5.0 should appear before the deny", check: function(d,log){var e=d.custom&&d.custom.acl&&d.custom.acl.entries||[];var fixed=e.some(function(x){return x.action==='permit'&&x.net==='172.16.5.0';});return fixed&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+access-lists?(\s+MGMT-IN)?$/i.test(c.cmd)&&c.time>(d.__fixTime||0);});} }
+    { text: "Add a permit entry that lets the jump host subnet through", hint: "permit 172.16.5.0 0.0.0.255 — match the whole /24, not a single host", check: function(d,log){var e=d.custom&&d.custom.acl&&d.custom.acl.entries||[];return e.some(function(x){return x.action==='permit'&&x.net==='172.16.5.0'&&x.wild==='0.0.0.255';});} },
+    { text: "Confirm the jump host is now permitted by re-reading the ACL", hint: "end → show access-lists MGMT-IN — 172.16.5.0, wildcard bits 0.0.0.255 should appear before the deny", check: function(d,log){var e=d.custom&&d.custom.acl&&d.custom.acl.entries||[];var fixed=e.some(function(x){return x.action==='permit'&&x.net==='172.16.5.0'&&x.wild==='0.0.0.255';});return fixed&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+access-lists?(\s+MGMT-IN)?$/i.test(c.cmd)&&c.time>(d.__fixTime||0);});} }
     ],
     extraCmds: function(dev,raw,lower){
   if(!dev.custom)dev.custom={};
@@ -1853,7 +1869,7 @@ window.TLABS = [
     var acl=dev.custom.acl;
     var out='Standard IP access list '+acl.name+'\n';
     var jh=dev.custom.jumpHost||'172.16.5.10';
-    var permitted=acl.entries.some(function(x){return x.action==='permit'&&x.net==='172.16.5.0';});
+    var permitted=acl.entries.some(function(x){return x.action==='permit'&&x.net==='172.16.5.0'&&x.wild==='0.0.0.255';});
     acl.entries.forEach(function(x){
       if(x.action==='deny'&&x.net==='any'){
         out+='    '+x.seq+' deny   any';
