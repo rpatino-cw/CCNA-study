@@ -21,14 +21,18 @@
       "show ip ospf neighbor detail": "Neighbor 2.2.2.2, interface address 10.0.12.2\n    In the area 0 via interface GigabitEthernet0/0\n    Neighbor priority is 1, State is EXSTART, 12 state changes\n    DR is 10.0.12.2 BDR is 10.0.12.1\n    Options is 0x12 in Hello (E-bit L-bit)\n    Options is 0x52 in DBD (E-bit L-bit O-bit)\n    Dead timer due in 00:00:34\n    Neighbor is up for 00:02:14\n    Index 1/1, retransmission queue length 1, number of retransmission 7\n    First 0x7F1E48 next 0x7F1E48\n    Last retransmission scan length is 1, maximum is 1\n    Last retransmission scan time is 0 msec, maximum is 0 msec",
       "show interfaces gi0/0 | include MTU|line protocol": "GigabitEthernet0/0 is up, line protocol is up\n  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,",
       "show log | include OSPF": "%OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet0/0 from EXSTART to DOWN, Neighbor Down: Too many retransmissions\n%OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet0/0 from LOADING to FULL, Loading Done",
-      "debug ip ospf adj": "OSPF: Rcv DBD from 2.2.2.2 on GigabitEthernet0/0 seq 0x1F23 opt 0x52 flag 0x7 len 32  mtu 9216 state EXSTART\nOSPF: Nbr 2.2.2.2 has larger interface MTU\nOSPF: Retransmitting DBD to 2.2.2.2 on GigabitEthernet0/0 (1)\nOSPF: Retransmitting DBD to 2.2.2.2 on GigabitEthernet0/0 (2)\nOSPF: Nbr 2.2.2.2 on GigabitEthernet0/0 retransmits 7 \u2014 neighbor down"
+      "debug ip ospf adj": "OSPF: Rcv DBD from 2.2.2.2 on GigabitEthernet0/0 seq 0x1F23 opt 0x52 flag 0x7 len 32  mtu 9216 state EXSTART\nOSPF: Nbr 2.2.2.2 has larger interface MTU\nOSPF: Retransmitting DBD to 2.2.2.2 on GigabitEthernet0/0 (1)\nOSPF: Retransmitting DBD to 2.2.2.2 on GigabitEthernet0/0 (2)\nOSPF: Nbr 2.2.2.2 on GigabitEthernet0/0 retransmits 7 — neighbor down",
+      "show ip route ospf": "Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP\n       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area\n       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2\n       E1 - OSPF external type 1, E2 - OSPF external type 2\n       i - IS-IS, su - IS-IS summary, L1 - IS-IS level-1, L2 - IS-IS level-2\n       ia - IS-IS inter area, * - candidate default, U - per-user static route\n       o - ODR, P - periodic downloaded static route, H - NHRP, l - LISP\n       a - application route\n       + - replicated route, % - next hop override, p - overrides from PfR\n\n\nR1#",
+      "show ip protocols": "*** IP Routing is NSF aware ***\n\nRouting Protocol is \"ospf 1\"\n  Outgoing update filter list for all interfaces is not set\n  Incoming update filter list for all interfaces is not set\n  Router ID 1.1.1.1\n  Number of areas in this router is 1. 1 normal 0 stub 0 nssa\n  Maximum path: 4\n  Routing for Networks:\n    10.0.12.0 0.0.0.255 area 0\n  Routing Information Sources:\n    Gateway         Distance      Last Update\n  Distance: (default is 110)",
+      "ping 10.0.12.2": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 10.0.12.2, timeout is 2 seconds:\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 1/1/4 ms",
+      "ping 10.0.12.2 size 1500 df-bit": "Type escape sequence to abort.\nSending 5, 1500-byte ICMP Echos to 10.0.12.2, timeout is 2 seconds:\nPacket sent with the DF bit set\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 1/2/8 ms"
     },
     "question": "What is the root cause?",
     "choices": [
       {
         "text": "OSPF area mismatch between R1 and R2",
         "correct": false,
-        "explain": "Area mismatch would prevent neighbor from forming at all \u2014 state would never leave INIT/DOWN, not climb to EXSTART."
+        "explain": "Area mismatch would prevent neighbor from forming at all — state would never leave INIT/DOWN, not climb to EXSTART."
       },
       {
         "text": "MTU mismatch on Gi0/0 (R1=1500, R2=9216)",
@@ -38,7 +42,7 @@
       {
         "text": "OSPF hello/dead timer mismatch",
         "correct": false,
-        "explain": "Timer mismatch prevents the neighbor from forming at all \u2014 state would not reach EXSTART. Hello/Dead show 10/40 here."
+        "explain": "Timer mismatch prevents the neighbor from forming at all — state would not reach EXSTART. Hello/Dead show 10/40 here."
       },
       {
         "text": "OSPF authentication mismatch",
@@ -47,11 +51,11 @@
       }
     ],
     "rootCause": "Real Cisco syslog only reports \"Too many retransmissions\" when MTUs differ. `debug ip ospf adj` shows \"Nbr 2.2.2.2 has larger interface MTU\" with R2 sending mtu 9216 vs R1's 1500 (from `show interfaces gi0/0`). OSPF won't leave EXSTART until MTUs match.",
-    "fixHint": "On R2: interface Gi0/0 \u2192 `mtu 1500` (or set R1 to 9216). Alternatively `ip ospf mtu-ignore` on the interface as a workaround."
+    "fixHint": "On R2: interface Gi0/0 → `mtu 1500` (or set R1 to 9216). Alternatively `ip ospf mtu-ignore` on the interface as a workaround."
   },
   {
     "id": "ts-l3-02",
-    "title": "OSPF area mismatch \u2014 no neighbor",
+    "title": "OSPF area mismatch — no neighbor",
     "category": "L3",
     "difficulty": "beginner",
     "topics": [
@@ -70,19 +74,24 @@
       "show ip ospf interface gi0/0 brief": "Interface    PID   Area    IP Address/Mask    Cost  State Nbrs F/C\nGi0/0          1     0       10.0.12.1/24        1   DR    0/0",
       "show ip ospf neighbor": "",
       "show log | include OSPF": "%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID, from backbone area must be virtual-link but not found from 10.0.12.2, GigabitEthernet0/0\n%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID, from backbone area must be virtual-link but not found from 10.0.12.2, GigabitEthernet0/0",
-      "show running-config interface gi0/0": "interface GigabitEthernet0/0\n ip address 10.0.12.1 255.255.255.0\n duplex auto\n speed auto\nend"
+      "show running-config interface gi0/0": "interface GigabitEthernet0/0\n ip address 10.0.12.1 255.255.255.0\n duplex auto\n speed auto\nend",
+      "show ip ospf": "Routing Process \"ospf 1\" with ID 1.1.1.1\n Start time: 00:00:32.120, Time elapsed: 01:14:08.992\n Supports only single TOS(TOS0) routes\n Supports opaque LSA\n Router is not originating router-LSAs with maximum metric\n Initial SPF schedule delay 5000 msecs\n Number of areas in this router is 1. 1 normal 0 stub 0 nssa\n    Area BACKBONE(0)\n        Number of interfaces in this area is 1\n        Area has no authentication\n        SPF algorithm last executed 01:13:55.000 ago\n        SPF algorithm executed 1 times\n        Number of LSA 1. Checksum Sum 0x00A1B2\n        Number of opaque link LSA 0. Checksum Sum 0x000000",
+      "show ip ospf database": "            OSPF Router with ID (1.1.1.1) (Process ID 1)\n\n                Router Link States (Area 0)\n\nLink ID         ADV Router      Age         Seq#       Checksum Link count\n1.1.1.1         1.1.1.1         1112        0x80000001 0x00A1B2 1",
+      "show ip protocols": "*** IP Routing is NSF aware ***\n\nRouting Protocol is \"ospf 1\"\n  Outgoing update filter list for all interfaces is not set\n  Incoming update filter list for all interfaces is not set\n  Router ID 1.1.1.1\n  Number of areas in this router is 1. 1 normal 0 stub 0 nssa\n  Maximum path: 4\n  Routing for Networks:\n    10.0.12.0 0.0.0.255 area 0\n  Routing Information Sources:\n    Gateway         Distance      Last Update\n  Distance: (default is 110)",
+      "ping 10.0.12.2": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 10.0.12.2, timeout is 2 seconds:\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 1/1/2 ms",
+      "show interfaces gi0/0": "GigabitEthernet0/0 is up, line protocol is up\n  Hardware is iGbE, address is 0c1f.aabb.0001 (bia 0c1f.aabb.0001)\n  Internet address is 10.0.12.1/24\n  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     reliability 255/255, txload 1/255, rxload 1/255\n  Encapsulation ARPA, loopback not set\n  Keepalive set (10 sec)\n  Full Duplex, 1Gbps, media type is RJ45\n  input flow-control is off, output flow-control is unsupported\n  5 minute input rate 1000 bits/sec, 5 minute output rate 1000 bits/sec\n     842 packets input, 71388 bytes, 0 no buffer\n     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored\n     798 packets output, 64218 bytes, 0 underruns\n     0 output errors, 0 collisions, 1 interface resets"
     },
     "question": "What is the root cause?",
     "choices": [
       {
         "text": "MTU mismatch",
         "correct": false,
-        "explain": "MTU mismatch lets neighbor form to EXSTART. Here neighbor count is 0 \u2014 never formed. Also no MTU log."
+        "explain": "MTU mismatch lets neighbor form to EXSTART. Here neighbor count is 0 — never formed. Also no MTU log."
       },
       {
         "text": "OSPF area mismatch (R1 area 0, R2 area 1)",
         "correct": true,
-        "explain": "Syslog shows 'mismatched area ID, from backbone area' \u2014 R2 is sending hellos from a non-backbone area. R1's interface is in area 0; the hellos are dropped."
+        "explain": "Syslog shows 'mismatched area ID, from backbone area' — R2 is sending hellos from a non-backbone area. R1's interface is in area 0; the hellos are dropped."
       },
       {
         "text": "OSPF process not running on R2",
@@ -96,7 +105,7 @@
       }
     ],
     "rootCause": "`%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID` log proves R2's hellos arrive but advertise a different area. R1 is in area 0 (per `show ip ospf interface`), R2 is in another area.",
-    "fixHint": "On R2: `router ospf 1` \u2192 `no network 10.0.12.0 0.0.0.255 area X` then `network 10.0.12.0 0.0.0.255 area 0`."
+    "fixHint": "On R2: `router ospf 1` → `no network 10.0.12.0 0.0.0.255 area X` then `network 10.0.12.0 0.0.0.255 area 0`."
   },
   {
     "id": "ts-l3-03",
@@ -119,19 +128,22 @@
       "show log | include OSPF": "%OSPF-4-ERRRCV: Received invalid packet: mismatched hello parameters from 10.0.13.3, GigabitEthernet0/1\n%OSPF-4-ERRRCV: Received invalid packet: mismatched hello parameters from 10.0.13.3, GigabitEthernet0/1\n%OSPF-4-ERRRCV: Received invalid packet: mismatched hello parameters from 10.0.13.3, GigabitEthernet0/1",
       "show running-config | section router ospf": "router ospf 1\n router-id 1.1.1.1\n network 10.0.13.0 0.0.0.255 area 0\n network 10.0.12.0 0.0.0.255 area 0",
       "show running-config interface gi0/1": "interface GigabitEthernet0/1\n ip address 10.0.13.1 255.255.255.0\n duplex auto\n speed auto\nend",
-      "debug ip ospf hello": "OSPF-1 HELLO Gi0/1: Rcv hello from 3.3.3.3 area 0 from 10.0.13.3\nOSPF-1 HELLO Gi0/1: Mismatched hello parameters from 10.0.13.3\nOSPF-1 HELLO Gi0/1: Dead R 30 C 40, Hello R 5 C 10  Mask R 255.255.255.0 C 255.255.255.0"
+      "debug ip ospf hello": "OSPF-1 HELLO Gi0/1: Rcv hello from 3.3.3.3 area 0 from 10.0.13.3\nOSPF-1 HELLO Gi0/1: Mismatched hello parameters from 10.0.13.3\nOSPF-1 HELLO Gi0/1: Dead R 30 C 40, Hello R 5 C 10  Mask R 255.255.255.0 C 255.255.255.0",
+      "show ip interface brief": "Interface              IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/0     10.0.12.1       YES manual up                    up\nGigabitEthernet0/1     10.0.13.1       YES manual up                    up\nGigabitEthernet0/2     unassigned      YES unset  administratively down down\nLoopback0              1.1.1.1         YES manual up                    up",
+      "show ip ospf": "Routing Process \"ospf 1\" with ID 1.1.1.1\n Start time: 00:02:11.480, Time elapsed: 01:47:33.120\n Supports only single TOS(TOS0) routes\n Supports opaque LSA\n Router is not originating router-LSAs with maximum metric\n Initial SPF schedule delay 5000 msecs\n Number of areas in this router is 1. 1 normal 0 stub 0 nssa\n    Area BACKBONE(0)\n        Number of interfaces in this area is 2\n        Area has no authentication\n        SPF algorithm executed 3 times\n        Number of LSA 1. Checksum Sum 0x00A1B2",
+      "ping 10.0.13.3": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 10.0.13.3, timeout is 2 seconds:\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 1/1/2 ms"
     },
     "question": "What is the root cause?",
     "choices": [
       {
         "text": "OSPF area mismatch",
         "correct": false,
-        "explain": "Debug shows R3 is sending area 0 \u2014 matches R1. The mismatch is timers, not area."
+        "explain": "Debug shows R3 is sending area 0 — matches R1. The mismatch is timers, not area."
       },
       {
         "text": "Hello/dead timer mismatch (R1: 10/40, R3: 5/30)",
         "correct": true,
-        "explain": "debug output shows 'Dead R 30 C 40, Hello R 5 C 10' \u2014 Received (R3) timers are 5/30, Configured (R1) are 10/40. Timers must match for adjacency."
+        "explain": "debug output shows 'Dead R 30 C 40, Hello R 5 C 10' — Received (R3) timers are 5/30, Configured (R1) are 10/40. Timers must match for adjacency."
       },
       {
         "text": "MTU mismatch",
@@ -141,10 +153,10 @@
       {
         "text": "Subnet mask mismatch",
         "correct": false,
-        "explain": "Debug shows 'Mask R 255.255.255.0 C 255.255.255.0' \u2014 masks match."
+        "explain": "Debug shows 'Mask R 255.255.255.0 C 255.255.255.0' — masks match."
       }
     ],
-    "rootCause": "Debug shows `Dead R 30 C 40, Hello R 5 C 10` \u2014 R3 sends hello-interval 5, dead-interval 30; R1 has 10/40. OSPF drops hellos with mismatched timers and never forms adjacency.",
+    "rootCause": "Debug shows `Dead R 30 C 40, Hello R 5 C 10` — R3 sends hello-interval 5, dead-interval 30; R1 has 10/40. OSPF drops hellos with mismatched timers and never forms adjacency.",
     "fixHint": "On R3 Gi0/x: `ip ospf hello-interval 10` and `ip ospf dead-interval 40` (or change R1 to match)."
   },
   {
@@ -167,7 +179,11 @@
       "show running-config interface gi0/0": "interface GigabitEthernet0/0\n ip address 10.0.12.1 255.255.255.0\n ip ospf message-digest-key 1 md5 CISCO123\n ip ospf authentication message-digest\n duplex auto\n speed auto\nend",
       "show log | include OSPF": "%OSPF-4-ERRRCV: Received invalid packet: mismatch authentication key, from 10.0.12.2, GigabitEthernet0/0\n%OSPF-4-ERRRCV: Received invalid packet: mismatch authentication key, from 10.0.12.2, GigabitEthernet0/0",
       "show ip ospf": "Routing Process \"ospf 1\" with ID 1.1.1.1\n Start time: 00:00:32.776, Time elapsed: 00:18:45.123\n Supports only single TOS(TOS0) routes\n Supports opaque LSA\n Supports Link-local Signaling (LLS)\n Supports area transit capability\n Router is not originating router-LSAs with maximum metric\n Initial SPF schedule delay 5000 msecs\n Number of areas in this router is 1. 1 normal 0 stub 0 nssa",
-      "show running-config | section router ospf": "router ospf 1\n router-id 1.1.1.1\n area 0 authentication message-digest\n network 10.0.12.0 0.0.0.255 area 0"
+      "show running-config | section router ospf": "router ospf 1\n router-id 1.1.1.1\n area 0 authentication message-digest\n network 10.0.12.0 0.0.0.255 area 0",
+      "debug ip ospf adj": "OSPF: Rcv pkt from 10.0.12.2, GigabitEthernet0/0 : Mismatch Authentication Key - Message Digest Key 1\nOSPF: Rcv pkt from 10.0.12.2, GigabitEthernet0/0 : Mismatch Authentication Key - Message Digest Key 1\nOSPF: Rcv pkt from 10.0.12.2, GigabitEthernet0/0 : Mismatch Authentication Key - Message Digest Key 1",
+      "show ip ospf interface brief": "Interface    PID   Area     IP Address/Mask      Cost  State Nbrs F/C\nGi0/0        1     0        10.0.12.1/24         1     DR    0/0",
+      "show ip interface brief": "Interface              IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/0     10.0.12.1       YES manual up                    up\nGigabitEthernet0/1     unassigned      YES unset  administratively down down\nLoopback0              1.1.1.1         YES manual up                    up",
+      "ping 10.0.12.2": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 10.0.12.2, timeout is 2 seconds:\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 1/1/2 ms"
     },
     "question": "What is the root cause?",
     "choices": [
@@ -179,7 +195,7 @@
       {
         "text": "OSPF area 0 not enabled on R1's Gi0/0",
         "correct": false,
-        "explain": "`show ip ospf interface` confirms area 0 on Gi0/0 \u2014 area is fine."
+        "explain": "`show ip ospf interface` confirms area 0 on Gi0/0 — area is fine."
       },
       {
         "text": "Timer mismatch",
@@ -189,7 +205,7 @@
       {
         "text": "R2 stopped sending hellos",
         "correct": false,
-        "explain": "R1 is logging packets received from 10.0.12.2 \u2014 R2 IS sending. The packets are just rejected by auth."
+        "explain": "R1 is logging packets received from 10.0.12.2 — R2 IS sending. The packets are just rejected by auth."
       }
     ],
     "rootCause": "`%OSPF-4-ERRRCV: ... mismatch authentication key, from 10.0.12.2` shows R2 is sending OSPF packets but MD5 authentication fails. R1 has key 1 = `CISCO123`; R2's key differs or is missing.",
@@ -215,17 +231,20 @@
       "show running-config | include ip route": "ip route 192.168.50.0 255.255.255.0 10.0.99.1",
       "ping 10.0.99.1": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 10.0.99.1, timeout is 2 seconds:\n.....\nSuccess rate is 0 percent (0/5)",
       "show ip route 10.0.99.1": "% Subnet not in table",
-      "show ip cef 192.168.50.0": "192.168.50.0/24\n  nexthop 10.0.99.1\n  unresolved (nexthop not in routing table)"
+      "show ip cef 192.168.50.0": "192.168.50.0/24\n  nexthop 10.0.99.1\n  unresolved (nexthop not in routing table)",
+      "show ip interface brief": "Interface              IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/0     10.0.12.1       YES NVRAM  up                    up\nGigabitEthernet0/1     10.0.13.1       YES NVRAM  up                    up\nGigabitEthernet0/2     unassigned      YES NVRAM  administratively down down",
+      "show ip arp": "Protocol  Address         Age (min)  Hardware Addr   Type   Interface\nInternet  10.0.12.1               -   00a0.0c12.0001  ARPA   GigabitEthernet0/0\nInternet  10.0.12.2              14   00a0.0c12.0002  ARPA   GigabitEthernet0/0\nInternet  10.0.13.1               -   00a0.0c13.0001  ARPA   GigabitEthernet0/1",
+      "traceroute 192.168.50.1": "Type escape sequence to abort.\nTracing the route to 192.168.50.1\nVRF info: (vrf in name/id, vrf out name/id)\n  1  *  *  *\n  2  *  *  *\n  3  *  *  *"
     },
     "question": "What is the root cause?",
     "choices": [
       {
         "text": "ACL is blocking the traffic",
         "correct": false,
-        "explain": "No ACL evidence. Also `ping 10.0.99.1` returns 0% \u2014 the issue is reachability of next-hop itself, not ACL."
+        "explain": "No ACL evidence. Also `ping 10.0.99.1` returns 0% — the issue is reachability of next-hop itself, not ACL."
       },
       {
-        "text": "Static route next-hop 10.0.99.1 is not reachable \u2014 recursion fails",
+        "text": "Static route next-hop 10.0.99.1 is not reachable — recursion fails",
         "correct": true,
         "explain": "`show ip route 10.0.99.1` returns 'Subnet not in table' and `show ip cef` says 'unresolved (nexthop not in routing table)'. R1 has no route to its own next-hop."
       },
@@ -245,7 +264,7 @@
   },
   {
     "id": "ts-l3-07",
-    "title": "Routing loop \u2014 two static routes pointing at each other",
+    "title": "Routing loop — two static routes pointing at each other",
     "category": "L3",
     "difficulty": "intermediate",
     "topics": [
@@ -264,32 +283,34 @@
       "show ip route 10.0.12.2": "Routing entry for 10.0.12.0/24\n  Known via \"connected\", distance 0, metric 0 (connected, via interface)\n  Routing Descriptor Blocks:\n  * directly connected, via GigabitEthernet0/0\n      Route metric is 0, traffic share count is 1",
       "R2# show running-config | include ip route": "ip route 192.168.77.0 255.255.255.0 10.0.12.1",
       "R2# show ip route 192.168.77.0": "Routing entry for 192.168.77.0/24\n  Known via \"static\", distance 1, metric 0\n  Routing Descriptor Blocks:\n  * 10.0.12.1\n      Route metric is 0, traffic share count is 1",
-      "show processes cpu sorted | exclude 0.00": "CPU utilization for five seconds: 78%/72%; one minute: 65%; five minutes: 41%\n PID Runtime(ms)   Invoked   uSecs   5Sec   1Min   5Min TTY Process\n  86       12345      4321    2856  18.3%  12.1%   8.4%   0 IP Input"
+      "show processes cpu sorted | exclude 0.00": "CPU utilization for five seconds: 78%/72%; one minute: 65%; five minutes: 41%\n PID Runtime(ms)   Invoked   uSecs   5Sec   1Min   5Min TTY Process\n  86       12345      4321    2856  18.3%  12.1%   8.4%   0 IP Input",
+      "ping 192.168.77.5": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 192.168.77.5, timeout is 2 seconds:\n.....\nSuccess rate is 0 percent (0/5)",
+      "show ip cef 192.168.77.5": "192.168.77.0/24\n  nexthop 10.0.12.2 GigabitEthernet0/0"
     },
     "question": "What is the root cause?",
     "choices": [
       {
         "text": "192.168.77.0/24 host is offline",
         "correct": false,
-        "explain": "Host offline would produce no traceroute \u2014 packet would reach last router and fail. Here packets ping-pong between R1 and R2, classic loop."
+        "explain": "Host offline would produce no traceroute — packet would reach last router and fail. Here packets ping-pong between R1 and R2, classic loop."
       },
       {
         "text": "Routing loop: R1 points 192.168.77.0/24 at R2, R2 points it at R1",
         "correct": true,
-        "explain": "R1's static: `ip route 192.168.77.0 255.255.255.0 10.0.12.2`; R2's static: `ip route 192.168.77.0 255.255.255.0 10.0.12.1`. Neither owns the network \u2014 they bounce forever."
+        "explain": "R1's static: `ip route 192.168.77.0 255.255.255.0 10.0.12.2`; R2's static: `ip route 192.168.77.0 255.255.255.0 10.0.12.1`. Neither owns the network — they bounce forever."
       },
       {
         "text": "MTU black hole",
         "correct": false,
-        "explain": "MTU issues drop fragmented packets silently; they don't cause alternating hops in traceroute. The traceroute clearly shows R1\u2194R2 loop."
+        "explain": "MTU issues drop fragmented packets silently; they don't cause alternating hops in traceroute. The traceroute clearly shows R1↔R2 loop."
       },
       {
         "text": "OSPF area mismatch",
         "correct": false,
-        "explain": "OSPF isn't even shown in use here \u2014 these are static routes. Loop is caused by static config, not protocol."
+        "explain": "OSPF isn't even shown in use here — these are static routes. Loop is caused by static config, not protocol."
       }
     ],
-    "rootCause": "R1's static `ip route 192.168.77.0 255.255.255.0 10.0.12.2` and R2's `ip route 192.168.77.0 255.255.255.0 10.0.12.1` send packets in a circle \u2014 neither router has a connected/specific route to 192.168.77.0/24.",
+    "rootCause": "R1's static `ip route 192.168.77.0 255.255.255.0 10.0.12.2` and R2's `ip route 192.168.77.0 255.255.255.0 10.0.12.1` send packets in a circle — neither router has a connected/specific route to 192.168.77.0/24.",
     "fixHint": "Remove the wrong static. Whichever router actually borders 192.168.77.0/24 should be the only one with that static (or use a dynamic protocol)."
   },
   {
@@ -312,24 +333,27 @@
       "show running-config | include access-list 110": "access-list 110 permit ip 192.168.20.0 0.0.0.255 172.16.0.0 0.0.255.255\naccess-list 110 deny ip any any\naccess-list 110 permit ip host 192.168.10.50 host 172.16.20.10",
       "show access-lists 110": "Extended IP access list 110\n    10 permit ip 192.168.20.0 0.0.0.255 172.16.0.0 0.0.255.255\n    20 deny ip any any (1247 matches)\n    30 permit ip host 192.168.10.50 host 172.16.20.10 (0 matches)",
       "ping 172.16.20.10 source 192.168.10.50": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 172.16.20.10, timeout is 2 seconds:\nPacket sent with a source address of 192.168.10.50\nU.U.U\nSuccess rate is 0 percent (0/5)",
-      "show running-config interface gi0/1": "interface GigabitEthernet0/1\n ip address 192.168.10.1 255.255.255.0\n ip access-group 110 in\n duplex auto\n speed auto\nend"
+      "show running-config interface gi0/1": "interface GigabitEthernet0/1\n ip address 192.168.10.1 255.255.255.0\n ip access-group 110 in\n duplex auto\n speed auto\nend",
+      "show ip access-lists 110": "Extended IP access list 110\n    10 permit ip 192.168.20.0 0.0.0.255 172.16.0.0 0.0.255.255\n    20 deny ip any any (1389 matches)\n    30 permit ip host 192.168.10.50 host 172.16.20.10 (0 matches)",
+      "show ip interface gi0/1": "GigabitEthernet0/1 is up, line protocol is up\n  Internet address is 192.168.10.1/24\n  Broadcast address is 255.255.255.255\n  Address determined by setup command\n  MTU is 1500 bytes\n  Helper address is not set\n  Directed broadcast forwarding is disabled\n  Outgoing access list is not set\n  Inbound  access list is 110\n  Proxy ARP is enabled\n  Local Proxy ARP is disabled\n  Security level is default\n  Split horizon is enabled\n  ICMP redirects are always sent\n  ICMP unreachables are always sent\n  ICMP mask replies are never sent\n  IP fast switching is enabled",
+      "show access-lists": "Extended IP access list 110\n    10 permit ip 192.168.20.0 0.0.0.255 172.16.0.0 0.0.255.255\n    20 deny ip any any (1389 matches)\n    30 permit ip host 192.168.10.50 host 172.16.20.10 (0 matches)"
     },
     "question": "What is the root cause?",
     "choices": [
       {
         "text": "ACL is applied in the wrong direction",
         "correct": false,
-        "explain": "It's applied inbound on the LAN-facing interface \u2014 correct direction for filtering source 192.168.10.50 from its own subnet."
+        "explain": "It's applied inbound on the LAN-facing interface — correct direction for filtering source 192.168.10.50 from its own subnet."
       },
       {
         "text": "Static route is missing",
         "correct": false,
-        "explain": "`U.U.U` from ping means 'destination unreachable from filter' \u2014 ACL drop, not routing failure."
+        "explain": "`U.U.U` from ping means 'destination unreachable from filter' — ACL drop, not routing failure."
       },
       {
         "text": "Line 30 permit is shadowed by line 20 deny",
         "correct": true,
-        "explain": "ACLs evaluate top-down. Line 10 permits only sources in 192.168.20.0/24 \u2014 does NOT match 192.168.10.50. Line 20 `deny ip any any` matches (1247 hits) and drops the traffic. Line 30 (specific permit for 192.168.10.50\u2192172.16.20.10) sits AFTER the deny so it is never evaluated \u2014 \"0 matches\" confirms it is unreachable."
+        "explain": "ACLs evaluate top-down. Line 10 permits only sources in 192.168.20.0/24 — does NOT match 192.168.10.50. Line 20 `deny ip any any` matches (1247 hits) and drops the traffic. Line 30 (specific permit for 192.168.10.50→172.16.20.10) sits AFTER the deny so it is never evaluated — \"0 matches\" confirms it is unreachable."
       },
       {
         "text": "Source 192.168.10.50 is not on the connected subnet",
@@ -338,11 +362,11 @@
       }
     ],
     "rootCause": "ACL 110 line 20 (`deny ip any any`) has 1247 matches; line 30 (`permit ip host 192.168.10.50 host 172.16.20.10`) shows 0 matches. Line 10 only matches src 192.168.20.0/24, so 192.168.10.50 falls through to line 20's deny before line 30 is ever reached. The specific permit is shadowed.",
-    "fixHint": "Reorder: `no access-list 110` then rebuild with the specific permit before the deny \u2014 or use sequence numbers to insert: `ip access-list extended 110` \u2192 `15 permit ip host 192.168.10.50 host 172.16.20.10`."
+    "fixHint": "Reorder: `no access-list 110` then rebuild with the specific permit before the deny — or use sequence numbers to insert: `ip access-list extended 110` → `15 permit ip host 192.168.10.50 host 172.16.20.10`."
   },
   {
     "id": "ts-l3-09",
-    "title": "NAT not translating \u2014 missing ip nat inside",
+    "title": "NAT not translating — missing ip nat inside",
     "category": "L3",
     "difficulty": "intermediate",
     "topics": [
@@ -361,33 +385,36 @@
       "show running-config interface gi0/0": "interface GigabitEthernet0/0\n description LAN\n ip address 192.168.1.1 255.255.255.0\n duplex auto\n speed auto\nend",
       "show running-config interface gi0/1": "interface GigabitEthernet0/1\n description WAN\n ip address 203.0.113.2 255.255.255.252\n ip nat outside\n duplex auto\n speed auto\nend",
       "show ip nat statistics": "Total active translations: 0 (0 static, 0 dynamic; 0 extended)\nPeak translations: 0\nOutside interfaces:\n  GigabitEthernet0/1\nInside interfaces:\nHits: 0  Misses: 0\nExpired translations: 0\nDynamic mappings:\n-- Inside Source\n[Id: 1] access-list 1 interface GigabitEthernet0/1 refcount 0",
-      "ping 8.8.8.8 source 192.168.1.1": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 8.8.8.8, timeout is 2 seconds:\nPacket sent with a source address of 192.168.1.1\n.....\nSuccess rate is 0 percent (0/5)"
+      "ping 8.8.8.8 source 192.168.1.1": "Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 8.8.8.8, timeout is 2 seconds:\nPacket sent with a source address of 192.168.1.1\n.....\nSuccess rate is 0 percent (0/5)",
+      "show ip interface brief": "Interface              IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/0     192.168.1.1     YES NVRAM  up                    up\nGigabitEthernet0/1     203.0.113.2     YES NVRAM  up                    up\nGigabitEthernet0/2     unassigned      YES NVRAM  administratively down  down\nGigabitEthernet0/3     unassigned      YES NVRAM  administratively down  down",
+      "show access-lists": "Standard IP access list 1\n    10 permit 192.168.1.0, wildcard bits 0.0.0.255 (0 matches)",
+      "show ip route": "Gateway of last resort is 203.0.113.1 to network 0.0.0.0\n\nS*    0.0.0.0/0 [1/0] via 203.0.113.1\n      192.168.1.0/24 is variably subnetted, 1 subnets, 1 masks\nC        192.168.1.0/24 is directly connected, GigabitEthernet0/0\n      203.0.113.0/30 is variably subnetted, 1 subnets, 1 masks\nC        203.0.113.0/30 is directly connected, GigabitEthernet0/1"
     },
     "question": "What is the root cause?",
     "choices": [
       {
         "text": "ACL 1 doesn't permit 192.168.1.0/24",
         "correct": false,
-        "explain": "ACL 1 explicitly permits 192.168.1.0 0.0.0.255 \u2014 correct match."
+        "explain": "ACL 1 explicitly permits 192.168.1.0 0.0.0.255 — correct match."
       },
       {
         "text": "Gi0/0 (LAN) is missing `ip nat inside`",
         "correct": true,
-        "explain": "`show ip nat statistics` shows 'Inside interfaces:' line is empty. Gi0/0 config has no `ip nat inside` statement. NAT only translates traffic flowing inside\u2192outside; without inside, nothing matches."
+        "explain": "`show ip nat statistics` shows 'Inside interfaces:' line is empty. Gi0/0 config has no `ip nat inside` statement. NAT only translates traffic flowing inside→outside; without inside, nothing matches."
       },
       {
         "text": "Default route is missing",
         "correct": false,
-        "explain": "Cannot verify from output but NAT statistics shows 0 hits / 0 misses \u2014 packets aren't even reaching NAT evaluation, which points to missing inside, not routing."
+        "explain": "Cannot verify from output but NAT statistics shows 0 hits / 0 misses — packets aren't even reaching NAT evaluation, which points to missing inside, not routing."
       },
       {
         "text": "Outside interface needs to be a loopback",
         "correct": false,
-        "explain": "Outside interface can be any physical interface \u2014 Gi0/1 with `ip nat outside` is fine."
+        "explain": "Outside interface can be any physical interface — Gi0/1 with `ip nat outside` is fine."
       }
     ],
     "rootCause": "`show ip nat statistics` shows the \"Inside interfaces:\" line is empty. Gi0/0 (LAN) has no `ip nat inside` statement. Without `ip nat inside` on the LAN-facing interface, packets are never tagged for translation, so the table stays empty and traffic is forwarded with the private source.",
-    "fixHint": "On R-EDGE: `interface Gi0/0` \u2192 `ip nat inside`."
+    "fixHint": "On R-EDGE: `interface Gi0/0` → `ip nat inside`."
   },
   {
     "id": "ts-l3-10",
@@ -411,7 +438,10 @@
       "R-CORE# show running-config | section nat": "ip nat inside source list 1 interface GigabitEthernet0/1 overload",
       "show running-config | section nat": "ip nat inside source list 1 interface GigabitEthernet0/1 overload",
       "show ip cef 198.51.100.10 internal": "198.51.100.10/32, epoch 0, flags [rib only nolabel, rib defined all labels]\n  recursive via 10.0.99.2\n  attached to GigabitEthernet0/2\n  per-destination sharing\n  share-count 1, 2 paths",
-      "show log | include NAT": "%NAT-6-LOG_TRANSLATION: protocol TCP src 192.168.1.50 dst 198.51.100.10 [Outbound] src 203.0.113.2 dst 198.51.100.10\n(no further NAT/TCP log entries \u2014 stateful drops on R-CORE are silent)"
+      "show log | include NAT": "%NAT-6-LOG_TRANSLATION: protocol TCP src 192.168.1.50 dst 198.51.100.10 [Outbound] src 203.0.113.2 dst 198.51.100.10\n(no further NAT/TCP log entries — stateful drops on R-CORE are silent)",
+      "show ip protocols": "R-EDGE# show ip protocols\n*** IP Routing is NSF aware ***\n\nRouting Protocol is \"ospf 1\"\n  Outgoing update filter list for all interfaces is not set\n  Incoming update filter list for all interfaces is not set\n  Router ID 2.2.2.2\n  Number of areas in this router is 1. 1 normal 0 stub 0 nssa\n  Maximum path: 4\n  Routing for Networks:\n    10.0.88.0 0.0.0.3 area 0\n    10.0.99.0 0.0.0.3 area 0\n    192.168.1.0 0.0.0.255 area 0\n  Routing Information Sources:\n    Gateway         Distance      Last Update\n    4.4.4.4              110      00:05:40\n    5.5.5.5              110      00:05:40\n  Distance: (default is 110)",
+      "show ip nat translations verbose": "R-EDGE# show ip nat translations verbose\nPro Inside global         Inside local          Outside local         Outside global\ntcp 203.0.113.2:51234     192.168.1.50:51234    198.51.100.10:443     198.51.100.10:443\n    create 00:00:48, use 00:00:48 timeout:86400000, left 23:59:12, Map-Id(In): 1,\n    flags: extended, use_count: 0, entry-id: 7, lc_entries: 0",
+      "R-CORE# show ip nat statistics": "R-CORE# show ip nat statistics\nTotal active translations: 0 (0 static, 0 dynamic; 0 extended)\nPeak translations: 0\nOutside interfaces:\n  GigabitEthernet0/1\nInside interfaces:\n  GigabitEthernet0/0\nHits: 0  Misses: 0\nCEF Translated packets: 0, CEF Punted packets: 0\nExpired translations: 0\nDynamic mappings:\n-- Inside Source\n[Id: 1] access-list 1 interface GigabitEthernet0/1 overload"
     },
     "question": "What is the root cause?",
     "choices": [
@@ -421,7 +451,7 @@
         "explain": "No ACL drop log present. Pings work, which means basic L3 reachability is fine."
       },
       {
-        "text": "Asymmetric routing \u2014 outbound via R-EDGE, return via R-CORE \u2014 NAT state only on R-EDGE",
+        "text": "Asymmetric routing — outbound via R-EDGE, return via R-CORE — NAT state only on R-EDGE",
         "correct": true,
         "explain": "Both R-EDGE and R-CORE do `ip nat inside source ... overload`, but R-CORE's translation table is empty. Outbound flow created NAT state only on R-EDGE; when ECMP picks R-CORE for the return packet, R-CORE has no matching state and the stateful translation lookup fails. Stateful NAT drops are silent in IOS (no syslog), which is exactly why this is hard to spot."
       },
@@ -433,10 +463,10 @@
       {
         "text": "Default route is missing",
         "correct": false,
-        "explain": "Default/specific route exists per `show ip route` \u2014 outbound is forwarding."
+        "explain": "Default/specific route exists per `show ip route` — outbound is forwarding."
       }
     ],
-    "rootCause": "ECMP between Gi0/2 (to R-CORE) and Gi0/3 means flows hash differently across the two egress paths. R-EDGE holds the NAT translation `tcp 203.0.113.2:51234 \u2192 198.51.100.10:443`, but R-CORE's `show ip nat translations` is empty. When the return path picks R-CORE, the stateful NAT lookup fails and the session drops silently \u2014 no syslog.",
+    "rootCause": "ECMP between Gi0/2 (to R-CORE) and Gi0/3 means flows hash differently across the two egress paths. R-EDGE holds the NAT translation `tcp 203.0.113.2:51234 → 198.51.100.10:443`, but R-CORE's `show ip nat translations` is empty. When the return path picks R-CORE, the stateful NAT lookup fails and the session drops silently — no syslog.",
     "fixHint": "Force symmetric routing (PBR or remove ECMP), or use HSRP/VRRP with a single NAT exit, or move NAT to a single shared device (e.g. firewall cluster with state sync)."
   }
 ]
