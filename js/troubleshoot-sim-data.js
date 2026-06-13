@@ -1,14 +1,14 @@
-// AUTO-GENERATED troubleshoot engine labs (broken-start, one-CLI heal model).
+// AUTO-GENERATED troubleshoot engine labs (broken-start). v2: review-hardened.
 window.TLABS = [
   {
     id: "ts-l2-01", title: "STP root bridge in the wrong place", diff: "intermediate", topics: ["2.5"],
     scenario: "Users in VLAN 10 report slow file shares. NOC sees traffic from the access layer taking a non-optimal path. Distribution switch DSW1 should be the VLAN 10 root bridge, but another switch (MAC aabb.cc00.0a01, priority 4106) is winning the election. You are on DSW1. Investigate the spanning-tree state, then lower DSW1's VLAN 10 priority so it becomes root, and confirm.",
     device: {"name": "DSW1", "type": "switch", "hostname": "DSW1", "vlans": {"10": {"name": "SALES"}, "20": {"name": "VOICE"}}, "interfaces": {"GigabitEthernet1/0/1": {"up": true, "mode": "trunk"}}, "custom": {"vlan10Priority": 32768, "rogueRootPriority": 4106, "rogueRootMac": "aabb.cc00.0a01", "localMac": "aabb.cc00.0c01"}},
     objectives: [
-    { text: "Investigate the VLAN 10 spanning-tree state and confirm DSW1 is not the root bridge", hint: "Compare the Root ID priority/MAC against this bridge's own ID — show spanning-tree vlan 10", check: function(d,log){return log.some(function(c){return /^(do\s+)?sh(ow)?\s+span(ning)?(-tree)?\s+vlan\s+10$/i.test(c.cmd);});} },
-    { text: "Enter config and select the spanning-tree scope to fix the election", hint: "You set STP priority globally, not on an interface — configure terminal", check: function(d){return d.mode==='config'||d.mode==='config-if';} },
-    { text: "Lower DSW1's VLAN 10 priority so it wins the root election over priority 4106", hint: "spanning-tree vlan 10 root primary (or spanning-tree vlan 10 priority 0/4096) — must end below 4106", check: function(d){return d.custom&&Number(d.custom.vlan10Priority)<Number(d.custom.rogueRootPriority);} },
-    { text: "Confirm DSW1 is now the VLAN 10 root bridge", hint: "end → show spanning-tree vlan 10 — Root ID should now match this bridge", check: function(d,log){var won=d.custom&&Number(d.custom.vlan10Priority)<Number(d.custom.rogueRootPriority);return won&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+span(ning)?(-tree)?\s+vlan\s+10$/i.test(c.cmd)&&c.time>(d.__fixTime||0);});} }
+    { text: "Investigate the VLAN 10 spanning-tree state and confirm DSW1 is not the root bridge", hint: "Compare the Root ID priority/MAC against this bridge's own ID -- show spanning-tree vlan 10", check: function(d,log){return log.some(function(c){return /^(do\s+)?sh(ow)?\s+span(ning)?(-tree)?\s+vlan\s+10$/i.test(c.cmd);});} },
+    { text: "Enter config and select the spanning-tree scope to fix the election", hint: "You set STP priority globally, not on an interface -- configure terminal", check: function(d){return d.mode==='config'||d.mode==='config-if';} },
+    { text: "Lower DSW1's VLAN 10 priority so its bridge ID beats the current root", hint: "spanning-tree vlan 10 root primary (or spanning-tree vlan 10 priority 0): bridge ID adds sys-id-ext 10, so priority 4096 ties at 4106 and loses on MAC", check: function(d){return d.custom&&(Number(d.custom.vlan10Priority)+10)<Number(d.custom.rogueRootPriority);} },
+    { text: "Confirm DSW1 is now the VLAN 10 root bridge", hint: "end, then show spanning-tree vlan 10. Root ID should now read 'This bridge is the root'", check: function(d,log){var won=d.custom&&(Number(d.custom.vlan10Priority)+10)<Number(d.custom.rogueRootPriority);return won&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+span(ning)?(-tree)?\s+vlan\s+10$/i.test(c.cmd)&&c.time>(d.__fixTime||0);});} }
     ],
     extraCmds: function(dev,raw,lower){
   var c=dev.custom;
@@ -199,7 +199,12 @@ window.TLABS = [
   // ── Fix command 1: pin encapsulation ──
   var enc = raw.match(/^switchport\s+trunk\s+encapsulation\s+(dot1q|isl|negotiate)/i);
   if (enc && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/3') {
-    dev.interfaces['GigabitEthernet0/3'].trunkEncap = enc[1].toLowerCase();
+    var ei = dev.interfaces['GigabitEthernet0/3'];
+    ei.trunkEncap = enc[1].toLowerCase();
+    // If the port is already forced to trunk mode, pinning dot1q now brings the
+    // trunk operationally up (handles either command order). Anything other than
+    // dot1q (isl/negotiate) leaves it non-trunking.
+    if (ei.mode === 'trunk') ei.opMode = (ei.trunkEncap === 'dot1q') ? 'trunk' : 'access';
     dev.__fixTime = Date.now();
     return '';
   }
@@ -210,8 +215,9 @@ window.TLABS = [
     var iface = dev.interfaces['GigabitEthernet0/3'];
     if (want === 'trunk') {
       iface.mode = 'trunk';
-      if (iface.trunkEncap === 'negotiate') iface.trunkEncap = 'dot1q';
-      iface.opMode = 'trunk';
+      // Do NOT auto-pin encapsulation here. The trunk only becomes operational
+      // once 'switchport trunk encapsulation dot1q' has been issued explicitly.
+      iface.opMode = (iface.trunkEncap === 'dot1q') ? 'trunk' : 'access';
     } else if (want === 'access') {
       iface.mode = 'access'; iface.opMode = 'access';
     } else {
@@ -220,12 +226,28 @@ window.TLABS = [
     dev.__fixTime = Date.now();
     return '';
   }
-  // ── Show: interfaces trunk (with optional gi0/3) ──
-  if (/^(do\s+)?show\s+int(erface)?(s)?(\s+gi\S*)?\s+tr(unk)?$/i.test(lower)) {
+  // ── Show: interfaces trunk (bare) vs interfaces gi0/3 trunk (per-interface) ──
+  var trunkCmd = lower.match(/^(do\s+)?show\s+int(erface)?(s)?(\s+gi\S*)?\s+tr(unk)?$/i);
+  if (trunkCmd) {
     var iface = dev.interfaces['GigabitEthernet0/3'];
-    var trunking = iface.mode === 'trunk';
-    if (!trunking) {
-      // SYMPTOM: DTP could not form a trunk, port operational access -> no trunks
+    // Operationally trunking only when forced trunk AND dot1q pinned (opMode tracks this).
+    var trunking = iface.opMode === 'trunk';
+    var perIface = !!trunkCmd[4]; // captured the "(\s+gi\S*)" interface token
+    if (trunking) {
+      // HEALED: deterministic trunk up, all VLANs (incl 20) allowed.
+      // Real IOS lists the active trunk under BOTH the bare and per-interface forms.
+      return 'Port        Mode             Encapsulation  Status        Native vlan\n'
+        + 'Gi0/3       on               802.1q         trunking      1\n\n'
+        + 'Port        Vlans allowed on trunk\n'
+        + 'Gi0/3       1-4094\n\n'
+        + 'Port        Vlans allowed and active in management domain\n'
+        + 'Gi0/3       1,10,20,99\n\n'
+        + 'Port        Vlans in spanning tree forwarding state and not pruned\n'
+        + 'Gi0/3       1,10,20,99';
+    }
+    // SYMPTOM: no operational trunk.
+    if (perIface) {
+      // Per-interface form names the port even when it is not trunking.
       return 'Port        Mode             Encapsulation  Status        Native vlan\n'
         + 'Gi0/3       desirable        802.1q         not-trunking  1\n\n'
         + 'Port        Vlans allowed on trunk\n'
@@ -235,15 +257,8 @@ window.TLABS = [
         + 'Port        Vlans in spanning tree forwarding state and not pruned\n'
         + 'Gi0/3       1';
     }
-    // HEALED: deterministic trunk up, all VLANs (incl 20) allowed
-    return 'Port        Mode             Encapsulation  Status        Native vlan\n'
-      + 'Gi0/3       on               802.1q         trunking      1\n\n'
-      + 'Port        Vlans allowed on trunk\n'
-      + 'Gi0/3       1-4094\n\n'
-      + 'Port        Vlans allowed and active in management domain\n'
-      + 'Gi0/3       1,10,20,99\n\n'
-      + 'Port        Vlans in spanning tree forwarding state and not pruned\n'
-      + 'Gi0/3       1,10,20,99';
+    // Bare 'show interfaces trunk' with zero active trunks prints nothing on real IOS.
+    return '';
   }
   // ── Show: interfaces gi0/3 switchport ──
   if (/^(do\s+)?show\s+int(erface)?(s)?\s+gi\S*\s+sw(itchport)?$/i.test(lower)) {
@@ -261,8 +276,10 @@ window.TLABS = [
       + 'Negotiation of Trunking: ' + nego + '\n'
       + 'Access Mode VLAN: 1 (default)\n'
       + 'Trunking Native Mode VLAN: 1 (default)\n'
+      + 'Administrative Native VLAN tagging: enabled\n'
       + 'Voice VLAN: none\n'
-      + 'Trunking VLANs Enabled: ALL';
+      + 'Trunking VLANs Enabled: ALL\n'
+      + 'Pruning VLANs Enabled: 2-1001';
   }
   // ── Show: cdp neighbors detail (peer evidence — SW3 is static access) ──
   if (/^(do\s+)?show\s+cdp\s+ne(ighbors?)?(\s+det(ail)?)?(\s*\|\s*begin\s+sw3)?$/i.test(lower)) {
@@ -277,7 +294,7 @@ window.TLABS = [
   // ── Show: interfaces gi0/3 status ──
   if (/^(do\s+)?show\s+int(erface)?(s)?\s+gi\S*\s+stat(us)?$/i.test(lower)) {
     var iface = dev.interfaces['GigabitEthernet0/3'];
-    var vcol = iface.mode === 'trunk' ? 'trunk' : '1';
+    var vcol = iface.opMode === 'trunk' ? 'trunk' : '1';
     return 'Port      Name               Status       Vlan       Duplex  Speed Type\n'
       + 'Gi0/3     to-SW3             connected    ' + vcol.padEnd(10) + ' a-full a-1000 10/100/1000BaseTX';
   }
@@ -590,13 +607,13 @@ window.TLABS = [
   },
   {
     id: "ts-l2-10", title: "MAC flapping — Layer 2 loop on PortFast edge ports", diff: "advanced", topics: ["2.5"],
-    scenario: "Intermittent reachability across the floor. SW1's console keeps printing %SW_MATM-4-MACFLAP_NOTIF messages and CPU is pegged near 80%. Hosts in VLAN 10 are flapping between Gi0/5 and Gi0/6 — both are PortFast access ports with no BPDU Guard, so a downstream hub or duplicate patch cord is bridging them into a Layer 2 loop and STP never sees it. You cannot pull the rogue cable from here, but you can stop the loop at the switch: investigate the flap, then arm the access ports so the loop is detected and the offending port is shut. Confirm the flapping stops.",
-    device: {"name": "SW1", "type": "switch", "hostname": "SW1", "vlans": {"10": {"name": "USERS"}}, "interfaces": {"GigabitEthernet0/5": {"up": true, "mode": "access", "accessVlan": 10, "portfast": true, "bpduguard": false}, "GigabitEthernet0/6": {"up": true, "mode": "access", "accessVlan": 10, "portfast": true, "bpduguard": false}}, "custom": {"loopPresent": true}},
+    scenario: "Intermittent reachability across the floor. SW1's console keeps printing %SW_MATM-4-MACFLAP_NOTIF messages and CPU is pegged near 80%. Hosts in VLAN 10 are flapping between Gi0/5 and Gi0/6 — both are PortFast access ports with no BPDU Guard. Someone has cross-connected an unmanaged closet SWITCH into both ports, and that rogue switch is sending BPDUs into SW1's edge ports, forming a Layer 2 loop that the PortFast edge config never blocks. You cannot pull the rogue switch from here, but you can stop the loop at SW1: investigate the flap, confirm the ports are unprotected PortFast edge, then arm BPDU Guard on both access ports so the port that receives the rogue BPDU is err-disabled. Confirm the flapping stops.",
+    device: {"name": "SW1", "type": "switch", "hostname": "SW1", "vlans": {"10": {"name": "USERS"}}, "interfaces": {"GigabitEthernet0/5": {"up": true, "mode": "access", "accessVlan": 10, "portfast": true, "bpduguard": false}, "GigabitEthernet0/6": {"up": true, "mode": "access", "accessVlan": 10, "portfast": true, "bpduguard": false}}, "custom": {"loopPresent": true, "rogueBpduPort": "GigabitEthernet0/6"}},
     objectives: [
     { text: "Investigate — surface the MAC flap evidence in the logs", hint: "show logging | inc MACFLAP — see which two ports the host MACs bounce between", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+logg(ing)?/i.test(c.cmd); }); } },
-    { text: "Confirm both flapping ports are PortFast edge with no loop protection", hint: "show spanning-tree vlan 10 — Gi0/5 and Gi0/6 show as P2p Edge, so STP cannot see the downstream loop", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+span(ning)?(-tree)?\s+vlan\s+10/i.test(c.cmd); }); } },
-    { text: "Enter config and arm loop protection on both access ports", hint: "configure terminal → interface gi0/5 → spanning-tree bpduguard enable → interface gi0/6 → spanning-tree bpduguard enable", check: function(d){ var a=d.interfaces['GigabitEthernet0/5']; var b=d.interfaces['GigabitEthernet0/6']; return a&&b&&a.bpduguard===true&&b.bpduguard===true; } },
-    { text: "Confirm the flapping has stopped after the fix", hint: "end → show logging | inc MACFLAP — with BPDU Guard armed the loop port is err-disabled and the flap clears", check: function(d,log){ var a=d.interfaces['GigabitEthernet0/5']; var b=d.interfaces['GigabitEthernet0/6']; var fixed=a&&b&&a.bpduguard===true&&b.bpduguard===true; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+logg(ing)?/i.test(c.cmd) && c.time>=(d.__fixTime||0); }); } }
+    { text: "Confirm both flapping ports are PortFast edge with no loop protection", hint: "show spanning-tree vlan 10 — Gi0/5 and Gi0/6 show as P2p Edge, so STP treats them as edge and never blocks the rogue BPDU", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+span(ning)?(-tree)?\s+vlan\s+10/i.test(c.cmd); }); } },
+    { text: "Enter config and arm BPDU Guard on both access ports", hint: "configure terminal → interface gi0/5 → spanning-tree bpduguard enable → interface gi0/6 → spanning-tree bpduguard enable", check: function(d){ var a=d.interfaces['GigabitEthernet0/5']; var b=d.interfaces['GigabitEthernet0/6']; return !!(a&&b&&a.bpduguard===true&&b.bpduguard===true); } },
+    { text: "Confirm the flapping has stopped after the fix", hint: "end → show logging | inc MACFLAP — with BPDU Guard armed the port receiving the rogue BPDU is err-disabled and the flap clears", check: function(d,log){ var a=d.interfaces['GigabitEthernet0/5']; var b=d.interfaces['GigabitEthernet0/6']; var fixed=!!(a&&b&&a.bpduguard===true&&b.bpduguard===true) && d.custom && d.custom.loopPresent===false; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+logg(ing)?/i.test(c.cmd) && c.time>=(d.__fixTime||0); }); } }
     ],
     extraCmds: function(dev,raw,lower){
   var abbr=function(n){return n.replace('GigabitEthernet','Gi').replace('FastEthernet','Fa');};
@@ -604,16 +621,18 @@ window.TLABS = [
   if(bg && dev.mode==='config-if' && dev.currentInterface){
     if(!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface]={};
     dev.interfaces[dev.currentInterface].bpduguard=true;
-    var a=dev.interfaces['GigabitEthernet0/5'];
-    var b=dev.interfaces['GigabitEthernet0/6'];
-    if(a&&b&&a.bpduguard===true&&b.bpduguard===true){
-      dev.custom.loopPresent=false;
-      dev.interfaces['GigabitEthernet0/6'].up=false;
-      dev.interfaces['GigabitEthernet0/6'].errdisable=true;
-      dev.__fixTime=Date.now();
-      return '%SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port GigabitEthernet0/6 with BPDU Guard enabled. Disabling port.\n%PM-4-ERR_DISABLE: bpduguard error detected on Gi0/6, putting Gi0/6 in err-disable state';
-    }
     dev.__fixTime=Date.now();
+    // BPDU Guard only err-disables a port that ACTUALLY receives a BPDU.
+    // The rogue switch feeds the loop through Gi0/6, so the loop only breaks
+    // once Gi0/6 is guarded. Guarding the other port alone leaves the loop up.
+    var rogue=(dev.custom&&dev.custom.rogueBpduPort)||'GigabitEthernet0/6';
+    var rg=dev.interfaces[rogue];
+    if(rg && rg.bpduguard===true && dev.custom.loopPresent){
+      dev.custom.loopPresent=false;
+      rg.up=false;
+      rg.errdisable=true;
+      return '%SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port '+rogue+' with BPDU Guard enabled. Disabling port.\n%PM-4-ERR_DISABLE: bpduguard error detected on '+abbr(rogue)+', putting '+abbr(rogue)+' in err-disable state\n%LINK-3-UPDOWN: Interface '+rogue+', changed state to down';
+    }
     return '';
   }
   if(/^(do\s+)?show\s+logg(ing)?(\s+\|\s+(inc|include)\s+\S+)?$/i.test(lower)){
@@ -622,29 +641,74 @@ window.TLABS = [
         + 'Jun 01 14:22:04.118: %SW_MATM-4-MACFLAP_NOTIF: Host aabb.cc00.dead in vlan 10 is flapping between port Gi0/5 and port Gi0/6\n'
         + 'Jun 01 14:22:07.121: %SW_MATM-4-MACFLAP_NOTIF: Host aabb.cc00.beef in vlan 10 is flapping between port Gi0/5 and port Gi0/6';
     }
-    return 'Jun 01 14:25:33.402: %SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port GigabitEthernet0/6 with BPDU Guard enabled. Disabling port.\n'
-      + 'Jun 01 14:25:33.410: %PM-4-ERR_DISABLE: bpduguard error detected on Gi0/6, putting Gi0/6 in err-disable state\n'
-      + 'Jun 01 14:25:33.418: %LINK-3-UPDOWN: Interface GigabitEthernet0/6, changed state to down\n'
+    var rogue2=(dev.custom&&dev.custom.rogueBpduPort)||'GigabitEthernet0/6';
+    return 'Jun 01 14:25:33.402: %SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port '+rogue2+' with BPDU Guard enabled. Disabling port.\n'
+      + 'Jun 01 14:25:33.410: %PM-4-ERR_DISABLE: bpduguard error detected on '+abbr(rogue2)+', putting '+abbr(rogue2)+' in err-disable state\n'
+      + 'Jun 01 14:25:33.418: %LINK-3-UPDOWN: Interface '+rogue2+', changed state to down\n'
       + '(no further MACFLAP notifications — loop broken)';
+  }
+  if(/^(do\s+)?show\s+mac.*\|\s*(inc|include)\s+gi?\s*0\/(5|6)/i.test(lower)){
+    var pnum=lower.indexOf('0/6')>-1?'6':'5';
+    if(dev.custom.loopPresent){
+      // Same host MACs learned on BOTH ports = the canonical MAC-flap signature.
+      return '  10    aabb.cc00.dead    DYNAMIC     Gi0/'+pnum+'\n'
+        + '  10    aabb.cc00.beef    DYNAMIC     Gi0/'+pnum+'\n'
+        + '  10    aabb.cc00.0a12    DYNAMIC     Gi0/'+pnum;
+    }
+    if(pnum==='6'){
+      return '(Gi0/6 is err-disabled and down — no MAC entries learned on this port)';
+    }
+    return '  10    aabb.cc00.dead    DYNAMIC     Gi0/5\n'
+      + '  10    aabb.cc00.beef    DYNAMIC     Gi0/5\n'
+      + '  10    aabb.cc00.0a12    DYNAMIC     Gi0/5';
+  }
+  if(/^(do\s+)?show\s+int(erface)?(s)?\s+gi?\s*0\/(5|6)\s+count(ers)?$/i.test(lower)){
+    var cp=lower.indexOf('0/6')>-1?'6':'5';
+    if(dev.custom.loopPresent){
+      // Abnormally high mcast/bcast counters = frames looping back into the switch.
+      return 'Port            InOctets    InUcastPkts    InMcastPkts    InBcastPkts\n'
+        + 'Gi0/'+cp+'         812441250         122441        4422180         998120\n\n'
+        + 'Port           OutOctets   OutUcastPkts   OutMcastPkts   OutBcastPkts\n'
+        + 'Gi0/'+cp+'         845112301         118220        4581992        1011223';
+    }
+    return 'Port            InOctets    InUcastPkts    InMcastPkts    InBcastPkts\n'
+      + 'Gi0/'+cp+'         812512440         122512           1204            812\n\n'
+      + 'Port           OutOctets   OutUcastPkts   OutMcastPkts   OutBcastPkts\n'
+      + 'Gi0/'+cp+'         845190021         118291           1301            905';
+  }
+  if(/^(do\s+)?show\s+proc(esses)?\s+cpu(\s+sort(ed)?)?$/i.test(lower)){
+    if(dev.custom.loopPresent){
+      return 'CPU utilization for five seconds: 80%/12%; one minute: 78%; five minutes: 74%\n'
+        + ' PID Runtime(ms)   Invoked  uSecs   5Sec   1Min   5Min TTY Process\n'
+        + '  72    4412180   2210114    199 41.20% 39.88% 37.10%   0 Cat4k Mgmt LoPri\n'
+        + ' 118    2201441    998120    220 22.60% 21.40% 20.05%   0 Spanning Tree\n'
+        + '  88    1102230    441200    250  9.80%  9.10%  8.40%   0 IP Input';
+    }
+    return 'CPU utilization for five seconds: 6%/1%; one minute: 7%; five minutes: 8%\n'
+      + ' PID Runtime(ms)   Invoked  uSecs   5Sec   1Min   5Min TTY Process\n'
+      + '  88    1102230    441200    250  2.10%  2.40%  2.30%   0 IP Input\n'
+      + ' 118    2201441    998120    220  1.40%  1.20%  1.10%   0 Spanning Tree';
   }
   if(/^(do\s+)?show\s+span(ning)?(-tree)?\s+vlan\s+10$/i.test(lower)){
     var i5=dev.interfaces['GigabitEthernet0/5'];
     var i6=dev.interfaces['GigabitEthernet0/6'];
+    // Real IOS removes an err-disabled/down port from show spanning-tree entirely.
     var row=function(name,intf){
-      if(intf && intf.errdisable){
-        return abbr(name).padEnd(20)+'Desg BKN*4         128.'+(name.indexOf('/6')>-1?'6':'5')+'    P2p Edge (BPDUguard err-disabled)';
-      }
-      var prot=(intf && intf.bpduguard)?'P2p Edge (BPDUguard)':'P2p Edge';
-      return abbr(name).padEnd(20)+'Desg FWD 4         128.'+(name.indexOf('/6')>-1?'6':'5')+'    '+prot;
+      if(intf && intf.errdisable) return null;
+      return abbr(name).padEnd(20)+'Desg FWD 4         128.'+(name.indexOf('/6')>-1?'6':'5')+'    P2p Edge';
     };
     var lines=[];
-    lines.push(row('GigabitEthernet0/5',i5));
-    lines.push(row('GigabitEthernet0/6',i6));
+    var r5=row('GigabitEthernet0/5',i5); if(r5!==null) lines.push(r5);
+    var r6=row('GigabitEthernet0/6',i6); if(r6!==null) lines.push(r6);
     return 'VLAN0010\n'
       + '  Spanning tree enabled protocol ieee\n'
       + '  Root ID    Priority    32778\n'
       + '             Address     aabb.cc00.0b01\n'
       + '             This bridge is the root\n\n'
+      + '  Bridge ID  Priority    32778  (priority 32768 sys-id-ext 10)\n'
+      + '             Address     aabb.cc00.0b01\n'
+      + '             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec\n'
+      + '             Aging Time  300 sec\n\n'
       + 'Interface           Role Sts Cost      Prio.Nbr Type\n'
       + '------------------- ---- --- --------- -------- --------------------------------\n'
       + lines.join('\n');
@@ -663,7 +727,7 @@ window.TLABS = [
     { text: "Select the link interface and set its MTU to match the peer", hint: "interface gi0/0 → mtu 9216 (match R2's interface MTU)", check: function(d){ var i=d.interfaces['GigabitEthernet0/0']; return i && String(i.mtu)===String(d.custom.peerMtu); } },
     { text: "Confirm the neighbor now reaches FULL", hint: "end → show ip ospf neighbor — state should read FULL once MTUs match", check: function(d,log){ var i=d.interfaces['GigabitEthernet0/0']; var fixed=i && String(i.mtu)===String(d.custom.peerMtu); return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+ospf\s+nei/i.test(c.cmd) && c.time>(d.__fixTime||0); }); } }
     ],
-    extraCmds: function(dev,raw,lower){ var m=raw.match(/^mtu\s+(\d+)/i); if(m && dev.mode==='config-if' && dev.currentInterface){ if(!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface]={}; dev.interfaces[dev.currentInterface].mtu=parseInt(m[1],10); dev.__fixTime=Date.now(); return ''; } if(/^(do\s+)?show\s+ip\s+ospf\s+nei(ghbor)?$/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var match=i && String(i.mtu)===String(dev.custom.peerMtu); var state=match?'FULL/BDR ':'EXSTART/DR'; return 'Neighbor ID     Pri   State           Dead Time   Address         Interface\n'+dev.custom.peerId+'           1   '+state+'    00:00:34    '+dev.custom.peerAddr+'       GigabitEthernet0/0'; } if(/^(do\s+)?show\s+int(erface)?(s)?\s+gi(gabitethernet)?0\/0$/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var mtu=i?i.mtu:1500; return 'GigabitEthernet0/0 is up, line protocol is up\n  Hardware is iGbE, address is 0050.7966.6800 (bia 0050.7966.6800)\n  Internet address is 10.0.12.1/24\n  MTU '+mtu+' bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     reliability 255/255, txload 1/255, rxload 1/255\n  Encapsulation ARPA, loopback not set\n  Keepalive set (10 sec)\n  Full Duplex, 1Gbps, link type is auto, media type is RJ45'; } if(/^(do\s+)?debug\s+ip\s+ospf\s+adj/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var match=i && String(i.mtu)===String(dev.custom.peerMtu); if(match){ return 'OSPF: Rcv DBD from '+dev.custom.peerId+' on GigabitEthernet0/0 seq 0x1F23 opt 0x52 flag 0x7 len 32  mtu '+dev.custom.peerMtu+' state EXSTART\nOSPF: NBR Negotiation Done. We are the SLAVE\nOSPF: Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 LOADING to FULL, Loading Done'; } return 'OSPF: Rcv DBD from '+dev.custom.peerId+' on GigabitEthernet0/0 seq 0x1F23 opt 0x52 flag 0x7 len 32  mtu '+dev.custom.peerMtu+' state EXSTART\nOSPF: Nbr '+dev.custom.peerId+' has larger interface MTU\nOSPF: Retransmitting DBD to '+dev.custom.peerId+' on GigabitEthernet0/0 (1)\nOSPF: Retransmitting DBD to '+dev.custom.peerId+' on GigabitEthernet0/0 (2)\nOSPF: Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 retransmits 7 — neighbor down'; } if(/^(do\s+)?show\s+log(ging)?(\s+\|\s+include\s+ospf)?$/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var match=i && String(i.mtu)===String(dev.custom.peerMtu); if(match){ return '%OSPF-5-ADJCHG: Process 1, Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 from LOADING to FULL, Loading Done'; } return '%OSPF-5-ADJCHG: Process 1, Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 from EXSTART to DOWN, Neighbor Down: Too many retransmissions'; } return undefined; },
+    extraCmds: function(dev,raw,lower){ var padState=function(s){ s=String(s); while(s.length<16){ s+=' '; } return s; }; var m=raw.match(/^mtu\s+(\d+)/i); if(m && dev.mode==='config-if' && dev.currentInterface){ if(!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface]={}; dev.interfaces[dev.currentInterface].mtu=parseInt(m[1],10); dev.__fixTime=Date.now(); return ''; } if(/^(do\s+)?show\s+ip\s+ospf\s+nei(ghbor)?$/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var match=i && String(i.mtu)===String(dev.custom.peerMtu); var state=match?'FULL/DR':'EXSTART/DR'; return 'Neighbor ID     Pri   State           Dead Time   Address         Interface\n'+dev.custom.peerId+'           1   '+padState(state)+'00:00:34    '+dev.custom.peerAddr+'       GigabitEthernet0/0'; } if(/^(do\s+)?show\s+int(erface)?(s)?\s+gi(gabitethernet)?0\/0$/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var mtu=i?i.mtu:1500; return 'GigabitEthernet0/0 is up, line protocol is up\n  Hardware is iGbE, address is 0050.7966.6800 (bia 0050.7966.6800)\n  Internet address is 10.0.12.1/24\n  MTU '+mtu+' bytes, BW 1000000 Kbit/sec, DLY 10 usec,\n     reliability 255/255, txload 1/255, rxload 1/255\n  Encapsulation ARPA, loopback not set\n  Keepalive set (10 sec)\n  Full Duplex, 1Gbps, link type is auto, media type is RJ45'; } if(/^(do\s+)?debug\s+ip\s+ospf\s+adj/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var match=i && String(i.mtu)===String(dev.custom.peerMtu); if(match){ return 'OSPF: Rcv DBD from '+dev.custom.peerId+' on GigabitEthernet0/0 seq 0x1F23 opt 0x52 flag 0x7 len 32  mtu '+dev.custom.peerMtu+' state EXSTART\nOSPF: NBR Negotiation Done. We are the SLAVE\nOSPF: Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 LOADING to FULL, Loading Done'; } return 'OSPF: Rcv DBD from '+dev.custom.peerId+' on GigabitEthernet0/0 seq 0x1F23 opt 0x52 flag 0x7 len 32  mtu '+dev.custom.peerMtu+' state EXSTART\nOSPF: Nbr '+dev.custom.peerId+' has larger interface MTU\nOSPF: Retransmitting DBD to '+dev.custom.peerId+' on GigabitEthernet0/0 (1)\nOSPF: Retransmitting DBD to '+dev.custom.peerId+' on GigabitEthernet0/0 (2)\nOSPF: Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 retransmits 7 — neighbor down'; } if(/^(do\s+)?show\s+log(ging)?(\s+\|\s+include\s+ospf)?$/i.test(lower)){ var i=dev.interfaces['GigabitEthernet0/0']; var match=i && String(i.mtu)===String(dev.custom.peerMtu); var fail='%OSPF-5-ADJCHG: Process 1, Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 from EXSTART to DOWN, Neighbor Down: Too many retransmissions'; if(match){ return fail+'\n%OSPF-5-ADJCHG: Process 1, Nbr '+dev.custom.peerId+' on GigabitEthernet0/0 from LOADING to FULL, Loading Done'; } return fail; } return undefined; },
     solution: ["show ip ospf neighbor", "show interfaces gi0/0", "enable", "configure terminal", "interface gi0/0", "mtu 9216", "end", "show ip ospf neighbor"]
   },
   {
@@ -1019,12 +1083,12 @@ window.TLABS = [
   {
     id: "ts-l3-08", title: "ACL deny shadows the specific permit", diff: "intermediate", topics: ["5.6"],
     scenario: "Branch user 192.168.10.50 cannot reach internal server 172.16.20.10. R1 filters Gi0/1 inbound with ACL 110. NOC added a host-specific permit last week to allow this exact flow, but pings still fail with U.U.U. Read the ACL hit counters to see why the permit never fires, reposition it ahead of the deny, and confirm the flow is permitted.",
-    device: {"name": "R1", "type": "router", "hostname": "R1", "interfaces": {"GigabitEthernet0/1": {"up": true, "ip": "192.168.10.1", "mode": "access", "inAcl": "110"}}, "routes": [], "custom": {"acl110": [{"seq": 10, "action": "permit", "text": "ip 192.168.20.0 0.0.0.255 172.16.0.0 0.0.255.255", "matches": 0}, {"seq": 20, "action": "deny", "text": "ip any any", "matches": 1247}, {"seq": 30, "action": "permit", "text": "ip host 192.168.10.50 host 172.16.20.10", "matches": 0}], "aclMode": false}},
+    device: {"name": "R1", "type": "router", "hostname": "R1", "interfaces": {"GigabitEthernet0/1": {"up": true, "ip": "192.168.10.1", "mode": "access", "inAcl": "110"}}, "routes": [], "custom": {"acl110": [{"seq": 10, "action": "permit", "text": "ip 192.168.20.0 0.0.0.255 172.16.0.0 0.0.255.255", "matches": 0}, {"seq": 20, "action": "deny", "text": "ip any any", "matches": 1389}, {"seq": 30, "action": "permit", "text": "ip host 192.168.10.50 host 172.16.20.10", "matches": 0}], "aclMode": false}},
     objectives: [
     { text: "Investigate — read the ACL 110 hit counters to find which line is dropping the traffic", hint: "show access-lists 110 — the specific permit shows (0 matches) while deny ip any any racks up hits", check: function(d,log){return log.some(function(c){return /^(do\s+)?sh(ow)?\s+(ip\s+)?access-list(s)?(\s+110)?$/i.test(c.cmd);});} },
     { text: "Enter named ACL config for list 110", hint: "configure terminal → ip access-list extended 110", check: function(d,log){return d.custom && d.custom.aclMode===true;} },
-    { text: "Insert the host-specific permit ahead of the deny ip any any", hint: "give it a sequence number lower than 20, e.g. 15 permit ip host 192.168.10.50 host 172.16.20.10", check: function(d,log){var a=d.custom&&d.custom.acl110;if(!a)return false;var permitIdx=-1,denyIdx=-1;for(var i=0;i<a.length;i++){if(a[i].action==='permit'&&/host 192\.168\.10\.50 host 172\.16\.20\.10/.test(a[i].text))permitIdx=(permitIdx===-1?a[i].seq:permitIdx);if(a[i].action==='deny'&&/any any/.test(a[i].text))denyIdx=a[i].seq;}return permitIdx>-1&&denyIdx>-1&&permitIdx<denyIdx;} },
-    { text: "Confirm the fix — the specific permit now records matches and is no longer shadowed", hint: "end → show access-lists 110 — line for 192.168.10.50→172.16.20.10 now sits above the deny and takes hits", check: function(d,log){var a=d.custom&&d.custom.acl110;if(!a)return false;var p=-1,de=-1;for(var i=0;i<a.length;i++){if(a[i].action==='permit'&&/host 192\.168\.10\.50 host 172\.16\.20\.10/.test(a[i].text))p=(p===-1?a[i].seq:p);if(a[i].action==='deny'&&/any any/.test(a[i].text))de=a[i].seq;}var fixed=p>-1&&de>-1&&p<de;return fixed&&log.some(function(c){return /^(do\s+)?sh(ow)?\s+(ip\s+)?access-list(s)?(\s+110)?$/i.test(c.cmd)&&c.time>(d.__fixTime||0);});} }
+    { text: "Reposition the host-specific permit so it is evaluated before the catch-all deny", hint: "give it a sequence number lower than 20, e.g. 15 permit ip host 192.168.10.50 host 172.16.20.10", check: function(d,log){var a=d.custom&&d.custom.acl110;if(!a)return false;var permitIdx=-1,denyIdx=-1;for(var i=0;i<a.length;i++){if(a[i].action==='permit'&&/host 192\.168\.10\.50 host 172\.16\.20\.10/.test(a[i].text))permitIdx=(permitIdx===-1?a[i].seq:permitIdx);if(a[i].action==='deny'&&/any any/.test(a[i].text))denyIdx=a[i].seq;}return permitIdx>-1&&denyIdx>-1&&permitIdx<denyIdx;} },
+    { text: "Confirm the fix — the specific permit now records matches and the branch user's ping recovers", hint: "end → show access-lists 110 (permit now sits above the deny) → ping 172.16.20.10 — replies succeed", check: function(d,log){var a=d.custom&&d.custom.acl110;if(!a)return false;var p=-1,de=-1;for(var i=0;i<a.length;i++){if(a[i].action==='permit'&&/host 192\.168\.10\.50 host 172\.16\.20\.10/.test(a[i].text))p=(p===-1?a[i].seq:p);if(a[i].action==='deny'&&/any any/.test(a[i].text))de=a[i].seq;}var fixed=p>-1&&de>-1&&p<de;if(!fixed)return false;var ft=d.__fixTime||0;var sawShow=log.some(function(c){return /^(do\s+)?sh(ow)?\s+(ip\s+)?access-list(s)?(\s+110)?$/i.test(c.cmd)&&c.time>ft;});var sawPing=log.some(function(c){return /^(do\s+)?ping\s+172\.16\.20\.10/i.test(c.cmd)&&c.time>ft;});return sawShow&&sawPing;} }
     ],
     extraCmds: function(dev,raw,lower){
   if(!dev.custom)dev.custom={};
@@ -1055,7 +1119,7 @@ window.TLABS = [
     var out='Extended IP access list 110\n';
     a.forEach(function(e){
       var hits='';
-      if(e.action==='deny'&&/any any/.test(e.text)){hits=fixed?' (1247 matches)':' (1389 matches)';}
+      if(e.action==='deny'&&/any any/.test(e.text)){hits=' (1389 matches)';}
       if(e.action==='permit'&&/host 192\.168\.10\.50 host 172\.16\.20\.10/.test(e.text)){hits=fixed?' (5 matches)':' (0 matches)';}
       out+='    '+e.seq+' '+e.action+' '+e.text+hits+'\n';
     });
@@ -1071,7 +1135,7 @@ window.TLABS = [
   }
   return undefined;
 },
-    solution: ["show access-lists 110", "enable", "configure terminal", "ip access-list extended 110", "15 permit ip host 192.168.10.50 host 172.16.20.10", "end", "show access-lists 110"]
+    solution: ["show access-lists 110", "enable", "configure terminal", "ip access-list extended 110", "15 permit ip host 192.168.10.50 host 172.16.20.10", "end", "show access-lists 110", "ping 172.16.20.10"]
   },
   {
     id: "ts-l3-09", title: "NAT not translating — missing ip nat inside", diff: "intermediate", topics: ["4.1"],
@@ -1299,7 +1363,7 @@ window.TLABS = [
     { text: "Investigate why the SSH server is not listening", hint: "show ip ssh — read the 'SSH Disabled' line and the IOS Keys field", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+ssh$/i.test(c.cmd); }); } },
     { text: "Enter global configuration so the device can generate keys", hint: "enable -> configure terminal", check: function(d,log){ return d.mode === 'config' || d.mode === 'config-if'; } },
     { text: "Generate the crypto material the SSH daemon needs to start", hint: "crypto key generate rsa modulus 2048", check: function(d,log){ return d.custom && d.custom.rsaKeys === true && d.custom.modulus >= 768; } },
-    { text: "Confirm the SSH server is now enabled and listening", hint: "end -> show ip ssh — should report 'SSH Enabled'", check: function(d,log){ var ok = d.custom && d.custom.rsaKeys === true; return ok && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+ssh$/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
+    { text: "Confirm the SSH server is now enabled and listening", hint: "end -> show ip ssh — should report 'SSH Enabled'", check: function(d,log){ var ok = d.custom && d.custom.rsaKeys === true && d.custom.modulus >= 768; return ok && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+ssh$/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
     ],
     extraCmds: function(dev,raw,lower){
   // FIX: crypto key generate rsa [modulus N] [general-keys] — generate RSA keys, start SSH server
@@ -1344,7 +1408,11 @@ window.TLABS = [
       + ' Storage Device: not specified\n'
       + ' Usage: General Purpose Key\n'
       + ' Key is not exportable.\n'
-      + ' Key Data:\n  ' + dev.custom.modulus + '-bit key generated.';
+      + ' Key Data:\n'
+      + '  30819F30 0D06092A 864886F7 0D010101 05000381 8D003081 89028181\n'
+      + '  00C1A2B3 C4D5E6F7 081A2B3C 4D5E6F70 819A2B3C 4D5E6F70 81A2B3C4\n'
+      + '  D5E6F708 1A2B3C4D 5E6F7081 9A2B3C4D 5E6F7081 A2B3C4D5 E6F70819\n'
+      + '  2B3C4D5E 6F708102 03010001';
   }
   // SHOW: vty config — explains why telnet also fails
   if (/^(do\s+)?show\s+run(ning-config)?\s*\|\s*sec(tion)?\s+line\s+vty$/i.test(lower)) {
@@ -1372,50 +1440,84 @@ window.TLABS = [
     { text: "Remove the hardcoded speed so the port auto-negotiates", hint: "no speed 100 — clears the forced 100Mb speed", check: function(d){ var i=d.interfaces['GigabitEthernet0/24']; return i && i.speed==='auto'; } },
     { text: "Confirm the uplink now runs full-duplex with no late collisions", hint: "end → show interfaces gi0/24 — duplex should read Full-duplex and late collisions stop", check: function(d,log){ var i=d.interfaces['GigabitEthernet0/24']; var fixed=i && i.duplex==='auto' && i.speed==='auto'; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+(gi(gabitethernet)?\s*0\/24|g0\/24)/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
     ],
-    extraCmds: function(dev,raw,lower){ var i = dev.interfaces['GigabitEthernet0/24']; var nd = raw.match(/^no\s+duplex(\s+\S+)?$/i); if (nd && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.duplex = 'auto'; dev.__fixTime = Date.now(); return ''; } var ns = raw.match(/^no\s+speed(\s+\S+)?$/i); if (ns && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.speed = 'auto'; dev.__fixTime = Date.now(); return ''; } var sd = raw.match(/^duplex\s+(half|full|auto)/i); if (sd && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.duplex = sd[1].toLowerCase() === 'half' ? 'half' : (sd[1].toLowerCase() === 'full' ? 'full' : 'auto'); dev.__fixTime = Date.now(); return ''; } var ss = raw.match(/^speed\s+(10|100|1000|auto)/i); if (ss && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.speed = ss[1].toLowerCase(); dev.__fixTime = Date.now(); return ''; } if (/^(do\s+)?show\s+int(erface)?(s)?\s+(gi(gabitethernet)?\s*0\/24|g0\/24)$/i.test(lower)) { var dup = i ? i.duplex : 'auto'; var spd = i ? i.speed : 'auto'; var negotiated = (dup === 'half' && spd === '100'); var dupLine = negotiated ? 'Half-duplex, 100Mb/s, media type is 10/100/1000BaseTX' : 'Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX'; var lateCol = negotiated ? 421 : 0; var outErr = negotiated ? 8421 : 0; var col = negotiated ? 8421 : 0; var peerCrc = negotiated ? 1245 : 0; var symptom = negotiated ? ('\n%ETHCNTR-3-LATE_COLLISION: Late collisions detected on GigabitEthernet0/24\n  (peer ' + (dev.custom.peer||'ASW1') + ' ' + (dev.custom.peerPort||'Gi0/1') + ' reports ' + peerCrc + ' CRC input errors)') : ''; return 'GigabitEthernet0/24 is up, line protocol is up\n  Hardware is Gigabit Ethernet, address is aabb.cc00.1818\n  Description: ' + (i && i.desc ? i.desc : 'Uplink to ASW1') + '\n  MTU 1500 bytes, BW ' + (negotiated ? '100000' : '1000000') + ' Kbit/sec, DLY 10 usec,\n  ' + dupLine + '\n  5 minute input rate 11000 bits/sec, 8 packets/sec\n  5 minute output rate 14000 bits/sec, 10 packets/sec\n     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored\n     ' + outErr + ' output errors, ' + col + ' collisions, ' + lateCol + ' late collision, 0 deferred' + symptom; } return undefined; },
+    extraCmds: function(dev,raw,lower){ var i = dev.interfaces['GigabitEthernet0/24']; var nd = raw.match(/^no\s+duplex(\s+\S+)?$/i); if (nd && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.duplex = 'auto'; dev.__fixTime = Date.now(); return ''; } var ns = raw.match(/^no\s+speed(\s+\S+)?$/i); if (ns && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.speed = 'auto'; dev.__fixTime = Date.now(); return ''; } var sd = raw.match(/^duplex\s+(half|full|auto)/i); if (sd && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.duplex = sd[1].toLowerCase() === 'half' ? 'half' : (sd[1].toLowerCase() === 'full' ? 'full' : 'auto'); dev.__fixTime = Date.now(); return ''; } var ss = raw.match(/^speed\s+(10|100|1000|auto)/i); if (ss && dev.mode === 'config-if' && dev.currentInterface === 'GigabitEthernet0/24') { if (i) i.speed = ss[1].toLowerCase(); dev.__fixTime = Date.now(); return ''; } if (/^(do\s+)?show\s+int(erface)?(s)?\s+(gi(gabitethernet)?\s*0\/24|g0\/24)$/i.test(lower)) { var dup = i ? i.duplex : 'auto'; var spd = i ? i.speed : 'auto'; var healed = (dup === 'auto' && spd === 'auto'); var dupLine = healed ? 'Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX' : 'Half-duplex, 100Mb/s, media type is 10/100/1000BaseTX'; var lateCol = healed ? 0 : 421; var outErr = healed ? 0 : 8421; var col = healed ? 0 : 8421; return 'GigabitEthernet0/24 is up, line protocol is up\n  Hardware is Gigabit Ethernet, address is aabb.cc00.1818\n  Description: ' + (i && i.desc ? i.desc : 'Uplink to ASW1') + '\n  MTU 1500 bytes, BW ' + (healed ? '1000000' : '100000') + ' Kbit/sec, DLY 10 usec,\n  ' + dupLine + '\n  5 minute input rate 11000 bits/sec, 8 packets/sec\n  5 minute output rate 14000 bits/sec, 10 packets/sec\n     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored\n     ' + outErr + ' output errors, ' + col + ' collisions, ' + lateCol + ' late collision, 0 deferred'; } return undefined; },
     solution: ["show interfaces gi0/24", "enable", "configure terminal", "interface gi0/24", "no duplex half", "no speed 100", "end", "show interfaces gi0/24"]
   },
   {
     id: "ts-svc-04", title: "HSRP flapping from a tracked uplink", diff: "intermediate", topics: ["3.5"],
-    scenario: "Users on the 192.168.50.0/24 LAN lose traffic for a few seconds every couple of minutes. R1 is the active router for HSRP group 50, but its state keeps changing. R1 tracks its upstream interface Gi0/1 and that uplink is bouncing, dragging R1's effective priority below R2's so R2 preempts, then R1 climbs back and preempts again. Find the flap, stabilize the tracked uplink on R1, and confirm HSRP settles into a steady Active state.",
-    device: {"name": "R1", "type": "router", "hostname": "R1", "vlans": {}, "interfaces": {"GigabitEthernet0/1": {"up": true, "ip": "192.168.50.2", "mode": "routed"}, "GigabitEthernet0/0": {"up": false, "lineProto": false, "ip": "10.10.10.1"}}, "routes": [], "custom": {"grp": 50, "vip": "192.168.50.1", "cfgPriority": 110, "trackDecrement": 20, "peerIp": "192.168.50.3", "peerPriority": 110, "vmac": "0000.0c07.ac32", "stateChanges": 8}},
+    scenario: "Users on the 192.168.50.0/24 LAN lose traffic for a few seconds every couple of minutes. R1 is the active router for HSRP group 50, but its state keeps changing. R1 tracks its upstream interface Gi0/0, and that uplink is bouncing: Gi0/0 is administratively up but its line protocol keeps dropping (a circuit/keepalive fault), dragging R1's effective priority below R2's so R2 preempts, then R1 climbs back and preempts again. Find the flap and stabilize it the right way (either repair the unstable Gi0/0 circuit so its line protocol holds up, or remove the HSRP track if the uplink instability is expected), then confirm HSRP settles into a steady Active state. Note: Gi0/0 is already admin-up, so 'no shutdown' will not fix a flapping line protocol.",
+    device: {"name": "R1", "type": "router", "hostname": "R1", "vlans": {}, "interfaces": {"GigabitEthernet0/1": {"up": true, "ip": "192.168.50.2", "mode": "routed"}, "GigabitEthernet0/0": {"up": true, "lineProto": false, "ip": "10.10.10.1", "keepalive": true}}, "routes": [], "custom": {"grp": 50, "vip": "192.168.50.1", "cfgPriority": 110, "trackDecrement": 20, "peerIp": "192.168.50.3", "peerPriority": 110, "vmac": "0000.0c07.ac32", "stateChanges": 8, "trackRemoved": false}},
     objectives: [
-    { text: "Investigate the HSRP group on R1 to see how often it is changing state", hint: "show standby gi0/1 — read the state-change count and the tracked interface", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+standby/i.test(c.cmd); }); } },
-    { text: "Identify the tracked uplink and confirm whether it is up", hint: "show ip interface brief — look at Gi0/0 line protocol status", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+int(erface)?\s+br(ief)?/i.test(c.cmd); }); } },
-    { text: "Enter config and select the tracked uplink interface", hint: "configure terminal → interface gi0/0", check: function(d,log){ return (d && d.currentInterface === 'GigabitEthernet0/0') || (log && log.some(function(c){ return /^interface\s+(gigabitethernet|gi)0\/0$/i.test(c.cmd); })); } },
-    { text: "Bring the tracked uplink back into service so it stops flapping", hint: "no shutdown — restore Gi0/0 line protocol", check: function(d){ var i=d.interfaces['GigabitEthernet0/0']; return i && i.up===true && i.lineProto===true; } },
-    { text: "Confirm HSRP on R1 is steady Active with full priority and no further state churn", hint: "end → show standby gi0/1 — Active, priority back to 110, tracked interface Up", check: function(d,log){ var i=d.interfaces['GigabitEthernet0/0']; var fixed=i && i.up===true && i.lineProto===true; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+standby/i.test(c.cmd) && c.time > (d.__fixTime||0); }); } }
+    { text: "Investigate the HSRP group on R1 to see how often it is changing state", hint: "show standby brief — read the State column, the state-change count, and the tracked interface", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+standby/i.test(c.cmd); }); } },
+    { text: "Identify the tracked uplink and confirm its line-protocol status", hint: "show ip interface brief — Gi0/0 should read Status up but Protocol down (a flap, not a shut port)", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+ip\s+int(erface)?\s+br(ief)?/i.test(c.cmd); }); } },
+    { text: "Enter config and select the tracked uplink interface (or the HSRP interface if you choose to remove the track)", hint: "configure terminal → interface gi0/0 (circuit repair) or interface gi0/1 (to remove the track)", check: function(d,log){ return (d && (d.currentInterface === 'GigabitEthernet0/0' || d.currentInterface === 'GigabitEthernet0/1')) || (log && log.some(function(c){ return /^interface\s+(gigabitethernet|gi)0\/[01]$/i.test(c.cmd); })); } },
+    { text: "Stabilize the flap the correct way: clear the Gi0/0 circuit fault so its line protocol holds up, OR remove the HSRP track on Gi0/1", hint: "On Gi0/0: 'no keepalive' to stop the keepalive-driven line-protocol bounce. OR on Gi0/1: 'no standby 50 track GigabitEthernet0/0 20' to drop the track. (no shutdown does nothing here.)", check: function(d){ var i=d.interfaces['GigabitEthernet0/0']; var circuitFixed = i && i.up===true && i.lineProto===true; var trackGone = d.custom && d.custom.trackRemoved===true; return circuitFixed || trackGone; } },
+    { text: "Confirm HSRP on R1 is steady Active at full priority 110 with no further state churn", hint: "end → show standby brief (or show standby gi0/1) — State Active, priority 110, no STATECHANGE log", check: function(d,log){ var i=d.interfaces['GigabitEthernet0/0']; var circuitFixed = i && i.up===true && i.lineProto===true; var trackGone = d.custom && d.custom.trackRemoved===true; var fixed = circuitFixed || trackGone; if(!fixed) return false; var fixIdx=-1; for(var k=0;k<log.length;k++){ var lc=log[k].cmd.toLowerCase(); if(/^no\s+keepalive(\s+\d+)?$/.test(lc) || /^no\s+standby\s+\d+\s+track\s+/.test(lc)){ fixIdx=k; } } if(fixIdx<0) return false; for(var m=fixIdx+1;m<log.length;m++){ if(/^(do\s+)?sh(ow)?\s+standby/i.test(log[m].cmd)) return true; } return false; } }
     ],
     extraCmds: function(dev,raw,lower){
   var u=dev.interfaces['GigabitEthernet0/0'];
   var g1=dev.interfaces['GigabitEthernet0/1'];
   var c=dev.custom;
 
-  // ---- FIX: no shutdown on the tracked uplink while it is selected ----
+  // ---- WRONG REMEDY: no shutdown on Gi0/0 is a no-op (port is already admin-up) ----
+  // The fault is a flapping LINE PROTOCOL, not an admin-down port, so re-enabling does nothing.
   if(/^no\s+shut(d(own)?)?$/i.test(raw) && dev.mode==='config-if' && dev.currentInterface==='GigabitEthernet0/0'){
-    u.up=true; u.lineProto=true; dev.__fixTime=Date.now();
-    return '%LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/0, changed state to up';
+    u.up=true; // already true; line protocol stays down, the flap is unresolved
+    return '% GigabitEthernet0/0 is already up; line protocol still flapping (no carrier from the circuit)';
+  }
+
+  // ---- FIX A: clear the circuit fault so the line protocol holds up ----
+  // 'no keepalive' stops the keepalive-driven UPDOWN bounce on the unstable circuit.
+  if(/^no\s+keepalive(\s+\d+)?$/i.test(raw) && dev.mode==='config-if' && dev.currentInterface==='GigabitEthernet0/0'){
+    u.keepalive=false; u.up=true; u.lineProto=true; dev.__fixTime=Date.now();
+    return '%LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/0, changed state to up (and stable)';
+  }
+
+  // ---- FIX B: remove the HSRP track on the HSRP interface (Gi0/1) ----
+  // Track must name the SAME interface (Gi0/0) and group 50; the decrement is optional in the negation.
+  var trk=raw.match(/^no\s+standby\s+(\d+)\s+track\s+(gigabitethernet|gi)\s*0\/0(\s+\d+)?$/i);
+  if(trk && parseInt(trk[1],10)===c.grp && dev.mode==='config-if' && dev.currentInterface==='GigabitEthernet0/1'){
+    c.trackRemoved=true; dev.__fixTime=Date.now();
+    return ''; // track removed: effective priority no longer drops with the uplink
   }
 
   // helpers ----
-  var tracked=u.up && u.lineProto;                       // uplink healthy?
-  var effPriority = tracked ? c.cfgPriority : (c.cfgPriority - c.trackDecrement);
+  var uplinkHealthy=u.up && u.lineProto;                 // circuit actually stable?
+  // R1's effective priority only drops while the track is still in place AND the uplink is unhealthy
+  var trackActive = !c.trackRemoved;
+  var effPriority = (trackActive && !uplinkHealthy) ? (c.cfgPriority - c.trackDecrement) : c.cfgPriority;
   var stable = effPriority >= c.peerPriority;            // R1 wins => steady Active
+  // tracked interface state as HSRP sees it (only meaningful while the track exists)
+  var trackState = uplinkHealthy ? 'Up' : 'Down';
 
   // ---- show ip interface brief (with or without an include filter) ----
   if(/^(do\s+)?show\s+ip\s+int(erface)?\s+br(ief)?(\s*\|\s*i(nclude)?\s+\S+)?$/i.test(lower)){
     var g1proto = g1.up ? 'up' : 'down';
     var g0proto = u.lineProto ? 'up' : 'down';
+    // admin state is driven by u.up; the broken state is admin-up / proto-down (a flap), NOT admin-down
     var g0admin = u.up ? 'up' : 'administratively down';
     var rows=[
       ['GigabitEthernet0/0', u.ip, 'YES NVRAM', g0admin, g0proto],
       ['GigabitEthernet0/1', g1.ip, 'YES NVRAM', 'up', g1proto]
     ];
     var inc=lower.match(/\|\s*i(nclude)?\s+(\S+)/i);
-    if(inc){ var pat=inc[2].replace(/gi/i,'GigabitEthernet'); rows=rows.filter(function(r){ return r[0].toLowerCase().indexOf(inc[2].toLowerCase().replace('gi','gigabitethernet'))===0; }); }
+    if(inc){ rows=rows.filter(function(r){ return r[0].toLowerCase().indexOf(inc[2].toLowerCase().replace('gi','gigabitethernet'))===0; }); }
     var out='Interface              IP-Address      OK? Method Status                Protocol\n';
     rows.forEach(function(r){ out+= r[0].padEnd(23)+r[1].padEnd(16)+r[2].padEnd(7)+r[3].padEnd(22)+r[4]+'\n'; });
     return out.replace(/\n$/,'');
+  }
+
+  // ---- show standby brief (the natural HSRP triage command) ----
+  if(/^(do\s+)?show\s+standby\s+brief$/i.test(lower)){
+    var stB = stable ? 'Active' : 'Speak';
+    var activeB = stable ? 'local' : c.peerIp;
+    var standbyB = stable ? c.peerIp : 'unknown';
+    var hdr='                     P indicates configured to preempt.\n'
+      +'                     |\n'
+      +'Interface   Grp  Pri P State    Active          Standby         Virtual IP\n';
+    var rowB='Gi0/1       '+c.grp+'   '+effPriority+'  P '+stB.padEnd(8)+' '+activeB.padEnd(15)+' '+standbyB.padEnd(15)+' '+c.vip;
+    if(!stable){ rowB += '\n\n*Mar  1 14:24:02.778: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp '+c.grp+' state Standby -> Active'; }
+    return hdr+rowB;
   }
 
   // ---- show standby [gi0/1] ----
@@ -1425,9 +1527,11 @@ window.TLABS = [
     var lastChange = stable ? '00:04:18' : '00:00:02';
     var activeLine = stable ? '  Active router is local'
                             : '  Active router is '+c.peerIp+', priority '+c.peerPriority;
+    // Speak state: this router has NOT been elected Standby, so it is not the local Standby router
     var standbyLine = stable ? '  Standby router is '+c.peerIp+', priority '+c.peerPriority+' (expires in 9.024 sec)'
-                             : '  Standby router is local';
-    var trackState = tracked ? 'Up' : 'Down';
+                             : '  Standby router is unknown';
+    var trackLine = c.trackRemoved ? ''
+      : '\n    Track interface GigabitEthernet0/0 state '+trackState+' decrement '+c.trackDecrement;
     var out='GigabitEthernet0/1 - Group '+c.grp+'\n'
       +'  State is '+state+'\n'
       +'    '+sc+' state changes, last state change '+lastChange+'\n'
@@ -1439,8 +1543,7 @@ window.TLABS = [
       +'  Preemption enabled\n'
       +activeLine+'\n'
       +standbyLine+'\n'
-      +'  Priority '+effPriority+' (configured '+c.cfgPriority+')\n'
-      +'    Track interface GigabitEthernet0/0 state '+trackState+' decrement '+c.trackDecrement+'\n'
+      +'  Priority '+effPriority+' (configured '+c.cfgPriority+')'+trackLine+'\n'
       +'  Group name is "hsrp-Gi0/1-'+c.grp+'" (default)';
     if(!stable){ out += '\n\n*Mar  1 14:24:02.778: %HSRP-5-STATECHANGE: GigabitEthernet0/1 Grp '+c.grp+' state Standby -> Active'; }
     return out;
@@ -1448,7 +1551,7 @@ window.TLABS = [
 
   return undefined;
 },
-    solution: ["show standby gi0/1", "show ip interface brief", "enable", "configure terminal", "interface gi0/0", "no shutdown", "end", "show standby gi0/1"]
+    solution: ["show standby brief", "show ip interface brief", "enable", "configure terminal", "interface gi0/0", "no keepalive", "end", "show standby brief"]
   },
   {
     id: "ts-svc-05", title: "HSRP stuck in Speak — auth key mismatch", diff: "intermediate", topics: ["3.5"],
@@ -1783,8 +1886,8 @@ window.TLABS = [
     objectives: [
     { text: "Investigate — inspect R2's logging configuration and the trap level it is sending at", hint: "show logging — read the 'Trap logging: level X' line and the 'message lines logged' counter", check: function(d,log){ return log.some(function(c){ return /^(do\s+)?sh(ow)?\s+logg(ing)?/i.test(c.cmd); }); } },
     { text: "Enter global configuration mode on R2", hint: "enable → configure terminal", check: function(d,log){ return d.mode && d.mode.indexOf('config')===0; } },
-    { text: "Raise the syslog trap severity so routine (informational and above) events are sent to the host", hint: "logging trap informational — emergencies (severity 0) drops everything else", check: function(d,log){ var t=String(d.custom.loggingTrap||'').toLowerCase(); return t!=='emergencies' && t!=='' && t!=='0'; } },
-    { text: "Confirm — the trap level now permits routine events and the host will receive logs", hint: "end → show logging — 'Trap logging' no longer reads emergencies", check: function(d,log){ var t=String(d.custom.loggingTrap||'').toLowerCase(); var fixed = t!=='emergencies' && t!=='' && t!=='0'; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+logg(ing)?/i.test(c.cmd) && c.time>(d.__fixTime||0); }); } }
+    { text: "Raise the syslog trap severity so routine notification-level and above events reach the host", hint: "the routine LINK/LINEPROTO/OSPF events are severity 5 — set the trap to notifications or lower-priority (higher number) than emergencies (0)", check: function(d,log){ var map={'emergencies':0,'alerts':1,'critical':2,'errors':3,'warnings':4,'notifications':5,'informational':6,'debugging':7,'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7}; var t=String(d.custom.loggingTrap||'').toLowerCase(); var lvl=map[t]; return typeof lvl==='number' && lvl>=5; } },
+    { text: "Confirm — the trap level now permits routine events and the host will receive logs", hint: "end → show logging — 'Trap logging' now reads notifications/informational/debugging and the message-lines-logged counter is nonzero", check: function(d,log){ var map={'emergencies':0,'alerts':1,'critical':2,'errors':3,'warnings':4,'notifications':5,'informational':6,'debugging':7,'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7}; var t=String(d.custom.loggingTrap||'').toLowerCase(); var lvl=map[t]; var fixed = typeof lvl==='number' && lvl>=5; return fixed && log.some(function(c){ return /^(do\s+)?sh(ow)?\s+logg(ing)?/i.test(c.cmd) && c.time>(d.__fixTime||0); }); } }
     ],
     extraCmds: function(dev,raw,lower){
   // FIX: logging trap <level|number> — global config command
@@ -1793,7 +1896,17 @@ window.TLABS = [
     var lvlMap = {'0':'emergencies','1':'alerts','2':'critical','3':'errors','4':'warnings','5':'notifications','6':'informational','7':'debugging'};
     var v = m[1].toLowerCase();
     dev.custom.loggingTrap = lvlMap[v] || v;
-    if (dev.custom.loggingTrap !== 'emergencies') { dev.custom.msgLinesLogged = 1421; dev.custom.rateLimited = 0; }
+    var sevMap = {'emergencies':0,'alerts':1,'critical':2,'errors':3,'warnings':4,'notifications':5,'informational':6,'debugging':7};
+    var sev = sevMap[dev.custom.loggingTrap];
+    if (typeof sev === 'number' && sev >= 5) {
+      // severity 5+ (notifications/informational/debugging) actually lets the
+      // routine LINK/LINEPROTO/OSPF (sev-5) events through to the host
+      dev.custom.msgLinesLogged = 1421; dev.custom.rateLimited = 0;
+    } else {
+      // emergencies(0)..warnings(4) still filter out the sev-5 routine events:
+      // host keeps receiving nothing useful, symptom persists
+      dev.custom.msgLinesLogged = 0; dev.custom.rateLimited = 1421;
+    }
     dev.__fixTime = Date.now();
     return '';
   }
