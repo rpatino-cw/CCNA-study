@@ -20,6 +20,7 @@
   var CCNA_NAV = [
     { text: 'Core v2 ✦', href: 'core-v2.html' },
     { text: 'Cram Driller 🔥', href: 'exam-cram-driller.html' },
+    { text: 'Tiny Gaps 🎯', href: 'tiny-gaps.html' },
     { text: 'P1 Deep Dives ✦', children: [
       { text: 'Pillars Trainer', href: 'pillars-trainer.html' },
       { text: 'Pillar Value (ROI)', href: 'pillar-value.html' },
@@ -62,6 +63,7 @@
     ]},
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
+      { text: 'Tiny Gaps Driller', href: 'tiny-gaps.html' },
       { text: 'Subnetting Mastery', href: 'subnetting-mastery.html' },
       { text: 'Subnet Terms (Rapid)', href: 'subnet-terms.html' },
       { text: 'Subnet Counting (/N in /M)', href: 'subnet-count.html' },
