@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Fault Finder: Troubleshooting Drill (CCNA 200-301)</title>
+<style>
+.quiz-wrap{max-width:640px;margin:0 auto;padding:0 var(--s-md)}
+.back-wrap{margin:var(--s-md) 0}
+.back-wrap a{font-family:var(--font-display);font-size:.8rem;color:var(--ink-muted);text-decoration:none}
+.back-wrap a:hover{color:var(--accent)}
+
+/* tier chips, copied from troubleshoot-method.html so chips match exactly */
+.tier{font-family:var(--font-mono);font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:100px;letter-spacing:.03em;flex-shrink:0}
+.tier.P1{background:rgba(124,58,237,.12);color:#7C3AED}
+.tier.P2{background:rgba(13,148,136,.12);color:#0D9488}
+
+/* screens */
+.screen{display:none}
+.screen.active{display:block;animation:qfade .28s var(--ease-out,ease)}
+@keyframes qfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* start */
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+h1.title{font-family:var(--font-display);font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0 0 var(--s-xs)}
+.tagline{font-family:var(--font-body);font-size:1.05rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:var(--s-lg)}
+.field-label{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:600;margin:var(--s-md) 0 var(--s-sm)}
+.scope-stack{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--s-md)}
+.pillset{display:flex;gap:8px;flex-wrap:wrap}
+.pill{font-family:var(--font-display);font-size:.85rem;font-weight:600;padding:8px 18px;border-radius:100px;border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-secondary);cursor:pointer;transition:all .15s}
+.pill:hover{border-color:var(--ink)}
+.pill.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+.start-actions{margin-top:var(--s-lg)}
+
+/* commands inside the Why panel render as tinted chips, matching the rest of the site */
+.explanation-box code{font-family:var(--font-mono);font-size:.82em;background:var(--bg-input);padding:1px 5px;border-radius:3px;color:var(--ink)}
+
+/* running screen */
+.runbar{position:sticky;top:0;background:var(--bg);z-index:20;padding:var(--s-sm) 0;border-bottom:1px solid var(--rule)}
+.runbar .progress-bar{margin-bottom:8px}
+.runbar .meta{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.runbar .qn{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);font-weight:600}
+.runbar .where{display:flex;align-items:center;gap:8px}
+.runbar .where .obj{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted)}
+
+.q-stem{font-family:var(--font-display);font-size:1.18rem;font-weight:600;color:var(--ink);margin:var(--s-lg) 0 6px;line-height:1.3}
+.q-scenario{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:var(--s-md)}
+
+/* the one loud element: dark console panel */
+.console{background:#1C1917;color:#E7E5E4;font-family:var(--font-mono);font-size:.82rem;line-height:1.6;border-radius:var(--radius-lg);padding:var(--s-md);margin:0 0 var(--s-md);white-space:pre-wrap;overflow-x:auto}
+.console .prompt{color:var(--accent)}
+.console .cursor{display:inline-block;width:8px;height:1em;background:#E7E5E4;vertical-align:text-bottom;animation:blink 1.1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.console .cursor{animation:none}.screen.active{animation:none}}
+
+.options{display:flex;flex-direction:column;gap:10px;margin-bottom:var(--s-md)}
+.q-next{margin-top:var(--s-md)}
+.q-next .btn{width:100%}
+
+/* results */
+.res-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:var(--s-md) 0 var(--s-sm)}
+.res-band{font-family:var(--font-display);font-size:.95rem;font-weight:600;align-self:center}
+.misses{margin:var(--s-lg) 0}
+.misses h3{font-family:var(--font-display);font-size:1rem;font-weight:700;margin:0 0 var(--s-sm)}
+.miss{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid var(--rule);text-decoration:none}
+.miss:hover .miss-title{color:var(--accent)}
+.miss-title{font-family:var(--font-display);font-size:.92rem;font-weight:600;color:var(--ink);line-height:1.4}
+.miss-sym{font-family:var(--font-body);font-size:.86rem;color:var(--ink-secondary);line-height:1.4;display:block;margin-top:2px}
+.res-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:var(--s-lg)}
+.allgood{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary)}
+.best-note{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-top:8px}
+
+/* ── remediation (wrong-answer recall loop) ── */
+#remediation{margin-top:var(--s-md)}
+.remed-line{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.5;margin:0 0 var(--s-sm)}
+.remed-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:var(--s-sm)}
+.remed-tag{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600}
+.remed-skip{font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted);background:none;border:none;cursor:pointer;padding:2px 4px}
+.remed-skip:hover{color:var(--accent)}
+.remed-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-md);margin-bottom:var(--s-md);font-family:var(--font-body);font-size:.98rem;line-height:1.6;color:var(--ink)}
+.remed-card strong{font-weight:600}
+.console-input{font-family:var(--font-mono);font-size:.84rem;color:#E7E5E4;background:transparent;border:none;outline:none;caret-color:#E7E5E4;width:60%;min-width:140px}
+.cli-feedback{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:8px}
+.cli-feedback.ok{color:var(--prof-strong)}
+.cli-feedback.warn{color:var(--prof-mid)}
+.connect-chip{display:block;width:100%;text-align:left;font-family:var(--font-body);font-size:.9rem;color:var(--ink);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:8px;cursor:pointer;text-decoration:none;line-height:1.5}
+.connect-chip:hover{border-color:var(--accent)}
+.connect-chip .ct{font-family:var(--font-display);font-weight:600;display:block}
+.connect-chip .cg{color:var(--ink-secondary);font-size:.84rem}
+.back-around{display:inline-block;font-family:var(--font-mono);font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:100px;background:var(--accent-dim);color:var(--accent);margin-left:6px}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+
+<main class="quiz-wrap">
+  <div class="back-wrap"><a href="troubleshoot-method.html">&larr; Troubleshooting method</a></div>
+
+  <!-- ───────── START ───────── -->
+  <section class="screen active" id="screen-start">
+    <div class="kicker">Drill &middot; P1 + P2</div>
+    <h1 class="title">Fault Finder</h1>
+    <p class="tagline">Read the fault. Pick the move. See why.</p>
+
+    <div class="field-label">Scope</div>
+    <div class="scope-stack" id="scopeStack">
+      <button class="quiz-option" data-scope="P1"><span class="option-letter">1</span><span>P1 Core &mdash; the 12 heavy-hitter pillars</span></button>
+      <button class="quiz-option" data-scope="P2"><span class="option-letter">2</span><span>P2 Lock &mdash; the 8 easy-points pillars</span></button>
+      <button class="quiz-option" data-scope="mixed"><span class="option-letter">3</span><span>Mixed &mdash; all 20 pillars</span></button>
+    </div>
+
+    <div class="field-label">Length</div>
+    <div class="pillset" id="lenSet">
+      <button class="pill" data-len="10">10</button>
+      <button class="pill" data-len="20">20</button>
+      <button class="pill" data-len="all">All</button>
+    </div>
+
+    <div class="start-actions">
+      <button class="btn btn-primary btn-lg" id="startBtn">Start drill</button>
+    </div>
+    <div class="best-note" id="bestNote"></div>
+  </section>
+
+  <!-- ───────── RUNNING ───────── -->
+  <section class="screen" id="screen-run">
+    <div class="runbar">
+      <div class="progress-bar"><span class="fill blue" id="pfill" style="width:0%"></span></div>
+      <div class="meta">
+        <span class="qn" id="qn">Q 1 / 10</span>
+        <span class="where"><span class="tier P1" id="qtier">P1</span><span class="obj" id="qobj"></span></span>
+      </div>
+    </div>
+
+    <div class="q-stem" id="qstem"></div>
+    <div class="q-scenario" id="qscenario"></div>
+    <pre class="console" id="qconsole" hidden></pre>
+    <div class="options" id="qoptions"></div>
+    <div class="explanation-box" id="qwhy" hidden></div>
+    <div id="missCtrls" hidden>
+      <p class="remed-line" id="missMsg">Missed it. A couple quick reps, then it comes back later.</p>
+      <div class="q-next"><button class="btn btn-primary" id="repsBtn">Start reps</button></div>
+    </div>
+    <div id="remediation" hidden></div>
+    <div class="q-next" id="qnextWrap" hidden><button class="btn btn-primary" id="nextBtn">Next</button></div>
+  </section>
+
+  <!-- ───────── RESULTS ───────── -->
+  <section class="screen" id="screen-results">
+    <div class="kicker">Drill complete</div>
+    <div class="res-head">
+      <div class="stat"><div class="value" id="resScore">0 / 0</div><div class="label">Score</div></div>
+      <span class="res-band" id="resBand"></span>
+    </div>
+    <div class="best-note" id="resBest"></div>
+
+    <div class="misses" id="missWrap"></div>
+
+    <div class="res-actions">
+      <button class="btn btn-primary" id="redoBtn">Redo my misses</button>
+      <button class="btn btn-secondary" id="newBtn">New drill</button>
+      <a class="btn btn-ghost" href="troubleshoot-method.html">Back to the method</a>
+    </div>
+  </section>
+</main>
+
+<script defer src="data/troubleshoot-data.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var TS = window.TS || [];
+  var LS_KEY = 'ts-quiz';
+
+  /* ── helpers ── */
+  function decode(s){
+    return String(s).replace(/<\/?code>/g,'')
+      .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+  }
+  function allCmds(html){
+    var out=[], re=/<code>(.*?)<\/code>/g, m;
+    while((m=re.exec(String(html)))){ out.push(decode(m[1])); }
+    return out;
+  }
+  function firstCmd(html){ return allCmds(html)[0] || null; }
+
+  /* IOS-style command matcher: abbreviation-tolerant, wildcard/optional trailing args, optional pipe filter */
+  function normCmd(s){
+    return decode(String(s)).toLowerCase()
+      .replace(/^[a-z0-9~.\-]+\s*[#>$]\s*/,'')   // strip a leading device prompt
+      .replace(/\s*\|\s*/g,' | ')
+      .replace(/\s+/g,' ').replace(/\?+$/,'').trim();
+  }
+  // token kind: 'angle' = <placeholder> (optional + wildcard); 'wild' = a value/interface/x (matches any token but REQUIRED);
+  // 'lit' = a keyword, matched by IOS prefix. Keywords like ipv6/dot1q stay literal (not wild) so the ip-vs-ipv6 drill works.
+  function tokKind(tok){
+    if(/^<.*>$/.test(tok)) return 'angle';
+    if(tok==='x') return 'wild';                                   // bare VLAN placeholder
+    if(/^[0-9]+(\.[0-9]+)*(\/[0-9]+)?$/.test(tok)) return 'wild';  // 10, 0.0.0.0, 192.168.1.0/24
+    if(/^[a-z]{1,4}[0-9]+\/[0-9]+(\/[0-9]+)?$/.test(tok)) return 'wild'; // interface id gi0/0, gi1/0/1 (slash required)
+    return 'lit';
+  }
+  function tokMatch(inp, cand){
+    var ci=0;
+    for(var i=0;i<inp.length;i++){
+      if(inp[i]==='|'){ var pi=inp.indexOf('|'); return cand.indexOf('|')>-1 && inp.length>pi+1; } // pipe needs a non-empty filter
+      if(ci>=cand.length) return false;
+      var it=inp[i], ct=cand[ci], k=tokKind(ct);
+      if(k==='angle' || k==='wild'){ ci++; continue; }
+      // literal: IOS prefix match, but block the ip -> ipv6 confusion the pillar drills
+      if(it.length && ct.slice(0,it.length)===it && !(ct==='ipv6' && it==='ip')){ ci++; continue; }
+      return false;
+    }
+    for(var j=ci;j<cand.length;j++){   // leftover tokens optional ONLY if an angle placeholder, or a trailing pipe filter
+      if(cand[j]==='|') break;
+      if(tokKind(cand[j])!=='angle') return false;
+    }
+    return true;
+  }
+  function cliMatch(input, candidates){
+    var inp=normCmd(input);
+    if(!inp) return {ok:false, reason:''};
+    var inpT=inp.split(' ');
+    for(var i=0;i<candidates.length;i++){
+      if(tokMatch(inpT, normCmd(candidates[i]).split(' '))) return {ok:true, reason:''};
+    }
+    var firstOk=candidates.some(function(c){ var ct=normCmd(c).split(' ')[0]; return ct.slice(0,inpT[0].length)===inpT[0] && inpT[0].length; });
+    return {ok:false, reason: firstOk ? 'Close. Try again, or Reveal.' : 'Not that verb. What do you SHOW to read state?'};
+  }
+  function shuffle(a){
+    for(var i=a.length-1;i>0;i--){ var j=Math.floor((i+1)*pseudo()); var t=a[i];a[i]=a[j];a[j]=t; }
+    return a;
+  }
+  // seedless varied order without Math.random (works everywhere); good enough for option placement
+  var _seed = (new Date().getSeconds()*1000 + (window.performance?Math.floor(performance.now()):0)) % 233280 || 12345;
+  function pseudo(){ _seed = (_seed*9301 + 49297) % 233280; return _seed/233280; }
+
+  /* ── OUTPUTS: the only new authored content. Faux show-output for Type 3. ── */
+  var OUTPUTS = {
+    'OSPFv2 single area|Neighbors stuck in EXSTART / EXCHANGE':
+      'R1# show ip ospf neighbor\nNeighbor ID   Pri  State        Address      Interface\n2.2.2.2        1   EXSTART/  -  10.0.0.2     Gi0/0\n(stuck, never reaches FULL)',
+    'EtherChannel|A member port is suspended (s)':
+      'SW1# show etherchannel summary\nFlags:  P bundled   s suspended   I stand-alone\nGroup  Port-channel  Protocol  Ports\n1      Po1(SU)       LACP      Gi0/1(P)  Gi0/2(s)',
+    'STP / Rapid PVST+|Port went err-disabled':
+      'SW1# show interfaces status err-disabled\nPort    Name   Status            Reason\nGi0/5          err-disabled      bpduguard',
+    'DHCP client + relay|Client has a 169.254.x.x address':
+      'Host~$ ipconfig\nIPv4 Address . . : 169.254.18.4\nSubnet Mask  . . : 255.255.0.0\nDefault Gateway  : \n(no DHCP server reachable on this segment)',
+    'Routing table + forwarding|Traffic takes the wrong path':
+      'R1# show ip route 10.1.1.10\nRouting entry for 10.1.1.0/26\n  via OSPF\n(a less-specific 10.1.1.0/24 also exists, but is NOT used here)',
+    'NAT / PAT|No translations happening':
+      'R1# show ip nat translations\n(empty)\nR1# show ip nat statistics\nTotal active translations: 0\nMisses: 5821',
+    'VLANs + trunking|Same-VLAN hosts on different switches cannot talk':
+      'SW1# show interfaces trunk\nPort    Mode    Encapsulation  Status    Native\nGi0/1   on      802.1q         trunking  1\nVlans allowed on trunk: 1,10,20   (VLAN 30 is NOT listed)',
+    'Layer 2 security|Port err-disabled after a device moved':
+      'SW1# show port-security interface Gi0/3\nPort Security        : Enabled\nPort Status          : Secure-shutdown\nViolation Mode       : Shutdown\nLast Source Address  : 00ab.11cd.22ef'
+  };
+
+  /* ── distractor pools + pillar map (built once) ── */
+  var ALL_CMDS = [], ALL_FIX = [], ALL_CAUSE = [], PILLAR_BY_TITLE = {};
+  TS.forEach(function(p){
+    PILLAR_BY_TITLE[p.title]=p;
+    p.faults.forEach(function(f){
+      allCmds(f.c).forEach(function(c){ ALL_CMDS.push(c); });
+      ALL_FIX.push(decode(f.fix));
+      ALL_CAUSE.push(decode(f.cause));
+    });
+  });
+  function uniq(a){ var seen={},o=[]; a.forEach(function(x){ if(!seen[x]){seen[x]=1;o.push(x);} }); return o; }
+  ALL_CMDS=uniq(ALL_CMDS); ALL_FIX=uniq(ALL_FIX); ALL_CAUSE=uniq(ALL_CAUSE);
+
+  function distractors(pool, answer, n){
+    var pick=[], avail=pool.filter(function(x){return x!==answer;});
+    shuffle(avail);
+    for(var i=0;i<avail.length && pick.length<n;i++) pick.push(avail[i]);
+    return pick;
+  }
+  function pctx(p){
+    var t=p.title.toLowerCase();
+    if(/dhcp/.test(t)) return 'Host~$';
+    if(/vlan|stp|etherchannel|layer 2|wlan|spanning|pvst/.test(t)) return 'SW1#';
+    return 'R1#';
+  }
+
+  var MAX_REQUEUE=2;
+
+  /* ── build the item bank for a scope ── */
+  function buildItems(scope){
+    var items=[];
+    TS.forEach(function(p){
+      if(scope!=='mixed' && p.tier!==scope) return;
+      p.faults.forEach(function(f){
+        var cmd = firstCmd(f.c);
+        var fixText = decode(f.fix);
+        var causeText = decode(f.cause);
+        var sym = decode(f.s);
+        function mk(o, type, cmdKeys){
+          o.pillar=p.title; o.tier=p.tier; o.obj=p.obj; o.symptom=sym; o.type=type;
+          o.cause=causeText; o.fixText=fixText; o.cmd=cmd;
+          o.cmdKeys=cmdKeys||[];
+          o.whyHtml='<strong>Cause:</strong> '+f.cause+' &rarr; <strong>Fix:</strong> '+f.fix;
+          o.promptCtx=pctx(p);
+          o.key=p.title+'|'+sym+'|'+type;
+          o._needsClear=false; o._missCount=0; o._everMissed=false; o._isRequeue=false; o._conceded=false;
+          return o;
+        }
+        if(cmd){
+          items.push(mk({ stem:'Which command confirms this?', scenario:sym+'.', output:null,
+            answer:cmd, opts:[cmd].concat(distractors(ALL_CMDS, cmd, 3)),
+            why:'Confirms the cause: '+f.cause+'.', chip:cmd }, 'cmd', allCmds(f.c)));
+        }
+        items.push(mk({ stem:'Apply the fix.', scenario:'Confirmed cause: '+causeText+'.', output:null,
+          answer:fixText, opts:[fixText].concat(distractors(ALL_FIX, fixText, 3)),
+          why:'<strong>Cause:</strong> '+f.cause+' &rarr; <strong>Fix:</strong> '+f.fix,
+          chip:firstCmd(f.fix) }, 'fix', allCmds(f.fix)));
+        var okey=p.title+'|'+sym;
+        if(OUTPUTS[okey]){
+          items.push(mk({ stem:'What is broken?', scenario:'Read the device output, then pick the fault.', output:OUTPUTS[okey],
+            answer:causeText, opts:[causeText].concat(distractors(ALL_CAUSE, causeText, 3)),
+            why:'<strong>Cause:</strong> '+f.cause+' &rarr; <strong>Fix:</strong> '+f.fix,
+            chip:cmd }, 'output', allCmds(f.c)));
+        }
+      });
+    });
+    return items;
+  }
+
+  /* ── state ── */
+  var state = { items:[], idx:0, score:0, firstPassTotal:0, cleared:0, requeueBudget:0, missed:[], scope:'P1', length:'10' };
+
+  /* ── localStorage ── */
+  function loadStore(){ try{ return JSON.parse(localStorage.getItem(LS_KEY))||{}; }catch(e){ return {}; } }
+  function saveStore(o){ try{ localStorage.setItem(LS_KEY, JSON.stringify(o)); }catch(e){} }
+  function logSticky(it){ var st=loadStore(); st.stickyMisses=st.stickyMisses||[]; st.stickyMisses.push({pillar:it.pillar,symptom:it.symptom}); if(st.stickyMisses.length>50) st.stickyMisses=st.stickyMisses.slice(-50); saveStore(st); }
+
+  /* ── START screen wiring ── */
+  var scopeStack=document.getElementById('scopeStack');
+  var lenSet=document.getElementById('lenSet');
+  var bestNote=document.getElementById('bestNote');
+
+  function setScope(s){
+    state.scope=s;
+    Array.prototype.forEach.call(scopeStack.children,function(b){ b.classList.toggle('selected', b.dataset.scope===s); });
+    refreshBest();
+  }
+  function setLen(l){
+    state.length=l;
+    Array.prototype.forEach.call(lenSet.children,function(b){ b.classList.toggle('sel', b.dataset.len===l); });
+  }
+  function refreshBest(){
+    var st=loadStore(); var best=(st.best||{})[state.scope];
+    bestNote.textContent = (best!=null) ? ('Best on '+labelScope(state.scope)+': '+best+'%') : '';
+  }
+  function labelScope(s){ return s==='P1'?'P1 Core':s==='P2'?'P2 Lock':'Mixed'; }
+
+  scopeStack.addEventListener('click',function(e){ var b=e.target.closest('[data-scope]'); if(b) setScope(b.dataset.scope); });
+  lenSet.addEventListener('click',function(e){ var b=e.target.closest('[data-len]'); if(b) setLen(b.dataset.len); });
+
+  (function(){ var st=loadStore(); setScope(st.lastScope||'P1'); setLen(st.lastLength||'10'); })();
+
+  function beginDrill(items){
+    state.items=items; state.idx=0; state.score=0; state.cleared=0; state.missed=[];
+    state.firstPassTotal=items.length;
+    state.requeueBudget=Math.min(6, Math.ceil(items.length/3));
+    show('run'); renderQ();
+  }
+
+  document.getElementById('startBtn').addEventListener('click',function(){
+    var all=buildItems(state.scope);
+    shuffle(all);
+    var n = state.length==='all' ? all.length : Math.min(parseInt(state.length,10), all.length);
+    var items = all.slice(0,n);
+    if(!items.length){ bestNote.textContent='No items for this scope. Data failed to load, refresh the page.'; return; }
+    var st=loadStore(); st.lastScope=state.scope; st.lastLength=state.length; saveStore(st);
+    beginDrill(items);
+  });
+
+  /* ── screens ── */
+  function show(which){
+    ['start','run','results'].forEach(function(s){
+      document.getElementById('screen-'+s).classList.toggle('active', s===which);
+    });
+    window.scrollTo(0,0);
+  }
+
+  /* ── element refs ── */
+  var qn=document.getElementById('qn'), pfill=document.getElementById('pfill'),
+      qtier=document.getElementById('qtier'), qobj=document.getElementById('qobj'),
+      qstem=document.getElementById('qstem'), qscenario=document.getElementById('qscenario'),
+      qconsole=document.getElementById('qconsole'), qoptions=document.getElementById('qoptions'),
+      qwhy=document.getElementById('qwhy'), qnextWrap=document.getElementById('qnextWrap'),
+      nextBtn=document.getElementById('nextBtn'),
+      missCtrls=document.getElementById('missCtrls'), missMsg=document.getElementById('missMsg'),
+      repsBtn=document.getElementById('repsBtn'), remediation=document.getElementById('remediation');
+
+  var locked=false, remediationActive=false, LETTERS=['A','B','C','D'];
+
+  function fmtConsole(text){
+    return text.split('\n').map(function(ln){
+      var m=ln.match(/^([A-Za-z0-9~]+[#$>])(\s.*)?$/);
+      return m ? '<span class="prompt">'+m[1]+'</span>'+(m[2]||'') : ln;
+    }).join('\n');
+  }
+  function renderConsole(text){ qconsole.innerHTML = fmtConsole(text) + '<span class="cursor"></span>'; }
+
+  function renderQ(){
+    locked=false;
+    missCtrls.hidden=true; remediation.hidden=true; remediation.innerHTML='';
+    var it=state.items[state.idx];
+    var total=state.items.length;
+    qn.textContent='Q '+(state.idx+1)+' / '+total;
+    pfill.style.width=Math.round(state.idx/total*100)+'%';
+    qtier.textContent=it.tier; qtier.className='tier '+it.tier;
+    qobj.innerHTML=(it.tier+' · '+it.obj)+(it._isRequeue?'<span class="back-around">back around</span>':'');
+    qstem.textContent=it.stem;
+    qscenario.textContent=it.scenario;
+
+    if(it.output){ renderConsole(it.output); qconsole.hidden=false; } else { qconsole.hidden=true; }
+
+    var opts=it.opts.slice(); shuffle(opts);
+    it._opts=opts; it._correct=opts.indexOf(it.answer);
+
+    qoptions.innerHTML=''; qoptions.hidden=false;
+    opts.forEach(function(opt,i){
+      var btn=document.createElement('button');
+      btn.className='quiz-option'; btn.type='button';
+      btn.innerHTML='<span class="option-letter">'+LETTERS[i]+'</span><span></span>';
+      btn.querySelector('span:last-child').textContent=opt;
+      btn.addEventListener('click',function(){ pick(i); });
+      qoptions.appendChild(btn);
+    });
+
+    qwhy.hidden=true; qwhy.innerHTML='';
+    qnextWrap.hidden=true;
+  }
+
+  function showWhy(it){
+    var chip = it.chip ? '<span class="cisco-cmd">'+it.chip+'</span>' : '';
+    qwhy.innerHTML='<strong>Why:</strong> '+it.why+chip;
+    qwhy.hidden=false;
+  }
+
+  function pick(i){
+    if(locked) return; locked=true;
+    var it=state.items[state.idx];
+    var tiles=qoptions.children;
+    for(var k=0;k<tiles.length;k++){
+      tiles[k].classList.add('disabled');
+      if(k===it._correct) tiles[k].classList.add('correct');
+    }
+    var correct=(i===it._correct);
+    if(!correct) tiles[i].classList.add('wrong');
+
+    if(correct && it._needsClear && !it._conceded){
+      // a requeued return answered right -> cleared
+      it._needsClear=false; state.cleared++;
+      qwhy.innerHTML='<strong>Cleared, locked in.</strong> It came back around and you got it.';
+      qwhy.hidden=false;
+      qnextWrap.hidden=false; nextBtn.focus();
+      return;
+    }
+    if(correct){
+      if(!it._isRequeue) state.score++;   // first-pass accuracy only
+      showWhy(it); qnextWrap.hidden=false; nextBtn.focus();
+      return;
+    }
+    // WRONG
+    it._everMissed=true;
+    it._missCount=(it._missCount||0)+1;
+    it._needsClear=true;
+    if(!state.missed.some(function(m){return m.key===it.key;})) state.missed.push(it);
+    showWhy(it);
+    if(it._missCount>=3){
+      // conceded: no reps, park to review
+      it._conceded=true; logSticky(it);
+      qwhy.innerHTML+='<br><span class="remed-line" style="margin:0">Park this one. It is on your misses list to review on the method page.</span>';
+      qnextWrap.hidden=false; nextBtn.focus();
+      return;
+    }
+    missMsg.textContent='Missed it. A couple quick reps, then it comes back later.';
+    missCtrls.hidden=false;
+    repsBtn.focus();
+  }
+
+  repsBtn.addEventListener('click',function(){ startRemediation(state.items[state.idx]); });
+
+  function advanceToNext(){
+    state.idx++;
+    if(state.idx>=state.items.length){ finish(); }
+    else { renderQ(); }
+  }
+
+  nextBtn.addEventListener('click', advanceToNext);
+
+  /* ── remediation engine ── */
+  var beats=[], bi=0, remItem=null;
+
+  function startRemediation(it){
+    remItem=it; remediationActive=true;
+    qoptions.hidden=true; qwhy.hidden=true; missCtrls.hidden=true; qnextWrap.hidden=true;
+    remediation.hidden=false;
+    beats=buildBeats(it, it._missCount);
+    bi=0;
+    if(!beats.length){ closeRemediation(); return; }
+    renderBeat();
+  }
+
+  function buildBeats(it, missCount){
+    var p=PILLAR_BY_TITLE[it.pillar], out=[];
+    if(p && p.story) out.push({kind:'story'});
+    if(it.cmdKeys && it.cmdKeys.length) out.push({kind:'cli'});
+    if(missCount<2){
+      out.push({kind:'recall'});
+      if(p && p.connect && p.connect.length) out.push({kind:'connect'});
+    }
+    return out;
+  }
+
+  function advance(){ bi++; if(bi>=beats.length) closeRemediation(); else renderBeat(); }
+
+  function beatHeader(label){
+    return '<div class="remed-head"><span class="remed-tag">Reps · '+label+'</span>'+
+           '<button class="remed-skip" id="remSkip">Skip drills</button></div>';
+  }
+
+  function renderBeat(){
+    var it=remItem, p=PILLAR_BY_TITLE[it.pillar], beat=beats[bi];
+    var label=(bi+1)+' of '+beats.length;
+    var h=beatHeader(label);
+
+    if(beat.kind==='story'){
+      h+='<div class="remed-card">'+p.story+'</div>';
+      h+='<button class="btn btn-primary" id="beatNext">Got it</button>';
+      remediation.innerHTML=h;
+      document.getElementById('beatNext').addEventListener('click', advance);
+    }
+    else if(beat.kind==='cli'){
+      h+='<p class="remed-line">Type the command that confirms this. Abbreviations are fine.</p>';
+      h+='<pre class="console"><span class="prompt">'+it.promptCtx+'</span> <input class="console-input" id="cliInput" autocomplete="off" spellcheck="false"></pre>';
+      h+='<div class="cli-feedback" id="cliFb"></div>';
+      h+='<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">'+
+           '<button class="btn btn-primary" id="cliSubmit">Enter</button>'+
+           '<button class="quiz-option idk-option" id="cliReveal" style="width:auto;flex:0 0 auto">Reveal command</button></div>';
+      remediation.innerHTML=h;
+      var input=document.getElementById('cliInput'), fb=document.getElementById('cliFb'), confirmed=false;
+      input.focus();
+      function submit(){
+        if(confirmed){ advance(); return; }
+        var r=cliMatch(input.value, it.cmdKeys);
+        if(r.ok){
+          confirmed=true;
+          fb.textContent='Confirmed: '+it.cmdKeys[0];
+          fb.className='cli-feedback ok';
+          input.disabled=true;
+          document.getElementById('cliSubmit').textContent='Next';
+          document.getElementById('cliReveal').style.display='none';
+        } else if(r.reason){ fb.textContent=r.reason; fb.className='cli-feedback warn'; }
+      }
+      document.getElementById('cliSubmit').addEventListener('click', submit);
+      document.getElementById('cliReveal').addEventListener('click', function(){
+        fb.innerHTML='Command: <span class="cisco-cmd">'+it.cmdKeys[0]+'</span>';
+        advance();
+      });
+    }
+    else if(beat.kind==='recall'){
+      var askFix = (it.type!=='fix');   // missed cmd/output -> recall the FIX; missed fix -> recall the CAUSE
+      var ans = askFix ? it.fixText : it.cause;
+      var pool = askFix ? ALL_FIX : ALL_CAUSE;
+      var opts = [ans].concat(distractors(pool, ans, 3)); shuffle(opts);
+      var ci = opts.indexOf(ans);
+      h+='<p class="remed-line">From memory: '+(askFix?'what FIXES this?':'what is the CAUSE?')+'</p>';
+      h+='<div class="options" id="recallOpts"></div>';
+      h+='<div class="q-next" id="recallNextWrap" hidden><button class="btn btn-primary" id="recallNext">Next</button></div>';
+      remediation.innerHTML=h;
+      var box=document.getElementById('recallOpts'), done=false;
+      opts.forEach(function(opt,i){
+        var btn=document.createElement('button'); btn.className='quiz-option'; btn.type='button';
+        btn.innerHTML='<span class="option-letter">'+LETTERS[i]+'</span><span></span>';
+        btn.querySelector('span:last-child').textContent=opt;
+        btn.addEventListener('click',function(){
+          if(done) return; done=true;
+          var tiles=box.children;
+          for(var k=0;k<tiles.length;k++){ tiles[k].classList.add('disabled'); if(k===ci) tiles[k].classList.add('correct'); }
+          if(i!==ci) tiles[i].classList.add('wrong');
+          document.getElementById('recallNextWrap').hidden=false;
+          document.getElementById('recallNext').focus();
+        });
+        box.appendChild(btn);
+      });
+      document.getElementById('recallNext').addEventListener('click', advance);
+    }
+    else if(beat.kind==='connect'){
+      h+='<p class="remed-line">This trips you the same way as:</p>';
+      p.connect.forEach(function(c){
+        h+='<a class="connect-chip" href="troubleshoot-method.html" target="_blank" rel="noopener">'+
+             '<span class="ct"></span><span class="cg"></span></a>';
+      });
+      h+='<button class="btn btn-primary" id="beatNext">Done</button>';
+      remediation.innerHTML=h;
+      var chips=remediation.querySelectorAll('.connect-chip');
+      p.connect.forEach(function(c,i){
+        chips[i].querySelector('.ct').textContent=c.topic;
+        chips[i].querySelector('.cg').textContent=c.sharedGotcha + '  (opens method ↗)';
+        chips[i].addEventListener('click', function(){ advance(); }); // tap reads the link AND resolves the beat
+      });
+      document.getElementById('beatNext').addEventListener('click', advance);
+    }
+
+    var sk=document.getElementById('remSkip');
+    if(sk) sk.addEventListener('click', function(){ closeRemediation(); });
+  }
+
+  function closeRemediation(){
+    remediationActive=false;
+    remediation.hidden=true; remediation.innerHTML='';
+    var it=remItem;
+    // requeue math
+    if(it._missCount>=3){
+      it._conceded=true; logSticky(it);   // no requeue
+    } else if(state.requeueBudget>0 && it._missCount<=MAX_REQUEUE){
+      var remaining = state.items.length - state.idx - 1;
+      var gap = Math.min(it._missCount===1?4:7, remaining);
+      if(gap<0) gap=0;
+      var pos = state.idx + 1 + gap;
+      if(pos>state.items.length) pos=state.items.length;
+      it._isRequeue=true;
+      state.items.splice(pos, 0, it);
+      state.requeueBudget--;
+    }
+    // else budget exhausted -> stays in missed list, reviewed at results
+    advanceToNext();
+  }
+
+  /* ── keyboard ── */
+  document.addEventListener('keydown',function(e){
+    if(!document.getElementById('screen-run').classList.contains('active')) return;
+    if(remediationActive){
+      var beat=beats[bi];
+      if(e.key==='Escape'){ e.preventDefault(); closeRemediation(); return; }
+      if(beat && beat.kind==='cli'){
+        var input=document.getElementById('cliInput');
+        if(e.key==='Enter' && input && !input.disabled){ e.preventDefault(); document.getElementById('cliSubmit').click(); }
+      }
+      return;   // 1-4 gated off during remediation
+    }
+    if(!locked){
+      var n=parseInt(e.key,10);
+      if(n>=1 && n<=qoptions.children.length){ e.preventDefault(); pick(n-1); }
+    }
+  });
+
+  /* ── results ── */
+  function finish(){
+    pfill.style.width='100%';
+    var total=state.firstPassTotal, pct=total?Math.round(state.score/total*100):0;
+    document.getElementById('resScore').textContent=state.score+' / '+total;
+    var band=document.getElementById('resBand');
+    if(pct>=85){ band.textContent='Exam-ready ('+pct+'%)'; band.style.color='var(--prof-strong)'; }
+    else if(pct>=70){ band.textContent='Close ('+pct+'%), tighten the misses'; band.style.color='var(--prof-mid)'; }
+    else { band.textContent='Keep drilling ('+pct+'%)'; band.style.color='var(--prof-weak)'; }
+
+    var st=loadStore(); st.best=st.best||{};
+    if(st.best[state.scope]==null || pct>st.best[state.scope]) st.best[state.scope]=pct;
+    saveStore(st);
+    var recovered = state.cleared;
+    var totalMissed = state.missed.length;
+    document.getElementById('resBest').textContent='Best on '+labelScope(state.scope)+': '+st.best[state.scope]+'%'+
+      (totalMissed?('   ·   recovered '+recovered+' of '+totalMissed+' misses'):'');
+
+    var mw=document.getElementById('missWrap');
+    // show only UNrecovered misses (_needsClear still true)
+    var unrec=state.missed.filter(function(it){ return it._needsClear; });
+    if(!unrec.length){
+      mw.innerHTML='<p class="allgood">'+(totalMissed?'You recovered every miss in the loop. Strong.':'Clean run, no misses. Try a longer drill or the Mixed scope.')+'</p>';
+    } else {
+      var seen={}, rows='';
+      unrec.forEach(function(it){
+        var k=it.pillar+'|'+it.symptom; if(seen[k]) return; seen[k]=1;
+        rows+='<a class="miss" href="troubleshoot-method.html">'+
+          '<span class="tier '+it.tier+'">'+it.tier+'</span>'+
+          '<span><span class="miss-title">'+it.pillar+(it._conceded?' <span class="back-around">sticky</span>':'')+'</span>'+
+          '<span class="miss-sym">'+it.symptom+'</span></span></a>';
+      });
+      mw.innerHTML='<h3>Review your misses</h3>'+rows;
+    }
+    show('results');
+  }
+
+  document.getElementById('redoBtn').addEventListener('click',function(){
+    var pool=state.missed.length?state.missed:[];
+    if(!pool.length){ show('start'); return; }
+    var seen={}, items=[];
+    pool.forEach(function(it){ if(!seen[it.key]){ seen[it.key]=1;
+      // fresh copy so the requeue flags reset for the redo run
+      var c={}; for(var kk in it){ if(it.hasOwnProperty(kk)) c[kk]=it[kk]; }
+      c._needsClear=false; c._missCount=0; c._everMissed=false; c._isRequeue=false; c._conceded=false;
+      items.push(c);
+    }});
+    shuffle(items);
+    beginDrill(items);
+  });
+  document.getElementById('newBtn').addEventListener('click',function(){ refreshBest(); show('start'); });
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
