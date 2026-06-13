@@ -25,6 +25,7 @@
       { text: 'Pillars Trainer', href: 'pillars-trainer.html' },
       { text: 'Pillar Value (ROI)', href: 'pillar-value.html' },
       { text: 'Config Bootcamp', href: 'config-bootcamp.html' },
+      { text: 'Config Cheat Sheet ✦', href: 'config-cheatsheet.html' },
       { text: 'Config Visualizer', href: 'config-visualizer.html' },
       { text: 'Port & Numbers Flash', href: 'port-flash.html' },
       { text: 'Daily Drill (timed)', href: 'daily-drill.html' },
