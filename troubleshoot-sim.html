@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#FAF7F2">
-<title>Troubleshoot Sim (pilot) — CCNA 200-301</title>
+<title>Troubleshoot Sim — CCNA 200-301</title>
 <meta name="color-scheme" content="light">
 <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +15,14 @@
   .page-header { padding: var(--s-md) 0 var(--s-sm); margin-bottom: var(--s-lg); border-bottom: 2px solid var(--ink); }
   .page-header h1 { font-size: 2.4rem; margin-bottom: 4px; }
   .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 64ch; }
-  .pilot-note { background: #FEF3C7; border: 1px solid #D97706; border-radius: var(--radius); padding: 10px 14px; margin-bottom: var(--s-lg); font-family: var(--font-display); font-size: 0.82rem; color: #7C2D12; }
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: var(--s-lg); }
+  .filter-btn { font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; padding: 6px 14px; border: 1px solid var(--border-strong); border-radius: 20px; background: var(--bg-surface); color: var(--ink-secondary); cursor: pointer; transition: all var(--transition); }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .lab-cat { font-family: var(--font-display); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 10px; }
+  .lab-cat.l2 { background: #DBEAFE; color: #1D4ED8; }
+  .lab-cat.l3 { background: #FEF3C7; color: #B45309; }
+  .lab-cat.svc { background: #F3E8FF; color: #7C3AED; }
 
   .lab-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: var(--s-lg); overflow: hidden; }
   .lab-card.completed { border-color: #16A34A; }
@@ -81,97 +88,34 @@
   <nav class="top-nav" id="main-nav"></nav>
 
   <header class="page-header">
-    <h1>Troubleshoot Sim <span style="font-size:1rem;color:var(--ink-muted)">(pilot)</span></h1>
-    <p class="subtitle">One CLI, like Console Labs — but the network starts broken. Investigate with show commands, then type the fix and watch the device heal. No multiple choice.</p>
+    <h1>Troubleshoot Sim</h1>
+    <p class="subtitle">One CLI, like Console Labs — but the network starts broken. Investigate with show commands, type the fix, watch the device heal. 29 faults across switching, routing, and services.</p>
   </header>
 
-  <div class="pilot-note">PILOT — 2 scenarios proving the diagnose → fix → heal model on the real lab engine. Once validated, the full 29 convert to this.</div>
-
   <div class="progress-strip" id="progressStrip"></div>
+
+  <div class="filter-bar" id="filterBar">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="l2">L2 (Switching)</button>
+    <button class="filter-btn" data-filter="l3">L3 (Routing)</button>
+    <button class="filter-btn" data-filter="svc">Services</button>
+    <button class="filter-btn" data-filter="todo">Not Done</button>
+  </div>
+
   <div id="labContainer"></div>
 </div>
 
 <script defer src="js/store.js"></script>
 <script defer src="js/nav.js"></script>
 <script defer src="js/lab-engine.js?v=10"></script>
+<script defer src="js/troubleshoot-sim-data.js?v=1"></script>
 <script defer src="js/tutor.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.Lab || !window.Lab.LabBase) { document.getElementById('labContainer').innerHTML = '<p style="padding:20px">Lab engine failed to load.</p>'; return; }
 
   // ── Pilot scenarios: console-labs lab shape, but device starts BROKEN ──
-  var TLABS = [
-    {
-      id: 'tsim-01', title: 'Access port in the wrong VLAN', diff: 'beginner', topics: ['2.1'],
-      scenario: 'A PC on SW1 Gi0/5 cannot reach the SALES servers. SALES is VLAN 10. Find where Gi0/5 actually is, move it to VLAN 10, and confirm.',
-      device: {
-        name: 'SW1', type: 'switch', hostname: 'SW1',
-        vlans: { '10': { name: 'SALES' }, '20': { name: 'VOICE' }, '99': { name: 'PARKING' } },
-        interfaces: { 'GigabitEthernet0/5': { up: true, mode: 'access', accessVlan: 99 } }
-      },
-      objectives: [
-        { text: 'Investigate — run: show vlan brief', hint: 'show vlan brief — see which VLAN Gi0/5 sits in', check: function (d, log) { return log.some(function (c) { return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd); }); } },
-        { text: 'Enter config + select Gi0/5', hint: 'configure terminal → interface gi0/5', check: function (d) { return d.currentInterface === 'GigabitEthernet0/5' || (d.interfaces['GigabitEthernet0/5'] && d.mode && d.mode.indexOf('config') === 0); } },
-        { text: 'Move Gi0/5 into the SALES VLAN', hint: 'switchport access vlan 10', check: function (d) { var i = d.interfaces['GigabitEthernet0/5']; return i && String(i.accessVlan) === '10'; } },
-        { text: 'Confirm the fix — run: show vlan brief', hint: 'end → show vlan brief — Gi0/5 now under VLAN 10', check: function (d, log) { var i = d.interfaces['GigabitEthernet0/5']; var fixed = i && String(i.accessVlan) === '10'; return fixed && log.some(function (c) { return /^(do\s+)?sh(ow)?\s+vlan/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
-      ],
-      // lab-local: parse the fix command + render show vlan brief with ports derived from accessVlan
-      extraCmds: function (dev, raw, lower) {
-        var m = raw.match(/^switchport\s+access\s+vlan\s+(\d+)/i);
-        if (m && dev.mode === 'config-if' && dev.currentInterface) {
-          if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
-          dev.interfaces[dev.currentInterface].mode = 'access';
-          dev.interfaces[dev.currentInterface].accessVlan = parseInt(m[1], 10);
-          dev.__fixTime = Date.now();
-          return '';
-        }
-        if (/^(do\s+)?show\s+vlan(\s+brief)?$/i.test(lower)) {
-          var abbr = function (n) { return n.replace('GigabitEthernet', 'Gi').replace('FastEthernet', 'Fa'); };
-          var portsFor = function (vid) { return Object.keys(dev.interfaces).filter(function (n) { var i = dev.interfaces[n]; return i && i.mode === 'access' && String(i.accessVlan) === String(vid); }).map(abbr).join(', '); };
-          var out = 'VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n';
-          Object.keys(dev.vlans).forEach(function (vid) { out += vid.padEnd(5) + (dev.vlans[vid].name || '').padEnd(33) + 'active    ' + portsFor(vid) + '\n'; });
-          return out;
-        }
-        return undefined;
-      }
-    },
-    {
-      id: 'tsim-02', title: 'Trunk native VLAN mismatch', diff: 'intermediate', topics: ['2.4'],
-      scenario: 'SW1 logs %CDP-4-NATIVE_VLAN_MISMATCH on Gi0/1. The uplink to DSW1 expects native VLAN 1, but SW1 is sending native 99. Fix SW1 so the native VLANs match.',
-      device: {
-        name: 'SW1', type: 'switch', hostname: 'SW1',
-        vlans: { '1': { name: 'default' }, '99': { name: 'MGMT' } },
-        interfaces: { 'GigabitEthernet0/1': { up: true, mode: 'trunk', nativeVlan: 99 } },
-        custom: { peerNative: 1 }
-      },
-      objectives: [
-        { text: 'Investigate — run: show interfaces trunk', hint: 'show interfaces trunk — read the Native vlan column', check: function (d, log) { return log.some(function (c) { return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+tr/i.test(c.cmd); }); } },
-        { text: 'Select the trunk + set native VLAN to match the peer (1)', hint: 'interface gi0/1 → switchport trunk native vlan 1', check: function (d) { var i = d.interfaces['GigabitEthernet0/1']; return i && String(i.nativeVlan) === '1'; } },
-        { text: 'Confirm — native now matches the peer, no mismatch', hint: 'end → show interfaces trunk', check: function (d, log) { var i = d.interfaces['GigabitEthernet0/1']; return i && String(i.nativeVlan) === String(d.custom.peerNative) && log.some(function (c) { return /^(do\s+)?sh(ow)?\s+int(erface)?(s)?\s+tr/i.test(c.cmd) && c.time > (d.__fixTime || 0); }); } }
-      ],
-      // lab-local: parse the fix command + render the fault-specific show
-      extraCmds: function (dev, raw, lower) {
-        var m = raw.match(/^switchport\s+trunk\s+native\s+vlan\s+(\d+)/i);
-        if (m && dev.mode === 'config-if' && dev.currentInterface) {
-          dev.interfaces[dev.currentInterface].nativeVlan = parseInt(m[1], 10);
-          dev.__fixTime = Date.now();
-          return '';
-        }
-        if (/^(do\s+)?show\s+int(erface)?(s)?\s+tr(unk)?$/i.test(lower)) {
-          var i = dev.interfaces['GigabitEthernet0/1'];
-          var nv = i ? i.nativeVlan : 1;
-          var warn = (String(nv) !== String(dev.custom.peerNative))
-            ? '\n%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/1 (' + nv + '), with DSW1 GigabitEthernet1/0/1 (' + dev.custom.peerNative + ').'
-            : '';
-          return 'Port        Mode             Encapsulation  Status        Native vlan\n'
-            + 'Gi0/1       on               802.1q         trunking      ' + nv + '\n\n'
-            + 'Port        Vlans allowed on trunk\n'
-            + 'Gi0/1       1-4094' + warn;
-        }
-        return undefined;
-      }
-    }
-  ];
+  var TLABS = (window.TLABS || []);
 
   var instances = {};
 
@@ -233,11 +177,15 @@ document.addEventListener('DOMContentLoaded', function () {
     var container = document.getElementById('labContainer');
     container.innerHTML = TLABS.map(function (lab, idx) {
       var dev = lab.device.name;
+      var cat = lab.id.indexOf('-l2-') > -1 ? 'l2' : (lab.id.indexOf('-l3-') > -1 ? 'l3' : 'svc');
+      var catLabel = cat === 'l2' ? 'L2' : (cat === 'l3' ? 'L3' : 'SVC');
+      var done = false; try { done = localStorage.getItem('tsim.' + lab.id) === '1'; } catch (e) {}
       return ''
-        + '<div class="lab-card" id="lab-' + lab.id + '">'
+        + '<div class="lab-card' + (done ? ' completed' : '') + '" id="lab-' + lab.id + '" data-cat="' + cat + '" data-done="' + (done ? '1' : '0') + '">'
         + '  <div class="lab-header" data-toggle="' + lab.id + '">'
         + '    <span class="lab-num">TS-' + String(idx + 1).padStart(2, '0') + '</span>'
         + '    <span class="lab-title">' + lab.title + '</span>'
+        + '    <span class="lab-cat ' + cat + '">' + catLabel + '</span>'
         + '    <span class="lab-diff ' + lab.diff + '">' + lab.diff + '</span>'
         + '    <span class="lab-check">✓</span><span class="lab-toggle">▼</span>'
         + '  </div>'
@@ -256,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
         + '</div>';
     }).join('');
 
-    document.getElementById('progressStrip').innerHTML = TLABS.map(function (l) { return '<div class="progress-pip" data-id="' + l.id + '"></div>'; }).join('');
+    document.getElementById('progressStrip').innerHTML = TLABS.map(function (l) { var d = false; try { d = localStorage.getItem('tsim.' + l.id) === '1'; } catch (e) {} return '<div class="progress-pip' + (d ? ' done' : '') + '" data-id="' + l.id + '"></div>'; }).join('');
 
     TLABS.forEach(function (lab) {
       var inst = makeLab(lab);
@@ -284,6 +232,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // open the first lab
     var first = document.querySelector('.lab-card'); if (first) first.classList.add('open');
   }
+
+  var currentFilter = 'all';
+  function applyFilter() {
+    document.querySelectorAll('.lab-card').forEach(function (card) {
+      var cat = card.getAttribute('data-cat'); var done = card.getAttribute('data-done') === '1';
+      var show = currentFilter === 'all' || (currentFilter === 'todo' && !done) || cat === currentFilter;
+      card.style.display = show ? '' : 'none';
+    });
+  }
+  document.getElementById('filterBar').addEventListener('click', function (e) {
+    var btn = e.target.closest('.filter-btn'); if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active'); currentFilter = btn.getAttribute('data-filter'); applyFilter();
+  });
 
   render();
 });
