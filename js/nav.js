@@ -81,6 +81,7 @@
       { text: 'DHCP Drill', href: 'dhcp-drill.html' },
       { text: 'HTTP Status Code Drill', href: 'http-status-drill.html' },
       { text: 'Console Labs', href: 'console-labs.html' },
+      { text: 'SSH Story Lab ✦', href: 'ssh-story-lab.html' },
       { text: 'Troubleshooting Method (P1+P2) ✦', href: 'troubleshoot-method.html' },
       { text: 'Fault Finder Quiz ✦', href: 'troubleshoot-quiz.html' },
       { text: 'Troubleshoot Labs', href: 'troubleshoot-labs.html' },

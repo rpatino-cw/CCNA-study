@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>SSH Story Lab — Console to Wireless · CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  /* ── Minimal, modern, one-thing-at-a-time. Theme tokens only. ── */
+  .container-narrow { max-width: 760px; margin: 0 auto; padding: 0 var(--s-md); }
+
+  .page-header { padding: var(--s-lg) 0 var(--s-md); margin-bottom: var(--s-lg); }
+  .page-header h1 { font-size: 2.1rem; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 60ch; }
+
+  /* Chapter rail — 5 calm dots, current one filled */
+  .rail { display: flex; gap: var(--s-sm); align-items: center; margin-bottom: var(--s-xl); flex-wrap: wrap; }
+  .rail-step { display: flex; align-items: center; gap: var(--s-sm); }
+  .rail-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; color: var(--ink-muted); flex-shrink: 0; transition: all var(--transition); }
+  .rail-step.done .rail-dot { background: var(--prof-strong); border-color: var(--prof-strong); color: #fff; }
+  .rail-step.current .rail-dot { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 0 4px var(--accent-dim); }
+  .rail-line { width: 18px; height: 2px; background: var(--border); }
+  @media (max-width: 560px) { .rail-line { width: 8px; } .rail-label { display: none; } }
+  .rail-label { font-family: var(--font-mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); }
+  .rail-step.current .rail-label { color: var(--accent); font-weight: 600; }
+
+  /* Scene card */
+  .scene { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--s-lg); }
+  .scene-head { padding: var(--s-lg) var(--s-lg) var(--s-md); }
+  .scene-eyebrow { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: var(--s-xs); }
+  .scene-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: var(--s-md); }
+  /* Story = short chunked lines, serif, roomy. Dyslexia-friendly. */
+  .scene-story { font-family: var(--font-body); font-size: 1rem; line-height: 1.75; color: var(--ink-secondary); }
+  .scene-story p { margin: 0 0 var(--s-sm); max-width: 56ch; }
+  .scene-story b { color: var(--ink); font-weight: 600; }
+  .scene-story .kbd { font-family: var(--font-mono); font-size: 0.85em; background: var(--bg-recessed); border: 1px solid var(--border); border-radius: var(--radius); padding: 1px 6px; color: var(--ink); }
+
+  /* NOW banner — the single thing to do right now */
+  .now { display: flex; gap: 12px; align-items: center; min-height: 48px; padding: 14px 20px; background: var(--accent-dim); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); border-left: 4px solid var(--accent); }
+  .now-tag { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; color: #fff; background: #92400E; padding: 4px 9px; border-radius: var(--radius); flex-shrink: 0; }
+  .now-text { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; line-height: 1.4; color: var(--ink); flex: 1; }
+  .now.alldone { background: var(--prof-strong-bg); border-left-color: var(--prof-strong); }
+  .now.alldone .now-tag { background: var(--prof-strong); }
+
+  /* Objectives — recede, spotlight current */
+  .objs { list-style: none; padding: var(--s-md) var(--s-lg); margin: 0; }
+  .objs li { font-family: var(--font-display); font-size: 0.92rem; line-height: 1.5; padding: 9px 10px; margin-bottom: 2px; border-radius: var(--radius); color: var(--ink-muted); display: flex; align-items: center; gap: 10px; min-height: 30px; transition: all var(--transition); }
+  .objs li .ck { width: 20px; height: 20px; border: 2.5px solid var(--border-strong); border-radius: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; }
+  .objs li.done { color: var(--ink-muted); }
+  .objs li.done .ck { border-color: var(--prof-strong); background: var(--prof-strong); color: #fff; }
+  .objs li.current { background: var(--accent-dim); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; color: var(--ink); }
+  .objs li.flash { animation: objflash 0.7s ease-out; }
+  @keyframes objflash { 0% { background: rgba(34,197,94,.25); } 100% { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .objs li.flash { animation: none; } }
+
+  /* PuTTY mini-panel (chapter 1) */
+  .putty { margin: 0 var(--s-lg) var(--s-md); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-recessed); }
+  .putty-bar { background: #1e3a5f; color: #fff; font-family: var(--font-display); font-size: 0.8rem; font-weight: 600; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+  .putty-bar::before { content: ''; width: 12px; height: 12px; border-radius: 2px; background: #fde68a; }
+  .putty-body { padding: var(--s-md); display: grid; gap: 10px; }
+  .putty-row { display: flex; align-items: center; gap: 12px; font-family: var(--font-display); font-size: 0.84rem; }
+  .putty-row label { width: 130px; color: var(--ink-secondary); flex-shrink: 0; }
+  .putty-row .val { font-family: var(--font-mono); font-size: 0.82rem; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 10px; color: var(--ink); }
+  .putty-radios { display: flex; gap: 8px; }
+  .putty-radios .r { font-family: var(--font-mono); font-size: 0.74rem; padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; color: var(--ink-muted); background: var(--bg-surface); }
+  .putty-radios .r.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); font-weight: 600; }
+  .putty-open { font-family: var(--font-display); font-size: 0.85rem; font-weight: 700; padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; justify-self: start; min-height: 44px; transition: opacity var(--transition); }
+  .putty-open:hover { opacity: 0.92; }
+  .putty-open:disabled { background: var(--prof-strong); cursor: default; opacity: 1; }
+
+  /* Terminal (reused engine markup) */
+  .term-chrome { display: flex; align-items: center; gap: var(--s-sm); padding: 8px 14px; background: #0f0d0c; font-family: var(--font-mono); font-size: 0.7rem; color: #a8a29e; }
+  .term-dots { display: flex; gap: 6px; }
+  .term-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .term-chrome-label { flex: 1; text-align: center; }
+  .term-chrome-label .dev { color: #d6d3d1; font-weight: 600; }
+  .term-conn { font-family: var(--font-mono); font-size: 0.66rem; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.04em; }
+  .term-conn.console { background: rgba(59,130,246,.18); color: #93c5fd; }
+  .term-conn.off { background: rgba(248,113,113,.16); color: #fca5a5; }
+  .term-conn.wifi { background: rgba(74,222,128,.16); color: #86efac; }
+  .term-wrap { background: #1c1917; min-height: 240px; max-height: 360px; overflow-y: auto; padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; line-height: 1.55; cursor: text; position: relative; }
+  .term-wrap::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(rgba(var(--accent-rgb),0.022) 0 1px, transparent 1px 3px); }
+  @media (prefers-reduced-motion: reduce) { .term-wrap::after { display: none; } }
+  .term-wrap.locked { opacity: 0.55; }
+  .term-wrap.locked .term-input-row { display: none; }
+  .term-line { color: #d6d3d1; white-space: pre-wrap; word-break: break-word; }
+  .term-line.cmd { color: #fde68a; }
+  .term-line.success { color: #4ade80; }
+  .term-line.error { color: #f87171; }
+  .term-line.sys { color: #93c5fd; }
+  .term-input-row { display: flex; align-items: center; color: #d6d3d1; min-height: 30px; padding: 4px 0; }
+  .term-wrap:focus-within .term-input-row { background: rgba(253,230,138,.06); border-radius: var(--radius); }
+  .term-prompt { color: #a8a29e; white-space: nowrap; }
+  .term-wrap:focus-within .term-prompt { color: #fde68a; }
+  .term-input { background: none; border: none; outline: none; color: #fde68a; font-family: inherit; font-size: inherit; flex: 1; caret-color: #fde68a; }
+  .term-cursor { display: inline-block; width: 8px; height: 14px; background: #fde68a; animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Scene footer — hint + next + the cable-pull action */
+  .scene-foot { padding: var(--s-md) var(--s-lg) var(--s-lg); display: flex; gap: var(--s-sm); align-items: center; flex-wrap: wrap; }
+  .btn { font-family: var(--font-display); font-size: 0.82rem; min-height: 44px; padding: 9px 18px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border); background: none; color: var(--ink-muted); transition: all var(--transition); display: inline-flex; align-items: center; gap: 7px; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { opacity: 0.92; color: #fff; }
+  .btn.go { background: var(--prof-strong); border-color: var(--prof-strong); color: #fff; margin-left: auto; }
+  .btn.go:hover { opacity: 0.92; color: #fff; }
+  .btn.danger { border-color: #b45309; color: #b45309; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .hint-out { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); background: var(--accent-dim); border-radius: var(--radius); padding: 8px 12px; width: 100%; display: none; }
+  .hint-out.show { display: block; }
+
+  /* Finish card */
+  .finish { display: none; text-align: center; padding: var(--s-xl) var(--s-lg); }
+  .finish.show { display: block; }
+  .finish .big { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: var(--prof-strong); margin-bottom: var(--s-sm); }
+  .finish p { font-family: var(--font-body); color: var(--ink-secondary); max-width: 52ch; margin: 0 auto var(--s-md); line-height: 1.7; }
+
+  /* Easy-read toggle */
+  body.dys .scene-story, body.dys .objs li, body.dys .now-text { letter-spacing: 0.03em; word-spacing: 0.12em; line-height: 1.85; }
+  body.dys .term-wrap { letter-spacing: 0.02em; }
+  #dysBtn { position: absolute; top: var(--s-lg); right: 0; }
+</style>
+</head>
+<body>
+<div class="container-narrow">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header" style="position:relative">
+    <h1>SSH Story Lab</h1>
+    <p class="subtitle">One switch, start to finish. Plug in with a console cable, lock it down with SSH, put it on the network, pull the cable, then reach it again over Wi-Fi.</p>
+    <button id="dysBtn" class="btn" aria-pressed="false" title="Easy-read spacing">Aa Easy-read</button>
+  </header>
+
+  <div class="rail" id="rail"></div>
+
+  <div id="sceneMount"></div>
+
+  <div class="scene finish" id="finishCard">
+    <div class="big">You reached it wirelessly.</div>
+    <p>Console cable in, SSH built, IP on the box, cable pulled, and you logged straight back in over Wi-Fi. That is the whole real-world flow a tech runs on a freshly racked switch.</p>
+    <p style="font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted)">The console is for the <b>first touch</b>. SSH is for <b>every touch after</b>.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:var(--s-md)">
+      <button class="btn primary" onclick="location.reload()">Run it again</button>
+      <a class="btn" href="console-labs.html">More console labs →</a>
+    </div>
+  </div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/lab-engine.js?v=10"></script>
+<script defer src="js/nav.js"></script>
+<script>document.addEventListener('DOMContentLoaded', function () {
+
+  // ── Target config for this story ──────────────────────────────
+  const TGT = {
+    hostname: 'SW-CLOSET1',
+    domain: 'lab.local',
+    user: 'admin',
+    pass: 'cisco123',
+    mgmtIf: 'Vlan1',
+    mgmtIp: '10.10.10.2',
+    mask: '255.255.255.0',
+    gw: '10.10.10.1',
+  };
+
+  // ── The five chapters ─────────────────────────────────────────
+  // Each: title, rail label, story HTML, objectives[{text,hint,check(dev,log,ctrl)}],
+  //       optional putty / cablePull flags, onEnter(ctrl).
+  const CH = [
+    {
+      label: 'Console',
+      title: 'Plug in the console cable',
+      story: `<p>A brand-new switch just got racked in the closet. No IP, no password, nothing on the network yet. It can't be reached over the LAN, so you start the only way you can: <b>physically</b>.</p>
+        <p>You grab the light-blue <b>rollover console cable</b>, plug the <b>RJ-45 end into the switch's CONSOLE port</b>, and the USB end into your laptop.</p>
+        <p>Open <b>PuTTY</b>, pick <b>Serial</b>, set the COM port and <span class="kbd">9600</span> baud (8 data bits, no parity, 1 stop bit), then hit <b>Open</b>.</p>`,
+      putty: true,
+      objs: [
+        { text: 'Open the serial console in PuTTY', hint: 'Click the green Open button on the PuTTY panel.', check: (d, l, c) => c.consoleOpen },
+        { text: 'Press Enter to wake the line, then enter privileged mode', hint: 'Type: enable', check: (d) => d.mode === 'priv' || d.mode === 'config' || d.mode.startsWith('config-') },
+      ],
+    },
+    {
+      label: 'SSH',
+      title: 'Build SSH on the box',
+      story: `<p>You're in over the console. Now make the switch reachable <b>securely</b> later. Telnet is plaintext, so you build <b>SSH</b>.</p>
+        <p>SSH needs four things: a real <b>hostname</b>, a <b>domain name</b> (the two become the key label), a <b>local username</b> to log in with, and <b>RSA keys</b>. Then you flip the VTY lines to SSH-only.</p>
+        <p>Order matters: hostname and domain <b>before</b> you generate the keys.</p>`,
+      objs: [
+        { text: `Name the switch ${TGT.hostname}`, hint: `configure terminal → hostname ${TGT.hostname}`, check: (d) => d.hostname === TGT.hostname },
+        { text: `Set the domain name (${TGT.domain})`, hint: `ip domain-name ${TGT.domain}`, check: (d) => !!d.custom.domain },
+        { text: `Create local login: username ${TGT.user}`, hint: `username ${TGT.user} secret ${TGT.pass}`, check: (d) => !!d.custom.localUser },
+        { text: 'Generate the RSA crypto keys', hint: 'crypto key generate rsa  (then 1024 or larger)', check: (d) => d.custom.rsaKeys === true },
+        { text: 'Force SSH version 2', hint: 'ip ssh version 2', check: (d) => d.custom.sshVersion === 2 },
+        { text: 'On VTY lines: login local + transport input ssh', hint: 'line vty 0 4 → login local → transport input ssh', check: (d) => d.custom.loginLocal && d.custom.vtyTransport === 'ssh' },
+      ],
+    },
+    {
+      label: 'Network',
+      title: 'Put it on the network',
+      story: `<p>SSH is built, but the switch still has no IP, so nothing can reach it yet. A switch is managed through a <b>virtual interface (SVI)</b> — here, <b>VLAN 1</b>.</p>
+        <p>Give VLAN 1 the management IP <span class="kbd">${TGT.mgmtIp}/24</span>, bring it up with <span class="kbd">no shutdown</span>, then set a <b>default gateway</b> so replies can leave the subnet.</p>`,
+      objs: [
+        { text: 'Enter the management interface (VLAN 1)', hint: `interface ${TGT.mgmtIf}`, check: (d) => d.currentInterface === TGT.mgmtIf },
+        { text: `Set the management IP ${TGT.mgmtIp} ${TGT.mask}`, hint: `ip address ${TGT.mgmtIp} ${TGT.mask}`, check: (d) => { const i = d.interfaces[TGT.mgmtIf]; return i && i.ip === TGT.mgmtIp; } },
+        { text: 'Bring the interface up', hint: 'no shutdown', check: (d) => { const i = d.interfaces[TGT.mgmtIf]; return i && i.up === true; } },
+        { text: `Set the default gateway ${TGT.gw}`, hint: `exit → ip default-gateway ${TGT.gw}`, check: (d) => !!d.custom.defaultGw },
+      ],
+    },
+    {
+      label: 'Unplug',
+      title: 'Save it, then pull the cable',
+      story: `<p>Everything is configured in the <b>running-config</b> (in RAM). If the switch reboots now, it's all gone. Save it to <b>startup-config</b>.</p>
+        <p>Then the moment of truth: you <b>unplug the console cable</b>. From here on, the only way back in is the network you just built.</p>`,
+      cablePull: true,
+      objs: [
+        { text: 'Save the running config to startup', hint: 'end → write memory  (or: copy run start)', check: (d) => d.custom.configSaved === true },
+        { text: 'Unplug the console cable', hint: 'Click the "Unplug console cable" button below.', check: (d, l, c) => c.cableUnplugged },
+      ],
+    },
+    {
+      label: 'Wi-Fi',
+      title: 'Reach it over Wi-Fi',
+      story: `<p>Now you're back at your desk on the <b>wireless network</b>, no cable to the switch at all. Your laptop is on the same network as <span class="kbd">${TGT.mgmtIp}</span>.</p>
+        <p>From the laptop, open an <b>SSH client</b> to the switch. Accept the host key the first time, log in as <b>${TGT.user}</b>, and you land on the same CLI — only this time you got there <b>over the air</b>.</p>
+        <p>Then prove it: confirm SSH is running and that you can see your own session.</p>`,
+      onEnter: (c) => c.goWireless(),
+      objs: [
+        { text: `SSH to the switch as ${TGT.user}`, hint: `ssh -l ${TGT.user} ${TGT.mgmtIp}  → yes → password ${TGT.pass}`, check: (d, l, c) => c.sshUp === true },
+        { text: 'Confirm SSH is enabled on the switch', hint: 'enable → show ip ssh', check: (d, l) => l.some(x => /^show\s+(ip\s+)?ssh/i.test(x.cmd)) && c_ref.sshUp },
+        { text: 'See your own remote session', hint: 'show users', check: (d, l) => l.some(x => /^show\s+users/i.test(x.cmd)) && c_ref.sshUp },
+      ],
+    },
+  ];
+
+  // checkObjective closures need the controller; expose a ref for the last chapter.
+  let c_ref = null;
+
+  // ── Controller ────────────────────────────────────────────────
+  class SSHStory extends Lab.LabBase {
+    constructor() {
+      super({ objectives: [] });
+      this.addDevice('SW', 'switch', { hostname: 'Switch', interfaces: {}, custom: {} });
+      this.addDevice('PC', 'pc', { hostname: 'PC', custom: {} });
+      // Laptop shell prompt (engine prompt() is IOS-only; override this instance).
+      this.devices['PC'].prompt = function () { return 'C:\\Users\\Romeo>'; };
+      this.activeDeviceName = 'SW';
+
+      this.chapter = 0;
+      this.consoleOpen = false;
+      this.cableUnplugged = false;
+      this.sshUp = false;
+      this._sshStage = null;   // null | 'hostkey' | 'password'
+      this._sshTargetOk = false;
+      this.completedByChapter = {}; // chapterIdx -> Set of obj idx
+      c_ref = this;
+    }
+
+    curChapter() { return CH[this.chapter]; }
+    doneSet() { return (this.completedByChapter[this.chapter] = this.completedByChapter[this.chapter] || new Set()); }
+
+    // Always re-check objectives after a command — the base engine only fires
+    // checkObjectives on mode changes, so bare `show` verifies would never tick.
+    handleCommand(dev, raw, lower) {
+      const r = this._handle(dev, raw, lower);
+      this.refreshObjUI();
+      return r;
+    }
+
+    // ── Command handling (SSH + config the base engine doesn't cover) ──
+    _handle(dev, raw, lower) {
+      // ── Laptop branch (chapter 5) ──
+      if (this.activeDeviceName === 'PC' && !this.sshUp) {
+        // host-key acceptance
+        if (this._sshStage === 'hostkey') {
+          if (lower === 'yes' || lower === 'y') { this._sshStage = 'password'; return 'Warning: Permanently added \'' + TGT.mgmtIp + '\' to the list of known hosts.\n' + TGT.user + '@' + TGT.mgmtIp + '\'s password:'; }
+          if (lower === 'no' || lower === 'n') { this._sshStage = null; this._sshTargetOk = false; return 'Host key verification aborted. Connection closed.'; }
+          return 'Please type \'yes\' or \'no\':';
+        }
+        if (this._sshStage === 'password') {
+          this._sshStage = null;
+          if (raw === TGT.pass) {
+            this.sshUp = true;
+            this.switchDevice('SW');           // same CLI, now over the network
+            this.devices['SW'].mode = 'user';
+            this.devices['SW'].custom.sshSession = { from: '192.168.50.40', line: 'vty 0' };
+            this.setConn('wifi', 'Wi-Fi · SSH to ' + TGT.hostname);
+            this.afterTick();
+            return '\n' + TGT.hostname + ' line 1\n\n' + TGT.hostname + '>';
+          }
+          this.switchDevice('PC');
+          return '% Authentication failed.\n\n(hint: the password you set was "' + TGT.pass + '")';
+        }
+        // ssh -l admin 10.10.10.2   |   ssh admin@10.10.10.2
+        const m = raw.match(/^ssh\s+(?:-l\s+(\S+)\s+(\S+)|(\S+)@(\S+))/i);
+        if (m) {
+          const u = m[1] || m[3];
+          const ip = m[2] || m[4];
+          if (ip !== TGT.mgmtIp) return 'ssh: connect to host ' + ip + ' port 22: No route to host';
+          if (u !== TGT.user) return '% Authentication failed.\n(no such username on the switch — you created "' + TGT.user + '")';
+          if (this.devices['SW'].custom.vtyTransport !== 'ssh' || !this.devices['SW'].custom.rsaKeys) return 'ssh: connect to host ' + ip + ' port 22: Connection refused';
+          this._sshStage = 'hostkey';
+          this._sshTargetOk = true;
+          return 'The authenticity of host \'' + ip + '\' can\'t be established.\nRSA key fingerprint is SHA256:' + TGT.hostname + '.' + TGT.domain + '.\nAre you sure you want to continue connecting (yes/no)?';
+        }
+        if (raw && raw.length > 1) return '\'' + raw.split(' ')[0] + '\' is not recognized. (Try: ssh -l ' + TGT.user + ' ' + TGT.mgmtIp + ')';
+        return '';
+      }
+
+      // ── Switch branch (config the engine base doesn't already do) ──
+      // hostname
+      let mm = raw.match(/^hostname\s+(\S+)/i);
+      if (mm && (dev.mode === 'config' || dev.mode.startsWith('config-'))) { dev.hostname = mm[1]; return ''; }
+
+      // ip domain-name / ip domain name
+      mm = raw.match(/^ip\s+domain[\s-]name\s+(\S+)/i);
+      if (mm && dev.mode === 'config') { dev.custom.domain = mm[1]; return ''; }
+
+      // username X secret/password Y  (optional privilege N)
+      mm = raw.match(/^username\s+(\S+)\s+(?:privilege\s+\d+\s+)?(?:secret|password)(?:\s+\d)?\s+(\S+)/i);
+      if (mm && dev.mode === 'config') { dev.custom.localUser = mm[1]; dev.custom.localPass = mm[2]; return ''; }
+
+      // enable secret/password
+      if (/^enable\s+(secret|password)\s+\S+/i.test(raw) && dev.mode === 'config') { dev.custom.enableSecret = true; return ''; }
+
+      // crypto key generate rsa  [modulus NNNN] [general-keys]
+      if (/^crypto\s+key\s+generate\s+rsa\b/i.test(raw) && dev.mode === 'config') {
+        if (dev.hostname === 'Switch' || !dev.hostname) return '% Please define a hostname other than the default first.';
+        if (!dev.custom.domain) return '% Please define a domain-name first.';
+        dev.custom.rsaKeys = true;
+        const bits = (raw.match(/modulus\s+(\d+)/i) || [, '1024'])[1];
+        return 'The name for the keys will be: ' + dev.hostname + '.' + dev.custom.domain + '\n% Generating ' + bits + ' bit RSA keys, keys will be non-exportable...\n[OK] (elapsed time was 2 seconds)\n%SSH-5-ENABLED: SSH 1.99 has been enabled';
+      }
+      // bare "crypto key generate rsa" with interactive modulus answered on next line
+      if (/^\d{3,4}$/.test(raw) && dev.custom._awaitModulus) { dev.custom._awaitModulus = false; dev.custom.rsaKeys = true; return '[OK]'; }
+
+      // ip ssh version 2
+      if (/^ip\s+ssh\s+version\s+2/i.test(raw) && dev.mode === 'config') { dev.custom.sshVersion = 2; return ''; }
+
+      // line vty 0 4 / 0 15
+      if (/^line\s+vty\s+\d+\s+\d+/i.test(raw) && dev.mode === 'config') { dev.mode = 'config-line'; return ''; }
+
+      // login local
+      if (/^login\s+local$/i.test(raw) && dev.mode === 'config-line') { dev.custom.loginLocal = true; return ''; }
+
+      // transport input ssh / ssh telnet / all
+      mm = raw.match(/^transport\s+input\s+(.+)/i);
+      if (mm && dev.mode === 'config-line') {
+        const v = mm[1].trim().toLowerCase();
+        dev.custom.vtyTransport = v.indexOf('ssh') > -1 ? 'ssh' : v;
+        return '';
+      }
+
+      // ip address (SVI / interface)
+      mm = raw.match(/^ip\s+address\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (mm && (dev.mode === 'config-if' || dev.mode === 'config-subif') && dev.currentInterface) {
+        dev.interfaces[dev.currentInterface] = dev.interfaces[dev.currentInterface] || { up: false };
+        dev.interfaces[dev.currentInterface].ip = mm[1];
+        dev.interfaces[dev.currentInterface].mask = mm[2];
+        return '';
+      }
+
+      // no shutdown
+      if (/^no\s+shut(down)?$/i.test(raw) && (dev.mode === 'config-if' || dev.mode === 'config-subif') && dev.currentInterface) {
+        dev.interfaces[dev.currentInterface] = dev.interfaces[dev.currentInterface] || {};
+        dev.interfaces[dev.currentInterface].up = true;
+        return '%LINK-5-CHANGED: Interface ' + dev.currentInterface + ', changed state to up';
+      }
+
+      // ip default-gateway
+      mm = raw.match(/^ip\s+default-gateway\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (mm && dev.mode === 'config') { dev.custom.defaultGw = mm[1]; return ''; }
+
+      // show users (remote session view)
+      if (/^show\s+users/i.test(raw) && (dev.mode === 'priv' || dev.mode === 'user')) {
+        const s = dev.custom.sshSession;
+        let out = '    Line       User       Host(s)              Idle       Location\n';
+        out += '   0 con 0                idle                 00:31:18\n';
+        if (s) out += '*  1 vty 0     ' + (dev.custom.localUser || 'admin') + '      idle                 00:00:00   ' + s.from + '\n';
+        return out;
+      }
+
+      // help
+      if (raw === '?' || lower === 'help') {
+        return 'enable, configure terminal, hostname, ip domain-name, username,\ncrypto key generate rsa, ip ssh version 2, line vty, login local,\ntransport input ssh, interface, ip address, no shutdown,\nip default-gateway, write memory, show ip ssh, show users';
+      }
+      return undefined;
+    }
+
+    afterTick() { this.refreshObjUI(); }
+
+    checkObjectives() {
+      // engine calls this on mode/interface/save changes; route to current chapter
+      this.refreshObjUI();
+    }
+
+    // ── UI refresh: tick objectives, spotlight NOW, reveal Next ──
+    refreshObjUI() {
+      const ch = this.curChapter();
+      const done = this.doneSet();
+      const dev = this.devices['SW'];
+      ch.objs.forEach((o, i) => {
+        if (done.has(i)) return;
+        let ok = false;
+        try { ok = o.check(dev, this.commandLog, this); } catch (e) { ok = false; }
+        if (ok) {
+          done.add(i);
+          const li = document.getElementById('obj-' + i);
+          if (li) { li.classList.add('done', 'flash'); setTimeout(() => li.classList.remove('flash'), 700); }
+        }
+      });
+      // spotlight first not-done; update NOW banner
+      let cur = -1;
+      ch.objs.forEach((o, i) => { const li = document.getElementById('obj-' + i); if (!li) return; li.classList.remove('current'); if (cur === -1 && !done.has(i)) { cur = i; li.classList.add('current'); } });
+      const now = document.getElementById('nowText');
+      const nowBox = document.getElementById('nowBox');
+      const nextBtn = document.getElementById('nextBtn');
+      if (cur === -1) {
+        if (now) now.textContent = this.chapter < CH.length - 1 ? 'Chapter done. Move to the next one.' : 'All done. You reached the switch over Wi-Fi.';
+        if (nowBox) nowBox.classList.add('alldone');
+        if (nextBtn) nextBtn.style.display = 'inline-flex';
+        if (this.chapter === CH.length - 1) document.getElementById('finishCard').classList.add('show');
+      } else {
+        if (now) now.textContent = ch.objs[cur].text;
+        if (nowBox) nowBox.classList.remove('alldone');
+        if (nextBtn) nextBtn.style.display = 'none';
+      }
+    }
+
+    setConn(kind, label) {
+      const el = document.getElementById('termConn');
+      const lbl = document.getElementById('chromeDev');
+      if (el) { el.className = 'term-conn ' + kind; el.textContent = kind === 'wifi' ? 'WIRELESS' : kind === 'off' ? 'DISCONNECTED' : 'CONSOLE 9600'; }
+      if (lbl) lbl.textContent = label;
+    }
+
+    goWireless() {
+      // chapter 5: switch terminal to the laptop, fresh shell
+      this.switchDevice('PC');
+      this.sshUp = false; this._sshStage = null;
+      const wrap = document.getElementById('term');
+      wrap.classList.remove('locked');
+      this.terminal.clear();
+      this.terminal.writeLine('Microsoft Windows [Version 10.0]  —  Wi-Fi connected', 'sys');
+      this.terminal.writeLine('No cable to the switch. Reaching it over the network.\n', 'sys');
+      this.setConn('wifi', 'Laptop · Wi-Fi');
+      this.terminal.updatePrompt();
+      setTimeout(() => this.terminal.focus(), 60);
+    }
+  }
+
+  // ── Render a chapter into the page ────────────────────────────
+  const ctrl = new SSHStory();
+  const mount = document.getElementById('sceneMount');
+
+  function renderRail() {
+    const rail = document.getElementById('rail');
+    rail.innerHTML = '';
+    CH.forEach((ch, i) => {
+      const step = document.createElement('div');
+      step.className = 'rail-step' + (i < ctrl.chapter ? ' done' : '') + (i === ctrl.chapter ? ' current' : '');
+      step.innerHTML = '<div class="rail-dot">' + (i < ctrl.chapter ? '✓' : (i + 1)) + '</div><span class="rail-label">' + ch.label + '</span>';
+      rail.appendChild(step);
+      if (i < CH.length - 1) { const ln = document.createElement('div'); ln.className = 'rail-line'; rail.appendChild(ln); }
+    });
+  }
+
+  function renderChapter() {
+    const ch = ctrl.curChapter();
+    renderRail();
+    document.getElementById('finishCard').classList.remove('show');
+
+    let html = '<div class="scene">';
+    html += '<div class="scene-head">';
+    html += '<div class="scene-eyebrow">Chapter ' + (ctrl.chapter + 1) + ' of ' + CH.length + '</div>';
+    html += '<div class="scene-title">' + ch.title + '</div>';
+    html += '<div class="scene-story">' + ch.story + '</div>';
+    html += '</div>';
+
+    // PuTTY panel
+    if (ch.putty) {
+      html += '<div class="putty">'
+        + '<div class="putty-bar">PuTTY Configuration</div>'
+        + '<div class="putty-body">'
+        + '<div class="putty-row"><label>Connection type</label><div class="putty-radios"><span class="r">SSH</span><span class="r on">Serial</span><span class="r">Telnet</span></div></div>'
+        + '<div class="putty-row"><label>Serial line</label><span class="val">COM3</span></div>'
+        + '<div class="putty-row"><label>Speed (baud)</label><span class="val">9600</span></div>'
+        + '<div class="putty-row"><label>Data / Parity / Stop</label><span class="val">8 / None / 1</span></div>'
+        + '<button class="putty-open" id="puttyOpen">Open</button>'
+        + '</div></div>';
+    }
+
+    // NOW banner
+    html += '<div class="now" id="nowBox"><span class="now-tag">NOW</span><span class="now-text" id="nowText"></span></div>';
+
+    // Objectives
+    html += '<ul class="objs">';
+    ch.objs.forEach((o, i) => {
+      html += '<li id="obj-' + i + '"><span class="ck">✓</span><span>' + o.text + '</span></li>';
+    });
+    html += '</ul>';
+
+    // Terminal
+    html += '<div class="term-chrome"><div class="term-dots"><span class="term-dot" style="background:#ff5f57"></span><span class="term-dot" style="background:#febc2e"></span><span class="term-dot" style="background:#28c840"></span></div>'
+      + '<div class="term-chrome-label"><span class="dev" id="chromeDev">' + (ch.putty ? 'Console — not connected' : (ctrl.activeDeviceName === 'PC' ? 'Laptop · Wi-Fi' : 'Console · ' + (ctrl.devices.SW.hostname))) + '</span></div>'
+      + '<span class="term-conn console" id="termConn">CONSOLE 9600</span></div>';
+    html += '<div class="term-wrap' + (ch.putty ? ' locked' : '') + '" id="term"><div class="term-output"></div>'
+      + '<div class="term-input-row"><span class="term-prompt"></span><span class="term-input" contenteditable="true" spellcheck="false"></span><span class="term-cursor"></span></div></div>';
+
+    // Footer
+    html += '<div class="scene-foot">';
+    html += '<button class="btn" id="hintBtn">Show hint</button>';
+    if (ch.cablePull) html += '<button class="btn danger" id="cableBtn">⏏ Unplug console cable</button>';
+    html += '<button class="btn go" id="nextBtn" style="display:none">' + (ctrl.chapter < CH.length - 1 ? 'Next chapter →' : 'Finish ✓') + '</button>';
+    html += '<div class="hint-out" id="hintOut"></div>';
+    html += '</div></div>';
+
+    mount.innerHTML = html;
+
+    // Wire the engine terminal
+    ctrl.terminal = null;
+    const termEl = document.getElementById('term');
+    ctrl.initTerminal(termEl);
+
+    // PuTTY: terminal stays locked until Open clicked
+    if (ch.putty) {
+      const ob = document.getElementById('puttyOpen');
+      ob.addEventListener('click', () => {
+        if (ctrl.consoleOpen) return;
+        ctrl.consoleOpen = true;
+        ob.disabled = true; ob.textContent = '● Connected';
+        termEl.classList.remove('locked');
+        ctrl.setConn('console', 'Console · ' + ctrl.devices.SW.hostname);
+        document.getElementById('chromeDev').textContent = 'Console · ' + ctrl.devices.SW.hostname;
+        ctrl.terminal.writeLine('Connected to COM3 at 9600 baud (8-N-1).', 'sys');
+        ctrl.terminal.writeLine('Press RETURN to get started.\n', 'sys');
+        ctrl.terminal.writeLine(ctrl.devices.SW.hostname + '>');
+        ctrl.terminal.updatePrompt();
+        setTimeout(() => ctrl.terminal.focus(), 60);
+        ctrl.refreshObjUI();
+      });
+    } else if (ctrl.chapter === CH.length - 1) {
+      // wireless chapter sets up its own laptop shell
+      if (ch.onEnter) ch.onEnter(ctrl);
+    } else {
+      // mid-story chapters: continue on the switch console
+      ctrl.setConn('console', 'Console · ' + ctrl.devices.SW.hostname);
+      ctrl.terminal.writeLine('— continuing on ' + ctrl.devices.SW.hostname + ' —', 'sys');
+      ctrl.terminal.updatePrompt();
+      setTimeout(() => ctrl.terminal.focus(), 60);
+    }
+
+    // Cable pull button
+    if (ch.cablePull) {
+      const cb = document.getElementById('cableBtn');
+      cb.addEventListener('click', () => {
+        if (ctrl.cableUnplugged) return;
+        ctrl.cableUnplugged = true;
+        cb.disabled = true; cb.textContent = '⏏ Cable unplugged';
+        termEl.classList.add('locked');
+        ctrl.setConn('off', 'Console — disconnected');
+        document.getElementById('chromeDev').textContent = 'Console — disconnected';
+        ctrl.terminal.writeLine('\n[Console session closed — cable removed]', 'error');
+        ctrl.refreshObjUI();
+      });
+    }
+
+    // Hint
+    const hb = document.getElementById('hintBtn');
+    const ho = document.getElementById('hintOut');
+    hb.addEventListener('click', () => {
+      const done = ctrl.doneSet();
+      let cur = ch.objs.findIndex((o, i) => !done.has(i));
+      if (cur === -1) cur = ch.objs.length - 1;
+      ho.textContent = '› ' + ch.objs[cur].hint;
+      ho.classList.add('show');
+    });
+
+    // Next
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (ctrl.chapter < CH.length - 1) { ctrl.chapter++; renderChapter(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      else { document.getElementById('finishCard').classList.add('show'); document.getElementById('finishCard').scrollIntoView({ behavior: 'smooth' }); }
+    });
+
+    ctrl.refreshObjUI();
+  }
+
+  renderChapter();
+
+  // Easy-read toggle
+  const dysBtn = document.getElementById('dysBtn');
+  if (localStorage.getItem('dys') === '1') document.body.classList.add('dys');
+  dysBtn.setAttribute('aria-pressed', document.body.classList.contains('dys'));
+  dysBtn.addEventListener('click', () => {
+    const on = document.body.classList.toggle('dys');
+    dysBtn.setAttribute('aria-pressed', on);
+    localStorage.setItem('dys', on ? '1' : '0');
+  });
+
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
