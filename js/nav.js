@@ -31,6 +31,7 @@
       { text: 'Daily Drill (timed)', href: 'daily-drill.html' },
       { text: 'P1: OSPF Deep', href: 'p1-ospf.html' },
       { text: 'OSPF Troubleshoot Sim ✦', href: 'ospf-troubleshoot.html' },
+      { text: 'SVI Inter-VLAN Routing Sim ✦', href: 'sim-1-1-b-svi.html' },
       { text: 'P1: Routing Table', href: 'p1-routing.html' },
       { text: 'P1: Static Routing', href: 'p1-static.html' },
       { text: 'P1: NAT and PAT', href: 'p1-nat.html' },

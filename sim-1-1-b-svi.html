@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.b Sim — SVI Inter-VLAN Routing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.45rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.93rem;color:var(--ink-secondary)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:16px}
+  .panel h2{font-family:var(--font-display);font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:10px}
+  .topo{width:100%;display:block;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .legend{display:flex;gap:16px;margin-top:8px;font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary);flex-wrap:wrap}
+  .legend .dot{width:12px;height:12px;border-radius:99px;display:inline-block;vertical-align:middle;margin-right:5px;border:1px solid var(--border-strong)}
+  .lab{display:grid;grid-template-columns:240px 1fr;gap:16px}
+  @media(max-width:680px){.lab{grid-template-columns:1fr}}
+  .steps{display:flex;flex-direction:column;gap:6px;max-height:440px;overflow-y:auto;padding-right:4px}
+  .step{font-family:var(--font-mono);font-size:.78rem;text-align:left;padding:8px 10px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--ink);line-height:1.4}
+  .step:hover:not(:disabled){border-color:var(--accent);background:var(--accent-light)}
+  .step.done{background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}
+  .step.next{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .step:disabled{cursor:not-allowed;opacity:.5}
+  .step .lbl{display:block;font-family:var(--font-display);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);margin-bottom:2px}
+  .step.done .lbl{color:var(--correct)}
+  .console{font-family:var(--font-mono);font-size:.8rem;background:#0a0a0a;color:#d4d4d4;padding:14px;border-radius:var(--radius);min-height:440px;max-height:440px;overflow-y:auto;white-space:pre-wrap;line-height:1.5}
+  .console .prompt{color:#5fb3b3}
+  .console .cmd{color:#e7e5e4;font-weight:700}
+  .console .ok{color:#86efac}
+  .console .bad{color:#fca5a5}
+  .console .note{color:#a8a29e}
+  .console .warn{color:#fcd34d}
+  .cli-input{display:flex;align-items:center;gap:8px;margin-top:10px;background:#0a0a0a;border-radius:var(--radius);padding:10px 12px}
+  .cli-prompt{font-family:var(--font-mono);font-size:.84rem;color:#5fb3b3;font-weight:700;flex:0 0 auto}
+  #cliBox{flex:1;background:transparent;border:none;outline:none;color:#e7e5e4;font-family:var(--font-mono);font-size:.9rem;min-height:32px}
+  #cliBox::placeholder{color:#57534e}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.82rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink);border:1px solid var(--border)}
+  .btn.accent{background:var(--accent)}
+  .traps{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius);padding:10px 14px;line-height:1.55}
+  .traps b{color:var(--accent)}
+  .quiz .stem{font-family:var(--font-display);font-size:1rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.86rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block}
+  .scoreline{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);margin-top:12px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer-link{margin-top:22px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1">← 1.1 Components</a> · 1.1.b · L2/L3 Switches · SVI</div>
+  <h1>SVI Inter-VLAN Routing<span class="badge">sim</span></h1>
+  <div class="desc">One Layer 3 switch, two VLANs, two SVIs. Click each command to run it. Watch links go green, SVIs come up, and learn the trap: <strong>SVI up/up ≠ routing works</strong>.</div>
+</div>
+
+<div class="panel">
+  <h2>Topology — DLS1 routes between VLAN 10 and VLAN 20</h2>
+  <svg class="topo" viewBox="0 0 760 240" id="topo">
+    <!-- links -->
+    <line id="linkA" x1="150" y1="120" x2="320" y2="120" stroke="#A8A29E" stroke-width="4"/>
+    <line id="linkB" x1="440" y1="120" x2="610" y2="120" stroke="#A8A29E" stroke-width="4"/>
+    <!-- PC-A -->
+    <g>
+      <rect id="hostA" x="40" y="84" width="110" height="72" rx="8" fill="#F3F0EB" stroke="#A8A29E" stroke-width="2"/>
+      <text x="95" y="108" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#1C1917">PC-A</text>
+      <text x="95" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#57534E">VLAN 10</text>
+      <text x="95" y="138" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#57534E">10.0.10.10</text>
+      <text x="95" y="150" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#A8A29E">gw .10.1</text>
+    </g>
+    <!-- DLS1 -->
+    <g>
+      <rect x="320" y="60" width="120" height="120" rx="10" fill="#1F2937" stroke="#0F172A" stroke-width="2"/>
+      <text x="380" y="84" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#FCD34D">DLS1</text>
+      <text x="380" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#94A3B8">L3 Switch</text>
+      <rect id="svi10" x="332" y="108" width="96" height="26" rx="4" fill="#0F172A" stroke="#475569"/>
+      <text id="svi10t" x="380" y="125" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#94A3B8">Vlan10 down</text>
+      <rect id="svi20" x="332" y="140" width="96" height="26" rx="4" fill="#0F172A" stroke="#475569"/>
+      <text id="svi20t" x="380" y="157" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#94A3B8">Vlan20 down</text>
+    </g>
+    <!-- PC-B -->
+    <g>
+      <rect id="hostB" x="610" y="84" width="110" height="72" rx="8" fill="#F3F0EB" stroke="#A8A29E" stroke-width="2"/>
+      <text x="665" y="108" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#1C1917">PC-B</text>
+      <text x="665" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#57534E">VLAN 20</text>
+      <text x="665" y="138" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#57534E">10.0.20.10</text>
+      <text x="665" y="150" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#A8A29E">gw .20.1</text>
+    </g>
+    <text x="235" y="112" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#A8A29E">Gi1/0/1</text>
+    <text x="525" y="112" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#A8A29E">Gi1/0/2</text>
+    <text id="routeFlag" x="380" y="210" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#A8A29E">ip routing: OFF</text>
+  </svg>
+  <div class="legend">
+    <span><span class="dot" style="background:#A8A29E"></span>not configured</span>
+    <span><span class="dot" style="background:#16A34A"></span>up / reachable</span>
+    <span><span class="dot" style="background:#FCD34D"></span>SVI up, no routing</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Guided CLI — click a step OR type the command</h2>
+  <div class="controls">
+    <button class="btn ghost" id="resetBtn">Reset</button>
+    <button class="btn ghost" id="pingBtn">PC-A ping PC-B</button>
+  </div>
+  <div class="lab">
+    <div class="steps" id="steps"></div>
+    <div class="console" id="console"></div>
+  </div>
+  <div class="cli-input">
+    <span class="cli-prompt" id="cliPrompt">DLS1#</span>
+    <input id="cliBox" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+      placeholder="type the next command and press Enter (abbreviations + no-space vlan OK)">
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Trap to remember</h2>
+  <div class="traps"><ul style="margin:0;padding-left:20px;line-height:1.9">
+    <li><b>up/up ≠ routing.</b> <b>ip routing</b> is OFF by default on Catalyst.</li>
+    <li>SVI needs <b>VLAN in db + a live member port</b> (autostate) to come up.</li>
+    <li><b>ip default-gateway</b> = L2-only mgmt, not an SVI. Hosts use the SVI IP as gateway.</li>
+  </ul></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=1.1">← back to 1.1 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  // ── state ──
+  var S = {
+    vlan10:false, vlan20:false, portA:false, portB:false,
+    ip10:false, ip20:false, up10:false, up20:false, routing:false
+  };
+  // up/up requires: vlan exists, member port up, ip set, no shutdown issued
+  function svi10up(){ return S.vlan10 && S.portA && S.ip10 && S.up10; }
+  function svi20up(){ return S.vlan20 && S.portB && S.ip20 && S.up20; }
+  function routed(){ return svi10up() && svi20up() && S.routing; }
+
+  var STEPS = [
+    {lbl:'priv exec',   cmd:'enable',                                   eff:'DLS1>  →  DLS1#'},
+    {lbl:'global',      cmd:'configure terminal',                       eff:'DLS1(config)#'},
+    {lbl:'vlan db',     cmd:'vlan 10',                                  eff:'VLAN 10 created in database', apply:function(){S.vlan10=true;}},
+    {lbl:'name',        cmd:'name USERS_A',                             eff:'(cosmetic label)'},
+    {lbl:'vlan db',     cmd:'vlan 20',                                  eff:'VLAN 20 created in database', apply:function(){S.vlan20=true;}},
+    {lbl:'name',        cmd:'name USERS_B',                             eff:'(cosmetic label)'},
+    {lbl:'access port', cmd:'interface GigabitEthernet1/0/1',           eff:'DLS1(config-if)#'},
+    {lbl:'mode',        cmd:'switchport mode access',                   eff:'access mode, no DTP'},
+    {lbl:'member',      cmd:'switchport access vlan 10',                eff:'PC-A live member of VLAN 10', apply:function(){S.portA=true;}},
+    {lbl:'access port', cmd:'interface GigabitEthernet1/0/2',           eff:'DLS1(config-if)#'},
+    {lbl:'mode',        cmd:'switchport mode access',                   eff:'access mode, no DTP'},
+    {lbl:'member',      cmd:'switchport access vlan 20',                eff:'PC-B live member of VLAN 20', apply:function(){S.portB=true;}},
+    {lbl:'svi',         cmd:'interface Vlan10',                         eff:'enter VLAN 10 SVI'},
+    {lbl:'gateway ip',  cmd:'ip address 10.0.10.1 255.255.255.0',      eff:'gateway IP for VLAN 10 hosts', apply:function(){S.ip10=true;}},
+    {lbl:'enable svi',  cmd:'no shutdown',                             eff:'', apply:function(){S.up10=true;}, dyn:function(){return svi10up()?'<span class="ok">Vlan10 → up/up.</span> PC-A can ping its gateway 10.0.10.1.':'<span class="warn">Vlan10 still down (needs vlan + member port).</span>';}},
+    {lbl:'svi',         cmd:'interface Vlan20',                         eff:'enter VLAN 20 SVI'},
+    {lbl:'gateway ip',  cmd:'ip address 10.0.20.1 255.255.255.0',      eff:'gateway IP for VLAN 20 hosts', apply:function(){S.ip20=true;}},
+    {lbl:'enable svi',  cmd:'no shutdown',                             eff:'', apply:function(){S.up20=true;}, dyn:function(){return svi20up()?'<span class="ok">Vlan20 → up/up.</span> <span class="warn">A→B still FAILS: routing not on yet.</span>':'<span class="warn">Vlan20 still down.</span>';}},
+    {lbl:'★ routing',   cmd:'ip routing',                              eff:'', apply:function(){S.routing=true;}, dyn:function(){return routed()?'<span class="ok">IPv4 routing ON. Both C-routes installed. PC-A → PC-B now SUCCEEDS.</span>':'IPv4 routing enabled globally.';}},
+    {lbl:'verify',      cmd:'show ip route connected',                  eff:'', dyn:function(){return routed()?'<span class="ok">C  10.0.10.0/24 is directly connected, Vlan10\nC  10.0.20.0/24 is directly connected, Vlan20</span>':'<span class="note">(no connected SVI routes yet)</span>';}}
+  ];
+
+  var stepIdx = 0;
+  var con = document.getElementById('console');
+  var stepsEl = document.getElementById('steps');
+
+  function prompt(){
+    return 'DLS1# ';
+  }
+
+  function write(html){
+    con.insertAdjacentHTML('beforeend', html);
+    con.scrollTop = con.scrollHeight;
+  }
+
+  function runStep(i){
+    if(i!==stepIdx) return;
+    var s = STEPS[i];
+    if(s.apply) s.apply();
+    write('<span class="prompt">DLS1# </span><span class="cmd">'+s.cmd+'</span>\n');
+    var msg = s.dyn ? s.dyn() : (s.eff ? '<span class="note">'+s.eff+'</span>' : '');
+    if(msg) write(msg+'\n');
+    stepIdx++;
+    paintSteps();
+    paintTopo();
+  }
+
+  function paintSteps(){
+    stepsEl.innerHTML='';
+    STEPS.forEach(function(s,i){
+      var b=document.createElement('button');
+      b.className='step'+(i<stepIdx?' done':'')+(i===stepIdx?' next':'');
+      b.disabled = i>stepIdx;
+      b.innerHTML='<span class="lbl">'+(i<stepIdx?'✓ ':'')+s.lbl+'</span>'+s.cmd;
+      b.addEventListener('click',function(){runStep(i);});
+      stepsEl.appendChild(b);
+    });
+  }
+
+  function setLine(id,color){
+    document.getElementById(id).setAttribute('stroke',color);
+  }
+  function setHost(id,color){
+    var h=document.getElementById(id);
+    h.setAttribute('stroke',color);
+    h.setAttribute('stroke-width', color==='#A8A29E'?'2':'3');
+  }
+  function setSvi(rect,txt,state,label){
+    var r=document.getElementById(rect), t=document.getElementById(txt);
+    if(state==='up'){ r.setAttribute('fill','#14532D'); r.setAttribute('stroke','#16A34A'); t.setAttribute('fill','#86EFAC'); t.textContent=label+' up/up'; }
+    else if(state==='warn'){ r.setAttribute('fill','#422006'); r.setAttribute('stroke','#FCD34D'); t.setAttribute('fill','#FCD34D'); t.textContent=label+' up/up'; }
+    else { r.setAttribute('fill','#0F172A'); r.setAttribute('stroke','#475569'); t.setAttribute('fill','#94A3B8'); t.textContent=label+' down'; }
+  }
+
+  function paintTopo(){
+    var GREEN='#16A34A', GRAY='#A8A29E';
+    // access links green once the port is a live member
+    setLine('linkA', S.portA?GREEN:GRAY);
+    setLine('linkB', S.portB?GREEN:GRAY);
+    // SVI boxes: green if up AND routing, amber if up but not routing
+    setSvi('svi10','svi10t', svi10up()?(S.routing?'up':'warn'):'down','Vlan10');
+    setSvi('svi20','svi20t', svi20up()?(S.routing?'up':'warn'):'down','Vlan20');
+    // hosts green only when end-to-end routing works
+    setHost('hostA', routed()?GREEN:GRAY);
+    setHost('hostB', routed()?GREEN:GRAY);
+    var rf=document.getElementById('routeFlag');
+    rf.textContent='ip routing: '+(S.routing?'ON':'OFF');
+    rf.setAttribute('fill', S.routing?'#86EFAC':'#A8A29E');
+  }
+
+  function ping(){
+    write('<span class="prompt">DLS1# </span><span class="cmd">ping 10.0.20.10 source 10.0.10.10</span>\n');
+    if(routed()){
+      write('<span class="ok">!!!!!\nSuccess rate is 100 percent (5/5)</span>  <span class="note">A→DLS1→B routed via SVIs</span>\n');
+    } else if(svi10up() && svi20up()){
+      write('<span class="bad">.....\nSuccess rate is 0 percent (0/5)</span>  <span class="warn">Both SVIs up/up, but ip routing is OFF → Destination unreachable. up/up ≠ routing.</span>\n');
+    } else {
+      write('<span class="bad">.....\nSuccess rate is 0 percent (0/5)</span>  <span class="note">SVIs not up yet. Configure VLANs, ports, SVI IPs + no shutdown.</span>\n');
+    }
+  }
+
+  function reset(){
+    S={vlan10:false,vlan20:false,portA:false,portB:false,ip10:false,ip20:false,up10:false,up20:false,routing:false};
+    stepIdx=0;
+    con.innerHTML='<span class="note">! DLS1 — factory state. Click the first step to begin.</span>\n';
+    paintSteps(); paintTopo();
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', reset);
+  document.getElementById('pingBtn').addEventListener('click', ping);
+
+  // ── typed CLI: forgiving normalize, same in-order gating as clicking ──
+  function normCmd(s){
+    s=s.toLowerCase().trim().replace(/\s+/g,' ');
+    s=s.replace(/^do /,'');
+    s=s.replace(/^en$/,'enable');
+    s=s.replace(/^conf(ig)? t(erm(inal)?)?$/,'configure terminal');
+    s=s.replace(/^int /,'interface ');
+    s=s.replace(/\bgi(?=\d)/,'gigabitethernet').replace(/\bg(?=\d\/)/,'gigabitethernet');
+    s=s.replace(/^sw /,'switchport ');
+    s=s.replace(/switchport acc /,'switchport access ');
+    s=s.replace(/^ip add /,'ip address ');
+    s=s.replace(/^no shut$/,'no shutdown');
+    s=s.replace(/^sh /,'show ');
+    s=s.replace(/vlan(\d)/g,'vlan $1');
+    return s.replace(/\s+/g,' ').trim();
+  }
+  var cliBox=document.getElementById('cliBox');
+  cliBox.addEventListener('keydown',function(e){
+    if(e.key!=='Enter') return;
+    var raw=cliBox.value.trim();
+    if(!raw) return;
+    cliBox.value='';
+    if(stepIdx>=STEPS.length){ write('<span class="note">! all steps done — Reset to replay.</span>\n'); return; }
+    if(normCmd(raw)===normCmd(STEPS[stepIdx].cmd)){
+      runStep(stepIdx);
+    } else {
+      write('<span class="prompt">DLS1# </span><span class="cmd">'+raw.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>\n');
+      write('<span class="bad">% not the next step.</span> <span class="note">Try: '+STEPS[stepIdx].cmd+'</span>\n');
+    }
+  });
+
+  reset();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool=[
+    {stem:"interface Vlan10 and interface Vlan20 both show up/up with IPs. Hosts ping their own gateways, but Host A (VLAN 10) cannot ping Host B (VLAN 20). Most likely cause?",
+     opts:["The SVIs need 'no shutdown' again","Global 'ip routing' is not enabled","The hosts are missing default gateways","A trunk port is required between the VLANs"],
+     ans:"Global 'ip routing' is not enabled",
+     why:"up/up only means the interface is alive. Forwarding between two SVIs requires 'ip routing', which is OFF by default on Catalyst. Hosts pinging their own gateway proves the SVIs are fine — isolating the fault to disabled routing."},
+    {stem:"You create interface Vlan30 with an IP and 'no shutdown', but it stays down/down. VLAN 30 exists in the database. What else is required?",
+     opts:["Enter 'ip routing'","Assign at least one up/forwarding port to VLAN 30","Configure the SVI as a trunk","Add a static route for the SVI subnet"],
+     ans:"Assign at least one up/forwarding port to VLAN 30",
+     why:"An SVI needs the VLAN in the database AND at least one active member port in a forwarding state (autostate). No live port = SVI stays down/down regardless of 'no shutdown' or 'ip routing'."},
+    {stem:"Which command creates the SVI that serves as the default gateway for VLAN 10?",
+     opts:["interface vlan 10","ip default-gateway 10.0.10.1","switchport access vlan 10","ip route 10.0.10.0 255.255.255.0 vlan 10"],
+     ans:"interface vlan 10",
+     why:"'interface vlan 10' enters/creates the SVI for VLAN 10 (IOS accepts 'vlan 10' or 'vlan10' — same thing). 'ip default-gateway' is for an L2-only switch's own management traffic, not an SVI. 'switchport access vlan 10' assigns a port, it does not create the SVI. 'ip route ... vlan 10' is a static route, not an SVI."},
+    {stem:"What is the key difference between a routed port and an SVI on a Layer 3 switch?",
+     opts:["A routed port belongs to one VLAN; an SVI belongs to none","A routed port has 'no switchport' and its own IP on a physical port; an SVI is a virtual L3 interface for an entire VLAN","An SVI requires a subinterface; a routed port does not","They are identical, just different names"],
+     ans:"A routed port has 'no switchport' and its own IP on a physical port; an SVI is a virtual L3 interface for an entire VLAN",
+     why:"A routed port is a physical interface taken out of L2 with 'no switchport' and given an IP. An SVI (interface VlanX) is a virtual interface for a whole VLAN. Subinterfaces belong to router-on-a-stick, not either of these."},
+    {stem:"Host A (10.0.10.10/24) cannot reach Host B (10.0.20.10/24). 'ip routing' is on, both SVIs are up/up with correct IPs, and A can ping 10.0.10.1. What should you check next on Host A?",
+     opts:["That Host A's default gateway is set to 10.0.10.1","That Host A is in VLAN 20","That a trunk exists between the SVIs","That the SVIs share one IP subnet"],
+     ans:"That Host A's default gateway is set to 10.0.10.1",
+     why:"With routing on and SVIs up, the switch side is correct. Since A pings its own gateway, L2 is fine. To reach another subnet, A must send off-subnet traffic to its gateway — so its default gateway must be the VLAN 10 SVI IP (10.0.10.1)."}
+  ];
+
+  function pickQ(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    var opts=q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent=q.stem;
+    var bx=document.getElementById('quizOpts'); bx.innerHTML='';
+    var w=document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn=document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click',function(){
+        if(btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if(o===q.ans){btn.classList.add('correct');qCorrect++;qStreak++;}
+        else{btn.classList.add('wrong');qWrong++;qStreak=0;
+          Array.prototype.forEach.call(bx.children,function(c){if(c.textContent===q.ans)c.classList.add('correct');});}
+        w.textContent='↳ '+q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
