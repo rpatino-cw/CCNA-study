@@ -61,11 +61,21 @@
       this.cursorEl = el.querySelector('.term-cursor');
       this.promptEl = el.querySelector('.term-prompt');
 
-      this.inputEl.addEventListener('keydown', (e) => this.handleKey(e));
+      this._onKey = (e) => this.handleKey(e);
+      this._onClick = () => this.inputEl.focus();
+      this.inputEl.addEventListener('keydown', this._onKey);
       this.inputEl.focus();
-      el.addEventListener('click', () => this.inputEl.focus());
+      el.addEventListener('click', this._onClick);
 
       this.updatePrompt();
+    }
+
+    // Detach listeners so a reset/re-init doesn't leave an orphaned instance
+    // driving the shared DOM input (double keystrokes, ghost prompt lines).
+    destroy() {
+      if (this._onKey) this.inputEl.removeEventListener('keydown', this._onKey);
+      if (this._onClick) this.el.removeEventListener('click', this._onClick);
+      this._onKey = this._onClick = null;
     }
 
     updatePrompt() {
@@ -218,7 +228,7 @@
       'br': 'brief', 'bri': 'brief',
       'desc': 'description',
       'no': 'no',
-      'run': 'running-config', 'runn': 'running-config',
+      'ru': 'running-config', 'run': 'running-config', 'runn': 'running-config',
       'start': 'startup-config',
       'ver': 'version',
       'neigh': 'neighbors', 'neighb': 'neighbors', 'nei': 'neighbors',
@@ -234,11 +244,19 @@
       'por': 'port-channel',
       'acc': 'access-lists',
     };
+    // Stop expanding once a free-text-consuming keyword is reached, so a
+    // user-chosen value that happens to equal an abbreviation (e.g.
+    // `name SEC`, `enable secret en`, `description br link`) is left intact.
+    var FREETEXT_HEADS = { 'name': 1, 'description': 1, 'desc': 1, 'hostname': 1, 'banner': 1, 'password': 1, 'secret': 1 };
     var parts = raw.split(/\s+/);
     var out = [];
+    var freeze = false;
     for (var i = 0; i < parts.length; i++) {
       var p = parts[i].toLowerCase();
+      if (freeze) { out.push(parts[i]); continue; }
       out.push(TOKEN_MAP[p] || parts[i]);
+      var expanded = TOKEN_MAP[p] || p;
+      if (FREETEXT_HEADS[p] || FREETEXT_HEADS[expanded]) freeze = true;
     }
     return out.join(' ');
   };
@@ -554,9 +572,9 @@
       dev.mode = 'priv';
       try {
         var doResult = this.handleCommand(dev, doRaw, doLower);
-        if (doResult !== undefined) { dev.mode = savedMode; return doResult; }
+        if (doResult !== undefined) { dev.mode = savedMode; this.checkObjectives(); return doResult; }
         var doShow = this.defaultShowCmd(dev, doRaw, doLower);
-        if (doShow !== undefined) { dev.mode = savedMode; return doShow; }
+        if (doShow !== undefined) { dev.mode = savedMode; this.checkObjectives(); return doShow; }
       } finally { dev.mode = savedMode; }
       return '% Invalid input detected at \'^\' marker.\n% Unrecognized command: ' + doRaw.split(' ')[0];
     }
@@ -599,9 +617,16 @@
       return '% Invalid input detected at \'^\' marker.';
     }
     if (lower === 'disable') {
-      dev.mode = 'user';
-      this.checkObjectives();
-      return '';
+      // Real IOS: 'disable' is a priv-EXEC command; only priv -> user is valid.
+      if (dev.mode === 'priv') {
+        dev.mode = 'user';
+        dev.currentInterface = null;
+        dev.currentInterfaceRange = null;
+        this.checkObjectives();
+        return '';
+      }
+      if (dev.mode === 'user') return '';
+      return '% Invalid input detected at \'^\' marker.';
     }
 
     // Save config: wr / write / write memory / copy run start / copy running-config startup-config
@@ -693,7 +718,7 @@
     // Default show commands (work in any lab when in priv/user)
     if ((dev.mode === 'priv' || dev.mode === 'user') && lower.startsWith('show ')) {
       var defShow = this.defaultShowCmd(dev, raw, lower);
-      if (defShow !== undefined) return defShow;
+      if (defShow !== undefined) { this.checkObjectives(); return defShow; }
     }
     // From config modes, suggest `do show ...`
     if (lower.startsWith('show ') && dev.mode !== 'priv' && dev.mode !== 'user') {

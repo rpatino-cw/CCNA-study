@@ -274,7 +274,7 @@
 <script defer src="js/store.js"></script>
 <script defer src="js/sync.js"></script>
 <script defer src="js/group-chat.js?v=4"></script>
-<script defer src="js/lab-engine.js?v=10"></script>
+<script defer src="js/lab-engine.js?v=11"></script>
 <script defer src="js/pt-bridge.js"></script>
 <script defer src="js/nav.js"></script>
 <script>document.addEventListener('DOMContentLoaded',function(){
@@ -1382,6 +1382,8 @@ function initLab(lab, idx) {
     }
 
     checkObjectives() {
+      // Ignore stale/orphaned instances — only the live one may write the HUD.
+      if (labInstances[lab.id] !== this) return;
       const dev = this.activeDevice;
       lab.objectives.forEach((obj, i) => {
         if (this.completedObjectives.has(i)) return;
@@ -1621,7 +1623,11 @@ function resetLab(id, challenge) {
   // A fresh attempt starts here: clear the hint-shown flag for honest scoring.
   // (resetCount persists across the re-init so it can pull stars down to 1.)
   hintShownThisAttempt[id] = false;
-  // Tear down old instance
+  // Tear down old instance — detach its terminal listeners first so the
+  // orphaned instance stops driving the shared DOM input (ghost prompt lines,
+  // double keystrokes, stale "All steps done" banner).
+  const oldInst = labInstances[id];
+  if (oldInst && oldInst.terminal && typeof oldInst.terminal.destroy === 'function') oldInst.terminal.destroy();
   delete labInstances[id];
   // Clear completion state in localStorage
   try {
