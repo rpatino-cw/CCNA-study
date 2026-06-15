@@ -726,6 +726,1076 @@
       </div>
     </section>
 
+    <!-- Full configs -->
+    <section class="lab-section" id="configs">
+      <div class="lab-section-title">Paste-ready configs, all 8 parts (Jeremy's answer key)</div>
+      <div class="concept-callout">
+        <div class="concept-callout-title">How to use these</div>
+        <p>Exact paste-in scripts from the lab. Where a line shows <code>hostname *</code> or <code>ASW-*</code>, swap the <code>*</code> for the real device name first. Lines starting with <code>#</code> are comments (safe to paste). Each part ends with <code>do write</code> so the grader scores it. Files also ship under <code>labs/mega-lab-configs/</code>.</p>
+      </div>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 1, Initial Setup</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 1 . paste-ready . <a href="mega-lab-configs/parts/part1.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#EDGE ROUTER
+en
+conf t
+hostname R1
+enable secret jonsitlab
+username cisco secret ccna
+line console 0
+login local
+logging synchronous
+exec-timeout 30 0
+do write
+exit
+
+#CORE &amp; DISTRIBUTION LAYER SWITCHES (CHANGE HOSTNAME TO MATCH DEVICE!)
+en
+conf t
+hostname *
+enable algorithm-type scrypt secret jonsitlab
+username cisco algorithm-type scrypt secret ccna
+line console 0
+login local
+logging synchronous
+exec-timeout 30 0
+do write
+exit
+
+#ACCESS LAYER SWITCH (CHANGE HOSTNAME TO MATCH DEVICE!)
+en
+conf t
+hostname ASW-*
+enable secret jonsitlab
+username cisco secret ccna
+line console 0
+login local
+logging synchronous
+exec-timeout 30 0
+do write
+exit
+</pre>
+        </div>
+      </details>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 2, VLANs and L2 EtherChannel</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 2 . paste-ready . <a href="mega-lab-configs/parts/part2.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#INFO ABOUT STEPS:
+#Steps 3a, 7d, 8c - DTP is disabled with &#x27;nonegotiate&#x27;
+#Step 7a - place LWAP connections in &#x27;access vlan 99&#x27;
+#Step 8b - make WLC1 connection &#x27;trunk native vlan 99&#x27;
+
+#OFFICE A
+#DISTRIBUTION SWITCHES
+#DSW-A*
+interface range g1/0/4-5
+channel-group 1 mode desirable
+interface range g1/0/1-3
+switchport mode trunk
+switchport nonegotiate
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,40,99
+interface port-channel 1
+switchport mode trunk
+switchport nonegotiate
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,40,99
+exit
+interface range g1/0/6-24, g1/1/3-4
+shutdown
+exit
+do write
+
+#DSW-A1 (VTP SERVER)
+vtp domain jonsitlab
+vtp version 2
+vlan 10
+name PCs
+vlan 20
+name Phones
+vlan 40
+name Wi-Fi
+vlan 99
+name Management
+exit
+do write
+
+#ACCESS SWITCHES
+#ASW-A*
+interface range g0/1-2 
+switchport mode trunk
+switchport nonegotiate
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,40,99
+exit
+vtp mode client
+interface f0/1
+switchport mode access
+switchport nonegotiate
+exit
+do write
+
+#ASW-A1
+interface f0/1
+switchport access vlan 99
+interface f0/2
+switchport mode trunk
+switchport trunk allowed vlan 40,99
+switchport trunk native vlan 99
+switchport nonegotiate
+exit
+interface range f0/3-24
+shutdown
+exit
+do write
+
+#ASW-A2
+interface f0/1
+switchport access vlan 10
+switchport voice vlan 20
+exit
+interface range f0/2-24
+shutdown
+exit
+do write
+
+#ASW-A3
+interface f0/1
+switchport access vlan 10
+switchport voice vlan 20
+exit
+interface range f0/2-24
+shutdown
+exit
+do write
+
+#OFFICE B
+#DISTRIBUTION SWITCHES
+#DSW-B*
+interface range g1/0/4-5
+channel-group 1 mode active
+interface range g1/0/1-3
+switchport mode trunk
+switchport nonegotiate
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,30,99
+interface port-channel 1
+switchport mode trunk
+switchport nonegotiate
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,30,99
+exit
+interface range g1/0/6-24, g1/1/3-4
+shutdown
+exit
+do write
+
+#DSW-B1 (VTP SERVER)
+vtp domain jonsitlab
+vtp version 2
+vlan 10
+name PCs
+vlan 20
+name Phones
+vlan 30
+name Servers
+vlan 99
+name Management
+exit
+do write
+
+#ACCESS SWITCHES
+#ASW-B*
+interface range g0/1-2
+switchport mode trunk
+switchport nonegotiate
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,30,99
+exit
+vtp mode client
+interface f0/1
+switchport mode access
+switchport nonegotiate
+exit
+interface range f0/2-24
+shutdown
+exit
+do write
+
+#ASW-B1
+interface f0/1
+switchport access vlan 99
+exit
+do write
+
+#ASW-B2
+interface f0/1
+switchport access vlan 10
+switchport voice vlan 20
+exit
+do write
+
+#ASW-B3
+interface f0/1
+switchport access vlan 30
+exit
+do write
+
+#VERIFY RESULTS:
+show etherchannel summary
+show interfaces trunk
+show vtp status
+show vlan brief
+show interfaces status
+</pre>
+        </div>
+      </details>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 3, IP / L3 EtherChannel / HSRP</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 3 . paste-ready . <a href="mega-lab-configs/parts/part3.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#INFO ABOUT STEPS:
+#Step 1 - Command &#x27;show cdp neighbor&#x27; won&#x27;t show interface connections between router and core switches until after step 1.
+#Steps 11, &amp; 12 - 19 - VIP (virtual IP address) of distribution switches will act as the default gateway for access switches (IP default gateway for HSRP group 1 VLAN 99 Management) and endpoints (IP default gateway for HSRP group # VLAN # VLANNAME)
+
+#R1 - EDGE ROUTER
+interface range g0/0/0,g0/1/0
+ip address dhcp
+no shutdown
+interface g0/0
+ip address 10.0.0.33 255.255.255.252
+no shutdown
+interface g0/1
+ip address 10.0.0.37 255.255.255.252
+no shutdown
+interface loopback0
+ip address 10.0.0.76 255.255.255.255
+exit
+do write
+
+#CORE SWITCHES
+ip routing
+interface range g1/0/2-3
+no switchport
+channel-group 1 mode desirable
+exit
+do write
+
+#CSW1
+interface po1
+ip address 10.0.0.41 255.255.255.252
+interface g1/0/1
+no switchport
+ip address 10.0.0.34 255.255.255.252
+interface g1/1/1
+no switchport
+ip address 10.0.0.45 255.255.255.252
+interface g1/1/2
+no switchport
+ip address 10.0.0.49 255.255.255.252
+interface g1/1/3
+no switchport
+ip address 10.0.0.53 255.255.255.252
+interface g1/1/4
+no switchport
+ip address 10.0.0.57 255.255.255.252
+interface loopback0
+ip address 10.0.0.77 255.255.255.255
+interface range g1/0/4-24
+shutdown
+exit 
+do write
+
+#CSW2
+interface po1
+ip address 10.0.0.42 255.255.255.252
+interface g1/0/1
+no switchport
+ip address 10.0.0.38 255.255.255.252
+interface g1/1/1
+no switchport
+ip address 10.0.0.61 255.255.255.252
+interface g1/1/2
+no switchport
+ip address 10.0.0.65 255.255.255.252
+interface g1/1/3
+no switchport
+ip address 10.0.0.69 255.255.255.252
+interface g1/1/4
+no switchport
+ip address 10.0.0.73 255.255.255.252
+interface loopback0
+ip address 10.0.0.78 255.255.255.255
+interface range g1/0/4-24
+shutdown
+exit 
+do write
+
+#DISTRIBUTION SWITCHES
+ip routing
+
+#DSW-A1
+interface g1/1/1
+no switchport
+ip address 10.0.0.46 255.255.255.252
+interface g1/1/2
+no switchport
+ip address 10.0.0.62 255.255.255.252
+interface loopback0
+ip address 10.0.0.79 255.255.255.255
+interface vlan 99
+ip address 10.0.0.2 255.255.255.240
+standby version 2
+standby 1 ip 10.0.0.1
+standby 1 priority 105
+standby 1 preempt
+interface vlan 10
+ip address 10.1.0.2 255.255.255.0
+standby version 2
+standby 2 ip 10.1.0.1
+standby 2 priority 105
+standby 2 preempt
+interface vlan 20
+ip address 10.2.0.2 255.255.255.0
+standby version 2
+standby 3 ip 10.2.0.1
+interface vlan 40
+ip address 10.6.0.2 255.255.255.0
+standby version 2
+standby 4 ip 10.6.0.1
+exit
+do write
+
+#DSW-A2
+interface g1/1/1
+no switchport
+ip address 10.0.0.50 255.255.255.252
+interface g1/1/2
+no switchport
+ip address 10.0.0.66 255.255.255.252
+interface loopback0
+ip address 10.0.0.80 255.255.255.255
+interface vlan 99
+ip address 10.0.0.3 255.255.255.240
+standby version 2
+standby 1 ip 10.0.0.1
+interface vlan 10
+ip address 10.1.0.3 255.255.255.0
+standby version 2
+standby 2 ip 10.1.0.1
+interface vlan 20
+ip address 10.2.0.3 255.255.255.0
+standby version 2
+standby 3 ip 10.2.0.1
+standby 3 priority 105
+standby 3 preempt
+interface vlan 40
+ip address 10.6.0.3 255.255.255.0
+standby version 2
+standby 4 ip 10.6.0.1
+standby 4 priority 105
+standby 4 preempt
+exit
+do write
+
+#DSW-B1
+interface g1/1/1
+no switchport
+ip address 10.0.0.54 255.255.255.252
+interface g1/1/2
+no switchport
+ip address 10.0.0.70 255.255.255.252
+interface loopback0
+ip address 10.0.0.81 255.255.255.255
+interface vlan 99
+ip address 10.0.0.18 255.255.255.240
+standby version 2
+standby 1 ip 10.0.0.17
+standby 1 priority 105
+standby 1 preempt
+interface vlan 10
+ip address 10.3.0.2 255.255.255.0
+standby version 2
+standby 2 ip 10.3.0.1
+standby 2 priority 105
+standby 2 preempt
+interface vlan 20
+ip address 10.4.0.2 255.255.255.0
+standby version 2
+standby 3 ip 10.4.0.1
+interface vlan 30
+ip address 10.5.0.2 255.255.255.0
+standby version 2
+standby 4 ip 10.5.0.1
+exit
+do write
+
+#DSW-B2
+interface g1/1/1
+no switchport
+ip address 10.0.0.58 255.255.255.252
+interface g1/1/2
+no switchport
+ip address 10.0.0.74 255.255.255.252
+interface loopback0
+ip address 10.0.0.82 255.255.255.255
+interface vlan 99
+ip address 10.0.0.19 255.255.255.240
+standby version 2
+standby 1 ip 10.0.0.17
+interface vlan 10
+ip address 10.3.0.3 255.255.255.0
+standby version 2
+standby 2 ip 10.3.0.1
+interface vlan 20
+ip address 10.4.0.3 255.255.255.0
+standby version 2
+standby 3 ip 10.4.0.1
+standby 3 priority 105
+standby 3 preempt
+interface vlan 30
+ip address 10.5.0.3 255.255.255.0
+standby version 2
+standby 4 ip 10.5.0.1
+standby 4 priority 105
+standby 4 preempt
+exit
+do write
+
+#ASW-A1
+ip default-gateway 10.0.0.1
+interface vlan 99
+ip address 10.0.0.4 255.255.255.240
+exit
+do write
+
+#ASW-A2
+ip default-gateway 10.0.0.1
+interface vlan 99
+ip address 10.0.0.5 255.255.255.240
+exit
+do write
+
+#ASW-A3
+ip default-gateway 10.0.0.1
+interface vlan 99
+ip address 10.0.0.6 255.255.255.240
+exit
+do write
+
+#ASW-B1
+ip default-gateway 10.0.0.17
+interface vlan 99
+ip address 10.0.0.20 255.255.255.240
+exit
+do write
+
+#ASW-B2
+ip default-gateway 10.0.0.17
+interface vlan 99
+ip address 10.0.0.21 255.255.255.240
+exit
+do write
+
+#ASW-B3
+ip default-gateway 10.0.0.17
+interface vlan 99
+ip address 10.0.0.22 255.255.255.240
+exit
+do write
+
+#VERIFY RESULTS:
+show ip interface brief
+show running-config
+show cdp neighbor
+ping
+</pre>
+        </div>
+      </details>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 4, Rapid Spanning Tree</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 4 . paste-ready . <a href="mega-lab-configs/parts/part4.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#INFO ABOUT STEPS:
+#Step 2 - For ASW-A1 interface f0/2 connection with WLC1, use command &#x27;spanning-tree portfast trunk&#x27; to enable portfast on the trunk connection.
+
+#DISTRIBUTION SWITCHES
+spanning-tree mode rapid-pvst
+
+#DSW-A1
+spanning-tree vlan 10,99 priority 0
+spanning-tree vlan 20,40 priority 4096
+do write
+
+#DSW-A2
+spanning-tree vlan 10,99 priority 4096
+spanning-tree vlan 20,40 priority 0
+do write
+
+#DSW-B1
+spanning-tree vlan 10,99 priority 0
+spanning-tree vlan 20,30 priority 4096
+do write
+
+#DSW-B2
+spanning-tree vlan 10,99 priority 4096
+spanning-tree vlan 20,30 priority 0
+do write
+
+#ACCESS SWITCHES
+spanning-tree mode rapid-pvst
+interface f0/1
+spanning-tree portfast
+spanning-tree bpduguard enable
+exit
+do write
+
+#ASW-A1
+interface f0/2
+spanning-tree portfast trunk
+spanning-tree bpduguard enable
+exit
+do write
+
+#VERIFY RESULTS:
+show running-config
+show spanning-tree
+show spanning-tree vlan &lt;vlan ID&gt;</pre>
+        </div>
+      </details>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 5, Static and Dynamic Routing (OSPF)</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 5 . paste-ready . <a href="mega-lab-configs/parts/part5.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#INFO ABOUT STEPS:
+#Step 1c - Command &#x27;net 10.0.0.41 0.0.0.0 area 0&#x27; advertises only one the IP address of 10.0.0.41 in the ospf area 0 shared with other devices. A wildcard mask of 255.255.255.255 would advertise all addresses.
+#Step 2a - Command &#x27;ip route&#x27; sets a static route, where &quot;Recursive&quot; only specifies the next hop IP address and &quot;Directly connected&quot; specifies both the next hop IP address and the exit interface. Also, AD (administrative distance) default is 1 and is set with last number of the &#x27;ip route&#x27; command.
+
+#R1 - EDGE ROUTER
+router ospf 1
+router-id 10.0.0.76
+default-information originate
+passive-interface l0
+int l0
+ip ospf 1 area 0
+interface range g0/0-1
+ip ospf 1 area 0
+ip ospf network point-to-point
+exit
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+ip route 0.0.0.0 0.0.0.0 203.0.113.5 2
+do write
+
+#CORE SWITCHES
+router ospf 1
+passive-interface l0
+interface range g1/0/1,g1/1/1-4
+ip ospf network point-to-point
+exit
+do write
+
+#CSW1
+router ospf 1
+router-id 10.0.0.77
+net 10.0.0.41 0.0.0.0 area 0
+net 10.0.0.34 0.0.0.0 area 0
+net 10.0.0.45 0.0.0.0 area 0
+net 10.0.0.49 0.0.0.0 area 0
+net 10.0.0.53 0.0.0.0 area 0
+net 10.0.0.57 0.0.0.0 area 0
+net 10.0.0.77 0.0.0.0 area 0
+exit
+do write
+
+#CSW2
+router ospf 1
+router-id 10.0.0.78
+net 10.0.0.42 0.0.0.0 area 0
+net 10.0.0.38 0.0.0.0 area 0
+net 10.0.0.61 0.0.0.0 area 0
+net 10.0.0.65 0.0.0.0 area 0
+net 10.0.0.69 0.0.0.0 area 0
+net 10.0.0.73 0.0.0.0 area 0
+net 10.0.0.78 0.0.0.0 area 0
+exit
+do write
+
+#DISTRIBUTION SWITCHES
+router ospf 1
+passive-interface l0
+passive-interface vlan 10
+passive-interface vlan 20
+interface range g1/1/1-2
+ip ospf network point-to-point
+exit
+do write
+
+#DSW-A*
+router ospf 1
+passive-interface vlan 40
+exit
+do write
+
+#DSW-A1
+router ospf 1
+router-id 10.0.0.79
+net 10.0.0.46 0.0.0.0 area 0
+net 10.0.0.62 0.0.0.0 area 0
+net 10.0.0.79 0.0.0.0 area 0
+net 10.1.0.2 0.0.0.0 area 0
+net 10.2.0.2 0.0.0.0 area 0
+net 10.6.0.2 0.0.0.0 area 0
+net 10.0.0.2 0.0.0.0 area 0
+exit
+do write
+
+#DSW-A2
+router ospf 1
+router-id 10.0.0.80
+net 10.0.0.50 0.0.0.0 area 0
+net 10.0.0.66 0.0.0.0 area 0
+net 10.0.0.80 0.0.0.0 area 0
+net 10.1.0.3 0.0.0.0 area 0
+net 10.2.0.3 0.0.0.0 area 0
+net 10.6.0.3 0.0.0.0 area 0
+net 10.0.0.3 0.0.0.0 area 0
+exit
+do write
+
+#DSW-B*
+router ospf 1
+passive-interface vlan 30
+exit
+do write
+
+#DSW-B1
+router ospf 1
+router-id 10.0.0.81
+net 10.0.0.54 0.0.0.0 area 0
+net 10.0.0.70 0.0.0.0 area 0
+net 10.0.0.81 0.0.0.0 area 0
+net 10.3.0.2 0.0.0.0 area 0
+net 10.4.0.2 0.0.0.0 area 0
+net 10.5.0.2 0.0.0.0 area 0
+net 10.0.0.18 0.0.0.0 area 0
+exit
+do write
+
+#DSW-B2
+router ospf 1
+router-id 10.0.0.82
+net 10.0.0.58 0.0.0.0 area 0
+net 10.0.0.74 0.0.0.0 area 0
+net 10.0.0.82 0.0.0.0 area 0
+net 10.3.0.3 0.0.0.0 area 0
+net 10.4.0.3 0.0.0.0 area 0
+net 10.5.0.3 0.0.0.0 area 0
+net 10.0.0.19 0.0.0.0 area 0
+exit
+do write
+
+#VERIFY RESULTS:
+show running-config
+show ip ospf
+show ip ospf neigh
+show ip ospf interface
+show ip interface breif
+show interface
+ping
+show ip route
+show ip int br | exclude unassign
+</pre>
+        </div>
+      </details>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 6, Network Services</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 6 . paste-ready . <a href="mega-lab-configs/parts/part6.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#INFO ABOUT STEPS:
+#Step 3 - Add DNS entries in the GUI services tab of SVR1. 
+For an &quot;A Record&quot;: Name = jonsitlab.com, Address = [IP address]. 
+For a &quot;CNAME&quot;: Name = www.jonsitlab.com, Host Name = jonsitlab.com.
+#Steps 5 &amp; 6 - Verify results at the end of Part 6.
+#Step 9b - DO THIS STEP 9 LAST, SINCE LOADING TIMES ARE LONG! Find the new FTP file in SRV1 services tab, copy and paste to the command.
+#Step 10b - 0.0.0.255 wildcard mask = /24 subnet.
+#Step 11 - For SRV1 to ping google.com, the DNS server must be specified as itself in the services tab.
+
+#ALL DEVICES
+ip domain name jonsitlab.com
+ip name-server 10.5.0.4
+ntp authentication-key 1 md5 ccna
+ntp trusted-key 1
+snmp-server community SNMPSTRING ro
+logging 10.5.0.4
+logging trap debugging
+logging buffered 8192
+crypto key generate rsa
+4096
+ip ssh version 2
+access-list 1 permit 10.1.0.0 0.0.0.255
+line vty 0 15
+access-class 1 in
+login local
+transport input ssh
+logging synchronous
+exit
+do write
+
+#R1 - EDGE ROUTER
+ip dhcp excluded-address 10.0.0.1 10.0.0.10
+ip dhcp excluded-address 10.1.0.1 10.0.0.10
+ip dhcp excluded-address 10.2.0.1 10.0.0.10
+ip dhcp excluded-address 10.0.0.17 10.0.0.26
+ip dhcp excluded-address 10.3.0.1 10.0.0.10
+ip dhcp excluded-address 10.4.0.1 10.0.0.10
+ip dhcp excluded-address 10.6.0.1 10.0.0.10
+ip dhcp pool A-Mgmt
+network 10.0.0.0 255.255.255.240
+default-router 10.0.0.1
+domain-name jonsitlab.com
+dns-server 10.5.0.4
+option 43 ip 10.0.0.7
+ip dhcp pool A-PC
+network 10.1.0.0 255.255.255.0
+default-router 10.1.0.1
+domain-name jonsitlab.com
+dns-server 10.5.0.4
+ip dhcp pool A-Phone
+network 10.2.0.0 255.255.255.0
+default-router 10.2.0.1
+domain-name jonsitlab.com
+dns-server 10.5.0.4
+ip dhcp pool B-Mgmt
+network 10.0.0.16 255.255.255.240
+default-router 10.0.0.17
+domain-name jonsitlab.com
+dns-server 10.5.0.4
+option 43 ip 10.0.0.7
+ip dhcp pool B-PC
+network 10.3.0.0 255.255.255.0
+default-router 10.3.0.1
+domain-name jonsitlab.com
+dns-server 10.5.0.4
+ip dhcp pool B-Phone
+network 10.4.0.0 255.255.255.0
+default-router 10.4.0.1
+domain-name jonsitlab.com
+dns-server 10.5.0.4
+ip dhcp pool Wi-Fi
+network 10.6.0.0 255.255.255.0
+default-router 10.6.0.1
+domain-name jonsitlab.com
+dns-server 10.5.0.4
+exit
+ntp master 5
+ntp server 216.239.35.0
+ntp authentication-key 1 md5 ccna
+ntp trusted-key 1
+ip ftp username cisco
+ip ftp password cisco
+ip nat inside source static 10.5.0.4 203.0.113.113
+interface range g0/0/0,g0/1/0
+ip nat outside
+interface range g0/0-1
+ip nat inside
+exit
+access-list 2 permit 10.1.0.0 0.0.0.255
+access-list 2 permit 10.2.0.0 0.0.0.255
+access-list 2 permit 10.3.0.0 0.0.0.255
+access-list 2 permit 10.4.0.0 0.0.0.255
+access-list 2 permit 10.6.0.0 0.0.0.255
+ip nat pool POOL1 203.0.113.200 203.0.113.207 netmask 255.255.255.248
+ip nat inside source list 2 pool POOL1 overload
+interface g0/0/0
+shutdown
+exit
+router ospf 1
+no default-information originate
+default-information originate
+exit
+no cdp run
+lldp run
+do write
+
+#CORE SWITCHES
+ntp server 10.0.0.76 key 1
+no cdp run
+lldp run
+do write
+
+#DISTRIBUTION SWITCHES
+interface vlan 10
+ip helper-address 10.0.0.76
+interface vlan 20
+ip helper-address 10.0.0.76
+interface vlan 99
+ip helper-address 10.0.0.76
+exit
+ntp server 10.0.0.76 key 1
+no cdp run
+lldp run
+do write
+
+#DSW-A*
+interface vlan 40
+ip helper-address 10.0.0.76
+exit
+do write
+
+#DSW-B*
+interface vlan 30
+ip helper-address 10.0.0.76
+exit
+do write
+
+#ACCESS SWITCHES
+ntp server 10.0.0.76 key 1
+no cdp run
+lldp run
+interface f0/1
+no lldp transmit
+exit
+do write
+
+#STEP 9 - R1 EDGE ROUTER (DO THIS STEP LAST, SINCE LOADING TIMES ARE LONG)
+do copy ftp flash 
+10.5.0.4
+c2900-universalk9-mz.SPA.155-3.M4a.bin
+#PRESS ENTER TO ACCEPT DEFAULT LOCATION, THEN WAIT A LONG TIME FOR THE DOWNLOAD
+boot system flash:c2900-universalk9-mz.SPA.155-3.M4a.bin
+#WAIT FOR BOOT
+reload
+#WAIT FOR SYSTEM TO RELOAD, THEN FIND COPY AND PASTE OLD FLASH IMAGE
+delete flash:c2900-universalk9-mz.SPA.151-4.M4.bin
+exit
+do write
+
+#VERIFY RESULTS (ROUTER &amp; SWITCHES):
+show running-config
+show ip dhcp binding
+show ip dhcp pool
+show logging
+show interface
+ping
+show ip route
+show flash
+show version
+show ip ssh
+
+#VERIFY RESULTS (PCs &amp; SRV1):
+ipconfig /renew
+ipconfig
+ping [ip address | FQDN] (try default gateway, internet addresses, etc.)
+ssh -l cisco 10.0.0.76
+</pre>
+        </div>
+      </details>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 7, Security (ACL / port-sec / snooping / DAI)</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 7 . paste-ready . <a href="mega-lab-configs/parts/part7.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#INFO ABOUT STEPS:
+#Step 1 - Extended ACLs should be applied as close to source, while Standard ACLs should be applied as close to destination.
+#Step 2 - Phone and PCs are 2 MAC addresses, LWAP is one MAC address, SRV1 is one MAC address (typical all VMs on a server have their own MAC address). 2c - &#x27;mac-address sticky&#x27;
+
+#DSW-A*
+ip access-list extended OfficeA_to_OfficeB
+permit icmp 10.1.0.0 0.0.0.255 10.3.0.0 0.0.0.255
+deny ip 10.1.0.0 0.0.0.255 10.3.0.0 0.0.0.255
+permit ip any any
+int vlan 10
+ip access-group OfficeA_to_OfficeB in
+exit
+do write
+
+#ASW-A1
+interface f0/1
+switchport port-security
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+ip dhcp snooping
+ip dhcp snooping vlan 10,20,40,99
+no ip dhcp snooping information option
+int range g0/1-2
+ip dhcp snooping trust
+int f0/1
+ip dhcp snooping limit rate 15
+int f0/2
+ip dhcp snooping limit rate 100
+ip arp inspection vlan 10,20,40,99
+ip arp inspection validate dst-mac src-mac ip
+int range g0/1-2
+ip arp inspection trust
+exit
+do write
+
+#ASW-A2
+interface f0/1
+switchport port-security
+switchport port-security maximum 2
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+ip dhcp snooping
+ip dhcp snooping vlan 10,20,40,99
+no ip dhcp snooping information option
+int range g0/1-2
+ip dhcp snooping trust
+int f0/1
+ip dhcp snooping limit rate 15
+ip arp inspection vlan 10,20,40,99
+ip arp inspection validate dst-mac src-mac ip
+int range g0/1-2
+ip arp inspection trust
+exit
+do write
+
+ASW-A3
+interface f0/1
+switchport port-security
+switchport port-security maximum 2
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+ip dhcp snooping
+ip dhcp snooping vlan 10,20,40,99
+no ip dhcp snooping information option
+int range g0/1-2
+ip dhcp snooping trust
+int f0/1
+ip dhcp snooping limit rate 15
+ip arp inspection vlan 10,20,40,99
+ip arp inspection validate dst-mac src-mac ip
+int range g0/1-2
+ip arp inspection trust
+exit
+do write
+
+ASW-B1
+interface f0/1
+switchport port-security
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+ip dhcp snooping
+ip dhcp snooping vlan 10,20,30,99
+no ip dhcp snooping information option
+int range g0/1-2
+ip dhcp snooping trust
+int f0/1
+ip dhcp snooping limit rate 15
+ip arp inspection vlan 10,20,30,99
+ip arp inspection validate dst-mac src-mac ip
+int range g0/1-2
+ip arp inspection trust
+exit
+do write
+
+ASW-B2
+interface f0/1
+switchport port-security
+switchport port-security maximum 2
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+ip dhcp snooping
+ip dhcp snooping vlan 10,20,30,99
+no ip dhcp snooping information option
+int range g0/1-2
+ip dhcp snooping trust
+int f0/1
+ip dhcp snooping limit rate 15
+ip arp inspection vlan 10,20,30,99
+ip arp inspection validate dst-mac src-mac ip
+int range g0/1-2
+ip arp inspection trust
+exit
+do write
+
+ASW-B3
+interface f0/1
+switchport port-security
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+ip dhcp snooping
+ip dhcp snooping vlan 10,20,30,99
+no ip dhcp snooping information option
+int range g0/1-2
+ip dhcp snooping trust
+int f0/1
+ip dhcp snooping limit rate 15
+ip arp inspection vlan 10,20,30,99
+ip arp inspection validate dst-mac src-mac ip
+int range g0/1-2
+ip arp inspection trust
+exit
+do write
+
+#VERIFY RESULTS (ROUTER &amp; SWITCHES):
+show running-config
+show access-lists
+show port-security interface f0/1
+show ip dhcp snooping
+show ip arp inspection
+</pre>
+        </div>
+      </details>
+      <details style="margin-bottom:var(--s-sm)">
+        <summary style="font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--accent);padding:var(--s-sm) 0">Part 8, IPv6</summary>
+        <div class="cmd-block" style="margin-top:var(--s-xs)">
+          <div class="cmd-device">part 8 . paste-ready . <a href="mega-lab-configs/parts/part8.txt" style="color:#a8a29e" target="_blank">raw file</a></div>
+          <pre>#INFO ABOUT STEPS:
+#Step 1e - &#x27;ipv6 enable&#x27; generates a link-local ipv6 address for an interface, allowing ipv6 traffic without specifying an ipv6 address.
+#Step 2b - This is the redundant backup connection to the internet. AD is 2 so that the primary ipv6 route is prefered.
+
+#R1 - EDGE ROUTER
+ipv6 unicast-routing
+int g0/0/0
+ipv6 add 2001:db8:a::2/64
+int g0/1/0
+ipv6 add 2001:db8:b::2/64
+int g0/0
+ipv6 add 2001:db8:a1::/64 eui-64
+int g0/1
+ipv6 add 2001:db8:a2::/64 eui-64
+exit
+ipv6 route ::/0 2001:db8:a::1
+ipv6 route ::/0 g0/1/0 2001:db8:b::1 2
+exit
+do write
+
+#CSW1
+ipv6 unicast-routing
+int g1/0/1
+ipv6 add 2001:db8:a1::/64 eui-64
+int po1
+ipv6 enable
+exit
+do write
+
+#CSW2
+ipv6 unicast-routing
+int g1/0/1
+ipv6 add 2001:db8:a2::/64 eui-64
+int po1
+ipv6 enable
+exit
+do write
+
+#VERIFY RESULTS (ROUTER &amp; SWITCHES):
+show running-config
+show ipv6 int br
+</pre>
+        </div>
+      </details>
+      <div class="lab-section-title" style="margin-top:var(--s-2xl)">Per-device answer-key startup-configs</div>
+      <p class="step-desc">Final saved config for every device. Compare yours against these if Check Results docks points.</p>
+      <table class="device-table"><thead><tr><th>Layer</th><th>Device configs</th></tr></thead><tbody>
+        <tr><td>Edge router</td><td><a href="mega-lab-configs/startup-configs/R1.txt" target="_blank"><code>R1</code></a></td></tr>
+        <tr><td>Core (L3)</td><td><a href="mega-lab-configs/startup-configs/CSW1.txt" target="_blank"><code>CSW1</code></a> <a href="mega-lab-configs/startup-configs/CSW2.txt" target="_blank"><code>CSW2</code></a></td></tr>
+        <tr><td>Distribution (L3)</td><td><a href="mega-lab-configs/startup-configs/DSW-A1.txt" target="_blank"><code>DSW-A1</code></a> <a href="mega-lab-configs/startup-configs/DSW-A2.txt" target="_blank"><code>DSW-A2</code></a> <a href="mega-lab-configs/startup-configs/DSW-B1.txt" target="_blank"><code>DSW-B1</code></a> <a href="mega-lab-configs/startup-configs/DSW-B2.txt" target="_blank"><code>DSW-B2</code></a></td></tr>
+        <tr><td>Access (L2)</td><td><a href="mega-lab-configs/startup-configs/ASW-A1.txt" target="_blank"><code>ASW-A1</code></a> <a href="mega-lab-configs/startup-configs/ASW-A2.txt" target="_blank"><code>ASW-A2</code></a> <a href="mega-lab-configs/startup-configs/ASW-A3.txt" target="_blank"><code>ASW-A3</code></a> <a href="mega-lab-configs/startup-configs/ASW-B1.txt" target="_blank"><code>ASW-B1</code></a> <a href="mega-lab-configs/startup-configs/ASW-B2.txt" target="_blank"><code>ASW-B2</code></a> <a href="mega-lab-configs/startup-configs/ASW-B3.txt" target="_blank"><code>ASW-B3</code></a></td></tr>
+      </tbody></table>
+    </section>
+
     <!-- Verification -->
     <section class="lab-section">
       <div class="lab-section-title">Verification checkpoints</div>
