@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<title>Watch a Packet Grow — Encapsulation across a routed VLAN path (CCNA 200-301)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:'Space Grotesk',sans-serif;color:#e8e4de}
+canvas{display:block}
+
+/* ---- top chrome ---- */
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none}
+.back-link{position:fixed;top:16px;left:16px;z-index:300;font-size:0.82rem;color:#a8a29e;text-decoration:none;display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;backdrop-filter:blur(12px);transition:color 0.2s}
+.back-link:hover{color:#e8e4de}
+
+.step-indicator{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:300;display:flex;gap:6px;padding:8px 16px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:20px;backdrop-filter:blur(12px);max-width:calc(100% - 360px);flex-wrap:wrap;justify-content:center}
+.step-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);transition:all 0.4s ease;cursor:pointer}
+.step-dot.active{background:#5eead4;box-shadow:0 0 8px rgba(94,234,212,0.5)}
+.step-dot.done{background:#2dd4bf}
+
+.top-right-ctrls{position:fixed;top:16px;right:16px;z-index:300;display:flex;gap:8px}
+.tr-btn{font-size:0.78rem;color:#a8a29e;padding:6px 14px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;cursor:pointer;font-family:inherit;backdrop-filter:blur(12px);transition:all 0.2s}
+.tr-btn:hover{color:#e8e4de;border-color:rgba(255,255,255,0.15)}
+.tr-btn.active{color:#fbbf24;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08)}
+.tr-btn.free.active{color:#5eead4;border-color:rgba(94,234,212,0.3);background:rgba(94,234,212,0.06)}
+
+.speed-ctrl{position:fixed;bottom:16px;left:16px;z-index:300;display:flex;gap:4px;padding:4px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;backdrop-filter:blur(12px)}
+.speed-btn{font-size:0.72rem;color:#a8a29e;background:none;border:1px solid transparent;border-radius:4px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.speed-btn:hover{color:#e8e4de}
+.speed-btn.active{color:#5eead4;border-color:rgba(94,234,212,0.2);background:rgba(94,234,212,0.06)}
+.speed-btn.play{color:#5eead4;border-color:rgba(94,234,212,0.25);background:rgba(94,234,212,0.06);font-weight:600}
+.speed-btn.play.playing{color:#fbbf24;border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08)}
+.speed-sep{align-self:center;font-size:0.6rem;color:#57534e;text-transform:uppercase;letter-spacing:0.06em;padding:0 4px}
+
+/* ---- narration ---- */
+.narration{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:300;width:min(560px,calc(100% - 32px));background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px 14px;backdrop-filter:blur(16px)}
+.narr-step{font-size:0.66rem;color:#5eead4;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-weight:600}
+.narr-title{font-size:1.1rem;font-weight:600;margin-bottom:8px;line-height:1.3}
+.narr-text{font-size:0.88rem;color:#cfcabf;line-height:1.65;margin-bottom:8px;white-space:pre-line}
+.narr-tldr{font-size:0.78rem;color:#d4a017;background:rgba(212,160,23,0.06);border:1px solid rgba(212,160,23,0.12);border-radius:5px;padding:7px 10px;margin-bottom:12px;line-height:1.5}
+.narr-btns{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.narr-btn{font-size:0.78rem;padding:6px 16px;border-radius:5px;cursor:pointer;font-family:inherit;border:none;transition:all 0.2s}
+.narr-back{background:none;color:#78716c;border:1px solid rgba(255,255,255,0.06)}
+.narr-back:hover{color:#a8a29e}
+.narr-back:disabled{opacity:0.3;cursor:default}
+.narr-next{background:rgba(94,234,212,0.14);color:#5eead4;border:1px solid rgba(94,234,212,0.22)}
+.narr-next:hover{background:rgba(94,234,212,0.24)}
+
+/* ---- PDU inspector (right) ---- */
+.pkt-inspector{position:fixed;top:64px;right:16px;z-index:280;width:330px;max-height:calc(100vh - 90px);overflow-y:auto;background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 14px 16px;backdrop-filter:blur(14px);font-size:0.75rem}
+.pkt-inspector h4{font-size:0.7rem;color:#78716c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px}
+.pdu-name-big{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:2px;transition:color 0.4s}
+.pdu-sub{font-size:0.7rem;color:#78716c;margin-bottom:10px}
+.layer-block{border-radius:6px;margin-bottom:7px;padding:8px 10px;border:1px solid;animation:wrapIn 0.5s cubic-bezier(0.16,1,0.3,1)}
+@keyframes wrapIn{from{transform:scaleY(0.92);opacity:0}to{transform:scaleY(1);opacity:1}}
+.layer-block .lb-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.layer-block .lb-title{font-weight:600;font-size:0.74rem;letter-spacing:0.02em}
+.layer-block .lb-bytes{font-family:'JetBrains Mono',monospace;font-size:0.66rem;opacity:0.8}
+.fld{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:0.66rem;line-height:1.55;padding:1px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.fld:last-child{border-bottom:none}
+.fld .fk{color:#a8a29e}
+.fld .fv{color:#e8e4de;text-align:right}
+.fld.locked .fv{color:#34d399}
+.fld.changed .fv{color:#fbbf24}
+.fld .lock{font-size:0.6rem;color:#34d399;margin-right:3px}
+.lb-data{background:rgba(124,58,237,0.12);border-color:rgba(124,58,237,0.35);color:#c4b5fd}
+.lb-l4{background:rgba(37,99,235,0.12);border-color:rgba(37,99,235,0.35);color:#93c5fd}
+.lb-l3{background:rgba(5,150,105,0.12);border-color:rgba(5,150,105,0.4);color:#6ee7b7}
+.lb-l2{background:rgba(217,119,6,0.12);border-color:rgba(217,119,6,0.4);color:#fcd34d}
+.lb-tag{background:rgba(45,212,191,0.14);border-color:rgba(45,212,191,0.45);color:#5eead4}
+.lb-fcs{background:rgba(217,119,6,0.07);border-color:rgba(217,119,6,0.28);color:#fcd34d}
+.recomp{font-size:0.6rem;color:#fbbf24;font-style:italic}
+.l4toggle{display:flex;gap:4px;margin-bottom:8px}
+.l4toggle button{flex:1;font-size:0.66rem;font-family:inherit;color:#a8a29e;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:4px;padding:3px;cursor:pointer;transition:all 0.2s}
+.l4toggle button.on{color:#93c5fd;border-color:rgba(37,99,235,0.4);background:rgba(37,99,235,0.12)}
+
+/* ---- size meter (left) ---- */
+.size-meter{position:fixed;top:64px;left:16px;z-index:280;width:200px;background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;backdrop-filter:blur(14px)}
+.size-meter h4{font-size:0.68rem;color:#78716c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
+.size-val{font-family:'JetBrains Mono',monospace;font-size:2.1rem;font-weight:500;color:#5eead4;line-height:1;transition:color 0.3s}
+.size-unit{font-size:0.8rem;color:#78716c;margin-left:4px}
+.size-delta{font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:#fbbf24;height:1.1em;margin-top:4px;transition:opacity 0.3s}
+.size-bar{height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;margin-top:10px}
+.size-bar .fill{height:100%;background:linear-gradient(90deg,#7C3AED,#2563EB,#059669,#D97706,#2dd4bf);border-radius:4px;transition:width 0.5s cubic-bezier(0.16,1,0.3,1)}
+.size-steps{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:#57534e;margin-top:9px;line-height:1.7}
+.size-steps span.on{color:#5eead4}
+.mtu-note{font-size:0.62rem;color:#57534e;margin-top:9px;line-height:1.45;border-top:1px solid rgba(255,255,255,0.05);padding-top:7px}
+.mtu-note b{color:#6ee7b7}
+
+/* ---- OSI / TCP-IP model ladder (left, under size meter) ---- */
+.osi-map{position:fixed;top:312px;left:16px;z-index:280;width:230px;max-height:calc(100vh - 340px);overflow-y:auto;background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 12px 11px;backdrop-filter:blur(14px)}
+.osi-map h4{font-size:0.68rem;color:#78716c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px}
+.osi-map .om-sub{font-size:0.58rem;color:#57534e;margin-bottom:8px;display:flex;justify-content:space-between}
+.om-row{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:6px;padding:3px 5px;border-radius:5px;border-left:3px solid transparent;margin-bottom:2px;transition:all 0.3s}
+.om-row .om-n{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:#57534e;text-align:center}
+.om-row .om-name{font-size:0.66rem;color:#a8a29e;line-height:1.2}
+.om-row .om-name small{display:block;font-size:0.54rem;color:#57534e}
+.om-row .om-pdu{font-family:'JetBrains Mono',monospace;font-size:0.56rem;padding:1px 5px;border-radius:3px;white-space:nowrap;border:1px solid}
+.om-row.on{background:rgba(94,234,212,0.08)}
+.om-row.on .om-name{color:#e8e4de;font-weight:600}
+.om-row.on .om-n{color:#5eead4}
+.om-tcp{font-size:0.54rem;color:#57534e;text-transform:uppercase;letter-spacing:0.05em;margin:6px 0 2px;padding-left:2px}
+
+/* ---- ledger (bottom of topology) ---- */
+.ledger{position:fixed;top:332px;left:256px;z-index:270;display:flex;gap:8px;font-size:0.64rem;flex-wrap:wrap;max-width:calc(100% - 640px)}
+.led-col{background:rgba(10,10,15,0.9);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 11px;backdrop-filter:blur(12px)}
+.led-col h5{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px}
+.led-const h5{color:#34d399}
+.led-chg h5{color:#fbbf24}
+.led-row{font-family:'JetBrains Mono',monospace;font-size:0.62rem;line-height:1.55;color:#a8a29e;white-space:nowrap}
+.led-const .led-row{color:#86efac}
+.led-row .lk{color:#34d399;font-size:0.58rem}
+.led-chg .led-row.hot{color:#fde047;text-shadow:0 0 6px rgba(251,191,36,0.4)}
+
+/* ---- ARP side panel ---- */
+.arp-panel{position:fixed;top:64px;left:230px;z-index:285;width:260px;background:rgba(10,10,15,0.95);border:1px solid rgba(94,234,212,0.2);border-radius:10px;padding:13px;backdrop-filter:blur(14px);font-size:0.72rem;display:none}
+.arp-panel.show{display:block;animation:wrapIn 0.4s cubic-bezier(0.16,1,0.3,1)}
+.arp-panel h4{font-size:0.68rem;color:#5eead4;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
+.arp-line{font-family:'JetBrains Mono',monospace;font-size:0.64rem;line-height:1.7;color:#a8a29e}
+.arp-line .q{color:#fbbf24}
+.arp-line .a{color:#6ee7b7}
+
+/* ---- callouts / toggles on canvas ---- */
+.callout-chip{position:fixed;z-index:275;font-size:0.66rem;background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;backdrop-filter:blur(12px);color:#a8a29e;line-height:1.45;max-width:230px}
+.callout-chip b{color:#5eead4}
+.callout-chip.amber b{color:#fbbf24}
+
+.opt-toggles{position:fixed;bottom:60px;left:16px;z-index:300;display:flex;flex-direction:column;gap:5px}
+.opt-btn{font-size:0.68rem;color:#a8a29e;padding:5px 11px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;cursor:pointer;font-family:inherit;backdrop-filter:blur(12px);transition:all 0.2s;text-align:left}
+.opt-btn:hover{color:#e8e4de;border-color:rgba(255,255,255,0.15)}
+.opt-btn.on{color:#5eead4;border-color:rgba(94,234,212,0.3);background:rgba(94,234,212,0.06)}
+
+/* ---- end card ---- */
+.endcard{position:fixed;inset:0;z-index:290;background:rgba(10,10,15,0.96);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;backdrop-filter:blur(10px);padding:24px;overflow-y:auto}
+.endcard.show{display:flex;animation:wrapIn 0.5s cubic-bezier(0.16,1,0.3,1)}
+.endcard h1{font-size:1.8rem;font-weight:700;margin-bottom:6px}
+.endcard h1 span{color:#5eead4}
+.endcard .rules{display:flex;gap:16px;margin:22px 0;flex-wrap:wrap;justify-content:center;max-width:900px}
+.rule-box{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 18px;width:250px;text-align:left}
+.rule-box .num{font-family:'JetBrains Mono',monospace;font-size:1.4rem;color:#5eead4;font-weight:600}
+.rule-box .rt{font-size:0.92rem;font-weight:600;margin:4px 0 6px}
+.rule-box .rd{font-size:0.78rem;color:#a8a29e;line-height:1.55}
+.endledger{display:flex;gap:18px;margin-bottom:18px;font-size:0.74rem;flex-wrap:wrap;justify-content:center}
+.endledger .col{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:11px 16px;text-align:left}
+.endledger .col h5{font-size:0.66rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px}
+.endledger .col.c h5{color:#34d399}
+.endledger .col.h h5{color:#fbbf24}
+.endledger .col div{font-family:'JetBrains Mono',monospace;font-size:0.66rem;line-height:1.6;color:#a8a29e}
+.endmtu{font-size:0.78rem;color:#78716c;margin-bottom:18px;max-width:560px;line-height:1.6}
+.endmtu b{color:#6ee7b7}
+.crosslinks{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:760px}
+.cl-btn{font-size:0.76rem;color:#a8a29e;text-decoration:none;padding:8px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:7px;transition:all 0.2s}
+.cl-btn:hover{color:#5eead4;border-color:rgba(94,234,212,0.3);background:rgba(94,234,212,0.05)}
+.endcard .replay{margin-top:20px;padding:11px 30px;font-size:0.88rem;font-weight:600;color:#0a0a0f;background:#5eead4;border:none;border-radius:8px;cursor:pointer;font-family:inherit}
+.endcard .replay:hover{background:#2dd4bf}
+
+/* ---- beginner mode hides technical panels ---- */
+body.beginner .pkt-inspector .layer-block .fld,
+body.beginner .size-steps,
+body.beginner .mtu-note{display:none}
+body.beginner .narr-tldr{display:none}
+
+@media(max-width:900px){
+  .pkt-inspector{width:260px}
+  .size-meter{width:160px}
+  .osi-map{width:188px}
+  .arp-panel{left:185px;width:220px}
+  .ledger{left:212px;max-width:calc(100% - 500px)}
+  .step-indicator{max-width:calc(100% - 290px)}
+}
+@media(max-height:740px){
+  .ledger{display:none}
+}
+@media(max-height:620px){
+  .osi-map{display:none}
+}
+@media(max-width:680px){
+  .pkt-inspector{display:none}
+  .size-meter{width:140px}
+  .osi-map{display:none}
+  .ledger{display:none}
+  .arp-panel{left:165px}
+  .step-indicator{max-width:calc(100% - 200px)}
+  .narration{width:calc(100% - 24px)}
+}
+</style>
+</head>
+<body>
+<div class="top-nav"></div>
+<a class="back-link" href="core.html">&larr; Core Topics</a>
+<div class="step-indicator" id="stepIndicator"></div>
+<div class="top-right-ctrls">
+  <button class="tr-btn free" id="freeLookBtn">Free Look</button>
+  <button class="tr-btn" id="beginnerBtn">Beginner</button>
+</div>
+
+<canvas id="stage"></canvas>
+
+<!-- size meter -->
+<div class="size-meter" id="sizeMeter">
+  <h4>Running size</h4>
+  <div><span class="size-val" id="sizeVal">6</span><span class="size-unit">bytes</span></div>
+  <div class="size-delta" id="sizeDelta"></div>
+  <div class="size-bar"><div class="fill" id="sizeFill" style="width:9%"></div></div>
+  <div class="size-steps" id="sizeSteps">
+    <span data-s="6">Data&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;6&nbsp;B</span><br>
+    <span data-s="26">+20 TCP&nbsp;26 B</span><br>
+    <span data-s="46">+20 IP&nbsp;&nbsp;46 B</span><br>
+    <span data-s="64">+18 Eth&nbsp;64 B</span><br>
+    <span data-s="68">+4 tag&nbsp;&nbsp;68 B</span>
+  </div>
+  <div class="mtu-note">MTU = <b>1500 B</b> = the IP packet (header+data). Eth 14 + FCS 4 + tag 4 sit outside it. Full frame on wire = 1518 B untagged / 1522 B tagged. This 46 B packet: <b>fits, no fragment.</b></div>
+</div>
+
+<!-- OSI + TCP/IP model ladder -->
+<div class="osi-map" id="osiMap">
+  <h4>Where am I in the stack?</h4>
+  <div class="om-sub"><span>OSI (7)</span><span>TCP/IP (4) &middot; PDU</span></div>
+  <div id="osiRows"></div>
+</div>
+
+<!-- PDU inspector -->
+<div class="pkt-inspector" id="pktInspector">
+  <h4>PDU Inspector</h4>
+  <div class="pdu-name-big" id="pduName" style="color:#7C3AED">DATA</div>
+  <div class="pdu-sub" id="pduSub">Layer 7 — application payload</div>
+  <div class="l4toggle" id="l4toggle" style="display:none">
+    <button id="tcpBtn" class="on">TCP 20B</button>
+    <button id="udpBtn">UDP 8B</button>
+  </div>
+  <div id="layerStack"></div>
+</div>
+
+<!-- ARP panel -->
+<div class="arp-panel" id="arpPanel">
+  <h4>ARP — find the gateway MAC</h4>
+  <div class="arp-line"><span class="q">Request (broadcast):</span><br>dst ff:ff:ff:ff:ff:ff<br>"who has 10.1.10.1?"</div>
+  <div class="arp-line" style="margin-top:8px"><span class="a">Reply (unicast):</span><br>R1 is at 11:11:11:11:11:11</div>
+  <div class="arp-line" style="margin-top:8px;color:#78716c">Off-subnet, so PC-A asks for the GATEWAY MAC, not PC-B.</div>
+</div>
+
+<!-- ledger -->
+<div class="ledger" id="ledger">
+  <div class="led-col led-const">
+    <h5>Constant end to end</h5>
+    <div class="led-row"><span class="lk">&#128274;</span> Src IP 10.1.10.10</div>
+    <div class="led-row"><span class="lk">&#128274;</span> Dst IP 10.2.10.20</div>
+    <div class="led-row"><span class="lk">&#128274;</span> Src Port 50000</div>
+    <div class="led-row"><span class="lk">&#128274;</span> Dst Port 80</div>
+    <div class="led-row"><span class="lk">&#128274;</span> App data (GET /)</div>
+  </div>
+  <div class="led-col led-chg">
+    <h5>Changes each hop</h5>
+    <div class="led-row" data-chg="smac">Src MAC</div>
+    <div class="led-row" data-chg="dmac">Dst MAC</div>
+    <div class="led-row" data-chg="ttl">TTL</div>
+    <div class="led-row" data-chg="ipck">IP checksum</div>
+    <div class="led-row" data-chg="fcs">FCS</div>
+    <div class="led-row" data-chg="tag">802.1Q tag</div>
+  </div>
+</div>
+
+<!-- callouts -->
+<div class="callout-chip amber" id="ecCallout" style="display:none"></div>
+<div class="callout-chip" id="mtuCallout" style="display:none"></div>
+
+<!-- optional toggles -->
+<div class="opt-toggles">
+  <button class="opt-btn" id="ecBtn">EtherChannel callout</button>
+  <button class="opt-btn" id="mtuBtn">MTU: what if 4000 B?</button>
+</div>
+
+<!-- play + speed -->
+<div class="speed-ctrl">
+  <button class="speed-btn play" id="playBtn" aria-pressed="false" title="Auto-play the scenes">&#9654; Play</button>
+  <span class="speed-sep">speed</span>
+  <button class="speed-btn" data-spd="0.5">0.5x</button>
+  <button class="speed-btn active" data-spd="1">1x</button>
+  <button class="speed-btn" data-spd="2">2x</button>
+</div>
+
+<!-- narration -->
+<div class="narration" id="narration">
+  <div class="narr-step" id="narrStep"></div>
+  <div class="narr-title" id="narrTitle"></div>
+  <div class="narr-text" id="narrText"></div>
+  <div class="narr-tldr" id="narrTldr"></div>
+  <div class="narr-btns">
+    <button class="narr-btn narr-back" id="backBtn">&larr; Back</button>
+    <button class="narr-btn narr-next" id="nextBtn">Next &rarr;</button>
+  </div>
+</div>
+
+<!-- end card -->
+<div class="endcard" id="endcard">
+  <h1>Three rules to <span>remember</span></h1>
+  <div class="rules">
+    <div class="rule-box"><div class="num">1</div><div class="rt">Headers on the front</div><div class="rd">Every layer adds its header to the FRONT. Only L2 adds a trailer (the 4-byte FCS) on the back.</div></div>
+    <div class="rule-box"><div class="num">2</div><div class="rt">MAC changes, IP never</div><div class="rd">Src/Dst MAC are rewritten at every router. Src/Dst IP and the ports stay frozen end to end.</div></div>
+    <div class="rule-box"><div class="num">3</div><div class="rt">dot1q lives inside L2</div><div class="rd">The 802.1Q tag sits inside the Ethernet header (after Src MAC), only on trunk links. TTL drops 1 per router.</div></div>
+  </div>
+  <div class="endledger">
+    <div class="col h"><h5>Changes each hop</h5><div>Src MAC &middot; Dst MAC &middot; TTL<br>IP checksum &middot; FCS &middot; VLAN tag</div></div>
+    <div class="col c"><h5>Constant end to end</h5><div>Src IP &middot; Dst IP<br>Src Port &middot; Dst Port &middot; data</div></div>
+  </div>
+  <div class="endmtu">PDU names bottom-up: <b>Bits &rarr; Frame &rarr; Packet &rarr; Segment &rarr; Data</b>. MTU 1500 B = the packet. 1518 B (untagged) / 1522 B (tagged) = the whole frame on the wire.</div>
+  <div class="crosslinks">
+    <a class="cl-btn" href="packet-journey.html">See the full enterprise WAN journey</a>
+    <a class="cl-btn" href="visuals/vlan.html">VLANs: access vs trunk ports</a>
+    <a class="cl-btn" href="etherchannel-lab.html">EtherChannel &amp; LACP: bundling links</a>
+    <a class="cl-btn" href="visuals/acl.html">How routers match IP &amp; ports</a>
+    <a class="cl-btn" href="visuals/ipv6.html">IPv6 packets &amp; the Hop Limit</a>
+    <a class="cl-btn" href="visuals/stp.html">Why switches block loops</a>
+    <a class="cl-btn" href="core.html">&larr; Core Topics hub</a>
+  </div>
+  <button class="replay" id="replayBtn">Replay from start</button>
+</div>
+
+<script src="js/nav.js" defer></script>
+<script defer src="js/encapsulation.js"></script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
