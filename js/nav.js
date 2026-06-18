@@ -2,9 +2,10 @@
 (function () {
   var certTrack = localStorage.getItem('ccna_cert_track') || 'ccna';
   var isNetPlus = certTrack === 'net+';
+  var isCCNP = certTrack === 'ccnp';
 
   var TIPS = {
-    'CORE': isNetPlus ? 'Net+ hub — your Network+ command center' : 'Your main study hub — all 53 objectives with videos, articles, and quizzes',
+    'CORE': isCCNP ? 'CCNP ENCOR hub — your enterprise core command center' : (isNetPlus ? 'Net+ hub — your Network+ command center' : 'Your main study hub — all 53 objectives with videos, articles, and quizzes'),
     'Guide': 'How to use this website — every page explained',
     'Learn': 'Reference material — visuals, glossary, devices, subnetting',
     'Practice': 'Active testing — quizzes, labs, exams, games',
@@ -151,7 +152,20 @@
     { text: 'Study Group', href: 'peers.html' },
   ];
 
-  var NAV = isNetPlus ? NETPLUS_NAV : CCNA_NAV;
+  var CCNP_NAV = [
+    { text: 'CORE', href: 'encor-hub.html' },
+    { text: 'Pillars', href: 'encor-pillars.html' },
+    { text: 'The Numbers', href: 'encor-numbers.html' },
+    { text: 'Visualize', children: [
+      { text: 'BGP 13-Step Path Walker', href: 'encor-bgp-path.html' },
+      { text: 'OSPF DR/BDR + LSA Sim', href: 'encor-ospf-lsa.html' },
+      { text: 'VXLAN Encap Dissector', href: 'encor-vxlan-dissector.html' },
+    ]},
+    { text: 'Mega Lab', href: 'encor-megalab.html' },
+    { text: 'Study Group', href: 'peers.html' },
+  ];
+
+  var NAV = isCCNP ? CCNP_NAV : (isNetPlus ? NETPLUS_NAV : CCNA_NAV);
 
   var nav = document.querySelector('nav.top-nav');
   if (!nav) return;
@@ -177,6 +191,8 @@
 
   // Apply Net+ mode class to nav for red border indicator
   if (isNetPlus) nav.classList.add('netplus-mode');
+  // Apply CCNP mode class to nav for teal border indicator
+  if (isCCNP) nav.classList.add('ccnp-mode');
 
   nav.innerHTML = NAV.map(function (item) {
     if (item.children) {
@@ -203,7 +219,7 @@
 
   var mobileLabel = document.createElement('span');
   mobileLabel.className = 'nav-mobile-label';
-  mobileLabel.textContent = isNetPlus ? 'Network+' : 'CCNA';
+  mobileLabel.textContent = isCCNP ? 'CCNP' : (isNetPlus ? 'Network+' : 'CCNA');
   nav.insertBefore(mobileLabel, hamburger.nextSibling);
 
   // Build flat drawer for mobile
