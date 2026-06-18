@@ -186,11 +186,18 @@
     { text: 'CORE', href: 'ncp-ain-hub.html' },
     { text: 'Pillars', href: 'ncp-ain-pillars.html' },
     { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
+    { text: 'RoCE Frogger 🎮', href: 'ncp-ain-roce-frogger.html' },
     { text: 'Console Labs', children: [
       { text: 'InfiniBand Diagnostics', href: 'ncp-ain-ib-lab.html' },
       { text: 'Spectrum-X / NVUE', href: 'ncp-ain-spectrum-lab.html' },
       { text: 'Perf Validation', href: 'ncp-ain-perf-lab.html' },
       { text: 'WJH Drop Analysis', href: 'ncp-ain-wjh-lab.html' },
+      { text: 'Fabric Bring-Up: SM + SHARP', href: 'ncp-ain-bringup-lab.html' },
+    ]},
+    { text: 'Sims & Visuals', children: [
+      { text: 'IB Layer Stack', href: 'ncp-ain-ib-layers.html' },
+      { text: 'Congestion Pipeline', href: 'ncp-ain-congestion-pipeline.html' },
+      { text: 'Fat-Tree Builder', href: 'ncp-ain-fattree-builder.html' },
     ]},
     { text: 'Study Group', href: 'peers.html' },
   ];
