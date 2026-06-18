@@ -160,6 +160,30 @@
   font-family: var(--font-mono); font-size: .82rem; color: #34d399;
   padding: 9px 14px 0; user-select: none;
 }
+.ed-term-screen {
+  background: #07100c; padding: 10px 14px 12px; min-height: 180px;
+  max-height: 340px; overflow-y: auto; cursor: text;
+  font-family: var(--font-mono); font-size: .9rem; line-height: 1.7;
+}
+.ed-term-scroll { white-space: pre-wrap; word-break: break-word; }
+.ed-term-echo { color: #d6f5e0; }
+.ed-term-echo .ps { color: #34d399; }
+.ed-term-sys { color: #6f8478; }
+.ed-term-line { display: flex; align-items: baseline; }
+.ed-term-ps { color: #34d399; white-space: pre; user-select: none; }
+.ed-term-in {
+  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+  color: #d6f5e0; caret-color: #34d399; padding: 0 0 0 6px; margin: 0;
+  font-family: var(--font-mono); font-size: .9rem; line-height: 1.7;
+}
+.ed-term-hint {
+  font-family: var(--font-body); font-size: .8rem; color: var(--ink-muted);
+  margin: 8px 0 var(--s-sm); line-height: 1.5;
+}
+.ed-term-hint code {
+  font-family: var(--font-mono); font-size: .78rem; background: var(--bg-recessed);
+  padding: 1px 5px; border-radius: 3px; color: var(--ink-secondary);
+}
 .ed-textarea {
   width: 100%; min-height: 170px; resize: vertical;
   background: #07100c; border: none; border-radius: 0; color: #d6f5e0;
@@ -381,11 +405,15 @@
       <p class="ed-subtext">Read the task. Type the IOS-XE config sequence from memory, then reveal and self-grade.</p>
       <div class="ed-item-counter" id="configCounter">1 / ?</div>
       <div class="ed-config-task" id="configTask"></div>
-      <div class="ed-term">
+      <div class="ed-term" id="termWrap">
         <div class="ed-term-bar"><span class="ed-term-dot r"></span><span class="ed-term-dot y"></span><span class="ed-term-dot g"></span><span class="ed-term-title">R1 — console 0</span></div>
-        <div class="ed-term-prompt">R1(config)#</div>
-        <textarea class="ed-textarea" id="configInput" placeholder="type config here, one line each..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+        <div class="ed-term-screen" id="termScreen">
+          <div class="ed-term-scroll" id="termScroll"></div>
+          <div class="ed-term-line"><span class="ed-term-ps" id="termPrompt">R1&gt;</span><input class="ed-term-in" id="termInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="router console"></div>
+        </div>
       </div>
+      <div class="ed-term-hint">Real IOS: type <code>enable</code>, then <code>configure terminal</code>, then the config. The prompt tracks your mode. <code>exit</code> backs out, <code>end</code> returns to <code>R1#</code>.</div>
+      <textarea id="configInput" style="display:none"></textarea>
       <div class="ed-btn-row">
         <button class="ed-btn primary" id="configReveal">Reveal Answer</button>
         <button class="ed-btn" id="configNext">Next config →</button>
@@ -826,11 +854,82 @@ document.addEventListener('DOMContentLoaded', function () {
   // ════════════════════════════════════════════════════════════════
   // BLOCK 2: Configs
   // ════════════════════════════════════════════════════════════════
+  // ── Interactive IOS console (tracks user/priv/config modes like a real CLI) ──
+  var TERM = (function () {
+    var scroll = document.getElementById('termScroll');
+    var input  = document.getElementById('termInput');
+    var ps     = document.getElementById('termPrompt');
+    var screen = document.getElementById('termScreen');
+    var hidden = document.getElementById('configInput');
+    var HOST = 'R1';
+    var st = { exec: 'user', cfg: [] };
+
+    function promptStr() {
+      if (st.cfg.length) return HOST + '(' + st.cfg[st.cfg.length - 1] + ')#';
+      return st.exec === 'priv' ? HOST + '#' : HOST + '>';
+    }
+    function render() { ps.textContent = promptStr(); }
+    function echo(line) {
+      var d = document.createElement('div');
+      d.className = 'ed-term-echo';
+      d.textContent = line;
+      scroll.appendChild(d);
+      screen.scrollTop = screen.scrollHeight;
+    }
+    function tok(c) { return c.trim().split(/\s+/)[0].toLowerCase(); }
+    function apply(cmd) {
+      var c = cmd.trim(); if (!c) return;
+      var t = tok(c), inCfg = st.cfg.length > 0;
+      if (!inCfg) {
+        if (st.exec === 'user') {
+          if (/^en(a(b(l(e)?)?)?)?$/.test(t)) st.exec = 'priv';
+        } else {
+          if (/^conf(i(g(u(r(e)?)?)?)?)?$/.test(t)) st.cfg = ['config'];
+          else if (t === 'disable' || t === 'exit' || t === 'logout') st.exec = 'user';
+        }
+        return;
+      }
+      if (t === 'end') { st.cfg = []; st.exec = 'priv'; return; }
+      if (t === 'exit') { st.cfg.pop(); if (!st.cfg.length) st.exec = 'priv'; return; }
+      var cur = st.cfg[st.cfg.length - 1];
+      function g(label) { st.cfg = ['config', label]; }
+      if (t === 'interface') return g(c.indexOf('.') !== -1 ? 'config-subif' : 'config-if');
+      if (t === 'router') return g('config-router');
+      if (t === 'line') return g('config-line');
+      if (t === 'vlan' && cur === 'config') return g('config-vlan');
+      if (t === 'class-map') return g('config-cmap');
+      if (t === 'policy-map') return g('config-pmap');
+      if (t === 'class' && cur === 'config-pmap') { st.cfg.push('config-pmap-c'); return; }
+      if (t === 'control-plane') return g('config-cp');
+      if (t === 'vrf') return g('config-vrf');
+      if (t === 'address-family') { st.cfg.push('config-router-af'); return; }
+      if (t === 'af-interface') { st.cfg.push('config-router-af-interface'); return; }
+      if (t === 'topology') { st.cfg.push('config-router-af-topology'); return; }
+    }
+    if (input) {
+      input.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var cmd = input.value;
+        echo(promptStr() + cmd);
+        var t = cmd.trim();
+        if (t) hidden.value += t + '\n';
+        apply(cmd);
+        input.value = '';
+        render();
+      });
+      screen.addEventListener('click', function () { input.focus(); });
+    }
+    function reset() { st = { exec: 'user', cfg: [] }; if (scroll) scroll.textContent = ''; if (hidden) hidden.value = ''; render(); }
+    return { reset: reset };
+  })();
+
   function loadConfigItem() {
     var item = configs[fi];
     if (!item) { return; }
     document.getElementById('configTask').textContent = item.task;
     document.getElementById('configInput').value = '';
+    TERM.reset();
     var can = document.getElementById('configCanonical');
     can.textContent = '';
     can.classList.remove('open');
