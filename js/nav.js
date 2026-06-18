@@ -160,6 +160,8 @@
       { text: 'BGP 13-Step Path Walker', href: 'encor-bgp-path.html' },
       { text: 'OSPF DR/BDR + LSA Sim', href: 'encor-ospf-lsa.html' },
       { text: 'VXLAN Encap Dissector', href: 'encor-vxlan-dissector.html' },
+      { text: 'EIGRP Feasible-Successor', href: 'encor-eigrp-fs.html' },
+      { text: 'SD-Access 3-Plane Fabric', href: 'encor-sda-fabric.html' },
     ]},
     { text: 'Mega Lab', href: 'encor-megalab.html' },
     { text: 'Study Group', href: 'peers.html' },
