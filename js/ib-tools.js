@@ -7,6 +7,9 @@
  * Outputs are simulated for NCP-AIN study purposes. Not real fabric data.
  *
  * Exposes: window.IBTools.run(cmdString) -> string
+ *          window.IBTools.setFault(id)    -> activate a scenario fault
+ *          window.IBTools.clearFault()    -> return to normal free-play
+ *          window.IBTools.fabric()        -> raw FABRIC object
  *
  * Usage:
  *   <script src="js/ib-tools.js"></script>
@@ -105,13 +108,399 @@
   };
 
   // ---------------------------------------------------------------------------
-  // Internal helpers
+  // Fault state: null = normal free-play; string = active scenario ID
+  // ---------------------------------------------------------------------------
+  var _activeFault = null;
+
+  // ---------------------------------------------------------------------------
+  // Scenario fault definitions.
+  // Each key matches a scenario ID used in the HTML picker.
+  // Each entry provides overrides for one or more command handlers.
+  // ---------------------------------------------------------------------------
+  var FAULT_OUTPUTS = {
+
+    // Scenario 1: Bad cable / high BER
+    'ber': {
+      ibdiagnet: function (parsed) {
+        var base = '\n';
+        base += '-I- -------------------------\n';
+        base += '-I- START: ibdiagnet (fabric diagnostics)\n';
+        base += '-I- -------------------------\n\n';
+        base += '-I- Using port 1 as the local port\n';
+        base += '-I- Discovering ...\n';
+        base += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
+        base += '-I- 6 links discovered\n\n';
+        base += '-I- Link-width check (all links):\n';
+        base += '-I-   QM9700[1] -- dgx-h100-01/mlx5_0[1]   4X NDR   HEALTHY\n';
+        base += '-I-   QM9700[2] -- dgx-h100-01/mlx5_1[1]   4X NDR   HEALTHY\n';
+        base += '-I-   QM9700[3] -- dgx-h100-02/mlx5_0[1]   4X NDR   HEALTHY\n';
+        base += '-I-   QM9700[4] -- dgx-h100-02/mlx5_1[1]   4X NDR   HEALTHY\n';
+        base += '-I-   QM9700[5] -- dgx-h100-03/mlx5_0[1]   4X NDR   HEALTHY\n';
+        base += '-I-   QM9700[6] -- dgx-h100-03/mlx5_1[1]   4X NDR   DEGRADED\n';
+        base += '\n';
+        base += '-E- BER (Bit Error Rate) check:\n';
+        base += '-E-   dgx-h100-03/mlx5_1 [lid 7] port 1: BER exceeds threshold\n';
+        base += '-E-   Measured BER: 3.2e-11  Threshold: 1e-12\n';
+        base += '-E-   SymbolErrorCounter delta: 48712 in last 60s\n';
+        base += '-E-   Recommendation: replace cable or SFP on this port\n';
+        base += '\n';
+        base += '-I- Credit-loop check: PASS\n';
+        base += '-I- Routing check: PASS\n\n';
+        base += '-I- -----------------------------------------------\n';
+        base += '-W- Total critical errors: 1\n';
+        base += '-W- Total warnings:        0\n';
+        base += '-I- See report in /tmp/ibdiagnet2\n';
+        base += '-I- Done\n';
+        return base;
+      },
+      perfquery: function (parsed) {
+        var lid = parseInt(parsed.args[0], 10) || 2;
+        var port = parseInt(parsed.args[1], 10) || 1;
+        var c = _perfCounters(lid, port);
+        var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
+        out += 'PortSelect:......................' + port + '\n';
+        out += 'PortXmitData:....................' + c.xmitData + '\n';
+        out += 'PortRcvData:...................' + c.rcvData + '\n';
+        out += 'PortXmitPkts:....................' + c.xmitPkts + '\n';
+        out += 'PortRcvPkts:...................' + c.rcvPkts + '\n';
+        out += 'PortUnicastXmitPkts:.............' + c.xmitPkts + '\n';
+        out += 'PortUnicastRcvPkts:..............' + c.rcvPkts + '\n';
+        out += 'PortMulticastXmitPkts:...........0\n';
+        out += 'PortMulticastRcvPkts:............0\n';
+        // BER fault: elevated SymbolErrorCounter on lid 7
+        var symErr = (lid === 7) ? 48712 : 0;
+        out += 'SymbolErrorCounter:..............' + symErr + '\n';
+        out += 'LinkErrorRecoveryCounter:........0\n';
+        out += 'LinkDownedCounter:...............0\n';
+        out += 'PortRcvErrors:...................0\n';
+        out += 'PortRcvRemotePhysicalErrors:.....0\n';
+        out += 'PortRcvSwitchRelayErrors:........0\n';
+        out += 'PortXmitDiscards:................0\n';
+        out += 'PortXmitConstraintErrors:........0\n';
+        out += 'PortRcvConstraintErrors:.........0\n';
+        out += 'LocalLinkIntegrityErrors:........0\n';
+        out += 'ExcessiveBufferOverrunErrors:....0\n';
+        out += 'VL15Dropped:.....................0\n';
+        out += 'PortXmitWait:....................0\n';
+        return out;
+      }
+    },
+
+    // Scenario 2: Link flap
+    'linkflap': {
+      perfquery: function (parsed) {
+        var lid = parseInt(parsed.args[0], 10) || 2;
+        var port = parseInt(parsed.args[1], 10) || 1;
+        var c = _perfCounters(lid, port);
+        var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
+        out += 'PortSelect:......................' + port + '\n';
+        out += 'PortXmitData:....................' + c.xmitData + '\n';
+        out += 'PortRcvData:...................' + c.rcvData + '\n';
+        out += 'PortXmitPkts:....................' + c.xmitPkts + '\n';
+        out += 'PortRcvPkts:...................' + c.rcvPkts + '\n';
+        out += 'PortUnicastXmitPkts:.............' + c.xmitPkts + '\n';
+        out += 'PortUnicastRcvPkts:..............' + c.rcvPkts + '\n';
+        out += 'PortMulticastXmitPkts:...........0\n';
+        out += 'PortMulticastRcvPkts:............0\n';
+        out += 'SymbolErrorCounter:..............0\n';
+        // Link flap: high LinkErrorRecovery + LinkDowned on lid 4
+        var ler = (lid === 4) ? 312 : 0;
+        var ldc = (lid === 4) ? 47 : 0;
+        out += 'LinkErrorRecoveryCounter:........' + ler + '\n';
+        out += 'LinkDownedCounter:...............' + ldc + '\n';
+        out += 'PortRcvErrors:...................0\n';
+        out += 'PortRcvRemotePhysicalErrors:.....0\n';
+        out += 'PortRcvSwitchRelayErrors:........0\n';
+        out += 'PortXmitDiscards:................0\n';
+        out += 'PortXmitConstraintErrors:........0\n';
+        out += 'PortRcvConstraintErrors:.........0\n';
+        out += 'LocalLinkIntegrityErrors:........0\n';
+        out += 'ExcessiveBufferOverrunErrors:....0\n';
+        out += 'VL15Dropped:.....................0\n';
+        out += 'PortXmitWait:....................0\n';
+        return out;
+      },
+      iblinkinfo: function (parsed) {
+        var out = 'Switch ' + FABRIC.switchGuid + ' "' + FABRIC.switchModel + '":\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   1    2    dgx-h100-01/mlx5_0         [1] ==>   0xe41d2d03007c0001    [1](  4X NDR  Active/ LinkUp)\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   2    3    dgx-h100-01/mlx5_1         [2] ==>   0xe41d2d03007c0002    [1](  4X NDR  Active/ LinkUp)\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   3    4    dgx-h100-02/mlx5_0         [3] ==>   0xe41d2d03007c0011    [1](  4X NDR  Active/ Polling)\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   4    5    dgx-h100-02/mlx5_1         [4] ==>   0xe41d2d03007c0012    [1](  4X NDR  Active/ LinkUp)\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   5    6    dgx-h100-03/mlx5_0         [5] ==>   0xe41d2d03007c0021    [1](  4X NDR  Active/ LinkUp)\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   6    7    dgx-h100-03/mlx5_1         [6] ==>   0xe41d2d03007c0022    [1](  4X NDR  Active/ LinkUp)\n';
+        return out;
+      }
+    },
+
+    // Scenario 3: SM dual-master / priority conflict
+    'dualmaster': {
+      sminfo: function (parsed) {
+        var out = 'sminfo: sm lid 1 sm guid 0xe41d2d0300100001, ';
+        out += 'activity count 1234568 priority 15 state 3 SMINFO_MASTER\n';
+        out += '\n';
+        out += '# WARNING: A second SM was detected in the fabric:\n';
+        out += 'sminfo: sm lid 8 sm guid 0xe41d2d0300200001, ';
+        out += 'activity count 891023 priority 13 state 3 SMINFO_MASTER\n';
+        out += '\n';
+        out += '# FAULT: Two simultaneous SMINFO_MASTER SMs detected.\n';
+        out += '# Both believe they are master. Fabric instability likely.\n';
+        return out;
+      },
+      ibdiagnet: function (parsed) {
+        var out = '\n';
+        out += '-I- -------------------------\n';
+        out += '-I- START: ibdiagnet (fabric diagnostics)\n';
+        out += '-I- -------------------------\n\n';
+        out += '-I- Using port 1 as the local port\n';
+        out += '-I- Discovering ...\n';
+        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
+        out += '-I- 6 links discovered\n\n';
+        out += '-E- SM state check:\n';
+        out += '-E-   Multiple Subnet Managers detected in MASTER state\n';
+        out += '-E-   LID 1  GUID 0xe41d2d0300100001  priority 15  MASTER\n';
+        out += '-E-   LID 8  GUID 0xe41d2d0300200001  priority 13  MASTER\n';
+        out += '-E-   Dual-master condition detected. Resolve by disabling or adjusting SM priority.\n\n';
+        out += '-I- Link-width check (all links): PASS\n';
+        out += '-I- Credit-loop check: PASS\n';
+        out += '-I- Routing check: PASS\n\n';
+        out += '-I- -----------------------------------------------\n';
+        out += '-W- Total critical errors: 1\n';
+        out += '-W- Total warnings:        0\n';
+        out += '-I- See report in /tmp/ibdiagnet2\n';
+        out += '-I- Done\n';
+        return out;
+      }
+    },
+
+    // Scenario 4: Congestion hotspot (PortXmitWait / incast)
+    'congestion': {
+      perfquery: function (parsed) {
+        var lid = parseInt(parsed.args[0], 10) || 2;
+        var port = parseInt(parsed.args[1], 10) || 1;
+        var c = _perfCounters(lid, port);
+        var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
+        out += 'PortSelect:......................' + port + '\n';
+        out += 'PortXmitData:....................' + c.xmitData + '\n';
+        out += 'PortRcvData:...................' + c.rcvData + '\n';
+        out += 'PortXmitPkts:....................' + c.xmitPkts + '\n';
+        out += 'PortRcvPkts:...................' + c.rcvPkts + '\n';
+        out += 'PortUnicastXmitPkts:.............' + c.xmitPkts + '\n';
+        out += 'PortUnicastRcvPkts:..............' + c.rcvPkts + '\n';
+        out += 'PortMulticastXmitPkts:...........0\n';
+        out += 'PortMulticastRcvPkts:............0\n';
+        out += 'SymbolErrorCounter:..............0\n';
+        out += 'LinkErrorRecoveryCounter:........0\n';
+        out += 'LinkDownedCounter:...............0\n';
+        out += 'PortRcvErrors:...................0\n';
+        out += 'PortRcvRemotePhysicalErrors:.....0\n';
+        out += 'PortRcvSwitchRelayErrors:........0\n';
+        // Congestion: high PortXmitWait and PortXmitDiscards on lid 2 (local GPU port)
+        var xwait = (lid === 2) ? 8473291 : 0;
+        var xdisc = (lid === 2) ? 14823 : 0;
+        out += 'PortXmitDiscards:................' + xdisc + '\n';
+        out += 'PortXmitConstraintErrors:........0\n';
+        out += 'PortRcvConstraintErrors:.........0\n';
+        out += 'LocalLinkIntegrityErrors:........0\n';
+        out += 'ExcessiveBufferOverrunErrors:....0\n';
+        out += 'VL15Dropped:.....................0\n';
+        out += 'PortXmitWait:....................' + xwait + '\n';
+        return out;
+      }
+    },
+
+    // Scenario 5: Credit loop (routing validation failure)
+    'creditloop': {
+      ibdiagnet: function (parsed) {
+        var out = '\n';
+        out += '-I- -------------------------\n';
+        out += '-I- START: ibdiagnet (fabric diagnostics)\n';
+        out += '-I- -------------------------\n\n';
+        out += '-I- Using port 1 as the local port\n';
+        out += '-I- Discovering ...\n';
+        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
+        out += '-I- 6 links discovered\n\n';
+        out += '-I- Link-width check (all links): PASS\n\n';
+        out += '-I- Credit-loop check (ibdiagnet -r):\n';
+        out += '-E-   Credit loop detected in virtual lane routing\n';
+        out += '-E-   Path: dgx-h100-01 -> sw-leaf-01 -> sw-spine-01 -> sw-leaf-01 -> dgx-h100-02\n';
+        out += '-E-   UpDown routing violation: Down->Up->Down path forbidden\n';
+        out += '-E-   Affected LIDs: 2, 4, 6\n';
+        out += '-E-   Fabric may deadlock under sustained load\n\n';
+        out += '-I- Routing check: FAIL\n\n';
+        out += '-I- -----------------------------------------------\n';
+        out += '-W- Total critical errors: 1\n';
+        out += '-W- Total warnings:        0\n';
+        out += '-I- See report in /tmp/ibdiagnet2\n';
+        out += '-I- Done\n';
+        return out;
+      }
+    },
+
+    // Scenario 6: PKey mismatch
+    'pkey': {
+      perfquery: function (parsed) {
+        var lid = parseInt(parsed.args[0], 10) || 2;
+        var port = parseInt(parsed.args[1], 10) || 1;
+        var c = _perfCounters(lid, port);
+        var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
+        out += 'PortSelect:......................' + port + '\n';
+        out += 'PortXmitData:....................' + c.xmitData + '\n';
+        out += 'PortRcvData:...................' + c.rcvData + '\n';
+        out += 'PortXmitPkts:....................' + c.xmitPkts + '\n';
+        out += 'PortRcvPkts:...................' + c.rcvPkts + '\n';
+        out += 'PortUnicastXmitPkts:.............' + c.xmitPkts + '\n';
+        out += 'PortUnicastRcvPkts:..............' + c.rcvPkts + '\n';
+        out += 'PortMulticastXmitPkts:...........0\n';
+        out += 'PortMulticastRcvPkts:............0\n';
+        out += 'SymbolErrorCounter:..............0\n';
+        out += 'LinkErrorRecoveryCounter:........0\n';
+        out += 'LinkDownedCounter:...............0\n';
+        out += 'PortRcvErrors:...................0\n';
+        out += 'PortRcvRemotePhysicalErrors:.....0\n';
+        out += 'PortRcvSwitchRelayErrors:........0\n';
+        out += 'PortXmitDiscards:................0\n';
+        out += 'PortXmitConstraintErrors:........0\n';
+        // PKey fault: PortRcvConstraintErrors elevated on lid 5
+        var pkey = (lid === 5) ? 9341 : 0;
+        out += 'PortRcvConstraintErrors:.........' + pkey + '\n';
+        out += 'LocalLinkIntegrityErrors:........0\n';
+        out += 'ExcessiveBufferOverrunErrors:....0\n';
+        out += 'VL15Dropped:.....................0\n';
+        out += 'PortXmitWait:....................0\n';
+        return out;
+      },
+      ibdiagnet: function (parsed) {
+        var out = '\n';
+        out += '-I- -------------------------\n';
+        out += '-I- START: ibdiagnet (fabric diagnostics)\n';
+        out += '-I- -------------------------\n\n';
+        out += '-I- Using port 1 as the local port\n';
+        out += '-I- Discovering ...\n';
+        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
+        out += '-I- 6 links discovered\n\n';
+        out += '-I- Link-width check (all links): PASS\n';
+        out += '-I- Credit-loop check: PASS\n';
+        out += '-I- Routing check: PASS\n\n';
+        out += '-W- PKey membership check:\n';
+        out += '-W-   dgx-h100-02/mlx5_1 [lid 5]: PKey 0x8001 membership type FULL\n';
+        out += '-W-   dgx-h100-02/mlx5_1 [lid 5]: PKey 0x7FFF membership type LIMITED\n';
+        out += '-W-   Mismatch: peer uses 0x8001 FULL; this port uses 0x7FFF LIMITED\n';
+        out += '-W-   bad_pkey_cntr increments expected. Traffic will be dropped.\n\n';
+        out += '-I- -----------------------------------------------\n';
+        out += '-W- Total critical errors: 0\n';
+        out += '-W- Total warnings:        1\n';
+        out += '-I- See report in /tmp/ibdiagnet2\n';
+        out += '-I- Done\n';
+        return out;
+      }
+    },
+
+    // Scenario 7: MTU mismatch
+    'mtu': {
+      ibstat: function (parsed) {
+        if (hasFlag(parsed.flags, 'V', 'version')) return 'ibstat 5.9-0';
+        var out = '';
+        // mlx5_0: normal 4096 MTU
+        out += 'CA \'mlx5_0\'\n';
+        out += '\tCA type: MT4129\n';
+        out += '\tNumber of ports: 1\n';
+        out += '\tFirmware version: 28.39.1002\n';
+        out += '\tHardware version: 0\n';
+        out += '\tNode GUID: 0xe41d2d03007c0001\n';
+        out += '\tSystem image GUID: 0xe41d2d03007c0001\n';
+        out += '\tPort 1:\n';
+        out += '\t\tState: Active\n';
+        out += '\t\tPhysical state: LinkUp\n';
+        out += '\t\tRate: 400 Gb/sec (4X NDR)\n';
+        out += '\t\tBase lid: 2\n';
+        out += '\t\tLMC: 0\n';
+        out += '\t\tSM lid: 1\n';
+        out += '\t\tCapability mask: 0x04010000\n';
+        out += '\t\tPort GUID: 0xe41d2d03007c0001\n';
+        out += '\t\tLink layer: InfiniBand\n';
+        out += '\t\tActive MTU: 4096\n';
+        // mlx5_1: mismatched MTU 2048 vs peer 4096
+        out += '\nCA \'mlx5_1\'\n';
+        out += '\tCA type: MT4129\n';
+        out += '\tNumber of ports: 1\n';
+        out += '\tFirmware version: 28.39.1002\n';
+        out += '\tHardware version: 0\n';
+        out += '\tNode GUID: 0xe41d2d03007c0002\n';
+        out += '\tSystem image GUID: 0xe41d2d03007c0002\n';
+        out += '\tPort 1:\n';
+        out += '\t\tState: Active\n';
+        out += '\t\tPhysical state: LinkUp\n';
+        out += '\t\tRate: 400 Gb/sec (4X NDR)\n';
+        out += '\t\tBase lid: 3\n';
+        out += '\t\tLMC: 0\n';
+        out += '\t\tSM lid: 1\n';
+        out += '\t\tCapability mask: 0x04010000\n';
+        out += '\t\tPort GUID: 0xe41d2d03007c0002\n';
+        out += '\t\tLink layer: InfiniBand\n';
+        out += '\t\tActive MTU: 2048\n';
+        out += '\t\t# WARNING: Active MTU (2048) does not match fabric MTU (4096)\n';
+        return out;
+      },
+      ibdiagnet: function (parsed) {
+        var out = '\n';
+        out += '-I- -------------------------\n';
+        out += '-I- START: ibdiagnet (fabric diagnostics)\n';
+        out += '-I- -------------------------\n\n';
+        out += '-I- Using port 1 as the local port\n';
+        out += '-I- Discovering ...\n';
+        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
+        out += '-I- 6 links discovered\n\n';
+        out += '-I- Link-width check (all links): PASS\n\n';
+        out += '-W- MTU check:\n';
+        out += '-W-   Fabric MTU: 4096 bytes\n';
+        out += '-W-   dgx-h100-01/mlx5_1 [lid 3]: Active MTU 2048 -- MISMATCH\n';
+        out += '-W-   MTU mismatch will cause ib_write_bw bandwidth cliff and QP errors\n\n';
+        out += '-I- Credit-loop check: PASS\n';
+        out += '-I- Routing check: PASS\n\n';
+        out += '-I- -----------------------------------------------\n';
+        out += '-W- Total critical errors: 0\n';
+        out += '-W- Total warnings:        1\n';
+        out += '-I- See report in /tmp/ibdiagnet2\n';
+        out += '-I- Done\n';
+        return out;
+      }
+    },
+
+    // Scenario 8: SHARP AM failure
+    'sharp': {
+      ibdiagnet: function (parsed) {
+        var sharFlag = hasFlag(parsed.flags, 'sharp') || (parsed.flags['sharp'] !== undefined);
+        var out = '\n';
+        out += '-I- -------------------------\n';
+        out += '-I- START: ibdiagnet (fabric diagnostics)\n';
+        out += '-I- -------------------------\n\n';
+        out += '-I- Using port 1 as the local port\n';
+        out += '-I- Discovering ...\n';
+        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
+        out += '-I- 6 links discovered\n\n';
+        out += '-I- Link-width check (all links): PASS\n';
+        out += '-I- Credit-loop check: PASS\n';
+        out += '-I- Routing check: PASS\n\n';
+        out += '-E- SHARP Aggregation Manager check:\n';
+        out += '-E-   sharp_am.service: failed to bind on port 15500\n';
+        out += '-E-   Error: EADDRINUSE -- port already in use or previous AM crashed\n';
+        out += '-E-   SHARP tree not built. Collective operations (NCCL all-reduce) will fall back to point-to-point.\n';
+        out += '-E-   Run: sharp_hello to test AM connectivity\n\n';
+        out += '-I- -----------------------------------------------\n';
+        out += '-W- Total critical errors: 1\n';
+        out += '-W- Total warnings:        0\n';
+        out += '-I- See report in /tmp/ibdiagnet2\n';
+        out += '-I- Done\n';
+        return out;
+      }
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Internal helpers (also used by fault outputs above)
   // ---------------------------------------------------------------------------
 
   // Build the link-local default GID from a port GUID.
-  // GID = fe80::/64 prefix + the 64-bit GUID as the interface identifier,
-  // split into 4 colon-separated groups of 4 hex digits (Mellanox shows the
-  // GUID unchanged, i.e. no U/L bit flip).
   function gidFromGuid(portGuid) {
     var hex = portGuid.replace(/^0x/, '').toLowerCase();
     while (hex.length < 16) hex = '0' + hex;
@@ -162,7 +551,7 @@
   }
 
   // Deterministic counters from a seed (matches source logic)
-  function perfCounters(lid, portNum) {
+  function _perfCounters(lid, portNum) {
     var seed = lid * 7919;
     return {
       xmitData: 500000000 + (seed % 500000000),
@@ -172,6 +561,9 @@
       portNum: portNum
     };
   }
+
+  // Keep the original name for backward compat
+  var perfCounters = _perfCounters;
 
   // Find a node+port by LID across all fabric nodes (for ibportstate/perfquery)
   function findByLid(lidStr) {
@@ -190,7 +582,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Command implementations
+  // Command implementations (normal / free-play mode)
   // ---------------------------------------------------------------------------
 
   function cmdIbstat(parsed) {
@@ -247,9 +639,6 @@
   function cmdIblinkinfo(parsed) {
     if (hasFlag(parsed.flags, 'V', 'version')) return 'iblinkinfo 5.9-0';
 
-    // Switch port -> CA mapping
-    // Switch port 1 -> node-01 mlx5_0 (lid 2), port 2 -> node-01 mlx5_1 (lid 3)
-    // port 3 -> node-02 mlx5_0 (lid 4), etc.
     var sw = FABRIC;
     var out = 'Switch ' + sw.switchGuid + ' "' + sw.switchModel + '":\n';
 
@@ -289,7 +678,6 @@
     out += '# Discovered ' + (new Date()).toUTCString() + '\n';
     out += '#\n\n';
 
-    // Switch record
     out += '# Switches\n';
     out += 'Switch\t64 "' + FABRIC.switchGuid + '"\t# "' + FABRIC.switchModel + '" ';
     out += 'enhanced port 0 lid ' + FABRIC.switchLid + ' lmc 0\n';
@@ -302,7 +690,6 @@
     });
     out += '\n';
 
-    // CA records
     out += '# Channel Adapters (HCAs)\n';
     FABRIC.nodes.forEach(function (node) {
       node.hcas.forEach(function (hca) {
@@ -312,7 +699,6 @@
       });
     });
 
-    // Summary
     var totalHcas = FABRIC.nodes.reduce(function (s, n) { return s + n.hcas.length; }, 0);
     var totalPorts = totalHcas;
     out += '#\n';
@@ -354,7 +740,6 @@
   function cmdPerfquery(parsed) {
     if (hasFlag(parsed.flags, 'V', 'version')) return 'perfquery 5.9-0';
 
-    // Accept: perfquery [lid [port]]
     var lid = parsed.args[0] || '2';
     var portArg = parsed.args[1] || '1';
     var lidNum = parseInt(lid, 10);
@@ -392,7 +777,7 @@
     if (hasFlag(parsed.flags, 'V', 'version')) return 'ibdiagnet 2.9.0';
 
     var totalHcas = FABRIC.nodes.reduce(function (s, n) { return s + n.hcas.length; }, 0);
-    var totalLinks = totalHcas; // each HCA has 1 link to switch
+    var totalLinks = totalHcas;
 
     var out = '\n';
     out += '-I- -------------------------\n';
@@ -477,6 +862,7 @@
      * run(cmdString) -> string
      *
      * Simulates an InfiniBand diagnostic command and returns its output.
+     * If a fault is active and overrides this command, returns faulty output.
      * The first token is the command name; remaining tokens are args/flags.
      */
     run: function (cmdString) {
@@ -484,6 +870,19 @@
         return '';
       }
       var parsed = parseCmd(cmdString);
+
+      // Check fault overrides first
+      if (_activeFault && FAULT_OUTPUTS[_activeFault]) {
+        var faultOverride = FAULT_OUTPUTS[_activeFault][parsed.cmd];
+        if (faultOverride) {
+          try {
+            return faultOverride(parsed);
+          } catch (e) {
+            return 'Error running ' + parsed.cmd + ' (fault mode): ' + (e.message || String(e));
+          }
+        }
+      }
+
       var handler = DISPATCH[parsed.cmd];
       if (!handler) {
         return '-bash: ' + parsed.cmd + ': command not found\n' +
@@ -495,6 +894,28 @@
       } catch (e) {
         return 'Error running ' + parsed.cmd + ': ' + (e.message || String(e));
       }
+    },
+
+    /**
+     * setFault(id) -> activate a named fault scenario.
+     * Pass null or call clearFault() to return to free-play.
+     */
+    setFault: function (id) {
+      _activeFault = id || null;
+    },
+
+    /**
+     * clearFault() -> deactivate any active fault; return to free-play mode.
+     */
+    clearFault: function () {
+      _activeFault = null;
+    },
+
+    /**
+     * activeFault() -> current fault ID or null.
+     */
+    activeFault: function () {
+      return _activeFault;
     },
 
     /**

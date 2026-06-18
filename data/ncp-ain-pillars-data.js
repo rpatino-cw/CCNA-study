@@ -293,6 +293,91 @@
         '<code>SR-IOV</code>: PCIe virtualization; one physical NIC port is split into Virtual Functions (VFs); each pod gets its own VF for near-native RDMA performance without sharing a full physical port',
         'For IB fabrics: SR-IOV VFs are isolated via <code>PKey</code>; <code>ibKubernetes</code> daemon syncs pod PKey assignments with the IB SM (UFM or opensm)',
         'Requires <code>GPU Operator</code> to also be installed for full GPU+RDMA workload support; Network Operator and GPU Operator are separate but complementary'
+      ] },
+
+    // ── D2 Spectrum-X Security (coverage gap) ────────────────
+    { n:24, tier:'P2', obj:'2.6', dom:2, freq:50, load:44, title:'Spectrum-X Security: ACLs, NVUE RBAC, VRF-per-tenant, port security',
+      dims:['concept','config'],
+      bullets:[
+        '<code>ACL storage</code>: Cumulus Linux ACL rules live in <code>/etc/cumulus/acl/policy.d/</code>; files are processed in numeric order; <code>cl-acltool -i</code> installs (compiles) the rules into the ASIC',
+        '<code>cl-acltool -L all</code>: list all active ACL rules currently programmed in the ASIC; use to verify installation without rebooting',
+        'ACL rule format: INPUT/OUTPUT chain, match (SIP/DIP/port/protocol), action (ACCEPT/DROP/POLICE); POLICE rate-limits to protect the CPU for management traffic',
+        '<code>NVUE RBAC</code>: role-based access control built into NVUE; built-in roles include <code>nvue-admin</code> (full config), <code>nvue-monitor</code> (read-only show commands), and <code>nvue-operator</code> (operational actions only)',
+        'Assign a role: <code>nv set system aaa user &lt;user&gt; role nvue-monitor</code>; separate data-plane config rights from monitoring access in multi-team environments',
+        '<code>SSH key-only hardening</code>: disable password auth in <code>/etc/ssh/sshd_config</code> (<code>PasswordAuthentication no</code>); distribute authorized_keys via Ansible or ZTP; prevents brute-force on management plane',
+        '<code>Port security / MAC limiting</code>: <code>nv set interface &lt;port&gt; port-security mac-limit &lt;N&gt;</code>; limits learned MACs per port; violation action: drop or shutdown; used on server-facing ports to prevent MAC flooding attacks',
+        '<code>VRF-per-tenant isolation</code>: each tenant is assigned a dedicated VRF; routing is isolated at the kernel level; inter-tenant traffic must traverse a firewall or explicit policy; <code>nv set vrf &lt;name&gt; router bgp ...</code> scopes BGP to that VRF',
+        'VRF table isolation: Linux VRFs use separate routing table IDs; <code>ip route show vrf &lt;name&gt;</code> verifies table; PBR (Policy-Based Routing) can steer traffic between VRFs when needed'
+      ] },
+
+    // ── D5 Automation deep: declarative config, ZTP, Ansible (coverage gap) ──
+    { n:25, tier:'P2', obj:'5.3', dom:5, freq:55, load:48, title:'NVUE declarative config: startup.yaml, config history, rollback, ZTP',
+      dims:['concept','config'],
+      bullets:[
+        '<code>startup.yaml</code>: NVUE persists the applied configuration as a YAML file at <code>/etc/nvue.d/startup.yaml</code>; this file is loaded on boot to restore state; edit it carefully or prefer <code>nv config apply</code>',
+        '<code>nv config apply --confirm &lt;N&gt;</code>: applies changes but auto-reverts after N seconds unless you confirm with <code>nv config confirm</code>; prevents a bad config from locking you out of the switch',
+        '<code>nv config diff</code>: shows a structured diff between the candidate (staged) config and the running config before committing; equivalent to a dry-run',
+        '<code>nv config history</code>: lists all prior apply operations with a sequence number and timestamp; each is a restorable checkpoint',
+        '<code>nv config rollback &lt;N&gt;</code>: reverts the running config to the state of history entry N; no reboot required; fastest recovery from a bad change',
+        '<code>Zero-Touch Provisioning (ZTP)</code>: on first boot Cumulus Linux checks for a DHCP option 239 or a well-known URL to download and execute a ZTP script; script can install startup.yaml and trigger <code>nv config apply</code>; eliminates manual day-1 config',
+        'ZTP script entry point: <code>/var/lib/cumulus/ztp/cumulus-ztp.sh</code> (or URL-sourced); the switch calls the script as root, so it can install keys, set hostname, and push the full NVUE config in one pass',
+        '<code>Ansible nvidia.nvue multi-switch inventory</code>: define an inventory group per fabric role (leaf, spine, border); use <code>host_vars/</code> for per-device NVUE JSON; one playbook targets all groups; idempotent because NVUE API returns current state for diff'
+      ] },
+
+    // ── D6 Kubernetes Integration deep (coverage gap) ────────
+    { n:26, tier:'P2', obj:'6.2', dom:6, freq:50, load:44, title:'K8s Network Operator: NicClusterPolicy CRD, IPoIB CNI, MACVLAN RDMA, GPUDirect in pods',
+      dims:['concept','scope'],
+      bullets:[
+        '<code>NicClusterPolicy CRD</code>: the primary custom resource consumed by NVIDIA Network Operator; a single YAML object that declares the entire desired networking stack (OFED version, device plugin config, secondary network CNI); operator reconciles cluster state to match it',
+        'Deploy: <code>kubectl apply -f nicclusterpolicy.yaml</code>; verify: <code>kubectl get nicclusterpolicy -o wide</code> and check <code>State: ready</code>; each component deploys as a DaemonSet on labeled nodes',
+        '<code>IPoIB CNI</code>: runs IP-over-InfiniBand for Kubernetes pods on IB fabrics; each pod gets a virtual IB interface (child of the physical ib0); required for IB-native K8s workloads where RoCEv2 is not used',
+        '<code>MACVLAN with RDMA shared device plugin</code>: for Ethernet/RoCEv2 clusters; MACVLAN creates a virtual NIC on the host physical NIC for the pod; <code>rdma/rdma_shared_dev_&lt;iface&gt;</code> resource exposes the RDMA context shared across pods on the same physical port; lower isolation than SR-IOV but no VF limit',
+        'Contrast: SR-IOV gives each pod a dedicated VF (strict isolation, finite VFs); MACVLAN+RDMA-shared gives a virtual MAC with shared RDMA context (flexible scale, weaker isolation)',
+        '<code>GPUDirect RDMA in pods</code>: pod requests both <code>nvidia.com/gpu: 1</code> and an RDMA resource; GPU driver + NIC driver must be the same version on the node (DOCA-OFED pin enforces this); data flows GPU VRAM to wire without touching host memory or CPU',
+        'Verify GPUDirect in a pod: run <code>ib_write_bw --use_cuda 0 &lt;peer-ip&gt;</code> (perftest with CUDA support); bandwidth should match the NIC line rate, not PCIe host memory bandwidth',
+        'Network Operator node selector: label GPU nodes with <code>feature.node.kubernetes.io/network-infiniband.available=true</code> (via NFD, Node Feature Discovery) so the operator only installs OFED on capable nodes'
+      ] },
+
+    // ── D3 BlueField/SuperNIC operating modes (coverage gap) ─
+    { n:27, tier:'P2', obj:'3.12', dom:3, freq:52, load:46, title:'BlueField DPU operating modes: NIC mode vs DPU mode, mlxconfig, DOCA install',
+      dims:['concept','config'],
+      bullets:[
+        '<code>NIC mode (Host mode)</code>: BlueField behaves as a standard ConnectX NIC; host OS drives all traffic; ARM cores are idle or run minimal monitoring; used when DPU offload is not needed but the hardware is present',
+        '<code>DPU mode (Embedded CPU mode)</code>: ARM cores run their own OS (Ubuntu BFB image) and control the data plane; host OS sees a standard NIC but the DPU intercepts and can modify all traffic; enables OVS offload, firewall, storage acceleration',
+        'Mode switch: <code>mlxconfig -d /dev/mst/mt41686_pciconf0 set INTERNAL_CPU_MODEL=1</code> sets DPU mode; <code>INTERNAL_CPU_MODEL=0</code> sets NIC mode; requires power cycle to take effect',
+        '<code>mlxconfig</code> tool: reads and writes non-volatile firmware configuration registers on Mellanox/NVIDIA NICs and DPUs; <code>mlxconfig -d &lt;dev&gt; query</code> shows current settings; key knobs: <code>LINK_TYPE</code> (ETH/IB), <code>NUM_OF_VFS</code>, <code>SRIOV_EN</code>',
+        '<code>SuperNIC</code>: ConnectX-7/8-class device in the Spectrum-X AI context; NIC-class (no ARM cores) but firmware-tuned for 400G/800G AI fabric; acts as a "smart NIC" without the full DPU OS stack',
+        '<code>DOCA install sequence</code> on BlueField: (1) flash BFB image to DPU eMMC via <code>bfb-install</code> tool on the host, (2) DPU reboots into Ubuntu BFB, (3) install <code>doca-sdk</code> apt package on the DPU OS, (4) develop/deploy DOCA applications as services on the ARM cores',
+        '<code>bfb-install</code> command: <code>bfb-install --rshim /dev/rshim0 --bfb DOCA_&lt;version&gt;_BSP_&lt;version&gt;_Ubuntu.bfb</code>; rshim is the management bus between host CPU and DPU ARM; the BFB (BlueField Boot stream Binary) contains the full OS image',
+        'DOCA provides APIs: <code>doca_flow</code> (packet pipeline), <code>doca_rdma</code> (RDMA ops from ARM), <code>doca_comm_channel</code> (host-to-DPU messaging); all run natively on the ARM cores with zero host CPU involvement'
+      ] },
+
+    // ── D3 IB SM High-Availability (coverage gap) ────────────
+    { n:28, tier:'P2', obj:'3.13', dom:3, freq:50, load:44, title:'IB SM High-Availability: redundant SM priority, failover, UFM Cyber-AI',
+      dims:['concept','scope'],
+      bullets:[
+        'IB supports multiple SM instances simultaneously; only ONE is <code>Master</code>; all others are <code>Standby</code>',
+        'Master election: highest numeric priority (0-15) wins; <code>sminfo</code> shows current master SM priority, GUID, and state; default priority is 0 (opensm default) -- always set a higher priority explicitly in production',
+        'Failover: when the master SM becomes unreachable, standby SMs detect the absence via periodic polling; the standby with the next-highest priority performs a <code>heavy sweep</code> and becomes master; convergence time: typically seconds',
+        'Tiebreak rule: when two SMs have equal priority, the SM with the <code>lower GUID</code> wins the election; configure priority asymmetrically (e.g., primary=14, standby=13) to control which host is preferred master',
+        'UFM HA deployment: run UFM on two hosts in active/standby; UFM uses a shared filesystem or database for state; on failover the standby UFM takes over SM and SHARP tree management without losing fabric history',
+        '<code>UFM Cyber-AI</code>: integrated anomaly detection engine in UFM; monitors BER trends, link flap rates, congestion hotspots, and SM election events; generates alerts and can trigger automated remediation (e.g., isolate a flapping port)',
+        'UFM Cyber-AI threat model: detects fabric-level anomalies (not host intrusions); examples: sudden BER spike on a specific fiber span, unusual traffic pattern suggesting a misconfigured host, repeated SM priority conflicts indicating rogue SM',
+        'Best practice: run at least two UFM/SM instances on separate physical hosts; never run both on the same server as a GPU compute node (SM failure during training = fabric instability)'
+      ] },
+
+    // ── D1 AI DC Design: collectives, bandwidth, oversubscription (coverage gap) ──
+    { n:29, tier:'P2', obj:'1.2', dom:1, freq:52, load:46, title:'AI collective ops: all-reduce topology, bandwidth requirements, oversubscription ratios',
+      dims:['concept','scope'],
+      bullets:[
+        '<code>AllReduce</code>: the dominant collective in distributed training; every GPU contributes a gradient tensor; the result (sum or average) is returned to every GPU; total data moved = 2(N-1)/N * message_size * N, approximately 2x the tensor size for large N',
+        '<code>AllGather</code>: each GPU sends its local shard; every GPU receives the full tensor; used in model parallelism (e.g., gather weights before a forward pass); data volume scales with N (number of GPUs)',
+        '<code>ReduceScatter</code>: opposite of AllGather; each GPU contributes the full tensor; each GPU receives one unique shard of the reduced result; combined with AllGather = Ring-AllReduce (NCCL default algorithm)',
+        'Ring-AllReduce bandwidth efficiency: 100% of bisection bandwidth used if the fabric is non-blocking and rail-optimized; any oversubscription directly reduces busbw proportionally',
+        '<code>Oversubscription ratio</code>: ratio of aggregate host bandwidth to fabric bandwidth; 1:1 = non-blocking (ideal for AI training); 2:1 = half the bandwidth available to each host on average; AI training with large tensors REQUIRES 1:1 or near-1:1 to avoid stalls',
+        'Rail-optimized rationale: without rail-optimization all 8 NICs on one node hash to one leaf, creating a 8:1 oversubscription at that leaf uplink; rail-optimization spreads the 8 NICs to 8 different leaves, giving each GPU its own dedicated leaf uplink = effective 1:1',
+        '<code>Bandwidth requirement rule of thumb</code>: for NDR400 (400 Gb/s per NIC), AllReduce peak demand = 400 Gb/s per GPU rail; spine links must carry all-to-all traffic without queuing; fat-tree with 1:1 oversubscription means each spine link = leaf-count x (leaf-port-bandwidth / spine-port-count)',
+        'Topology impact on collective latency: fat-tree 2-level (leaf+spine) = 2 hops max; dragonfly+ = 3 hops max (within group, inter-group, to destination); fewer hops = lower collective latency, critical for small-message AllReduce in transformer attention layers'
       ] }
   ];
 

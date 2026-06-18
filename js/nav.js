@@ -188,6 +188,8 @@
     { text: 'Console Labs', children: [
       { text: 'InfiniBand Diagnostics', href: 'ncp-ain-ib-lab.html' },
       { text: 'Spectrum-X / NVUE', href: 'ncp-ain-spectrum-lab.html' },
+      { text: 'Perf Validation', href: 'ncp-ain-perf-lab.html' },
+      { text: 'WJH Drop Analysis', href: 'ncp-ain-wjh-lab.html' },
     ]},
     { text: 'Study Group', href: 'peers.html' },
   ];
