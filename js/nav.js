@@ -185,6 +185,7 @@
   var NCPAIN_NAV = [
     { text: 'CORE', href: 'ncp-ain-hub.html' },
     { text: 'Pillars', href: 'ncp-ain-pillars.html' },
+    { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
     { text: 'Console Labs', children: [
       { text: 'InfiniBand Diagnostics', href: 'ncp-ain-ib-lab.html' },
       { text: 'Spectrum-X / NVUE', href: 'ncp-ain-spectrum-lab.html' },
