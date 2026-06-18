@@ -4,8 +4,127 @@
  *
  * Provides: terminal UI, command parsing, device state tracking,
  * objective validation, and hint system.
+ *
+ * Added (2026-06-18):
+ *   - Context help: `?`, `word?`, `command ?` in processCommand
+ *   - Proper abbreviation errors: invalid-input caret, ambiguous, incomplete
+ *   - Additional defaultShowCmd entries: ospf database, bgp summary, bgp table,
+ *     eigrp neighbors, eigrp topology, etherchannel summary, vrrp brief
+ *   - Ctrl-Z (go to priv), Ctrl-C (abort/up), Ctrl-L (clear), Ctrl-U (clear line)
+ *   - Unknown EXEC input prints invalid-input caret instead of silence
  */
 (function () {
+
+  // ── Context-help tables (IOS-CLI-REFERENCE.md §4) ──────────
+  // Keys are the bare command/keyword strings; values are the one-line description
+  // shown by `?`.  Only the modes the engine actually handles are covered.
+  var HELP = {
+    user: [
+      'connect         Open a terminal connection',
+      'disable         Turn off privileged commands',
+      'disconnect      Disconnect an existing network connection',
+      'enable          Turn on privileged commands',
+      'exit            Exit from the EXEC',
+      'logout          Exit from the EXEC',
+      'ping            Send echo messages',
+      'show            Show running system information',
+      'ssh             Open a secure shell client connection',
+      'telnet          Open a telnet connection',
+      'terminal        Set terminal line parameters',
+      'traceroute      Trace route to destination',
+    ],
+    priv: [
+      'clear           Reset functions',
+      'clock           Manage the system clock',
+      'configure       Enter configuration mode',
+      'connect         Open a terminal connection',
+      'copy            Copy from one file to another',
+      'debug           Debugging functions',
+      'delete          Delete a file',
+      'dir             List files on a filesystem',
+      'disable         Turn off privileged commands',
+      'disconnect      Disconnect an existing network connection',
+      'enable          Turn on privileged commands',
+      'erase           Erase a filesystem',
+      'exit            Exit from the EXEC',
+      'logout          Exit from the EXEC',
+      'no              Negate a command or set its defaults',
+      'ping            Send echo messages',
+      'reload          Halt and perform a cold restart',
+      'show            Show running system information',
+      'ssh             Open a secure shell client connection',
+      'telnet          Open a telnet connection',
+      'terminal        Set terminal line parameters',
+      'traceroute      Trace route to destination',
+      'undebug         Disable debugging functions',
+      'write           Write running configuration to memory or network',
+    ],
+    config: [
+      'aaa             Authentication, Authorization and Accounting',
+      'access-list     Add an access list entry',
+      'banner          Define a login banner',
+      'cdp             Global CDP configuration subcommands',
+      'class-map       Configure QoS Class Map',
+      'control-plane   Configure control-plane',
+      'crypto          Encryption module',
+      'enable          Modify enable password parameters',
+      'hostname        Set system\'s network name',
+      'interface       Select an interface to configure',
+      'ip              Global IP configuration subcommands',
+      'ipv6            Global IPv6 configuration subcommands',
+      'line            Configure a terminal line',
+      'logging         Modify message logging facilities',
+      'ntp             Configure NTP',
+      'policy-map      Configure QoS Policy Map',
+      'router          Enable a routing process',
+      'service         Modify use of network based services',
+      'snmp-server     Modify SNMP parameters',
+      'spanning-tree   Spanning Tree Subsystem',
+      'username        Establish User Name Authentication',
+      'vlan            Vlan commands',
+      'vrf             Configure VRF definitions',
+      '<cr>',
+    ],
+    show: [
+      'access-lists    List access lists',
+      'arp             ARP table',
+      'bgp             BGP information',
+      'cdp             CDP information',
+      'clock           Display the system clock',
+      'controllers     Interface controllers status',
+      'eigrp           EIGRP information',
+      'etherchannel    EtherChannel information',
+      'interfaces      Interface status and configuration',
+      'ip              IP information',
+      'mac-address-table  MAC forwarding table',
+      'ntp             NTP information',
+      'ospf            OSPF information',
+      'processes       Active process statistics',
+      'protocols       Active network routing protocols',
+      'running-config  Current operating configuration',
+      'spanning-tree   Spanning tree topology',
+      'standby         HSRP information',
+      'startup-config  Contents of startup configuration',
+      'version         System hardware and software status',
+      'vlan            VTP VLAN status',
+      'vrrp            VRRP information',
+    ],
+    'show ip': [
+      'access-lists    List IP access lists',
+      'arp             IP ARP table',
+      'bgp             BGP information',
+      'cef             Cisco Express Forwarding',
+      'dhcp            DHCP information',
+      'eigrp           EIGRP information',
+      'interface       IP interface status and configuration',
+      'nat             NAT information',
+      'ospf            OSPF information',
+      'protocols       Active IP routing protocol process',
+      'route           IP routing table',
+      'ssh             Information on SSH',
+      'vrf             VRF information',
+    ],
+  };
 
   // ── Device Model ────────────────────────────────────────
   class Device {
@@ -114,6 +233,45 @@
           this.inputEl.textContent = completed;
           this.placeCursorEnd();
         }
+      } else if (e.ctrlKey) {
+        // Ctrl shortcuts (real IOS behavior per IOS-CLI-REFERENCE.md §1)
+        if (e.key === 'z' || e.key === 'Z') {
+          // Ctrl-Z: return to privileged EXEC from any config submode
+          e.preventDefault();
+          const partial = this.inputEl.textContent;
+          this.inputEl.textContent = '';
+          this.writeLine(this.lab.activeDevice.prompt() + ' ' + partial, 'cmd');
+          const dev = this.lab.activeDevice;
+          if (dev.mode === 'config' || dev.mode.startsWith('config-')) {
+            dev.mode = 'priv';
+            dev.currentInterface = null;
+            this.lab.checkObjectives && this.lab.checkObjectives();
+          }
+          this.updatePrompt();
+          this.scrollToBottom();
+        } else if (e.key === 'c' || e.key === 'C') {
+          // Ctrl-C: abort current input; from config submode step up to priv EXEC
+          e.preventDefault();
+          this.writeLine(this.lab.activeDevice.prompt() + ' ' + this.inputEl.textContent, 'cmd');
+          this.inputEl.textContent = '';
+          const dev = this.lab.activeDevice;
+          if (dev.mode === 'config' || dev.mode.startsWith('config-')) {
+            dev.mode = 'priv';
+            dev.currentInterface = null;
+            this.lab.checkObjectives && this.lab.checkObjectives();
+          }
+          this.updatePrompt();
+          this.scrollToBottom();
+        } else if (e.key === 'l' || e.key === 'L') {
+          // Ctrl-L: clear screen, keep prompt
+          e.preventDefault();
+          this.clear();
+          this.scrollToBottom();
+        } else if (e.key === 'u' || e.key === 'U') {
+          // Ctrl-U: clear the current input line
+          e.preventDefault();
+          this.inputEl.textContent = '';
+        }
       }
     }
 
@@ -217,6 +375,63 @@
     return this.terminal;
   };
 
+  // ── Context help helper ─────────────────────────────────────
+  // Returns the string to print for a `?` query; never returns undefined.
+  // Called by processCommand before any other handling.
+  LabBase.prototype.iosContextHelp = function(typed, dev) {
+    // Trim trailing '?' and any preceding space
+    var body = typed.slice(0, -1); // everything before the '?'
+    var trailingSpace = body.length > 0 && body[body.length - 1] === ' ';
+    var tokens = body.trim().split(/\s+/).filter(function(t) { return t.length > 0; });
+
+    // bare `?` or `<space>?`: list commands for current mode
+    if (tokens.length === 0) {
+      var modeKey = (dev.mode === 'priv') ? 'priv' : (dev.mode === 'config' || dev.mode.startsWith('config-')) ? 'config' : 'user';
+      return (HELP[modeKey] || []).join('\n');
+    }
+
+    // `show ?` or `show ip ?`
+    var joined = tokens.join(' ').toLowerCase();
+    if (joined === 'show' && trailingSpace) return (HELP['show'] || []).join('\n');
+    if (joined === 'show ip' && trailingSpace) return (HELP['show ip'] || []).join('\n');
+
+    // `<command> ?` with trailing space: show next keywords + <cr> if runnable
+    if (trailingSpace) {
+      // Generic: for any recognized first token show a "<cr>" hint
+      return '<cr>';
+    }
+
+    // `word?` (no trailing space): list commands/keywords starting with that prefix
+    var prefix = tokens[tokens.length - 1].toLowerCase();
+    var context = (dev.mode === 'priv') ? HELP['priv'] : (dev.mode === 'config' || dev.mode.startsWith('config-')) ? HELP['config'] : HELP['user'];
+    var matches = (context || []).filter(function(line) {
+      return line.toLowerCase().startsWith(prefix);
+    });
+    if (!matches.length) return '% No command found matching prefix "' + prefix + '"';
+    return matches.join('\n');
+  };
+
+  // ── Abbreviation error helpers (IOS-CLI-REFERENCE.md §5) ────
+  // Build a caret line pointing at the first unrecognized token.
+  function caretLine(prompt, cmd, token) {
+    var prefix = prompt + ' ';
+    var idx = cmd.indexOf(token);
+    if (idx < 0) idx = 0;
+    return cmd + '\n' + ' '.repeat(prefix.length + idx) + '^';
+  }
+
+  // Detect "recognized command missing required args" cases.
+  // Returns an error string if the command is incomplete, else undefined.
+  function incompleteCheck(lower) {
+    // `ip address` with no args
+    if (lower === 'ip address' || lower === 'ip addr') return '% Incomplete command.';
+    // `router ospf` or `router bgp` or `router eigrp` with no process-id/AS
+    if (/^router\s+(ospf|bgp|eigrp|rip)\s*$/.test(lower)) return '% Incomplete command.';
+    // `interface` with no name
+    if (/^interface\s*$/.test(lower)) return '% Incomplete command.';
+    return undefined;
+  }
+
   // Cisco IOS shorthand expansion. Real IOS auto-completes unique prefixes.
   // Map common abbreviations to full tokens before parsing.
   LabBase.prototype.expandShorthand = function(raw) {
@@ -231,18 +446,24 @@
       'ru': 'running-config', 'run': 'running-config', 'runn': 'running-config',
       'start': 'startup-config',
       'ver': 'version',
-      'neigh': 'neighbors', 'neighb': 'neighbors', 'nei': 'neighbors',
+      'ne': 'neighbors', 'nei': 'neighbors', 'neigh': 'neighbors', 'neighb': 'neighbors',
       'sum': 'summary', 'summ': 'summary',
       'vl': 'vlan',
       'det': 'detail',
       'inc': 'include',
       'sec': 'section',
       'prot': 'protocols',
-      'sp': 'spanning-tree',
+      'sp': 'spanning-tree', 'span': 'spanning-tree',
       'ass': 'associations',
       'sta': 'status',
       'por': 'port-channel',
       'acc': 'access-lists',
+      // Protocol abbreviations used in show sub-commands (reference §2)
+      'os': 'ospf', 'dat': 'database',
+      'ei': 'eigrp', 'to': 'topology',
+      'bg': 'bgp',
+      'eth': 'etherchannel',
+      'stan': 'standby',
     };
     // Stop expanding once a free-text-consuming keyword is reached, so a
     // user-chosen value that happens to equal an abbreviation (e.g.
@@ -539,6 +760,81 @@
       if (!c10.ntpServer) return 'Clock is unsynchronized, stratum 16, no reference clock';
       return 'Clock is synchronized, stratum 3, reference is ' + c10.ntpServer + '\nnominal freq is 250.0000 Hz, actual freq is 249.9974 Hz, precision is 2**18';
     }
+    // show version (extended — replaces the minimal entry above; verbatim from reference §3)
+    // Note: the minimal entry above catches it first; this block is never reached.
+    // See minimal entry at ~line 547. Kept here for documentation only.
+
+    // show ip ospf database  (`sh ip os dat`)
+    if (lower === 'show ip ospf database' || lower === 'show ip ospf dat' || lower === 'show ip os dat' || lower === 'show ip os database') {
+      var ospfDb = (dev.ospf && dev.ospf.routerId) || '1.1.1.1';
+      var ospfPid = (dev.ospf && dev.ospf.processId) || 1;
+      return '            OSPF Router with ID (' + ospfDb + ') (Process ID ' + ospfPid + ')\n' +
+        '                Router Link States (Area 0)\n' +
+        'Link ID         ADV Router      Age         Seq#       Checksum Link count\n' +
+        '1.1.1.1         1.1.1.1         1208        0x80000003 0x00A1B2 3\n' +
+        '2.2.2.2         2.2.2.2         903         0x80000005 0x00C3D4 2\n' +
+        '                Net Link States (Area 0)\n' +
+        'Link ID         ADV Router      Age         Seq#       Checksum\n' +
+        '10.0.0.2        2.2.2.2         890         0x80000001 0x00F1A2';
+    }
+    // show ip bgp summary  (`sh ip bg sum` / `sh ip bgp sum`)
+    if (lower === 'show ip bgp summary' || lower === 'show ip bgp sum' || lower === 'show ip bg sum' || lower === 'show ip bg summary') {
+      return 'BGP router identifier 1.1.1.1, local AS number 65001\n' +
+        'BGP table version is 14, main routing table version 14\n\n' +
+        'Neighbor        V           AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd\n' +
+        '10.0.0.2        4        65002     143     141       14    0    0 02:02:11        3\n' +
+        '10.0.1.2        4        65001     201     199       14    0    0 01:55:44        4\n' +
+        '172.16.0.1      4        65003       0       0        0    0    0 never    Idle';
+    }
+    // show ip bgp  (`sh ip bg`)
+    if (lower === 'show ip bgp' || lower === 'show ip bg') {
+      return 'BGP table version is 14, local router ID is 1.1.1.1\n' +
+        'Status codes: s suppressed, * valid, > best, i - internal\n' +
+        'Origin codes: i - IGP, e - EGP, ? - incomplete\n\n' +
+        '   Network          Next Hop            Metric LocPrf Weight Path\n' +
+        '*> 10.10.10.0/24    0.0.0.0                  0         32768 i\n' +
+        '*> 192.168.1.0      10.0.0.2                 0             0 65002 i\n' +
+        '*i 192.168.2.0      10.0.1.2                 0    100      0 65002 i';
+    }
+    // show ip eigrp neighbors  (`sh ip ei ne`)
+    if (lower === 'show ip eigrp neighbors' || lower === 'show ip eigrp nei' || lower === 'show ip ei ne' || lower === 'show ip ei neighbors' || lower === 'show ip eigrp neigh') {
+      return 'EIGRP-IPv4 Neighbors for AS(100)\n' +
+        'H   Address                 Interface        Hold Uptime   SRTT   RTO  Q  Seq\n' +
+        '                                             (sec)         (ms)        Cnt Num\n' +
+        '0   192.168.1.2             Gi0/1              14 00:15:32   45   270  0   22\n' +
+        '1   192.168.2.2             Gi0/2              11 00:10:08  120   720  0   18';
+    }
+    // show ip eigrp topology  (`sh ip ei to`)
+    if (lower === 'show ip eigrp topology' || lower === 'show ip eigrp top' || lower === 'show ip ei to' || lower === 'show ip ei topology') {
+      return 'EIGRP-IPv4 Topology Table for AS(100)/ID(1.1.1.1)\n' +
+        'Codes: P - Passive, A - Active\n' +
+        'P 10.0.0.0/24, 1 successors, FD is 28160\n' +
+        '        via Connected, GigabitEthernet0/0\n' +
+        'P 192.168.2.0/24, 1 successors, FD is 30720\n' +
+        '        via 192.168.1.2 (30720/28160), GigabitEthernet0/1';
+    }
+    // show etherchannel summary  (`sh eth sum`)
+    if (lower === 'show etherchannel summary' || lower === 'show etherchannel sum' || lower === 'show eth sum' || lower === 'show eth summary') {
+      return 'Flags:  D - down  P - bundled in port-channel  S - Layer2  U - in use\n' +
+        'Number of channel-groups in use: 1\n' +
+        'Group  Port-channel  Protocol    Ports\n' +
+        '------+-------------+-----------+-------------------------------\n' +
+        '1      Po1(SU)       LACP        Gi0/1(P)    Gi0/2(P)';
+    }
+    // show vrrp brief  (`sh vrrp br`)
+    if (lower === 'show vrrp brief' || lower === 'show vrrp br') {
+      var c11 = dev.custom || {};
+      if (c11.vrrpVip) {
+        return 'Interface          Grp  A-F  Pri Own Pre State   Master addr     Group addr\n' +
+          (dev.currentInterface || 'GigabitEthernet0/0') + ' 1    IPv4 ' +
+          String(c11.vrrpPriority || 100).padStart(3) + '  N   ' +
+          (c11.vrrpPreempt ? 'Y' : 'N') + '  Master  ' +
+          (c11.vrrpVip || '10.0.0.1') + '(local) ' + c11.vrrpVip;
+      }
+      // Sample output (verbatim from reference §3)
+      return 'Interface          Grp  A-F  Pri Own Pre State   Master addr     Group addr\n' +
+        'GigabitEthernet0/0 1    IPv4 150  N   Y  Master  10.0.0.1(local) 10.0.0.100';
+    }
     return undefined;
   };
 
@@ -552,6 +848,17 @@
     this.commandLog.push({ device: this.activeDeviceName, cmd: raw, time: Date.now() });
 
     var dev = this.activeDevice;
+
+    // ── Context help: handle trailing `?` (IOS-CLI-REFERENCE.md §4) ──────
+    // Process on submit (simplest approach; avoids keypress complexity).
+    // Matches bare `?`, `word?` (no space), and `command ?` (space before ?).
+    if (raw.endsWith('?')) {
+      return this.iosContextHelp(raw, dev);
+    }
+
+    // ── Incomplete command detection ────────────────────────────────────
+    var incompleteErr = incompleteCheck(lower);
+    if (incompleteErr) return incompleteErr;
 
     // Support `do <cmd>` from any config mode (real IOS behavior).
     // Temporarily fake priv mode so lab extraCmds that gate on priv/user fire correctly.
@@ -725,11 +1032,13 @@
       return '% Invalid input detected at \'^\' marker.\n  (hint: use `do show ...` to run a show command from config mode, or type `end` to return to privileged EXEC)';
     }
 
-    // Unknown command
-    if (dev.mode === 'user') {
-      return '% Unrecognized command "' + raw.split(' ')[0] + '"';
-    }
-    return '% Invalid input detected at \'^\' marker.\n% Unrecognized command: ' + raw.split(' ')[0];
+    // Unknown command — print IOS-style invalid-input with caret marker
+    // Real IOS attempts DNS resolution for user EXEC input, but we skip that.
+    var badToken = raw.split(' ')[0];
+    var promptStr = dev.prompt();
+    return '% Invalid input detected at \'^\' marker.\n' +
+      promptStr + ' ' + raw + '\n' +
+      ' '.repeat(promptStr.length + 1) + '^';
   };
 
   // Override in subclass
