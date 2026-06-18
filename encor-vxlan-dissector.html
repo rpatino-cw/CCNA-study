@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>VXLAN Packet Dissector — ENCOR</title>
+<style>
+:root {
+  --ccnp: #0F766E;
+  --ccnp-rgb: 15, 118, 110;
+  --ccnp-light: #5EEAD4;
+  --ccnp-dark: #0B5249;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* ── Kicker / headings ────────────────────────────────────────── */
+.kicker {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ccnp);
+  margin-bottom: var(--s-xs);
+  font-weight: 600;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-xs);
+  line-height: 1.15;
+}
+.page-subtitle {
+  font-family: var(--font-body);
+  font-size: .97rem;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+  max-width: 68ch;
+  margin-bottom: var(--s-xl);
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ccnp);
+  text-decoration: none;
+  margin-bottom: var(--s-lg);
+}
+.back-link:hover { color: var(--ccnp-dark); }
+.back-link svg { flex-shrink: 0; }
+
+/* ── Stats bar ───────────────────────────────────────────────── */
+.stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  margin-bottom: var(--s-xl);
+}
+.stat-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+}
+.stat-chip .stat-label {
+  font-family: var(--font-display);
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--ink-muted);
+}
+.stat-chip .stat-value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ccnp);
+}
+.stat-chip .stat-note {
+  font-family: var(--font-body);
+  font-size: .72rem;
+  color: var(--ink-secondary);
+  line-height: 1.4;
+}
+
+/* ── Main workspace ──────────────────────────────────────────── */
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: var(--s-lg);
+  margin-bottom: var(--s-xl);
+}
+@media (max-width: 900px) { .workspace { grid-template-columns: 1fr; } }
+
+/* ── Packet stack panel ──────────────────────────────────────── */
+.stack-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-lg);
+  position: relative;
+}
+.panel-label {
+  font-family: var(--font-display);
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--ink-muted);
+  margin-bottom: var(--s-md);
+}
+
+/* ── Frame layers ────────────────────────────────────────────── */
+.frame-wrap {
+  position: relative;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.layer {
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 3px;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity .4s var(--ease-out), transform .4s var(--ease-out);
+  cursor: pointer;
+  position: relative;
+}
+.layer.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.layer.leaving {
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity .3s ease, transform .3s ease;
+}
+
+/* Layer color themes */
+.layer-outer-eth  { background: #EFF6FF; border: 1.5px solid #93C5FD; }
+.layer-outer-ip   { background: #F0FDF4; border: 1.5px solid #86EFAC; }
+.layer-outer-udp  { background: #FFF7ED; border: 1.5px solid #FCA5A1; }
+.layer-vxlan      { background: #FDF4FF; border: 1.5px solid #D8B4FE; }
+.layer-inner-eth  { background: #FAFAFA; border: 1.5px solid var(--border-strong); }
+
+.layer-outer-eth:hover  { border-color: #3B82F6; box-shadow: 0 0 0 2px rgba(59,130,246,.15); }
+.layer-outer-ip:hover   { border-color: #22C55E; box-shadow: 0 0 0 2px rgba(34,197,94,.15); }
+.layer-outer-udp:hover  { border-color: #F97316; box-shadow: 0 0 0 2px rgba(249,115,22,.15); }
+.layer-vxlan:hover      { border-color: #A855F7; box-shadow: 0 0 0 2px rgba(168,85,247,.15); }
+.layer-inner-eth:hover  { border-color: var(--ccnp); box-shadow: 0 0 0 2px rgba(var(--ccnp-rgb),.15); }
+
+.layer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  gap: var(--s-sm);
+}
+.layer-name {
+  font-family: var(--font-display);
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.layer-size {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+
+/* Fields inside each layer */
+.layer-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px 8px 8px;
+}
+.field {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background .1s;
+  white-space: nowrap;
+  position: relative;
+}
+
+.layer-outer-eth  .field { background: rgba(59,130,246,.12); color: #1D4ED8; }
+.layer-outer-eth  .field:hover { background: rgba(59,130,246,.22); }
+.layer-outer-ip   .field { background: rgba(34,197,94,.12); color: #166534; }
+.layer-outer-ip   .field:hover { background: rgba(34,197,94,.22); }
+.layer-outer-udp  .field { background: rgba(249,115,22,.12); color: #9A3412; }
+.layer-outer-udp  .field:hover { background: rgba(249,115,22,.22); }
+.layer-vxlan      .field { background: rgba(168,85,247,.12); color: #6B21A8; }
+.layer-vxlan      .field:hover { background: rgba(168,85,247,.22); }
+.layer-inner-eth  .field { background: var(--bg-recessed); color: var(--ink-secondary); }
+.layer-inner-eth  .field:hover { background: var(--bg-hover); }
+
+/* Color legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  margin-top: var(--s-md);
+  padding-top: var(--s-md);
+  border-top: 1px solid var(--rule);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: .72rem;
+  color: var(--ink-secondary);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Controls panel ──────────────────────────────────────────── */
+.controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-md);
+}
+
+.ctrl-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md);
+}
+.ctrl-card-title {
+  font-family: var(--font-display);
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--ink-secondary);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: var(--s-sm);
+}
+
+.btn-row {
+  display: flex;
+  gap: var(--s-sm);
+  flex-wrap: wrap;
+}
+.sim-btn {
+  font-family: var(--font-display);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all .15s;
+}
+.sim-btn.primary {
+  background: var(--ccnp);
+  color: #fff;
+  border-color: var(--ccnp);
+}
+.sim-btn.primary:hover { background: var(--ccnp-dark); border-color: var(--ccnp-dark); }
+.sim-btn.primary:disabled { opacity: .45; cursor: default; }
+.sim-btn.ghost {
+  background: transparent;
+  color: var(--ink-secondary);
+  border-color: var(--border-strong);
+}
+.sim-btn.ghost:hover { color: var(--ink); border-color: var(--ink-muted); background: var(--bg-hover); }
+.sim-btn.ghost:disabled { opacity: .45; cursor: default; }
+
+/* Phase label */
+.phase-label {
+  font-family: var(--font-display);
+  font-size: .8rem;
+  color: var(--ccnp);
+  font-weight: 600;
+  min-height: 1.2em;
+}
+
+/* Overhead meter */
+.overhead-meter {
+  margin-top: var(--s-sm);
+}
+.oh-bar-wrap {
+  background: var(--bg-recessed);
+  border-radius: 100px;
+  height: 8px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.oh-bar {
+  height: 100%;
+  background: var(--ccnp);
+  border-radius: 100px;
+  width: 0%;
+  transition: width .6s var(--ease-out);
+}
+.oh-label {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  color: var(--ccnp);
+  font-weight: 600;
+  margin-top: 4px;
+}
+.oh-caption {
+  font-family: var(--font-body);
+  font-size: .75rem;
+  color: var(--ink-secondary);
+  margin-top: 2px;
+}
+
+/* VNI vs VLAN comparison */
+.scale-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-sm);
+  margin-top: var(--s-sm);
+}
+.scale-item {
+  background: var(--bg-recessed);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.scale-item .scale-num {
+  font-family: var(--font-mono);
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.scale-item .scale-num.highlight { color: var(--ccnp); }
+.scale-item .scale-desc {
+  font-family: var(--font-body);
+  font-size: .72rem;
+  color: var(--ink-secondary);
+  margin-top: 2px;
+}
+
+/* ── Topology strip ──────────────────────────────────────────── */
+.topo-section {
+  margin-bottom: var(--s-xl);
+}
+.topo-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-lg);
+  overflow-x: auto;
+}
+.topo-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 560px;
+  padding: var(--s-md) 0;
+  position: relative;
+}
+
+.vtep-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+}
+.vtep-icon {
+  width: 72px;
+  height: 52px;
+  background: var(--bg-recessed);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .3s, box-shadow .3s;
+  position: relative;
+}
+.vtep-icon.active {
+  border-color: var(--ccnp);
+  box-shadow: 0 0 0 3px rgba(var(--ccnp-rgb), .2);
+}
+.vtep-name {
+  font-family: var(--font-display);
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.vtep-ip {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  color: var(--ink-secondary);
+}
+.vtep-role {
+  font-family: var(--font-display);
+  font-size: .62rem;
+  color: var(--ccnp);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+/* hosts attached to VTEPs */
+.host-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.host-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.host-icon {
+  width: 36px;
+  height: 28px;
+  background: #EFF6FF;
+  border: 1.5px solid #93C5FD;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+}
+.host-label {
+  font-family: var(--font-mono);
+  font-size: .6rem;
+  color: var(--ink-secondary);
+}
+
+/* underlay path */
+.underlay-path {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  position: relative;
+  overflow: visible;
+  margin: 0 var(--s-md);
+}
+.underlay-label {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.packet-dot {
+  position: absolute;
+  top: 50%;
+  left: -8px;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ccnp);
+  box-shadow: 0 0 0 3px rgba(var(--ccnp-rgb), .25);
+  transition: left 1.2s var(--ease-out), opacity .3s;
+  opacity: 0;
+}
+.packet-dot.transit { opacity: 1; }
+.packet-dot.arrived { left: calc(100% - 8px); }
+
+.topo-encap-note {
+  font-family: var(--font-body);
+  font-size: .8rem;
+  color: var(--ink-secondary);
+  text-align: center;
+  margin-top: var(--s-md);
+  min-height: 1.4em;
+  transition: opacity .3s;
+}
+
+/* vertical connectors host -> vtep */
+.vtep-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.connector-line {
+  width: 2px;
+  height: 16px;
+  background: var(--border-strong);
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────── */
+.tooltip {
+  position: fixed;
+  z-index: 999;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  max-width: 260px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  font-family: var(--font-body);
+  font-size: .82rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+}
+.tooltip.show { opacity: 1; }
+.tooltip strong {
+  font-family: var(--font-display);
+  font-size: .78rem;
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ccnp-light);
+}
+
+/* ── Key facts callout ───────────────────────────────────────── */
+.facts-callout {
+  background: rgba(var(--ccnp-rgb), .05);
+  border: 1px solid rgba(var(--ccnp-rgb), .2);
+  border-left: 3px solid var(--ccnp);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md) var(--s-lg);
+  margin-bottom: var(--s-xl);
+}
+.facts-callout h3 {
+  font-family: var(--font-display);
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--ccnp);
+  margin-bottom: var(--s-sm);
+  border: none;
+  padding: 0;
+}
+.facts-callout ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xs) var(--s-xl);
+}
+.facts-callout li {
+  font-family: var(--font-body);
+  font-size: .88rem;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.facts-callout li::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ccnp);
+  flex-shrink: 0;
+  position: relative;
+  top: -1px;
+}
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .layer, .packet-dot, .oh-bar {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <a href="encor-hub.html" class="back-link">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="10 12 6 8 10 4"/>
+    </svg>
+    ENCOR Hub
+  </a>
+
+  <p class="kicker">ENCOR 350-401 / Overlay Networking</p>
+  <h1 class="page-title">VXLAN Packet Dissector</h1>
+  <p class="page-subtitle">VXLAN wraps a full Ethernet frame inside UDP, giving you 16.7 million virtual segments (24-bit VNI) across a routed IP underlay. The VTEP device performs all encapsulation and decapsulation. Step through the animation to see every byte added.</p>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-chip">
+      <span class="stat-label">Encap overhead</span>
+      <span class="stat-value" id="oh-value">50 bytes</span>
+      <span class="stat-note">Outer Eth + IP + UDP + VXLAN headers</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-label">VXLAN segments (VNI)</span>
+      <span class="stat-value">16,777,216</span>
+      <span class="stat-note">24-bit field, vs 4,096 VLANs (12-bit)</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-label">UDP dst port</span>
+      <span class="stat-value">4789</span>
+      <span class="stat-note">IANA assigned; src port = hash of inner frame</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-label">VXLAN header</span>
+      <span class="stat-value">8 bytes</span>
+      <span class="stat-note">Flags (1B) + reserved (3B) + VNI (3B) + reserved (1B)</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-label">Why VXLAN?</span>
+      <span class="stat-value" style="font-size:.8rem; line-height:1.3">L2 over L3</span>
+      <span class="stat-note">VM mobility across subnets; scale beyond VLAN limit</span>
+    </div>
+  </div>
+
+  <!-- Main workspace -->
+  <div class="workspace">
+    <!-- Packet stack -->
+    <div class="stack-panel">
+      <div class="panel-label">Packet stack (outermost layer on top)</div>
+      <div class="frame-wrap" id="frame-wrap">
+        <!-- layers injected by JS -->
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#3B82F6"></div> Outer Ethernet</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22C55E"></div> Outer IP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#F97316"></div> Outer UDP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#A855F7"></div> VXLAN header</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--border-strong)"></div> Inner Ethernet (original)</div>
+      </div>
+    </div>
+
+    <!-- Controls panel -->
+    <div class="controls-panel">
+      <!-- action buttons -->
+      <div class="ctrl-card">
+        <div class="ctrl-card-title">Simulation</div>
+        <div class="phase-label" id="phase-label">Ready to encapsulate</div>
+        <div class="btn-row" style="margin-top: var(--s-sm);">
+          <button class="sim-btn primary" id="btn-encap">Encapsulate</button>
+          <button class="sim-btn ghost" id="btn-decap" disabled>Decapsulate</button>
+          <button class="sim-btn ghost" id="btn-reset">Reset</button>
+        </div>
+      </div>
+
+      <!-- overhead meter -->
+      <div class="ctrl-card">
+        <div class="ctrl-card-title">Encapsulation overhead</div>
+        <div class="overhead-meter">
+          <div class="oh-bar-wrap"><div class="oh-bar" id="oh-bar"></div></div>
+          <div class="oh-label" id="oh-bar-label">0 / 50 bytes added</div>
+          <div class="oh-caption">Assumes 1500-byte MTU; underlay needs MTU of ~1550 to avoid fragmentation (jumbo frames recommended).</div>
+        </div>
+      </div>
+
+      <!-- scale comparison -->
+      <div class="ctrl-card">
+        <div class="ctrl-card-title">Segment scale: VXLAN vs VLAN</div>
+        <div class="scale-compare">
+          <div class="scale-item">
+            <div class="scale-num">4,096</div>
+            <div class="scale-desc">VLAN (802.1Q)<br>12-bit ID</div>
+          </div>
+          <div class="scale-item">
+            <div class="scale-num highlight">16,777,216</div>
+            <div class="scale-desc">VXLAN VNI<br>24-bit ID</div>
+          </div>
+        </div>
+        <p style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-secondary);margin-top:var(--s-sm);">4,096 vlans can not scale a modern multi-tenant DC. VXLAN's 24-bit VNI gives 4,096x more segments, with L2 adjacency preserved across a routed IP underlay.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topology strip -->
+  <div class="topo-section">
+    <div class="panel-label">IP underlay transit: VTEP-A to VTEP-B</div>
+    <div class="topo-card">
+      <div class="topo-canvas">
+        <!-- VM / host A side -->
+        <div class="vtep-cluster">
+          <div class="host-row">
+            <div class="host-box">
+              <div class="host-icon" title="VM sending original Ethernet frame">
+                <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#1D4ED8" stroke-width="1.5">
+                  <rect x="1" y="1" width="16" height="10" rx="1.5"/>
+                  <line x1="6" y1="11" x2="12" y2="11"/>
+                  <line x1="9" y1="11" x2="9" y2="13"/>
+                </svg>
+              </div>
+              <div class="host-label">VM-A</div>
+            </div>
+          </div>
+          <div class="connector-line"></div>
+          <div class="vtep-box">
+            <div class="vtep-icon" id="vtep-a-icon">
+              <svg width="32" height="24" viewBox="0 0 32 24" fill="none" stroke="var(--ink-secondary)" stroke-width="1.5">
+                <rect x="2" y="4" width="28" height="16" rx="2"/>
+                <circle cx="8" cy="12" r="2" fill="var(--ink-secondary)"/>
+                <line x1="12" y1="12" x2="28" y2="12"/>
+                <line x1="12" y1="9" x2="28" y2="9"/>
+                <line x1="12" y1="15" x2="28" y2="15"/>
+              </svg>
+            </div>
+            <div class="vtep-name">VTEP-A</div>
+            <div class="vtep-ip">10.0.0.1</div>
+            <div class="vtep-role">Encapsulate</div>
+          </div>
+        </div>
+
+        <!-- Underlay path -->
+        <div class="underlay-path" id="underlay-path">
+          <div class="underlay-label">IP Underlay (routed network)</div>
+          <div class="packet-dot" id="packet-dot"></div>
+        </div>
+
+        <!-- VTEP-B / host B side -->
+        <div class="vtep-cluster">
+          <div class="host-row">
+            <div class="host-box">
+              <div class="host-icon" title="VM receiving original Ethernet frame">
+                <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#1D4ED8" stroke-width="1.5">
+                  <rect x="1" y="1" width="16" height="10" rx="1.5"/>
+                  <line x1="6" y1="11" x2="12" y2="11"/>
+                  <line x1="9" y1="11" x2="9" y2="13"/>
+                </svg>
+              </div>
+              <div class="host-label">VM-B</div>
+            </div>
+          </div>
+          <div class="connector-line"></div>
+          <div class="vtep-box">
+            <div class="vtep-icon" id="vtep-b-icon">
+              <svg width="32" height="24" viewBox="0 0 32 24" fill="none" stroke="var(--ink-secondary)" stroke-width="1.5">
+                <rect x="2" y="4" width="28" height="16" rx="2"/>
+                <circle cx="8" cy="12" r="2" fill="var(--ink-secondary)"/>
+                <line x1="12" y1="12" x2="28" y2="12"/>
+                <line x1="12" y1="9" x2="28" y2="9"/>
+                <line x1="12" y1="15" x2="28" y2="15"/>
+              </svg>
+            </div>
+            <div class="vtep-name">VTEP-B</div>
+            <div class="vtep-ip">10.0.0.2</div>
+            <div class="vtep-role">Decapsulate</div>
+          </div>
+        </div>
+      </div>
+      <div class="topo-encap-note" id="topo-note">Press Encapsulate to watch the packet traverse the underlay.</div>
+    </div>
+  </div>
+
+  <!-- Key exam facts -->
+  <div class="facts-callout">
+    <h3>Walk-away facts (exam-accurate)</h3>
+    <ul>
+      <li>VXLAN = MAC-in-UDP (RFC 7348)</li>
+      <li>VTEP: Virtual Tunnel Endpoint. Encaps and decaps on both sides.</li>
+      <li>UDP dst port 4789 (IANA). Src port = hash of inner frame for ECMP load balancing.</li>
+      <li>VXLAN header is exactly 8 bytes. Contains the 24-bit VNI.</li>
+      <li>24-bit VNI gives 16,777,216 segments vs 4,096 for 802.1Q VLAN.</li>
+      <li>Total outer overhead: 14 (Eth) + 20 (IP) + 8 (UDP) + 8 (VXLAN) = 50 bytes.</li>
+      <li>Enables L2 adjacency between VMs across routed (L3) underlay networks.</li>
+      <li>Used in VXLAN-EVPN (BGP control plane) and flood-and-learn data-plane variants.</li>
+    </ul>
+  </div>
+
+</div><!-- /.container-wide -->
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip" role="tooltip"></div>
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ────────────────────────────────────────────────────────────
+     Layer / field data definitions
+  ──────────────────────────────────────────────────────────── */
+  const LAYERS = [
+    {
+      id: 'outer-eth',
+      cls: 'layer-outer-eth',
+      name: 'Outer Ethernet Header',
+      size: '14 bytes',
+      tooltip: {
+        title: 'Outer Ethernet Header (14 B)',
+        body: 'Added by VTEP-A. Dst MAC = next-hop router or VTEP-B MAC on same L2; Src MAC = VTEP-A NIC. Carries the VXLAN-encapsulated frame across the physical underlay.'
+      },
+      fields: [
+        { label: 'Dst MAC', value: 'AA:BB:CC:DD:EE:FF', tooltip: { title: 'Outer Dst MAC', body: 'MAC of the next-hop toward the remote VTEP in the IP underlay. Not the destination VM MAC.' } },
+        { label: 'Src MAC', value: '11:22:33:44:55:66', tooltip: { title: 'Outer Src MAC', body: 'MAC of VTEP-A\'s NIC sending onto the underlay network.' } },
+        { label: 'EtherType', value: '0x0800 (IPv4)', tooltip: { title: 'EtherType 0x0800', body: 'Indicates the payload is an IPv4 packet (the outer IP header follows).' } },
+      ]
+    },
+    {
+      id: 'outer-ip',
+      cls: 'layer-outer-ip',
+      name: 'Outer IPv4 Header',
+      size: '20 bytes',
+      tooltip: {
+        title: 'Outer IPv4 Header (20 B)',
+        body: 'Routable across the underlay. Src IP = VTEP-A loopback/tunnel IP (10.0.0.1). Dst IP = VTEP-B tunnel IP (10.0.0.2). Protocol = 17 (UDP). TTL carries across multiple hops.'
+      },
+      fields: [
+        { label: 'Src IP', value: '10.0.0.1 (VTEP-A)', tooltip: { title: 'Outer Src IP', body: 'The tunnel IP of the encapsulating VTEP. Usually a loopback reachable across the underlay via OSPF or BGP.' } },
+        { label: 'Dst IP', value: '10.0.0.2 (VTEP-B)', tooltip: { title: 'Outer Dst IP', body: 'The tunnel IP of the remote VTEP that will decapsulate the frame and deliver it to the destination VM.' } },
+        { label: 'Proto', value: '0x11 (UDP)', tooltip: { title: 'Protocol = 17 (UDP)', body: 'The outer IP payload is a UDP segment. UDP is chosen so that ECMP load balancers can spread VXLAN flows using the src/dst port 4-tuple.' } },
+        { label: 'TTL', value: '64', tooltip: { title: 'TTL (Time To Live)', body: 'Standard hop count. Decremented at each IP router in the underlay. VXLAN tunnels traverse many hops across the routed fabric.' } },
+      ]
+    },
+    {
+      id: 'outer-udp',
+      cls: 'layer-outer-udp',
+      name: 'Outer UDP Header',
+      size: '8 bytes',
+      tooltip: {
+        title: 'Outer UDP Header (8 B)',
+        body: 'Dst port = 4789 (IANA VXLAN). Src port = hash of inner frame headers (allows ECMP per-flow load balancing across the underlay). Length = UDP segment length. Checksum = optional (often 0x0000 for VXLAN).'
+      },
+      fields: [
+        { label: 'Src Port', value: '~49152 (hash)', tooltip: { title: 'UDP Source Port (entropy)', body: 'Computed as a hash of inner Ethernet src/dst MACs, inner IP addresses, and inner L4 ports. This creates per-flow entropy so ECMP load balancers spread traffic across equal-cost paths.' } },
+        { label: 'Dst Port', value: '4789', tooltip: { title: 'UDP Dst Port 4789', body: 'IANA-assigned well-known port for VXLAN. All VXLAN traffic uses this destination port so devices can identify and process it. (Legacy implementations used 8472; 4789 is standard.)' } },
+        { label: 'Length', value: '8 + payload', tooltip: { title: 'UDP Length', body: 'Total length of this UDP segment in bytes: 8-byte header + VXLAN header + inner Ethernet frame length.' } },
+        { label: 'Checksum', value: '0x0000', tooltip: { title: 'UDP Checksum', body: 'Often set to zero for VXLAN over IPv4. The inner frame carries its own checksums; the outer IP header has its own. UDP checksum is optional in IPv4.' } },
+      ]
+    },
+    {
+      id: 'vxlan',
+      cls: 'layer-vxlan',
+      name: 'VXLAN Header',
+      size: '8 bytes',
+      tooltip: {
+        title: 'VXLAN Header (8 B, RFC 7348)',
+        body: 'Fixed 8 bytes. Byte 0: flags (bit 3 = I-flag must be set to 1, indicating VNI is valid). Bytes 1-3: reserved (0). Bytes 4-6: 24-bit VNI (up to 16,777,216 segments). Byte 7: reserved (0).'
+      },
+      fields: [
+        { label: 'Flags', value: '0x08 (I=1)', tooltip: { title: 'VXLAN Flags (1 B)', body: 'The I-flag (bit 3) must be set to 1, indicating the VNI field is valid. All other bits are reserved and set to 0. This is the magic byte that identifies a valid VXLAN frame.' } },
+        { label: 'Reserved', value: '0x000000', tooltip: { title: 'Reserved (3 B)', body: 'Must be set to zero. Reserved for future use in the VXLAN specification. Receivers ignore these bytes.' } },
+        { label: 'VNI', value: '0x002710 (10000)', tooltip: { title: 'VNI: VXLAN Network Identifier (24 bits)', body: '24-bit field providing 16,777,216 unique segment IDs. This is the "segment ID" equivalent to a VLAN ID, but with 4,096x more capacity. VMs in the same VNI share L2 adjacency regardless of which physical host they are on.' } },
+        { label: 'Reserved', value: '0x00', tooltip: { title: 'Reserved (1 B)', body: 'Final byte of the VXLAN header. Reserved, set to zero.' } },
+      ]
+    },
+    {
+      id: 'inner-eth',
+      cls: 'layer-inner-eth',
+      name: 'Inner Ethernet Frame (original)',
+      size: 'variable (46-1500 B payload)',
+      tooltip: {
+        title: 'Inner Ethernet Frame',
+        body: 'The original, unmodified Ethernet frame from the source VM. Contains the real src/dst MAC addresses of VM-A and VM-B, optional 802.1Q tag, EtherType, IP payload, and FCS. VTEP-B delivers this intact to the destination VM after stripping all outer headers.'
+      },
+      fields: [
+        { label: 'Dst MAC', value: 'DE:AD:BE:EF:00:02', tooltip: { title: 'Inner Dst MAC', body: 'The real MAC address of the destination VM (VM-B). This is what the destination NIC uses to accept the frame. VTEP-B looks at the VNI to know which logical segment this belongs to.' } },
+        { label: 'Src MAC', value: 'DE:AD:BE:EF:00:01', tooltip: { title: 'Inner Src MAC', body: 'The real MAC address of the source VM (VM-A). VTEP-A learns this MAC-to-VNI mapping and uses it to populate its MAC table.' } },
+        { label: '802.1Q', value: 'optional tag', tooltip: { title: '802.1Q VLAN Tag (optional)', body: 'Inner frame may carry a VLAN tag if the VM is on a specific VLAN. VTEP processes the tag according to configuration. VXLAN can carry tagged or untagged inner frames.' } },
+        { label: 'EtherType', value: '0x0800 (IPv4)', tooltip: { title: 'Inner EtherType', body: 'The protocol of the original payload. Typically 0x0800 (IPv4) or 0x86DD (IPv6). This is the VM-to-VM traffic type.' } },
+        { label: 'Payload', value: 'VM-A -> VM-B data', tooltip: { title: 'Inner Payload', body: 'The actual data from VM-A to VM-B. Could be IP packets, ARP, etc. The outer VXLAN encapsulation is completely transparent to the VMs.' } },
+        { label: 'FCS', value: '4 bytes (CRC)', tooltip: { title: 'Frame Check Sequence (4 B)', body: 'CRC-32 trailer added by the NIC. Verifies inner frame integrity. Usually stripped by VTEP-A before re-encapsulating (the outer Ethernet adds its own FCS on the wire).' } },
+      ]
+    }
+  ];
+
+  /* ────────────────────────────────────────────────────────────
+     State
+  ──────────────────────────────────────────────────────────── */
+  // encapsulation adds layers outermost first but displays outermost on top.
+  // We'll track how many layers are currently visible.
+  let state = 'idle'; // idle | encapsulating | encapsulated | decapsulating
+
+  const frameWrap   = document.getElementById('frame-wrap');
+  const btnEncap    = document.getElementById('btn-encap');
+  const btnDecap    = document.getElementById('btn-decap');
+  const btnReset    = document.getElementById('btn-reset');
+  const phaseLabel  = document.getElementById('phase-label');
+  const ohBar       = document.getElementById('oh-bar');
+  const ohBarLabel  = document.getElementById('oh-bar-label');
+  const tooltip     = document.getElementById('tooltip');
+  const packetDot   = document.getElementById('packet-dot');
+  const topoNote    = document.getElementById('topo-note');
+  const vtepAIcon   = document.getElementById('vtep-a-icon');
+  const vtepBIcon   = document.getElementById('vtep-b-icon');
+
+  /* overhead per layer in bytes (same order as LAYERS) */
+  const OVERHEAD = [14, 20, 8, 8, 0]; // outer-eth, outer-ip, outer-udp, vxlan, inner (no overhead)
+  const TOTAL_OVERHEAD = 50;
+
+  /* ────────────────────────────────────────────────────────────
+     Build DOM for all layers (hidden initially)
+  ──────────────────────────────────────────────────────────── */
+  LAYERS.forEach(function (layerDef, idx) {
+    var el = document.createElement('div');
+    el.className = 'layer ' + layerDef.cls;
+    el.id = 'layer-' + layerDef.id;
+    el.setAttribute('data-idx', idx);
+
+    var header = document.createElement('div');
+    header.className = 'layer-header';
+    header.innerHTML =
+      '<span class="layer-name">' + layerDef.name + '</span>' +
+      '<span class="layer-size">' + layerDef.size + '</span>';
+
+    var fields = document.createElement('div');
+    fields.className = 'layer-fields';
+    layerDef.fields.forEach(function (f) {
+      var span = document.createElement('span');
+      span.className = 'field';
+      span.textContent = f.label + ': ' + f.value;
+      span.addEventListener('mouseenter', function (e) { showTooltip(e, f.tooltip.title, f.tooltip.body); });
+      span.addEventListener('mousemove',  function (e) { positionTooltip(e); });
+      span.addEventListener('mouseleave', hideTooltip);
+      fields.appendChild(span);
+    });
+
+    el.appendChild(header);
+    el.appendChild(fields);
+
+    // Layer-level tooltip (hovering the header/background)
+    header.addEventListener('mouseenter', function (e) { showTooltip(e, layerDef.tooltip.title, layerDef.tooltip.body); });
+    header.addEventListener('mousemove',  function (e) { positionTooltip(e); });
+    header.addEventListener('mouseleave', hideTooltip);
+
+    frameWrap.appendChild(el);
+  });
+
+  /* Inner ethernet is always shown at start (the original frame) */
+  showLayer(4, 0);
+
+  /* ────────────────────────────────────────────────────────────
+     Layer show / hide helpers
+  ──────────────────────────────────────────────────────────── */
+  function showLayer(idx, delay) {
+    setTimeout(function () {
+      var el = document.getElementById('layer-' + LAYERS[idx].id);
+      el.classList.add('visible');
+    }, delay);
+  }
+
+  function hideLayer(idx, delay) {
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        var el = document.getElementById('layer-' + LAYERS[idx].id);
+        el.classList.add('leaving');
+        el.classList.remove('visible');
+        setTimeout(resolve, 350);
+      }, delay);
+    });
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     Overhead bar update
+  ──────────────────────────────────────────────────────────── */
+  function updateOverheadBar(bytesAdded) {
+    var pct = Math.round((bytesAdded / TOTAL_OVERHEAD) * 100);
+    ohBar.style.width = pct + '%';
+    ohBarLabel.textContent = bytesAdded + ' / ' + TOTAL_OVERHEAD + ' bytes added';
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     Encapsulate
+  ──────────────────────────────────────────────────────────── */
+  function encapsulate() {
+    if (state !== 'idle') return;
+    state = 'encapsulating';
+    btnEncap.disabled = true;
+    btnDecap.disabled = true;
+    btnReset.disabled = true;
+
+    // Layers are ordered [outer-eth=0, outer-ip=1, outer-udp=2, vxlan=3, inner-eth=4].
+    // Encapsulation adds from inside-out: vxlan (3), udp (2), ip (1), outer-eth (0).
+    // We reveal them with delays so user sees the wrapping happen.
+    var encapOrder = [3, 2, 1, 0]; // vxlan -> udp -> ip -> outer-eth
+    var labels = [
+      'VTEP-A: adding VXLAN header (VNI 10000)...',
+      'VTEP-A: adding Outer UDP (dst port 4789)...',
+      'VTEP-A: adding Outer IP (src 10.0.0.1 -> dst 10.0.0.2)...',
+      'VTEP-A: adding Outer Ethernet header...',
+    ];
+    var overhead = [8, 16, 36, 50]; // cumulative
+
+    encapOrder.forEach(function (layerIdx, step) {
+      var delay = step * 600 + 200;
+      setTimeout(function () {
+        phaseLabel.textContent = labels[step];
+        showLayer(layerIdx, 0);
+        updateOverheadBar(overhead[step]);
+      }, delay);
+    });
+
+    var totalDelay = encapOrder.length * 600 + 400;
+    setTimeout(function () {
+      phaseLabel.textContent = 'Encapsulated. Packet ready to traverse underlay.';
+      state = 'encapsulated';
+      btnDecap.disabled = false;
+      btnReset.disabled = false;
+
+      // Animate topology packet dot
+      animateTransit();
+    }, totalDelay);
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     Transit animation
+  ──────────────────────────────────────────────────────────── */
+  function animateTransit() {
+    vtepAIcon.classList.add('active');
+    topoNote.textContent = 'VTEP-A encapsulated the frame. Sending across the IP underlay...';
+    packetDot.classList.add('transit');
+
+    setTimeout(function () {
+      packetDot.classList.add('arrived');
+      topoNote.textContent = 'Packet arrived at VTEP-B. Ready to decapsulate and deliver to VM-B.';
+      vtepAIcon.classList.remove('active');
+      vtepBIcon.classList.add('active');
+    }, 400);
+
+    setTimeout(function () {
+      vtepBIcon.classList.remove('active');
+    }, 1800);
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     Decapsulate
+  ──────────────────────────────────────────────────────────── */
+  function decapsulate() {
+    if (state !== 'encapsulated') return;
+    state = 'decapsulating';
+    btnDecap.disabled = true;
+    btnEncap.disabled = true;
+    btnReset.disabled = true;
+
+    // Peel from outside-in: outer-eth (0), ip (1), udp (2), vxlan (3)
+    var decapOrder = [0, 1, 2, 3];
+    var labels = [
+      'VTEP-B: stripping Outer Ethernet header...',
+      'VTEP-B: stripping Outer IP header...',
+      'VTEP-B: stripping Outer UDP header...',
+      'VTEP-B: stripping VXLAN header, reading VNI 10000...',
+    ];
+    var overhead = [36, 16, 8, 0];
+
+    decapOrder.forEach(function (layerIdx, step) {
+      var delay = step * 600 + 200;
+      setTimeout(function () {
+        phaseLabel.textContent = labels[step];
+        hideLayer(layerIdx, 0);
+        updateOverheadBar(overhead[step]);
+      }, delay);
+    });
+
+    var totalDelay = decapOrder.length * 600 + 400;
+    setTimeout(function () {
+      phaseLabel.textContent = 'Original inner frame delivered to VM-B. All outer headers removed.';
+      topoNote.textContent = 'VTEP-B delivered the original Ethernet frame to VM-B. The VMs are unaware of VXLAN.';
+      state = 'idle';
+      btnEncap.disabled = false;
+      btnReset.disabled = false;
+
+      // Reset packet dot
+      packetDot.classList.remove('transit', 'arrived');
+    }, totalDelay);
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     Reset
+  ──────────────────────────────────────────────────────────── */
+  function resetAll() {
+    state = 'idle';
+    btnEncap.disabled = false;
+    btnDecap.disabled = true;
+    btnReset.disabled = false;
+    phaseLabel.textContent = 'Ready to encapsulate';
+    updateOverheadBar(0);
+    topoNote.textContent = 'Press Encapsulate to watch the packet traverse the underlay.';
+    vtepAIcon.classList.remove('active');
+    vtepBIcon.classList.remove('active');
+    packetDot.classList.remove('transit', 'arrived');
+
+    // Hide all outer layers immediately, keep inner-eth
+    [0, 1, 2, 3].forEach(function (idx) {
+      var el = document.getElementById('layer-' + LAYERS[idx].id);
+      el.classList.remove('visible', 'leaving');
+    });
+    // Ensure inner-eth is visible
+    var innerEl = document.getElementById('layer-inner-eth');
+    innerEl.classList.add('visible');
+    innerEl.classList.remove('leaving');
+  }
+
+  btnEncap.addEventListener('click', encapsulate);
+  btnDecap.addEventListener('click', decapsulate);
+  btnReset.addEventListener('click', resetAll);
+
+  /* ────────────────────────────────────────────────────────────
+     Tooltip
+  ──────────────────────────────────────────────────────────── */
+  function showTooltip(e, title, body) {
+    tooltip.innerHTML = '<strong>' + title + '</strong>' + body;
+    tooltip.classList.add('show');
+    positionTooltip(e);
+  }
+
+  function positionTooltip(e) {
+    var x = e.clientX + 14;
+    var y = e.clientY + 14;
+    var tw = tooltip.offsetWidth || 260;
+    var th = tooltip.offsetHeight || 80;
+    if (x + tw > window.innerWidth - 10)  x = e.clientX - tw - 14;
+    if (y + th > window.innerHeight - 10) y = e.clientY - th - 14;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top  = y + 'px';
+  }
+
+  function hideTooltip() {
+    tooltip.classList.remove('show');
+  }
+
+  /* ── reduced-motion: skip all transitions, snap immediately ── */
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) {
+    document.documentElement.style.setProperty('--transition', '0ms');
+    document.documentElement.style.setProperty('--ease-out', 'linear');
+  }
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

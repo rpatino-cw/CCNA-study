@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <title>EIGRP DUAL: Successor and Feasible Successor | ENCOR</title>
+  <style>
+    :root {
+      --ccnp: #0F766E;
+      --ccnp-rgb: 15,118,110;
+      --ccnp-light: #5EEAD4;
+      --ccnp-dark: #0B5249;
+
+      /* EIGRP role palette */
+      --col-successor: #0F766E;   /* teal: the successor */
+      --col-fs:        #16A34A;   /* green: feasible successor */
+      --col-notfs:     #D97706;   /* amber: not feasible */
+      --col-failed:    #B91C1C;   /* red: failed link */
+      --col-active:    #7C3AED;   /* purple: DUAL active */
+    }
+
+    .gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+    /* ── Page header ─────────────────────────────────── */
+    .page-header {
+      padding: var(--s-xl) 0 var(--s-lg);
+      border-bottom: 2px solid var(--ccnp);
+      margin-bottom: var(--s-xl);
+    }
+    .kicker {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--ccnp);
+      font-weight: 600;
+      margin-bottom: var(--s-xs);
+    }
+    .page-header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: var(--s-sm);
+    }
+    .page-header .subtitle {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--ink-secondary);
+      font-style: italic;
+    }
+
+    /* ── Part label ───────────────────────────────────── */
+    .part-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-sm);
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ccnp);
+      background: rgba(var(--ccnp-rgb), 0.08);
+      border: 1px solid rgba(var(--ccnp-rgb), 0.2);
+      border-radius: 100px;
+      padding: 3px 12px;
+      margin-bottom: var(--s-md);
+    }
+
+    /* ── Section card ─────────────────────────────────── */
+    .section-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--s-xl);
+      margin-bottom: var(--s-xl);
+    }
+    .section-card h2 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      margin: 0 0 var(--s-xs);
+      padding: 0;
+      color: var(--ink);
+    }
+    .section-intro {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--ink-secondary);
+      margin-bottom: var(--s-lg);
+      max-width: 72ch;
+    }
+
+    /* ── Concept panel ────────────────────────────────── */
+    .concept-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--s-md);
+      margin-bottom: var(--s-lg);
+    }
+    .concept-item {
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--s-md);
+    }
+    .concept-item .ci-label {
+      font-family: var(--font-display);
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+    .concept-item .ci-term {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .concept-item .ci-def {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: var(--ink-secondary);
+      line-height: 1.4;
+    }
+
+    /* ── SVG topology canvas ──────────────────────────── */
+    .canvas-wrap {
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: visible;
+      margin-bottom: var(--s-md);
+      position: relative;
+    }
+    .canvas-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* ── Metric table ─────────────────────────────────── */
+    .metric-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      margin-bottom: var(--s-md);
+    }
+    .metric-table th {
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: var(--s-xs) var(--s-sm);
+      border-bottom: 2px solid var(--border);
+    }
+    .metric-table td {
+      padding: var(--s-xs) var(--s-sm);
+      border-bottom: 1px solid var(--bg-recessed);
+      vertical-align: middle;
+    }
+    .metric-table tr:last-child td {
+      border-bottom: none;
+    }
+    .metric-table input[type="number"] {
+      width: 80px;
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-input, #fff);
+      color: var(--ink);
+      transition: border-color 0.15s;
+    }
+    .metric-table input[type="number"]:focus {
+      outline: none;
+      border-color: var(--ccnp);
+      box-shadow: 0 0 0 2px rgba(var(--ccnp-rgb), 0.12);
+    }
+
+    /* ── Role badges ──────────────────────────────────── */
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 9px;
+      border-radius: 100px;
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .role-successor { background: rgba(var(--ccnp-rgb),0.12); color: var(--ccnp-dark); }
+    .role-fs        { background: rgba(22,163,74,0.12);  color: #15803D; }
+    .role-notfs     { background: rgba(217,119,6,0.12);  color: #B45309; }
+    .role-failed    { background: rgba(185,28,28,0.08);  color: #991B1B; text-decoration: line-through; }
+    .role-active    { background: rgba(124,58,237,0.12); color: #6D28D9; }
+
+    /* ── Feasibility explanation ──────────────────────── */
+    .fc-result {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+    .fc-pass { color: #15803D; }
+    .fc-fail { color: #B45309; }
+
+    /* ── Buttons ──────────────────────────────────────── */
+    .ctrl-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-sm);
+      align-items: center;
+      margin-bottom: var(--s-md);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      border-radius: var(--radius);
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--ccnp);
+      color: #fff;
+      border-color: var(--ccnp);
+    }
+    .btn-primary:hover  { background: var(--ccnp-dark); border-color: var(--ccnp-dark); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-danger {
+      background: #fff;
+      color: var(--col-failed);
+      border-color: var(--col-failed);
+    }
+    .btn-danger:hover  { background: rgba(185,28,28,0.06); }
+    .btn-danger:active { transform: translateY(1px); }
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--ink);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover  { border-color: var(--ccnp); color: var(--ccnp); }
+    .btn-secondary:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+    /* ── Status callout ───────────────────────────────── */
+    .status-callout {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      background: var(--bg-recessed);
+      border-left: 3px solid var(--ccnp);
+      padding: var(--s-sm) var(--s-md);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin-bottom: var(--s-md);
+      min-height: 2.6rem;
+      display: flex;
+      align-items: center;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .status-callout.st-passive { border-color: var(--col-successor); }
+    .status-callout.st-active  { border-color: var(--col-active); background: rgba(124,58,237,0.06); color: #6D28D9; }
+    .status-callout.st-fs      { border-color: var(--col-fs); background: rgba(22,163,74,0.06); color: #15803D; }
+    .status-callout.st-failed  { border-color: var(--col-failed); }
+
+    /* ── Note box ─────────────────────────────────────── */
+    .note-box {
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      color: var(--ink-secondary);
+      background: rgba(var(--ccnp-rgb), 0.05);
+      border: 1px solid rgba(var(--ccnp-rgb), 0.15);
+      border-radius: var(--radius);
+      padding: var(--s-sm) var(--s-md);
+      margin-top: var(--s-md);
+    }
+    .note-box strong { color: var(--ccnp-dark); }
+
+    /* ── Topology SVG internals ───────────────────────── */
+    .topo-node circle {
+      transition: fill 0.35s, stroke 0.35s;
+    }
+    .topo-link {
+      transition: stroke 0.35s, stroke-width 0.35s, opacity 0.35s;
+    }
+    .topo-label {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+    .topo-metric {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      pointer-events: none;
+    }
+    .topo-rd-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    /* ── QUERY animation ──────────────────────────────── */
+    .query-pkt {
+      pointer-events: none;
+    }
+
+    /* ── Takeaway callout ─────────────────────────────── */
+    .takeaway {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--s-md);
+      margin-top: var(--s-md);
+    }
+    .takeaway-item {
+      border-left: 3px solid var(--ccnp);
+      padding: var(--s-sm) var(--s-md);
+      background: rgba(var(--ccnp-rgb), 0.04);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .takeaway-item.ta-green  { border-color: var(--col-fs); background: rgba(22,163,74,0.04); }
+    .takeaway-item.ta-amber  { border-color: var(--col-notfs); background: rgba(217,119,6,0.04); }
+    .takeaway-item.ta-purple { border-color: var(--col-active); background: rgba(124,58,237,0.04); }
+    .takeaway-item .ta-head {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--ink);
+    }
+    .takeaway-item .ta-body {
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      color: var(--ink-secondary);
+      line-height: 1.45;
+    }
+
+    /* ── Reduced-motion overrides ─────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      .topo-node circle,
+      .topo-link,
+      .status-callout { transition: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <main>
+    <a href="encor-hub.html" class="back-link">Back to ENCOR Hub</a>
+
+    <div class="page-header">
+      <div class="kicker">ENCOR 350-401 / EIGRP Advanced</div>
+      <h1>EIGRP DUAL: Successor and Feasible Successor</h1>
+      <p class="subtitle">Interactive explorer: the RD &lt; FD feasibility condition, instant FS failover, and DUAL going Active when no FS exists.</p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- PART A: CONCEPTS                                   -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="section-card">
+      <div class="part-label">Key Concepts</div>
+      <h2>FD, RD, and the Feasibility Condition</h2>
+      <p class="section-intro">
+        EIGRP uses DUAL to maintain a loop-free routing table. The metric to reach a destination is called a
+        composite metric (bandwidth + delay by default, K1=1, K3=1). Understanding three terms unlocks the whole algorithm.
+      </p>
+
+      <div class="concept-panel">
+        <div class="concept-item">
+          <div class="ci-label">FD: Feasible Distance</div>
+          <div class="ci-term">Your best metric</div>
+          <div class="ci-def">The lowest total EIGRP metric R1 has ever computed to reach the destination. This comes from the Successor. FD is your benchmark.</div>
+        </div>
+        <div class="concept-item">
+          <div class="ci-label">RD: Reported Distance</div>
+          <div class="ci-term">Neighbor's metric</div>
+          <div class="ci-def">The distance a neighbor reports for the same destination (the neighbor's own FD). R1 receives this in the neighbor's EIGRP Update.</div>
+        </div>
+        <div class="concept-item">
+          <div class="ci-label">Successor</div>
+          <div class="ci-term">Best path, in RIB</div>
+          <div class="ci-def">The neighbor with the lowest total metric (link + RD). This route is installed in the routing table. Its total metric becomes R1's FD.</div>
+        </div>
+        <div class="concept-item">
+          <div class="ci-label">Feasibility Condition</div>
+          <div class="ci-term">RD &lt; FD</div>
+          <div class="ci-def">A neighbor is a Feasible Successor only if its RD is strictly less than R1's FD. This guarantees the neighbor is loop-free.</div>
+        </div>
+        <div class="concept-item">
+          <div class="ci-label">Feasible Successor (FS)</div>
+          <div class="ci-term">Loop-free backup</div>
+          <div class="ci-def">A neighbor that passes RD &lt; FD. Stored in the topology table. If the Successor fails, the FS is promoted instantly. R1 stays Passive.</div>
+        </div>
+        <div class="concept-item">
+          <div class="ci-label">DUAL Active</div>
+          <div class="ci-term">No FS, must query</div>
+          <div class="ci-def">If the Successor fails and no FS exists, EIGRP sends Query packets to all neighbors and goes Active until a reply restores a valid path.</div>
+        </div>
+      </div>
+
+      <div class="note-box">
+        <strong>Feasibility Condition in plain English:</strong> if your neighbor's own distance to the destination is already lower than your best-known distance, it cannot be routing through you, so promoting it cannot create a loop.
+        RD &lt; FD is sufficient proof of loop-freedom. No SPF recomputation needed.
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- PART B: INTERACTIVE EXPLORER                       -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="section-card">
+      <div class="part-label">Part B</div>
+      <h2>Interactive Topology Explorer</h2>
+      <p class="section-intro">
+        R1 wants to reach <strong>10.0.0.0/8</strong> via three neighbors (R2, R3, R4).
+        Edit the link cost (R1 to that neighbor) and the neighbor's RD to the destination.
+        The tool recomputes the Successor, FD, and tests the Feasibility Condition for every other neighbor.
+      </p>
+
+      <!-- SVG topology -->
+      <div class="canvas-wrap">
+        <svg id="topoSvg" viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" aria-label="EIGRP topology diagram">
+          <!-- Link lines (drawn behind nodes) -->
+          <line id="link-r2" class="topo-link" x1="200" y1="160" x2="360" y2="90"  stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+          <line id="link-r3" class="topo-link" x1="200" y1="160" x2="360" y2="160" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+          <line id="link-r4" class="topo-link" x1="200" y1="160" x2="360" y2="230" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+          <line          class="topo-link" x1="360" y1="90"  x2="520" y2="160" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round"/>
+          <line          class="topo-link" x1="360" y1="160" x2="520" y2="160" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round"/>
+          <line          class="topo-link" x1="360" y1="230" x2="520" y2="160" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round"/>
+
+          <!-- Metric labels on R1-Rx links (updated by JS) -->
+          <text id="mlabel-r2" class="topo-metric" x="268" y="110" fill="#64748B" text-anchor="middle"></text>
+          <text id="mlabel-r3" class="topo-metric" x="280" y="153" fill="#64748B" text-anchor="middle"></text>
+          <text id="mlabel-r4" class="topo-metric" x="268" y="210" fill="#64748B" text-anchor="middle"></text>
+
+          <!-- QUERY packet placeholders (hidden until animation) -->
+          <circle id="qpkt-r2" class="query-pkt" cx="200" cy="160" r="0" fill="#7C3AED" opacity="0"/>
+          <circle id="qpkt-r3" class="query-pkt" cx="200" cy="160" r="0" fill="#7C3AED" opacity="0"/>
+          <circle id="qpkt-r4" class="query-pkt" cx="200" cy="160" r="0" fill="#7C3AED" opacity="0"/>
+
+          <!-- Nodes -->
+          <g id="node-r1" class="topo-node">
+            <circle cx="200" cy="160" r="34" fill="#0F766E" stroke="#0B5249" stroke-width="2.5"/>
+            <text class="topo-label" x="200" y="155" fill="#fff" text-anchor="middle">R1</text>
+            <text class="topo-metric" x="200" y="170" fill="rgba(255,255,255,0.8)" text-anchor="middle">source</text>
+          </g>
+          <g id="node-r2" class="topo-node">
+            <circle id="circ-r2" cx="360" cy="90" r="30" fill="#5EEAD4" stroke="#0F766E" stroke-width="2"/>
+            <text class="topo-label" x="360" y="85" fill="#0B5249" text-anchor="middle">R2</text>
+            <text id="rlabel-r2" class="topo-metric" x="360" y="99" fill="#0B5249" text-anchor="middle"></text>
+          </g>
+          <g id="node-r3" class="topo-node">
+            <circle id="circ-r3" cx="360" cy="160" r="30" fill="#5EEAD4" stroke="#0F766E" stroke-width="2"/>
+            <text class="topo-label" x="360" y="155" fill="#0B5249" text-anchor="middle">R3</text>
+            <text id="rlabel-r3" class="topo-metric" x="360" y="169" fill="#0B5249" text-anchor="middle"></text>
+          </g>
+          <g id="node-r4" class="topo-node">
+            <circle id="circ-r4" cx="360" cy="230" r="30" fill="#5EEAD4" stroke="#0F766E" stroke-width="2"/>
+            <text class="topo-label" x="360" y="225" fill="#0B5249" text-anchor="middle">R4</text>
+            <text id="rlabel-r4" class="topo-metric" x="360" y="239" fill="#0B5249" text-anchor="middle"></text>
+          </g>
+          <g class="topo-node">
+            <rect x="494" y="128" width="52" height="64" rx="6" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="2"/>
+            <text class="topo-label" x="520" y="158" fill="#475569" text-anchor="middle" font-size="11">10.0.0.0</text>
+            <text class="topo-label" x="520" y="172" fill="#475569" text-anchor="middle" font-size="10">/8</text>
+            <text class="topo-metric" x="520" y="184" fill="#94A3B8" text-anchor="middle" font-size="9">dest</text>
+          </g>
+
+          <!-- RD badges next to each neighbor (placed right of node) -->
+          <text id="rdbadge-r2" class="topo-rd-badge" x="398" y="78" fill="#0B5249"></text>
+          <text id="rdbadge-r3" class="topo-rd-badge" x="398" y="148" fill="#0B5249"></text>
+          <text id="rdbadge-r4" class="topo-rd-badge" x="398" y="218" fill="#0B5249"></text>
+        </svg>
+      </div>
+
+      <!-- Editable metric table -->
+      <table class="metric-table" id="metricTable">
+        <thead>
+          <tr>
+            <th>Neighbor</th>
+            <th>Link Cost (R1 to Rx)</th>
+            <th>Reported Distance (RD)</th>
+            <th>Total Metric (link + RD)</th>
+            <th>Your FD</th>
+            <th>FC: RD &lt; FD?</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody id="metricBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+
+      <!-- Status callout -->
+      <div class="status-callout st-passive" id="statusCallout">
+        Route to 10.0.0.0/8 is <strong>Passive</strong>. Successor elected. Topology table computed.
+      </div>
+
+      <!-- Controls -->
+      <div class="ctrl-row">
+        <button class="btn btn-danger"     id="btnFail"   >Fail the Successor Link</button>
+        <button class="btn btn-secondary"  id="btnReset"  >Reset</button>
+      </div>
+
+      <div class="note-box">
+        <strong>Reading the table:</strong>
+        Total Metric = Link Cost + RD.
+        The row with the lowest Total Metric becomes the <em>Successor</em> and that metric is R1's <em>FD</em>.
+        Every other neighbor is tested: if its RD is less than the FD it qualifies as a Feasible Successor (loop-free backup).
+        If RD is greater than or equal to FD it fails the feasibility condition and is marked amber.
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- PART C: TAKEAWAYS                                  -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="section-card">
+      <div class="part-label">Part C</div>
+      <h2>Walk-Away Summary</h2>
+      <p class="section-intro">
+        The three things the exam expects you to distinguish instantly.
+      </p>
+      <div class="takeaway">
+        <div class="takeaway-item">
+          <div class="ta-head">Successor</div>
+          <div class="ta-body">
+            Best path. Lowest total metric wins. Installed in the routing table.
+            Its total metric becomes R1's Feasible Distance (FD). One Successor per destination
+            (unless equal-cost paths with variance 1, the default).
+          </div>
+        </div>
+        <div class="takeaway-item ta-green">
+          <div class="ta-head">Feasible Successor (FS)</div>
+          <div class="ta-body">
+            Pre-qualified backup in the topology table. Passes RD &lt; FD.
+            When the Successor fails, the FS is promoted instantly with no query.
+            EIGRP stays <strong>Passive</strong>. This is the whole point of DUAL pre-computation.
+          </div>
+        </div>
+        <div class="takeaway-item ta-amber">
+          <div class="ta-head">Fails Feasibility Condition</div>
+          <div class="ta-body">
+            RD greater than or equal to FD. Could be routing through R1, creating a loop.
+            Not stored as an FS. Can still be used if no other path exists, but only after DUAL query.
+          </div>
+        </div>
+        <div class="takeaway-item ta-purple">
+          <div class="ta-head">DUAL Active State</div>
+          <div class="ta-body">
+            Successor fails with no FS available. EIGRP sends Query packets to all neighbors and waits
+            for Replies. Route stays Active until a valid Successor is confirmed. This adds convergence delay.
+          </div>
+        </div>
+      </div>
+
+      <div class="note-box" style="margin-top: var(--s-lg);">
+        <strong>Exam footnotes:</strong>
+        Default variance = 1 (equal-cost only). Increase variance to allow unequal-cost load balancing, but only
+        to neighbors that meet the feasibility condition. EIGRP composite metric uses K1=1 (bandwidth) and K3=1 (delay) by default; K2, K4, K5 = 0.
+        The composite metric formula: metric = [K1 * (10^7 / min-bandwidth) + (K3 * sum-delay/10)] * 256.
+      </div>
+    </div>
+  </main>
+</div>
+
+<script defer src="js/nav.js"></script>
+<script>
+/* ── EIGRP Feasible-Successor Explorer ─────────────────────────────
+   Self-contained. No external dependencies.
+   State: three neighbor rows, each with a link cost and a reported
+   distance. Recomputes FD + feasibility on every input change.
+   Animates "fail successor" branch: FS exists -> instant promote;
+   no FS -> DUAL query animation.
+──────────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── Reduced-motion check ───────────────────────────────────── */
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Topology neighbor definitions ─────────────────────────── */
+  const NEIGHBORS = [
+    { id: 'r2', label: 'R2', linkCost: 1000, rd: 500  },
+    { id: 'r3', label: 'R3', linkCost: 1500, rd: 200  },
+    { id: 'r4', label: 'R4', linkCost: 2000, rd: 800  },
+  ];
+
+  /* ── State ──────────────────────────────────────────────────── */
+  let state = {
+    neighbors: NEIGHBORS.map(n => ({ ...n })),
+    failedId: null,      /* which neighbor's link is failed */
+    animating: false,
+  };
+
+  /* ── DOM refs ───────────────────────────────────────────────── */
+  const tbody        = document.getElementById('metricBody');
+  const statusEl     = document.getElementById('statusCallout');
+  const btnFail      = document.getElementById('btnFail');
+  const btnReset     = document.getElementById('btnReset');
+
+  /* ── Compute metrics ────────────────────────────────────────── */
+  function computeMetrics () {
+    const active = state.neighbors.filter(n => n.id !== state.failedId);
+    if (active.length === 0) return null;
+
+    /* total metric per neighbor */
+    const rows = state.neighbors.map(n => ({
+      ...n,
+      failed:      n.id === state.failedId,
+      total:       n.linkCost + n.rd,
+    }));
+
+    /* find successor among non-failed */
+    const activeRows = rows.filter(r => !r.failed);
+    activeRows.sort((a, b) => a.total - b.total);
+    const successor = activeRows[0];
+    const fd = successor ? successor.total : Infinity;
+
+    /* label every row */
+    rows.forEach(r => {
+      if (r.failed) {
+        r.role = 'failed';
+      } else if (r.id === successor.id) {
+        r.role = 'successor';
+      } else {
+        r.fcPass = r.rd < fd;
+        r.role   = r.fcPass ? 'fs' : 'notfs';
+      }
+    });
+
+    return { rows, fd, successorId: successor ? successor.id : null };
+  }
+
+  /* ── Render table ───────────────────────────────────────────── */
+  function roleHtml (r, fd) {
+    if (r.role === 'failed')    return '<span class="role-badge role-failed">FAILED</span>';
+    if (r.role === 'successor') return '<span class="role-badge role-successor">Successor</span>';
+    if (r.role === 'fs')        return '<span class="role-badge role-fs">Feasible Successor</span>';
+                                return '<span class="role-badge role-notfs">Not Feasible</span>';
+  }
+
+  function fcHtml (r, fd) {
+    if (r.role === 'failed' || r.role === 'successor') return '<span style="color:var(--ink-muted)">n/a</span>';
+    const cmp = r.fcPass
+      ? '<span class="fc-result fc-pass">RD ' + r.rd + ' &lt; FD ' + fd + ' = PASS</span>'
+      : '<span class="fc-result fc-fail">RD ' + r.rd + ' &ge; FD ' + fd + ' = FAIL</span>';
+    return cmp;
+  }
+
+  function renderTable (metrics) {
+    if (!metrics) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted)">No active paths.</td></tr>';
+      return;
+    }
+    const { rows, fd, successorId } = metrics;
+    tbody.innerHTML = rows.map(r => {
+      const dimStyle = r.role === 'failed' ? 'opacity:0.45;' : '';
+      return '<tr style="' + dimStyle + '">' +
+        '<td><strong>' + r.label + '</strong></td>' +
+        '<td><input type="number" min="1" max="99999" value="' + r.linkCost + '" ' +
+               'data-id="' + r.id + '" data-field="linkCost" ' +
+               (r.role === 'failed' ? 'disabled ' : '') +
+               'aria-label="' + r.label + ' link cost"></td>' +
+        '<td><input type="number" min="0" max="99999" value="' + r.rd + '" ' +
+               'data-id="' + r.id + '" data-field="rd" ' +
+               (r.role === 'failed' ? 'disabled ' : '') +
+               'aria-label="' + r.label + ' reported distance"></td>' +
+        '<td style="font-family:var(--font-mono)">' + (r.role === 'failed' ? 'n/a' : r.total.toLocaleString()) + '</td>' +
+        '<td style="font-family:var(--font-mono)">' + (r.id === successorId ? '<strong>' + fd.toLocaleString() + '</strong>' : fd.toLocaleString()) + '</td>' +
+        '<td>' + fcHtml(r, fd) + '</td>' +
+        '<td>' + roleHtml(r, fd) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    /* re-attach input listeners after re-render */
+    tbody.querySelectorAll('input[type="number"]').forEach(inp => {
+      inp.addEventListener('change', onInputChange);
+      inp.addEventListener('input',  onInputChange);
+    });
+  }
+
+  /* ── Update SVG topology ────────────────────────────────────── */
+  function updateSvg (metrics) {
+    if (!metrics) return;
+    const { rows, fd, successorId } = metrics;
+
+    const colorMap = {
+      successor: { fill: '#0F766E', stroke: '#0B5249', label: '#fff' },
+      fs:        { fill: '#DCFCE7', stroke: '#16A34A', label: '#15803D' },
+      notfs:     { fill: '#FEF3C7', stroke: '#D97706', label: '#92400E' },
+      failed:    { fill: '#FEE2E2', stroke: '#B91C1C', label: '#991B1B' },
+    };
+
+    rows.forEach(r => {
+      const circ    = document.getElementById('circ-' + r.id);
+      const link    = document.getElementById('link-' + r.id);
+      const mlabel  = document.getElementById('mlabel-' + r.id);
+      const rlabel  = document.getElementById('rlabel-' + r.id);
+      const rdbadge = document.getElementById('rdbadge-' + r.id);
+      if (!circ) return;
+
+      const col = colorMap[r.role] || colorMap.notfs;
+      circ.setAttribute('fill',   col.fill);
+      circ.setAttribute('stroke', col.stroke);
+
+      /* propagate label color to sibling text nodes */
+      const nodeG = circ.parentElement;
+      nodeG.querySelectorAll('text').forEach(t => t.setAttribute('fill', col.label));
+
+      /* link color */
+      if (link) {
+        if (r.role === 'failed') {
+          link.setAttribute('stroke', '#B91C1C');
+          link.setAttribute('stroke-dasharray', '8 6');
+          link.setAttribute('opacity', '0.5');
+        } else if (r.role === 'successor') {
+          link.setAttribute('stroke', '#0F766E');
+          link.setAttribute('stroke-width', '4');
+          link.setAttribute('stroke-dasharray', 'none');
+          link.setAttribute('opacity', '1');
+        } else if (r.role === 'fs') {
+          link.setAttribute('stroke', '#16A34A');
+          link.setAttribute('stroke-width', '3');
+          link.setAttribute('stroke-dasharray', 'none');
+          link.setAttribute('opacity', '1');
+        } else {
+          link.setAttribute('stroke', '#D97706');
+          link.setAttribute('stroke-width', '2.5');
+          link.setAttribute('stroke-dasharray', 'none');
+          link.setAttribute('opacity', '0.7');
+        }
+      }
+
+      /* metric labels */
+      if (mlabel) mlabel.textContent = r.role === 'failed' ? 'X' : r.linkCost.toLocaleString();
+      if (rlabel) rlabel.textContent = 'RD:' + r.rd.toLocaleString();
+      if (rdbadge) rdbadge.textContent = '';
+    });
+  }
+
+  /* ── Status message ─────────────────────────────────────────── */
+  function setStatus (html, cls) {
+    statusEl.innerHTML = html;
+    statusEl.className = 'status-callout ' + (cls || 'st-passive');
+  }
+
+  /* ── Full render pass ───────────────────────────────────────── */
+  function render () {
+    const metrics = computeMetrics();
+    renderTable(metrics);
+    updateSvg(metrics);
+
+    if (!metrics) {
+      setStatus('No active neighbors.', 'st-failed');
+      btnFail.disabled = true;
+      return;
+    }
+
+    const { rows, fd, successorId } = metrics;
+    const fsList = rows.filter(r => r.role === 'fs');
+    const hasFailed = !!state.failedId;
+
+    if (!hasFailed) {
+      const succ = rows.find(r => r.role === 'successor');
+      const fsNote = fsList.length
+        ? fsList.length + ' Feasible Successor' + (fsList.length > 1 ? 's' : '') + ' pre-qualified.'
+        : 'No Feasible Successor: if the Successor fails, EIGRP goes Active.';
+      setStatus(
+        'Route <strong>Passive</strong>. Successor: <strong>' + (succ ? succ.label : '?') +
+        '</strong>, FD = <strong>' + fd.toLocaleString() + '</strong>. ' + fsNote,
+        'st-passive'
+      );
+      btnFail.disabled = false;
+      btnFail.textContent = 'Fail the Successor Link';
+    }
+  }
+
+  /* ── Input change handler ───────────────────────────────────── */
+  function onInputChange (e) {
+    if (state.animating) return;
+    const id    = e.target.dataset.id;
+    const field = e.target.dataset.field;
+    const val   = Math.max(0, parseInt(e.target.value, 10) || 0);
+    const n     = state.neighbors.find(n => n.id === id);
+    if (n) n[field] = val;
+    render();
+  }
+
+  /* ── Animate QUERY packets ──────────────────────────────────── */
+  function animateQuery (targets, onDone) {
+    if (prefersReducedMotion) { onDone(); return; }
+    /* R1 center */
+    const r1x = 200, r1y = 160;
+    /* neighbor centers */
+    const centers = { r2: [360,90], r3: [360,160], r4: [360,230] };
+
+    let total = targets.length;
+    let done  = 0;
+
+    targets.forEach(function (id) {
+      const pkt  = document.getElementById('qpkt-' + id);
+      const dest = centers[id] || [360, 160];
+      if (!pkt) { done++; if (done >= total) onDone(); return; }
+
+      pkt.setAttribute('cx', r1x);
+      pkt.setAttribute('cy', r1y);
+      pkt.setAttribute('r',  6);
+      pkt.setAttribute('opacity', 1);
+
+      const STEPS = 40;
+      let step    = 0;
+      const dx    = (dest[0] - r1x) / STEPS;
+      const dy    = (dest[1] - r1y) / STEPS;
+
+      function tick () {
+        step++;
+        pkt.setAttribute('cx', r1x + dx * step);
+        pkt.setAttribute('cy', r1y + dy * step);
+        if (step < STEPS) {
+          requestAnimationFrame(tick);
+        } else {
+          /* pause at neighbor, then return */
+          setTimeout(function () {
+            /* fade out */
+            pkt.setAttribute('opacity', 0);
+            pkt.setAttribute('r', 0);
+            done++;
+            if (done >= total) onDone();
+          }, 400);
+        }
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /* ── Fail button handler ────────────────────────────────────── */
+  btnFail.addEventListener('click', function () {
+    if (state.animating) return;
+    const metrics = computeMetrics();
+    if (!metrics) return;
+
+    const { rows, fd, successorId } = metrics;
+    const fsList = rows.filter(r => r.role === 'fs');
+
+    /* mark successor's link as failed */
+    state.failedId = successorId;
+    state.animating = true;
+    btnFail.disabled = true;
+
+    const metricsAfter = computeMetrics();
+    renderTable(metricsAfter);
+    updateSvg(metricsAfter);
+
+    if (fsList.length > 0) {
+      /* FS exists: instant promotion, stays Passive */
+      const promoted = fsList[0];
+      setStatus(
+        'Successor link failed. <strong>Feasible Successor ' + promoted.label +
+        ' promoted instantly.</strong> Route stays <strong>Passive</strong>. No DUAL query sent. Convergence in milliseconds.',
+        'st-fs'
+      );
+      state.animating = false;
+      btnFail.disabled = true;
+      btnFail.textContent = 'Fail the Successor Link';
+    } else {
+      /* No FS: go Active, send queries */
+      setStatus(
+        'Successor link failed. <strong>No Feasible Successor available.</strong> EIGRP sends QUERY packets to all neighbors and goes <strong>Active</strong>...',
+        'st-active'
+      );
+
+      const queryTargets = rows.filter(r => r.id !== successorId).map(r => r.id);
+
+      animateQuery(queryTargets, function () {
+        /* after queries replied: converge */
+        setStatus(
+          'QUERY/REPLY complete. New Successor selected from replies. Route returns to <strong>Passive</strong>. Convergence delay incurred.',
+          'st-passive'
+        );
+        state.animating = false;
+        btnFail.disabled = true;
+        btnFail.textContent = 'Fail the Successor Link';
+
+        /* recompute with the remaining active paths */
+        const m2 = computeMetrics();
+        renderTable(m2);
+        updateSvg(m2);
+      });
+    }
+  });
+
+  /* ── Reset handler ──────────────────────────────────────────── */
+  btnReset.addEventListener('click', function () {
+    state.failedId  = null;
+    state.animating = false;
+    state.neighbors = NEIGHBORS.map(n => ({ ...n }));
+    /* reset query packet visuals */
+    ['r2','r3','r4'].forEach(function (id) {
+      const pkt = document.getElementById('qpkt-' + id);
+      if (pkt) { pkt.setAttribute('r', 0); pkt.setAttribute('opacity', 0); }
+    });
+    render();
+  });
+
+  /* ── Initial render ─────────────────────────────────────────── */
+  render();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

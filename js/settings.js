@@ -306,6 +306,7 @@
           '<div style="display:flex;gap:8px">' +
             '<button class="ct-opt' + (ct==='ccna'?' on':'') + '" data-cert="ccna">CCNA</button>' +
             '<button class="ct-opt' + (ct==='net+'?' on':'') + '" data-cert="net+">NET+</button>' +
+            '<button class="ct-opt' + (ct==='ccnp'?' on':'') + '" data-cert="ccnp">CCNP</button>' +
           '</div></div>';
       })() +
 
@@ -362,7 +363,7 @@
       var cur = localStorage.getItem('ccna_cert_track') || 'ccna';
       if (c !== cur) {
         localStorage.setItem('ccna_cert_track', c);
-        window.location.href = (c === 'net+') ? 'netplus.html' : 'core.html';
+        window.location.href = (c === 'net+') ? 'netplus.html' : (c === 'ccnp') ? 'encor-hub.html' : 'core.html';
       }
       return;
     }

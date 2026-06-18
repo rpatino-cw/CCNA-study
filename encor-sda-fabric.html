@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>SD-Access Fabric Planes — ENCOR</title>
+<style>
+:root {
+  --ccnp: #0F766E;
+  --ccnp-rgb: 15, 118, 110;
+  --ccnp-light: #5EEAD4;
+  --ccnp-dark: #0B5249;
+  /* Per-plane accent colors */
+  --plane-ctrl: #1D4ED8;   /* Control / LISP  — blue */
+  --plane-ctrl-bg: #EFF6FF;
+  --plane-ctrl-border: #BFDBFE;
+  --plane-data: #0F766E;   /* Data / VXLAN    — teal (ccnp) */
+  --plane-data-bg: #F0FDFA;
+  --plane-data-border: #99F6E4;
+  --plane-pol: #7C3AED;    /* Policy / CTS    — violet */
+  --plane-pol-bg: #F5F3FF;
+  --plane-pol-border: #DDD6FE;
+  --plane-orch: #B45309;   /* Catalyst Center — amber */
+  --plane-orch-bg: #FEF3C7;
+  --plane-orch-border: #FDE68A;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* ── Page header ─────────────────────────────────────────────── */
+.kicker {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ccnp);
+  margin-bottom: var(--s-xs);
+  font-weight: 600;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-xs);
+  line-height: 1.15;
+}
+.page-subtitle {
+  font-family: var(--font-body);
+  font-size: .97rem;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+  max-width: 68ch;
+  margin-bottom: var(--s-xl);
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ccnp);
+  text-decoration: none;
+  margin-bottom: var(--s-lg);
+}
+.back-link:hover { color: var(--ccnp-dark); }
+.back-link svg { flex-shrink: 0; }
+
+/* ── Plane toggle buttons ────────────────────────────────────── */
+.plane-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  margin-bottom: var(--s-lg);
+}
+.plane-btn {
+  font-family: var(--font-display);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  cursor: pointer;
+  background: var(--bg-surface);
+  color: var(--ink-secondary);
+  border-color: var(--border);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.plane-btn:hover { border-color: var(--border-strong); color: var(--ink); }
+.plane-btn.active-ctrl { background: var(--plane-ctrl-bg); color: var(--plane-ctrl); border-color: var(--plane-ctrl); }
+.plane-btn.active-data { background: var(--plane-data-bg); color: var(--plane-data); border-color: var(--plane-data); }
+.plane-btn.active-pol  { background: var(--plane-pol-bg);  color: var(--plane-pol);  border-color: var(--plane-pol);  }
+
+/* ── Main layout ─────────────────────────────────────────────── */
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--s-lg);
+  margin-bottom: var(--s-xl);
+  align-items: start;
+}
+@media (max-width: 900px) { .workspace { grid-template-columns: 1fr; } }
+
+/* ── Fabric canvas panel ─────────────────────────────────────── */
+.canvas-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-lg);
+}
+.canvas-panel canvas {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius);
+}
+.canvas-label {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-muted);
+  margin-bottom: var(--s-sm);
+}
+.anim-controls {
+  margin-top: var(--s-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  align-items: center;
+}
+.btn-primary {
+  font-family: var(--font-display);
+  font-size: .85rem;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  background: var(--ccnp);
+  color: #fff;
+  transition: background var(--transition);
+}
+.btn-primary:hover { background: var(--ccnp-dark); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn-secondary {
+  font-family: var(--font-display);
+  font-size: .85rem;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  background: var(--bg-surface);
+  color: var(--ink-secondary);
+  transition: border-color var(--transition), color var(--transition);
+}
+.btn-secondary:hover { border-color: var(--border-strong); color: var(--ink); }
+.btn-deny {
+  font-family: var(--font-display);
+  font-size: .85rem;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  background: var(--bg-surface);
+  color: var(--ink-secondary);
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.btn-deny.deny-active { background: #FEF2F2; color: #DC2626; border-color: #DC2626; }
+.btn-deny:hover { border-color: #DC2626; color: #DC2626; }
+.anim-status {
+  font-family: var(--font-display);
+  font-size: .82rem;
+  color: var(--ink-secondary);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Right panel: explainer + legend ────────────────────────── */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-md);
+}
+
+.plane-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md) var(--s-lg);
+  border-left: 4px solid var(--border);
+  transition: border-left-color var(--transition), background var(--transition);
+}
+.plane-card.lit-ctrl { border-left-color: var(--plane-ctrl); background: var(--plane-ctrl-bg); }
+.plane-card.lit-data { border-left-color: var(--plane-data); background: var(--plane-data-bg); }
+.plane-card.lit-pol  { border-left-color: var(--plane-pol);  background: var(--plane-pol-bg); }
+
+.plane-card-proto {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 2px;
+}
+.plane-card.lit-ctrl .plane-card-proto { color: var(--plane-ctrl); }
+.plane-card.lit-data .plane-card-proto { color: var(--plane-data); }
+.plane-card.lit-pol  .plane-card-proto { color: var(--plane-pol); }
+.plane-card-proto:not(.lit-ctrl .plane-card-proto):not(.lit-data .plane-card-proto):not(.lit-pol .plane-card-proto) { color: var(--ink-muted); }
+
+.plane-card-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-xs);
+}
+.plane-card-body {
+  font-family: var(--font-body);
+  font-size: .88rem;
+  color: var(--ink-secondary);
+  line-height: 1.55;
+}
+
+/* Catalyst Center card */
+.orch-card {
+  background: var(--plane-orch-bg);
+  border: 1px solid var(--plane-orch-border);
+  border-left: 4px solid var(--plane-orch);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md) var(--s-lg);
+}
+.orch-card-label {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--plane-orch);
+  margin-bottom: 2px;
+}
+.orch-card-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-xs);
+}
+.orch-card-body {
+  font-family: var(--font-body);
+  font-size: .88rem;
+  color: var(--ink-secondary);
+  line-height: 1.55;
+}
+
+/* ── Step log ────────────────────────────────────────────────── */
+.step-log {
+  background: var(--bg-recessed);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md);
+  margin-bottom: var(--s-xl);
+}
+.step-log-title {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-muted);
+  margin-bottom: var(--s-sm);
+}
+.step-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.step-item {
+  font-family: var(--font-body);
+  font-size: .88rem;
+  color: var(--ink-muted);
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  border-left: 3px solid transparent;
+  transition: color var(--transition), background var(--transition), border-left-color var(--transition);
+}
+.step-item.active-ctrl { color: var(--plane-ctrl); background: var(--plane-ctrl-bg); border-left-color: var(--plane-ctrl); font-weight: 600; }
+.step-item.active-data { color: var(--plane-data); background: var(--plane-data-bg); border-left-color: var(--plane-data); font-weight: 600; }
+.step-item.active-pol  { color: var(--plane-pol);  background: var(--plane-pol-bg);  border-left-color: var(--plane-pol);  font-weight: 600; }
+.step-item.done        { color: var(--ink-secondary); }
+.step-item.dropped     { color: #DC2626; background: #FEF2F2; border-left-color: #DC2626; font-weight: 600; }
+
+/* ── Legend table ────────────────────────────────────────────── */
+.legend-section {
+  margin-bottom: var(--s-xl);
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-md);
+}
+.legend-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: .88rem;
+}
+.legend-table th {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-muted);
+  text-align: left;
+  padding: var(--s-xs) var(--s-sm);
+  border-bottom: 2px solid var(--border);
+}
+.legend-table td {
+  padding: 10px var(--s-sm);
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-secondary);
+  line-height: 1.4;
+}
+.legend-table tr:last-child td { border-bottom: none; }
+.legend-table td:first-child { font-weight: 600; white-space: nowrap; }
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.dot-ctrl { background: var(--plane-ctrl); }
+.dot-data { background: var(--plane-data); }
+.dot-pol  { background: var(--plane-pol); }
+.dot-orch { background: var(--plane-orch); }
+
+.mono-tag {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  font-weight: 600;
+  background: var(--bg-recessed);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1px 5px;
+}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <!-- Back link -->
+  <a href="encor-hub.html" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    ENCOR Hub
+  </a>
+
+  <!-- Page header -->
+  <div class="kicker">ENCOR 350-401 / SD-Access</div>
+  <h1 class="page-title">SD-Access Fabric: Three Planes</h1>
+  <p class="page-subtitle">
+    Cisco SD-Access splits the fabric into three distinct planes. The exam expects you to name the protocol for each. Toggle a plane to highlight it, then animate a packet to see all three in action.
+  </p>
+
+  <!-- Plane toggle buttons -->
+  <div class="plane-toggles" role="group" aria-label="Highlight a fabric plane">
+    <button class="plane-btn" id="btn-ctrl" aria-pressed="false">Control Plane (LISP)</button>
+    <button class="plane-btn" id="btn-data" aria-pressed="false">Data Plane (VXLAN)</button>
+    <button class="plane-btn" id="btn-pol"  aria-pressed="false">Policy Plane (CTS/SGT)</button>
+  </div>
+
+  <!-- Main workspace: canvas + side panel -->
+  <div class="workspace">
+    <!-- Fabric canvas -->
+    <div class="canvas-panel">
+      <div class="canvas-label">Fabric Topology</div>
+      <canvas id="fabricCanvas" width="700" height="420" aria-label="Interactive SD-Access fabric diagram"></canvas>
+      <div class="anim-controls">
+        <button class="btn-primary" id="btnSend">Send packet A to B</button>
+        <button class="btn-secondary" id="btnReset">Reset</button>
+        <button class="btn-deny" id="btnDeny" aria-pressed="false" title="Toggle SGACL to DENY to see packet drop at egress">SGACL: ALLOW</button>
+        <span class="anim-status" id="animStatus" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <!-- Side panel: plane explainers + Catalyst Center -->
+    <div class="side-panel">
+      <div class="plane-card" id="card-ctrl">
+        <div class="plane-card-proto">LISP</div>
+        <div class="plane-card-name">Control Plane</div>
+        <div class="plane-card-body">
+          The LISP map-server/map-resolver maps endpoint identity (<strong>EID</strong>) to fabric location (<strong>RLOC</strong>). When an edge node sees an unknown destination, it sends a LISP Map-Request. The control-plane node replies with the RLOC of the egress edge node.
+        </div>
+      </div>
+
+      <div class="plane-card" id="card-data">
+        <div class="plane-card-proto">VXLAN (with SGT)</div>
+        <div class="plane-card-name">Data Plane</div>
+        <div class="plane-card-body">
+          VXLAN encapsulates the original Ethernet frame across the IP underlay. The outer header carries the egress RLOC as destination. The VXLAN header carries a <strong>VNI</strong> (Virtual Network Identifier) for macro-segmentation and embeds the <strong>SGT</strong> for policy.
+        </div>
+      </div>
+
+      <div class="plane-card" id="card-pol">
+        <div class="plane-card-proto">Cisco TrustSec / CTS</div>
+        <div class="plane-card-name">Policy Plane</div>
+        <div class="plane-card-body">
+          At egress, the edge node reads the SGT from the VXLAN header and enforces the SGACL. SGTs enable <strong>micro-segmentation</strong>: policy follows identity, not topology. VNs (Virtual Networks) provide macro-segmentation (separate VRFs).
+        </div>
+      </div>
+
+      <div class="orch-card">
+        <div class="orch-card-label">Orchestrator</div>
+        <div class="orch-card-name">Catalyst Center (DNA Center)</div>
+        <div class="orch-card-body">
+          Automates fabric provisioning. Assigns fabric roles (edge, border, control-plane, intermediate), configures LISP, VXLAN, and TrustSec policy from a single pane.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step-by-step animation log -->
+  <div class="step-log">
+    <div class="step-log-title">Packet walk — A to B</div>
+    <ul class="step-list" id="stepList">
+      <li class="step-item" id="s1" data-plane="ctrl">1. Edge1 does not know Host B's location. It sends a LISP Map-Request to the control-plane node (map-server).</li>
+      <li class="step-item" id="s2" data-plane="ctrl">2. Map-server looks up Host B's EID and replies with Edge2's RLOC. Control plane resolved.</li>
+      <li class="step-item" id="s3" data-plane="data">3. Edge1 VXLAN-encapsulates the frame: outer IP dst = Edge2 RLOC, VNI = 5001, SGT = 10. Sends across the underlay.</li>
+      <li class="step-item" id="s4" data-plane="data">4. Underlay routes the VXLAN packet to Edge2's RLOC. Data plane delivery complete.</li>
+      <li class="step-item" id="s5" data-plane="pol">5. Edge2 decapsulates VXLAN, reads SGT 10. Looks up SGACL: SGT 10 to Host B's group.</li>
+      <li class="step-item" id="s6" data-plane="pol">6. SGACL ALLOW: packet delivered to Host B. (Toggle SGACL to DENY to see it dropped.)</li>
+    </ul>
+  </div>
+
+  <!-- Legend table -->
+  <div class="legend-section">
+    <div class="section-title">Plane reference</div>
+    <table class="legend-table">
+      <thead>
+        <tr>
+          <th>Plane</th>
+          <th>Protocol</th>
+          <th>Role</th>
+          <th>Key terms</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="dot dot-ctrl"></span>Control</td>
+          <td><span class="mono-tag">LISP</span></td>
+          <td>Maps EID (who) to RLOC (where)</td>
+          <td>Map-server, map-resolver, EID, RLOC</td>
+        </tr>
+        <tr>
+          <td><span class="dot dot-data"></span>Data</td>
+          <td><span class="mono-tag">VXLAN</span></td>
+          <td>Encapsulates frame across underlay; carries VNI + SGT</td>
+          <td>VNI, RLOC, underlay, macro-segmentation</td>
+        </tr>
+        <tr>
+          <td><span class="dot dot-pol"></span>Policy</td>
+          <td><span class="mono-tag">CTS/TrustSec</span></td>
+          <td>Enforces SGACL at egress based on SGT</td>
+          <td>SGT, SGACL, micro-segmentation</td>
+        </tr>
+        <tr>
+          <td><span class="dot dot-orch"></span>Orchestration</td>
+          <td><span class="mono-tag">Catalyst Center</span></td>
+          <td>Automates fabric provisioning across all planes</td>
+          <td>DNA Center, fabric roles, policy automation</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /.container-wide -->
+
+<script defer src="js/nav.js"></script>
+<script>
+/* ── SD-Access fabric interactive diagram ──────────────────── */
+document.addEventListener('DOMContentLoaded', function () {
+
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ── Canvas setup ────────────────────────────────────────────
+  var canvas = document.getElementById('fabricCanvas');
+  var ctx = canvas.getContext('2d');
+
+  // Scale for hi-DPI
+  var DPR = window.devicePixelRatio || 1;
+  var W = 700, H = 420;
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(DPR, DPR);
+
+  // ── Color palette ────────────────────────────────────────────
+  var C = {
+    ctrl: '#1D4ED8',
+    data: '#0F766E',
+    pol:  '#7C3AED',
+    orch: '#B45309',
+    ink:  '#1C1917',
+    muted:'#A8A29E',
+    border:'#E2DFD9',
+    surface:'#FFFFFF',
+    bg:   '#FAF7F2',
+    recessed:'#F3F0EB'
+  };
+
+  // ── Node definitions (x,y = center in logical pixels) ───────
+  var NODES = {
+    hostA:   { x: 48,  y: 200, label: 'Host A', sub: 'EID: 10.1.1.1', role: 'endpoint' },
+    edge1:   { x: 170, y: 200, label: 'Edge1',   sub: 'RLOC: 192.0.2.1', role: 'edge' },
+    border:  { x: 350, y: 340, label: 'Border',  sub: 'node', role: 'border' },
+    cp:      { x: 350, y: 80,  label: 'CP Node', sub: 'Map-Server', role: 'cp' },
+    edge2:   { x: 530, y: 200, label: 'Edge2',   sub: 'RLOC: 192.0.2.2', role: 'edge' },
+    hostB:   { x: 652, y: 200, label: 'Host B',  sub: 'EID: 10.2.2.2', role: 'endpoint' }
+  };
+
+  // Underlay links (drawn as gray background fabric)
+  var UNDERLAY = [
+    ['edge1','cp'], ['edge1','border'], ['cp','edge2'], ['border','edge2']
+  ];
+
+  // ── Animation state ─────────────────────────────────────────
+  var activeHighlight = null; // 'ctrl' | 'data' | 'pol' | null
+  var animStep = -1;          // -1 = idle
+  var animTimer = null;
+  var denyMode = false;
+  var packetPos = null;       // {x, y} current packet bubble
+  var packetTarget = null;
+  var animProgress = 0;       // 0..1 for current tween
+
+  // ── Draw helpers ────────────────────────────────────────────
+
+  function roundRect(cx, cy, w, h, r, fill, stroke, strokeW) {
+    var x = cx - w/2, y = cy - h/2;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = strokeW || 1.5; ctx.stroke(); }
+  }
+
+  function drawLine(x1, y1, x2, y2, color, width, dash) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width || 1.5;
+    if (dash) ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function circle(cx, cy, r, fill, stroke, strokeW) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = strokeW || 1.5; ctx.stroke(); }
+  }
+
+  function text(str, x, y, opts) {
+    ctx.save();
+    ctx.font = (opts.weight || '500') + ' ' + (opts.size || '11px') + ' ' + (opts.family || '"Space Grotesk", system-ui, sans-serif');
+    ctx.fillStyle = opts.color || C.ink;
+    ctx.textAlign = opts.align || 'center';
+    ctx.textBaseline = opts.baseline || 'middle';
+    ctx.fillText(str, x, y);
+    ctx.restore();
+  }
+
+  function nodeColor(role, highlight) {
+    if (!highlight) return { fill: C.surface, stroke: C.border };
+    var map = { ctrl: C.ctrl, data: C.data, pol: C.pol };
+    var col = map[highlight] || C.border;
+    // Only light up relevant nodes per plane
+    if (highlight === 'ctrl') {
+      if (role === 'cp' || role === 'edge') return { fill: '#EFF6FF', stroke: col };
+    }
+    if (highlight === 'data') {
+      if (role === 'edge' || role === 'border') return { fill: '#F0FDFA', stroke: col };
+    }
+    if (highlight === 'pol') {
+      if (role === 'edge' || role === 'endpoint') return { fill: '#F5F3FF', stroke: col };
+    }
+    return { fill: C.surface, stroke: C.border };
+  }
+
+  function getLinkColor(n1key, n2key, highlight) {
+    if (!highlight) return C.border;
+    var map = { ctrl: C.ctrl, data: C.data, pol: C.pol };
+    var col = map[highlight] || C.border;
+    var both = n1key + ',' + n2key;
+    if (highlight === 'ctrl') {
+      if (both === 'edge1,cp' || both === 'cp,edge2') return col;
+    }
+    if (highlight === 'data') {
+      if (both === 'edge1,border' || both === 'border,edge2' ||
+          both === 'edge1,cp'    || both === 'cp,edge2') return col;
+    }
+    return C.border;
+  }
+
+  // ── Draw the full scene ──────────────────────────────────────
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Background
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Catalyst Center banner (top-right corner)
+    roundRect(596, 34, 160, 36, 6, '#FEF3C7', '#FDE68A', 1.5);
+    text('Catalyst Center', 596, 30, { size: '10px', weight: '700', color: C.orch });
+    text('Orchestrates all planes', 596, 42, { size: '9px', color: C.orch, weight: '400' });
+
+    // Underlay links
+    UNDERLAY.forEach(function(pair) {
+      var a = NODES[pair[0]], b = NODES[pair[1]];
+      var col = getLinkColor(pair[0], pair[1], activeHighlight);
+      var lw = activeHighlight ? 2.5 : 1.5;
+      drawLine(a.x, a.y, b.x, b.y, col, lw);
+    });
+
+    // Access links (endpoint <-> edge)
+    drawLine(NODES.hostA.x, NODES.hostA.y, NODES.edge1.x, NODES.edge1.y,
+      activeHighlight === 'pol' ? C.pol : C.border, 1.5);
+    drawLine(NODES.hostB.x, NODES.hostB.y, NODES.edge2.x, NODES.edge2.y,
+      activeHighlight === 'pol' ? C.pol : C.border, 1.5);
+
+    // LISP Map-Request arrow (step 1 animation — ctrl highlight)
+    // Drawn as dashed ctrl-blue when plane is ctrl
+    if (activeHighlight === 'ctrl') {
+      drawLine(NODES.edge1.x, NODES.edge1.y, NODES.cp.x, NODES.cp.y,
+        C.ctrl, 2.5, [6, 4]);
+      drawLine(NODES.cp.x, NODES.cp.y, NODES.edge2.x, NODES.edge2.y,
+        C.ctrl, 2.5, [6, 4]);
+    }
+
+    // Nodes
+    Object.keys(NODES).forEach(function(key) {
+      var n = NODES[key];
+      var isEndpoint = n.role === 'endpoint';
+      var nc = nodeColor(n.role, activeHighlight);
+
+      if (isEndpoint) {
+        // Endpoints: small circle
+        circle(n.x, n.y, 18, nc.fill, nc.stroke, 2);
+        text(n.label, n.x, n.y, { size: '9px', weight: '700', color: C.ink });
+      } else {
+        // Network nodes: rounded rectangle
+        var w = n.role === 'cp' ? 88 : 80;
+        var h = 44;
+        roundRect(n.x, n.y, w, h, 8, nc.fill, nc.stroke, 2);
+        text(n.label, n.x, n.y - 7, { size: '11px', weight: '700', color: C.ink });
+        text(n.sub,   n.x, n.y + 7, { size: '9px', weight: '400', color: C.muted });
+      }
+    });
+
+    // Animated packet bubble
+    if (packetPos) {
+      var pColor = C.data;
+      if (animStep === 0 || animStep === 1) pColor = C.ctrl;
+      if (animStep === 4 || animStep === 5) pColor = C.pol;
+
+      circle(packetPos.x, packetPos.y, 14, pColor, 'rgba(255,255,255,0.6)', 2);
+      text(animStep < 2 ? 'Q' : animStep < 4 ? 'V' : 'S',
+        packetPos.x, packetPos.y,
+        { size: '11px', weight: '700', color: '#fff' });
+
+      // VXLAN header tooltip for data-plane steps
+      if (animStep === 2 || animStep === 3) {
+        var tx = packetPos.x, ty = packetPos.y - 28;
+        roundRect(tx, ty, 120, 22, 4, C.surface, C.data, 1.5);
+        text('VNI:5001 SGT:10', tx, ty, { size: '9px', weight: '600', color: C.data });
+      }
+    }
+  }
+
+  // ── Animation steps ──────────────────────────────────────────
+  // Each step: { from: node key, to: node key, plane, stepIndex }
+  var STEPS = [
+    { from: 'edge1', to: 'cp',    plane: 'ctrl' }, // 0: LISP Map-Request
+    { from: 'cp',    to: 'edge1', plane: 'ctrl' }, // 1: Map-Reply
+    { from: 'edge1', to: 'border',plane: 'data' }, // 2: VXLAN encap -> underlay hop 1
+    { from: 'border','to': 'edge2', plane: 'data' }, // 3: underlay hop 2 -> egress
+    { from: 'edge2', to: 'edge2', plane: 'pol'  }, // 4: SGACL check (no movement)
+    { from: 'edge2', to: 'hostB', plane: 'pol'  }  // 5: deliver or drop
+  ];
+
+  var STEP_DURATION = reducedMotion ? 0 : 700; // ms per tween
+  var STEP_PAUSE    = reducedMotion ? 0 : 300; // ms pause between steps
+
+  function startAnimation() {
+    resetAnimation();
+    animStep = 0;
+    runStep();
+  }
+
+  function runStep() {
+    if (animStep >= STEPS.length) {
+      finishAnimation();
+      return;
+    }
+    var s = STEPS[animStep];
+    var fromNode = NODES[s.from];
+    var toNode   = NODES[s.to];
+
+    // Highlight the active plane card and step
+    activeHighlight = s.plane;
+    updatePlaneCards(s.plane);
+    lightStep(animStep);
+    updateStatus(animStep);
+    draw();
+
+    if (reducedMotion) {
+      // Snap directly to destination
+      packetPos = { x: toNode.x, y: toNode.y };
+      draw();
+      animStep++;
+      setTimeout(runStep, 80);
+      return;
+    }
+
+    var startX = fromNode.x, startY = fromNode.y;
+    var endX   = toNode.x,   endY   = toNode.y;
+    var startTime = null;
+
+    // Step 4 = SGACL check at edge2, no movement — just pause
+    if (animStep === 4) {
+      packetPos = { x: fromNode.x, y: fromNode.y };
+      activeHighlight = 'pol';
+      updatePlaneCards('pol');
+      lightStep(4);
+      updateStatus(4);
+      draw();
+
+      if (denyMode) {
+        // Drop: show dropped state then stop
+        setTimeout(function() {
+          dropPacket();
+        }, STEP_DURATION);
+        return;
+      }
+
+      animStep++;
+      setTimeout(runStep, STEP_DURATION);
+      return;
+    }
+
+    function tick(ts) {
+      if (!startTime) startTime = ts;
+      var elapsed = ts - startTime;
+      var t = Math.min(elapsed / STEP_DURATION, 1);
+      // ease-out cubic
+      var e = 1 - Math.pow(1 - t, 3);
+
+      packetPos = {
+        x: startX + (endX - startX) * e,
+        y: startY + (endY - startY) * e
+      };
+      draw();
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        animStep++;
+        setTimeout(runStep, STEP_PAUSE);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function dropPacket() {
+    // Flash packet red and mark step 5 as dropped
+    var s5 = document.getElementById('s6');
+    s5.className = 'step-item dropped';
+    s5.textContent = '6. SGACL DENY: packet dropped at Edge2. Host B unreachable.';
+    document.getElementById('animStatus').textContent = 'Packet dropped — SGACL DENY.';
+    // Red flash on packet position
+    var n = NODES['edge2'];
+    packetPos = { x: n.x, y: n.y };
+    activeHighlight = 'pol';
+    draw();
+    // Red circle
+    circle(packetPos.x, packetPos.y, 16, '#DC2626', '#fff', 2);
+    text('X', packetPos.x, packetPos.y, { size: '12px', weight: '700', color: '#fff' });
+    document.getElementById('btnSend').disabled = false;
+  }
+
+  function finishAnimation() {
+    document.getElementById('animStatus').textContent = 'Packet delivered to Host B.';
+    document.getElementById('btnSend').disabled = false;
+    // Keep plane cards lit at pol
+    activeHighlight = 'pol';
+    draw();
+  }
+
+  function resetAnimation() {
+    if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+    animStep = -1;
+    packetPos = null;
+    packetTarget = null;
+    activeHighlight = null;
+    updatePlaneCards(null);
+    resetSteps();
+    document.getElementById('animStatus').textContent = '';
+    document.getElementById('btnSend').disabled = false;
+    draw();
+  }
+
+  function resetSteps() {
+    ['s1','s2','s3','s4','s5','s6'].forEach(function(id) {
+      var el = document.getElementById(id);
+      el.className = 'step-item';
+    });
+    // Restore step 6 text if it was modified by deny mode
+    document.getElementById('s6').textContent =
+      '6. SGACL ALLOW: packet delivered to Host B. (Toggle SGACL to DENY to see it dropped.)';
+  }
+
+  function lightStep(idx) {
+    // idx 0..5 maps to s1..s6
+    var ids = ['s1','s2','s3','s4','s5','s6'];
+    ids.forEach(function(id, i) {
+      var el = document.getElementById(id);
+      if (i < idx) {
+        el.className = 'step-item done';
+      } else if (i === idx) {
+        var plane = STEPS[idx].plane;
+        el.className = 'step-item active-' + plane;
+      } else {
+        el.className = 'step-item';
+      }
+    });
+  }
+
+  function updateStatus(idx) {
+    var msgs = [
+      'Step 1/6: LISP Map-Request to control-plane node...',
+      'Step 2/6: LISP Map-Reply received. EID resolved to RLOC.',
+      'Step 3/6: VXLAN encapsulation. VNI=5001, SGT=10. Forwarding...',
+      'Step 4/6: VXLAN packet traverses underlay to Edge2 RLOC.',
+      'Step 5/6: Edge2 decapsulates. Checking SGACL (SGT 10)...',
+      'Step 6/6: SGACL decision. Delivering to Host B.'
+    ];
+    document.getElementById('animStatus').textContent = msgs[idx] || '';
+  }
+
+  // ── Plane toggle buttons ─────────────────────────────────────
+  function updatePlaneCards(plane) {
+    ['ctrl','data','pol'].forEach(function(p) {
+      var card = document.getElementById('card-' + p);
+      card.classList.remove('lit-ctrl','lit-data','lit-pol');
+      if (plane === p) card.classList.add('lit-' + p);
+    });
+  }
+
+  function setPlaneBtn(active) {
+    ['ctrl','data','pol'].forEach(function(p) {
+      var btn = document.getElementById('btn-' + p);
+      btn.classList.remove('active-ctrl','active-data','active-pol');
+      btn.setAttribute('aria-pressed', 'false');
+    });
+    if (active) {
+      var btn = document.getElementById('btn-' + active);
+      btn.classList.add('active-' + active);
+      btn.setAttribute('aria-pressed', 'true');
+    }
+  }
+
+  ['ctrl','data','pol'].forEach(function(plane) {
+    document.getElementById('btn-' + plane).addEventListener('click', function() {
+      if (animStep >= 0) return; // don't interrupt animation
+      if (activeHighlight === plane) {
+        activeHighlight = null;
+        updatePlaneCards(null);
+        setPlaneBtn(null);
+      } else {
+        activeHighlight = plane;
+        updatePlaneCards(plane);
+        setPlaneBtn(plane);
+      }
+      draw();
+    });
+  });
+
+  // ── Send button ──────────────────────────────────────────────
+  document.getElementById('btnSend').addEventListener('click', function() {
+    this.disabled = true;
+    activeHighlight = null;
+    setPlaneBtn(null);
+    startAnimation();
+  });
+
+  // ── Reset button ─────────────────────────────────────────────
+  document.getElementById('btnReset').addEventListener('click', function() {
+    resetAnimation();
+    setPlaneBtn(null);
+  });
+
+  // ── SGACL deny toggle ────────────────────────────────────────
+  document.getElementById('btnDeny').addEventListener('click', function() {
+    denyMode = !denyMode;
+    this.classList.toggle('deny-active', denyMode);
+    this.textContent = denyMode ? 'SGACL: DENY' : 'SGACL: ALLOW';
+    this.setAttribute('aria-pressed', denyMode ? 'true' : 'false');
+    if (animStep < 0) draw(); // redraw idle state
+  });
+
+  // ── Initial render ───────────────────────────────────────────
+  draw();
+
+}); // DOMContentLoaded
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

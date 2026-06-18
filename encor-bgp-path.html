@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>BGP Best-Path Walker — ENCOR</title>
+<style>
+/* ═══ BGP Path Selection Walker — CCNP ENCOR ═══ */
+:root {
+  --ccnp: #0F766E;
+  --ccnp-rgb: 15, 118, 110;
+  --ccnp-light: #5EEAD4;
+  --ccnp-dark: #0B5249;
+}
+
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* ── Layout ── */
+.bgp-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--s-lg);
+  align-items: start;
+  margin-top: var(--s-lg);
+}
+@media (max-width: 900px) {
+  .bgp-shell { grid-template-columns: 1fr; }
+}
+
+/* ── Step sidebar ── */
+.step-sidebar {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md);
+  position: sticky;
+  top: var(--s-lg);
+}
+.step-sidebar-title {
+  font-family: var(--font-display);
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--ccnp);
+  margin-bottom: var(--s-md);
+}
+.step-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.step-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-sm);
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: .76rem;
+  color: var(--ink-secondary);
+  transition: background .15s, color .15s;
+  margin-bottom: 2px;
+  line-height: 1.35;
+}
+.step-list li .snum {
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  font-weight: 700;
+  min-width: 18px;
+  color: var(--ink-faint);
+  padding-top: 1px;
+}
+.step-list li.active {
+  background: rgba(var(--ccnp-rgb), .08);
+  color: var(--ink);
+  font-weight: 600;
+}
+.step-list li.active .snum { color: var(--ccnp); }
+.step-list li.decided {
+  background: rgba(var(--ccnp-rgb), .05);
+  color: var(--ccnp-dark);
+  font-weight: 700;
+}
+.step-list li.decided .snum { color: var(--ccnp); }
+.step-list li.passed {
+  color: var(--ink-muted);
+}
+.step-list li.passed .snum { color: var(--ink-faint); }
+
+.step-icon { flex-shrink: 0; font-size: .72rem; padding-top: 1px; }
+
+/* ── Main arena ── */
+.arena {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-lg);
+}
+
+/* ── Prefix banner ── */
+.prefix-banner {
+  background: var(--ccnp-dark);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: var(--s-md);
+}
+.prefix-banner .prefix-label {
+  font-family: var(--font-display);
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  opacity: .6;
+}
+.prefix-banner .prefix-value {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.prefix-banner .prefix-sub {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: .82rem;
+  opacity: .7;
+  font-style: italic;
+}
+
+/* ── Route cards ── */
+.route-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s-md);
+}
+
+.route-card {
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md);
+  transition: border-color .2s, opacity .3s, background .2s;
+  position: relative;
+  overflow: hidden;
+}
+.route-card.winner {
+  border-color: var(--ccnp);
+  background: rgba(var(--ccnp-rgb), .04);
+}
+.route-card.eliminated {
+  opacity: .45;
+  border-color: var(--border);
+  background: var(--bg-recessed);
+}
+.route-card.deciding {
+  border-color: var(--ccnp);
+  box-shadow: 0 0 0 3px rgba(var(--ccnp-rgb), .18);
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-card { transition: none; }
+}
+
+.route-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-sm);
+  padding-bottom: var(--s-sm);
+  border-bottom: 1px solid var(--rule);
+}
+.route-name {
+  font-family: var(--font-display);
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.route-peer {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  color: var(--ink-muted);
+}
+
+/* Strike overlay for eliminated */
+.route-card.eliminated .route-name::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+}
+.route-card.eliminated .attr-table { opacity: .55; }
+
+.winner-badge {
+  display: none;
+  position: absolute;
+  top: var(--s-sm);
+  right: var(--s-sm);
+  background: var(--ccnp);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: .6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 3px 9px;
+  border-radius: 100px;
+}
+.route-card.winner .winner-badge { display: block; }
+
+/* Attribute table */
+.attr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .78rem;
+}
+.attr-table tr { border-bottom: 1px solid var(--rule); }
+.attr-table tr:last-child { border-bottom: none; }
+.attr-table td:first-child {
+  font-family: var(--font-display);
+  font-size: .65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--ink-muted);
+  padding: 4px 6px 4px 0;
+  width: 50%;
+}
+.attr-table td:last-child {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  color: var(--ink);
+  padding: 4px 0;
+  text-align: right;
+}
+
+/* Highlight the deciding attribute */
+.attr-table tr.attr-deciding td:first-child { color: var(--ccnp-dark); font-weight: 700; }
+.attr-table tr.attr-deciding td:last-child { color: var(--ccnp); font-weight: 700; }
+.route-card.eliminated .attr-table tr.attr-deciding td { color: #DC2626 !important; text-decoration: line-through; }
+
+/* ── Callout panel ── */
+.callout {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ccnp);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md) var(--s-lg);
+  min-height: 72px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-md);
+}
+.callout-step {
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--ccnp);
+  background: rgba(var(--ccnp-rgb), .08);
+  padding: 3px 9px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.callout-body {
+  flex: 1;
+}
+.callout-body strong {
+  font-family: var(--font-display);
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 2px;
+}
+.callout-body p {
+  font-family: var(--font-body);
+  font-size: .88rem;
+  color: var(--ink-secondary);
+  margin: 0;
+  max-width: none;
+}
+
+/* Winner callout override */
+.callout.winner-callout {
+  border-left-color: var(--ccnp);
+  background: rgba(var(--ccnp-rgb), .06);
+}
+.callout.winner-callout .callout-body strong { color: var(--ccnp-dark); font-size: 1.05rem; }
+
+/* ── Teaching note ── */
+.teaching-note {
+  background: var(--bg-recessed);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md) var(--s-lg);
+  font-family: var(--font-body);
+  font-size: .88rem;
+  color: var(--ink-secondary);
+  line-height: 1.65;
+}
+.teaching-note strong { font-family: var(--font-display); font-weight: 700; color: var(--ink); }
+
+/* ── Controls ── */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  align-items: center;
+}
+.btn {
+  font-family: var(--font-display);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: var(--radius);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, opacity .15s;
+  letter-spacing: .01em;
+}
+.btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--ccnp);
+  color: #fff;
+  border-color: var(--ccnp);
+}
+.btn-primary:hover:not(:disabled) { background: var(--ccnp-dark); border-color: var(--ccnp-dark); }
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--ink);
+  border-color: var(--border-strong);
+}
+.btn-secondary:hover:not(:disabled) { border-color: var(--ccnp); color: var(--ccnp); }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+
+/* ── Page header ── */
+.kicker {
+  font-family: var(--font-display);
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--ccnp);
+  margin-bottom: var(--s-xs);
+}
+.page-header { border-bottom-color: var(--ccnp-dark); }
+.page-header h1 { color: var(--ccnp-dark); }
+
+/* Strikethrough text for eliminated routes */
+.route-card.eliminated .route-name { text-decoration: line-through; text-decoration-color: #DC2626; }
+
+/* Step status icons */
+.step-list li.decided .step-icon::before { content: '✓'; color: var(--ccnp); }
+.step-list li.passed .step-icon::before  { content: '='; color: var(--ink-faint); font-size: .6rem; }
+.step-list li.pending .step-icon::before { content: '○'; color: var(--ink-faint); font-size: .6rem; }
+.step-list li.active .step-icon::before  { content: '▶'; color: var(--ccnp); font-size: .6rem; }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <a href="encor-hub.html" class="back-link">← ENCOR Hub</a>
+
+  <div class="page-header">
+    <div class="kicker">CCNP ENCOR — BGP</div>
+    <h1>BGP Best-Path Walker</h1>
+    <p class="subtitle">Walk the 13-step decision order one criterion at a time. See which attribute eliminates the losers.</p>
+  </div>
+
+  <!-- Teaching note (always visible) -->
+  <div class="teaching-note" style="margin-bottom:var(--s-lg)">
+    <strong>Key facts to internalize:</strong>
+    Weight is <em>Cisco-local</em> — it is never advertised to any neighbor (not even within your AS).
+    Local-Pref is <em>AS-wide</em> and defaults to 100 — it is carried in iBGP updates only.
+    In practice, most tie-breaking dies at step 4 (shortest AS-Path); Weight and Local-Pref are deliberately tuned,
+    so if they are equal the operator did not set a policy and AS-Path becomes the real decider.
+    Higher is better for Weight and Local-Pref.
+    Lower is better for MED, Router-ID, and Neighbor IP.
+  </div>
+
+  <!-- Controls row -->
+  <div class="controls" style="margin-bottom:var(--s-lg)">
+    <button class="btn btn-primary" id="btnNext">Next criterion</button>
+    <button class="btn btn-secondary" id="btnScramble">Scramble routes</button>
+    <button class="btn btn-secondary" id="btnReset">Reset walk</button>
+  </div>
+
+  <div class="bgp-shell">
+    <!-- Step sidebar -->
+    <aside class="step-sidebar">
+      <div class="step-sidebar-title">13-Step Order</div>
+      <ol class="step-list" id="stepList"></ol>
+    </aside>
+
+    <!-- Arena -->
+    <div class="arena">
+      <!-- Prefix banner -->
+      <div class="prefix-banner">
+        <div>
+          <div class="prefix-label">Destination prefix</div>
+          <div class="prefix-value" id="prefixValue">203.0.113.0/24</div>
+        </div>
+        <div class="prefix-sub">Best path among 4 candidates</div>
+      </div>
+
+      <!-- Callout -->
+      <div class="callout" id="callout">
+        <div class="callout-step" id="calloutStep">Ready</div>
+        <div class="callout-body">
+          <strong id="calloutTitle">Press "Next criterion" to start the walk</strong>
+          <p id="calloutDesc">BGP evaluates candidate routes in a fixed 13-step order. The walk stops the moment exactly one route remains.</p>
+        </div>
+      </div>
+
+      <!-- Route cards -->
+      <div class="route-grid" id="routeGrid"></div>
+    </div>
+  </div>
+</div>
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── 13-step definitions ── */
+  var STEPS = [
+    {
+      key: 'weight',
+      label: 'Highest Weight',
+      desc: 'Cisco-proprietary, local to the router. Never advertised. Range 0-65535, default 0 (32768 for local routes).',
+      best: 'high'
+    },
+    {
+      key: 'localPref',
+      label: 'Highest Local-Pref',
+      desc: 'Shared across the AS via iBGP. Default is 100. Used to influence outbound path selection AS-wide.',
+      best: 'high'
+    },
+    {
+      key: 'locallyOriginated',
+      label: 'Locally originated',
+      desc: 'Prefer routes originated by this router (via network statement, redistribute, or aggregate) over routes learned from peers.',
+      best: 'high'  /* 1 = local, 0 = learned */
+    },
+    {
+      key: 'asPath',
+      label: 'Shortest AS-Path',
+      desc: 'Fewer AS hops = preferred. This is the most commonly decisive attribute when Weight and Local-Pref are equal.',
+      best: 'low'  /* numeric length */
+    },
+    {
+      key: 'origin',
+      label: 'Lowest Origin code',
+      desc: 'IGP (i) < EGP (e) < Incomplete (?). IGP means the route was injected via a network statement.',
+      best: 'low'  /* 0=i, 1=e, 2=? */
+    },
+    {
+      key: 'med',
+      label: 'Lowest MED',
+      desc: 'Multi-Exit Discriminator. Compared only between routes from the same neighboring AS. Lower is preferred.',
+      best: 'low'
+    },
+    {
+      key: 'peerType',
+      label: 'eBGP over iBGP',
+      desc: 'Routes learned via eBGP are preferred over routes learned via iBGP.',
+      best: 'low'  /* 0=eBGP preferred, 1=iBGP */
+    },
+    {
+      key: 'igpMetric',
+      label: 'Lowest IGP metric to next-hop',
+      desc: 'The cost to reach the BGP next-hop inside your AS. Lower IGP metric wins.',
+      best: 'low'
+    },
+    {
+      key: 'age',
+      label: 'Oldest eBGP route',
+      desc: 'For eBGP routes only: prefer the route that has been in the table longest (most stable). Avoids route flap.',
+      best: 'high'  /* higher age in seconds = older */
+    },
+    {
+      key: 'routerId',
+      label: 'Lowest Router-ID',
+      desc: 'The BGP Router-ID of the advertising neighbor. Numerically lowest wins.',
+      best: 'low'  /* compared as quad-octet string, lower wins */
+    },
+    {
+      key: 'clusterLen',
+      label: 'Shortest cluster-list',
+      desc: 'Relevant in route-reflector topologies. Shorter cluster-list length is preferred.',
+      best: 'low'
+    },
+    {
+      key: 'neighborIp',
+      label: 'Lowest neighbor IP',
+      desc: 'Last tiebreaker. The IP address of the BGP peer session. Numerically lowest wins.',
+      best: 'low'
+    }
+  ];
+
+  /* ── Attribute display metadata ── */
+  var ATTR_DISPLAY = {
+    weight:           { label: 'Weight' },
+    localPref:        { label: 'Local-Pref' },
+    locallyOriginated:{ label: 'Local origin',  fmt: function(v){ return v ? 'Yes' : 'No'; } },
+    asPath:           { label: 'AS-Path len' },
+    origin:           { label: 'Origin',         fmt: function(v){ return ['i','e','?'][v]; } },
+    med:              { label: 'MED' },
+    peerType:         { label: 'Peer type',      fmt: function(v){ return v === 0 ? 'eBGP' : 'iBGP'; } },
+    igpMetric:        { label: 'IGP metric' },
+    age:              { label: 'Age (s)' },
+    routerId:         { label: 'Router-ID' },
+    clusterLen:       { label: 'Cluster-list' },
+    neighborIp:       { label: 'Neighbor IP' }
+  };
+
+  /* ── Route datasets (scramble counter drives variation) ── */
+  var scrambleCount = 0;
+
+  function makeRoutes(seed) {
+    /* Use seed to deterministically vary route attributes */
+    var s = seed % 4;  /* 4 scenarios */
+    var datasets = [
+      /* Scenario 0: step 4 (AS-Path) decides */
+      [
+        { name: 'Route A', peer: '10.0.0.1',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 3,
+          origin: 0, med: 100, peerType: 0, igpMetric: 10,
+          age: 300, routerId: '10.0.0.1', clusterLen: 0, neighborIp: '10.0.0.1' },
+        { name: 'Route B', peer: '10.0.0.2',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 2,
+          origin: 0, med: 200, peerType: 0, igpMetric: 20,
+          age: 120, routerId: '10.0.0.2', clusterLen: 0, neighborIp: '10.0.0.2' },
+        { name: 'Route C', peer: '172.16.0.1',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 4,
+          origin: 0, med: 50,  peerType: 0, igpMetric: 5,
+          age: 600, routerId: '172.16.0.1', clusterLen: 0, neighborIp: '172.16.0.1' },
+        { name: 'Route D', peer: '192.168.1.1',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 5,
+          origin: 1, med: 10,  peerType: 1, igpMetric: 2,
+          age: 900, routerId: '192.168.1.1', clusterLen: 0, neighborIp: '192.168.1.1' }
+      ],
+      /* Scenario 1: step 1 (Weight) decides immediately */
+      [
+        { name: 'Route A', peer: '10.0.0.1',
+          weight: 200, localPref: 100, locallyOriginated: 0, asPath: 3,
+          origin: 0, med: 100, peerType: 0, igpMetric: 10,
+          age: 300, routerId: '10.0.0.1', clusterLen: 0, neighborIp: '10.0.0.1' },
+        { name: 'Route B', peer: '10.0.0.2',
+          weight: 0,   localPref: 200, locallyOriginated: 0, asPath: 1,
+          origin: 0, med: 10,  peerType: 0, igpMetric: 2,
+          age: 600, routerId: '10.0.0.2', clusterLen: 0, neighborIp: '10.0.0.2' },
+        { name: 'Route C', peer: '172.16.0.1',
+          weight: 0,   localPref: 100, locallyOriginated: 0, asPath: 2,
+          origin: 0, med: 50,  peerType: 1, igpMetric: 5,
+          age: 900, routerId: '172.16.0.1', clusterLen: 0, neighborIp: '172.16.0.1' },
+        { name: 'Route D', peer: '192.168.1.1',
+          weight: 0,   localPref: 100, locallyOriginated: 0, asPath: 4,
+          origin: 2, med: 200, peerType: 1, igpMetric: 20,
+          age: 120, routerId: '192.168.1.1', clusterLen: 0, neighborIp: '192.168.1.1' }
+      ],
+      /* Scenario 2: step 2 (Local-Pref) decides */
+      [
+        { name: 'Route A', peer: '10.1.1.1',
+          weight: 0, localPref: 150, locallyOriginated: 0, asPath: 4,
+          origin: 0, med: 300, peerType: 1, igpMetric: 30,
+          age: 100, routerId: '10.1.1.1', clusterLen: 1, neighborIp: '10.1.1.1' },
+        { name: 'Route B', peer: '10.1.1.2',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 2,
+          origin: 0, med: 50,  peerType: 0, igpMetric: 5,
+          age: 500, routerId: '10.1.1.2', clusterLen: 0, neighborIp: '10.1.1.2' },
+        { name: 'Route C', peer: '10.2.2.1',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 3,
+          origin: 1, med: 100, peerType: 0, igpMetric: 15,
+          age: 250, routerId: '10.2.2.1', clusterLen: 0, neighborIp: '10.2.2.1' },
+        { name: 'Route D', peer: '10.2.2.2',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 2,
+          origin: 0, med: 100, peerType: 1, igpMetric: 10,
+          age: 700, routerId: '10.2.2.2', clusterLen: 0, neighborIp: '10.2.2.2' }
+      ],
+      /* Scenario 3: MED decides (step 6) */
+      [
+        { name: 'Route A', peer: '203.0.113.1',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 2,
+          origin: 0, med: 500, peerType: 0, igpMetric: 20,
+          age: 400, routerId: '203.0.113.1', clusterLen: 0, neighborIp: '203.0.113.1' },
+        { name: 'Route B', peer: '203.0.113.2',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 2,
+          origin: 0, med: 100, peerType: 0, igpMetric: 30,
+          age: 200, routerId: '203.0.113.2', clusterLen: 0, neighborIp: '203.0.113.2' },
+        { name: 'Route C', peer: '198.51.100.1',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 3,
+          origin: 0, med: 50,  peerType: 0, igpMetric: 10,
+          age: 600, routerId: '198.51.100.1', clusterLen: 0, neighborIp: '198.51.100.1' },
+        { name: 'Route D', peer: '198.51.100.2',
+          weight: 0, localPref: 100, locallyOriginated: 0, asPath: 2,
+          origin: 0, med: 200, peerType: 0, igpMetric: 5,
+          age: 800, routerId: '198.51.100.2', clusterLen: 0, neighborIp: '198.51.100.2' }
+      ]
+    ];
+    return datasets[s].map(function(r){ return Object.assign({}, r); });
+  }
+
+  /* ── State ── */
+  var routes = [];
+  var eliminated = [];   /* indices of eliminated routes */
+  var currentStep = -1;  /* -1 = not started; 0-11 = step index */
+  var decidedStep = -1;  /* step that produced the winner */
+
+  /* ── DOM refs ── */
+  var stepList  = document.getElementById('stepList');
+  var routeGrid = document.getElementById('routeGrid');
+  var callout   = document.getElementById('callout');
+  var calloutStep  = document.getElementById('calloutStep');
+  var calloutTitle = document.getElementById('calloutTitle');
+  var calloutDesc  = document.getElementById('calloutDesc');
+  var btnNext    = document.getElementById('btnNext');
+  var btnScramble = document.getElementById('btnScramble');
+  var btnReset   = document.getElementById('btnReset');
+
+  /* ── Helpers ── */
+  function ipToNum(ip) {
+    /* convert dotted-quad to integer for numeric comparison */
+    return ip.split('.').reduce(function(acc, o){ return (acc << 8) + parseInt(o, 10); }, 0) >>> 0;
+  }
+
+  function getBestValue(stepDef) {
+    /* Among surviving routes, find the best value for this step's key */
+    var survivors = routes.filter(function(_, i){ return eliminated.indexOf(i) === -1; });
+    var key = stepDef.key;
+    var vals = survivors.map(function(r){ return r[key]; });
+    if (key === 'routerId' || key === 'neighborIp') {
+      vals = vals.map(ipToNum);
+    }
+    if (stepDef.best === 'high') {
+      return Math.max.apply(null, vals);
+    } else {
+      return Math.min.apply(null, vals);
+    }
+  }
+
+  function routeAttrVal(route, stepDef) {
+    var v = route[stepDef.key];
+    if (stepDef.key === 'routerId' || stepDef.key === 'neighborIp') return ipToNum(v);
+    return v;
+  }
+
+  function applyStep(stepIdx) {
+    var stepDef = STEPS[stepIdx];
+    var best = getBestValue(stepDef);
+    var newElim = [];
+    routes.forEach(function(r, i) {
+      if (eliminated.indexOf(i) !== -1) return;
+      var v = routeAttrVal(r, stepDef);
+      if (v !== best) newElim.push(i);
+    });
+    return newElim;  /* new eliminations this step */
+  }
+
+  function survivorCount() {
+    return routes.length - eliminated.length;
+  }
+
+  /* ── Render route cards ── */
+  function fmtAttr(key, val) {
+    var d = ATTR_DISPLAY[key];
+    if (d && d.fmt) return d.fmt(val);
+    return String(val);
+  }
+
+  function renderCards(highlightAttrKey) {
+    routeGrid.innerHTML = '';
+    routes.forEach(function(route, idx) {
+      var isElim   = eliminated.indexOf(idx) !== -1;
+      var isWinner = !isElim && decidedStep >= 0 && survivorCount() === 1;
+      var isDeciding = !isElim && highlightAttrKey && currentStep >= 0 && !isWinner;
+
+      var cls = 'route-card';
+      if (isElim)   cls += ' eliminated';
+      if (isWinner) cls += ' winner';
+      if (isDeciding && highlightAttrKey) cls += ' deciding';
+
+      var card = document.createElement('div');
+      card.className = cls;
+
+      /* Winner badge */
+      var badge = document.createElement('div');
+      badge.className = 'winner-badge';
+      badge.textContent = 'Winner';
+      card.appendChild(badge);
+
+      /* Header */
+      var header = document.createElement('div');
+      header.className = 'route-card-header';
+      var nameEl = document.createElement('div');
+      nameEl.className = 'route-name';
+      nameEl.textContent = route.name;
+      var peerEl = document.createElement('div');
+      peerEl.className = 'route-peer';
+      peerEl.textContent = route.peer;
+      header.appendChild(nameEl);
+      header.appendChild(peerEl);
+      card.appendChild(header);
+
+      /* Attribute table */
+      var tbl = document.createElement('table');
+      tbl.className = 'attr-table';
+      var attrOrder = [
+        'weight','localPref','locallyOriginated','asPath','origin',
+        'med','peerType','igpMetric','age','routerId','clusterLen','neighborIp'
+      ];
+      attrOrder.forEach(function(key) {
+        var tr = document.createElement('tr');
+        if (highlightAttrKey === key) tr.className = 'attr-deciding';
+        var tdLabel = document.createElement('td');
+        tdLabel.textContent = ATTR_DISPLAY[key].label;
+        var tdVal = document.createElement('td');
+        tdVal.textContent = fmtAttr(key, route[key]);
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdVal);
+        tbl.appendChild(tr);
+      });
+      card.appendChild(tbl);
+      routeGrid.appendChild(card);
+    });
+  }
+
+  /* ── Render step sidebar ── */
+  function renderSteps() {
+    stepList.innerHTML = '';
+    STEPS.forEach(function(step, idx) {
+      var li = document.createElement('li');
+      var statusCls = 'pending';
+      if (idx < currentStep) {
+        statusCls = decidedStep === idx ? 'decided' : 'passed';
+      } else if (idx === currentStep) {
+        statusCls = decidedStep === idx ? 'decided' : 'active';
+      }
+      li.className = statusCls;
+
+      var iconEl = document.createElement('span');
+      iconEl.className = 'step-icon';
+
+      var snumEl = document.createElement('span');
+      snumEl.className = 'snum';
+      snumEl.textContent = (idx + 1) + '.';
+
+      var labelEl = document.createElement('span');
+      labelEl.textContent = step.label;
+
+      li.appendChild(iconEl);
+      li.appendChild(snumEl);
+      li.appendChild(labelEl);
+      stepList.appendChild(li);
+    });
+  }
+
+  /* ── Callout updates ── */
+  function setCallout(stepLabel, title, desc, isWinner) {
+    calloutStep.textContent = stepLabel;
+    calloutTitle.textContent = title;
+    calloutDesc.textContent = desc;
+    if (isWinner) {
+      callout.className = 'callout winner-callout';
+    } else {
+      callout.className = 'callout';
+    }
+  }
+
+  /* ── Advance one step ── */
+  function advance() {
+    if (decidedStep >= 0) return;  /* already done */
+
+    currentStep++;
+    if (currentStep >= STEPS.length) {
+      /* Exhausted all steps — tie (shouldn't happen with Router-ID) */
+      setCallout('Done', 'All 12 steps tied.', 'This should not happen in practice because Router-ID is always unique.', false);
+      btnNext.disabled = true;
+      renderSteps();
+      renderCards(null);
+      return;
+    }
+
+    var stepDef = STEPS[currentStep];
+    var newElim = applyStep(currentStep);
+
+    /* Commit eliminations */
+    newElim.forEach(function(i){ if (eliminated.indexOf(i) === -1) eliminated.push(i); });
+
+    var remaining = survivorCount();
+
+    if (remaining === 1) {
+      /* Winner found this step */
+      decidedStep = currentStep;
+      var winnerIdx = -1;
+      for (var wi = 0; wi < routes.length; wi++) {
+        if (eliminated.indexOf(wi) === -1) { winnerIdx = wi; break; }
+      }
+      var winner = routes[winnerIdx];
+      setCallout(
+        'Step ' + (currentStep + 1) + ' decided',
+        winner.name + ' wins on ' + stepDef.label,
+        stepDef.desc + ' Walk stopped: one route remains.',
+        true
+      );
+      btnNext.disabled = true;
+    } else if (newElim.length === 0) {
+      /* Tie — all surviving routes equal on this attribute */
+      setCallout(
+        'Step ' + (currentStep + 1) + ': Tie',
+        stepDef.label + ' — all equal',
+        'No routes eliminated. ' + remaining + ' candidates remain. Moving to next criterion.',
+        false
+      );
+    } else {
+      /* Some eliminated, more than one survives */
+      setCallout(
+        'Step ' + (currentStep + 1),
+        stepDef.label + ' — ' + newElim.length + ' route(s) eliminated',
+        stepDef.desc + ' ' + remaining + ' candidate(s) remain.',
+        false
+      );
+    }
+
+    renderSteps();
+    renderCards(stepDef.key);
+  }
+
+  /* ── Initialize / reset ── */
+  function init() {
+    routes       = makeRoutes(scrambleCount);
+    eliminated   = [];
+    currentStep  = -1;
+    decidedStep  = -1;
+    btnNext.disabled = false;
+    setCallout('Ready', 'Press "Next criterion" to start the walk', 'BGP evaluates candidate routes in a fixed 13-step order. The walk stops the moment exactly one route remains.', false);
+    callout.className = 'callout';
+    renderSteps();
+    renderCards(null);
+  }
+
+  /* ── Button wiring ── */
+  btnNext.addEventListener('click', advance);
+
+  btnScramble.addEventListener('click', function() {
+    scrambleCount++;
+    init();
+  });
+
+  btnReset.addEventListener('click', function() {
+    init();
+  });
+
+  /* ── Boot ── */
+  init();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

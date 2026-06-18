@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <title>OSPF DR/BDR + LSA Flooding: ENCOR</title>
+  <style>
+    :root {
+      --ccnp: #0F766E;
+      --ccnp-rgb: 15,118,110;
+      --ccnp-light: #5EEAD4;
+      --ccnp-dark: #0B5249;
+
+      /* LSA type palette */
+      --lsa1: #2563EB;   /* Type 1 Router (blue) */
+      --lsa2: #7C3AED;   /* Type 2 Network (violet) */
+      --lsa3: #D97706;   /* Type 3 Summary (amber) */
+      --lsa4: #DC2626;   /* Type 4 ASBR-sum (red) */
+      --lsa5: #059669;   /* Type 5 External (emerald) */
+      --lsa7: #0891B2;   /* Type 7 NSSA-ext (cyan) */
+    }
+
+    .gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+    /* ── Page header ─────────────────────────────────── */
+    .page-header {
+      padding: var(--s-xl) 0 var(--s-lg);
+      border-bottom: 2px solid var(--ccnp);
+      margin-bottom: var(--s-xl);
+    }
+    .kicker {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--ccnp);
+      font-weight: 600;
+      margin-bottom: var(--s-xs);
+    }
+    .page-header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: var(--s-sm);
+    }
+    .page-header .subtitle {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--ink-secondary);
+      font-style: italic;
+    }
+
+    /* ── Part label ───────────────────────────────────── */
+    .part-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-sm);
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ccnp);
+      background: rgba(var(--ccnp-rgb), 0.08);
+      border: 1px solid rgba(var(--ccnp-rgb), 0.2);
+      border-radius: 100px;
+      padding: 3px 12px;
+      margin-bottom: var(--s-md);
+    }
+
+    /* ── Section card ─────────────────────────────────── */
+    .section-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--s-xl);
+      margin-bottom: var(--s-xl);
+    }
+    .section-card h2 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      margin: 0 0 var(--s-xs);
+      padding: 0;
+      color: var(--ink);
+    }
+    .section-intro {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--ink-secondary);
+      margin-bottom: var(--s-lg);
+      max-width: 72ch;
+    }
+
+    /* ── Canvas wrapper ───────────────────────────────── */
+    .canvas-wrap {
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: var(--s-md);
+      position: relative;
+    }
+    canvas { display: block; width: 100%; }
+
+    /* ── Controls row ─────────────────────────────────── */
+    .ctrl-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-sm);
+      align-items: flex-start;
+      margin-bottom: var(--s-md);
+    }
+
+    /* ── Router config table ──────────────────────────── */
+    .router-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      margin-bottom: var(--s-md);
+    }
+    .router-table th {
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: var(--s-xs) var(--s-sm);
+      border-bottom: 1px solid var(--border);
+    }
+    .router-table td {
+      padding: var(--s-xs) var(--s-sm);
+      border-bottom: 1px solid var(--bg-recessed);
+      vertical-align: middle;
+    }
+    .router-table input[type="number"],
+    .router-table input[type="text"] {
+      width: 90px;
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-input);
+      color: var(--ink);
+      transition: border-color 0.15s;
+    }
+    .router-table input:focus {
+      outline: none;
+      border-color: var(--ccnp);
+      box-shadow: 0 0 0 2px rgba(var(--ccnp-rgb), 0.12);
+    }
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 9px;
+      border-radius: 100px;
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .role-dr    { background: rgba(var(--ccnp-rgb),0.12); color: var(--ccnp-dark); }
+    .role-bdr   { background: rgba(2,132,199,0.12); color: #0369A1; }
+    .role-other { background: var(--bg-recessed); color: var(--ink-muted); }
+    .role-excl  { background: rgba(220,38,38,0.08); color: #B91C1C; text-decoration: line-through; }
+
+    /* ── Buttons ──────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      border-radius: var(--radius);
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--ccnp);
+      color: #fff;
+      border-color: var(--ccnp);
+    }
+    .btn-primary:hover { background: var(--ccnp-dark); border-color: var(--ccnp-dark); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--ink);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--ccnp); color: var(--ccnp); }
+    .btn-secondary:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+    /* ── Status callout ───────────────────────────────── */
+    .status-callout {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--ink-secondary);
+      background: var(--bg-recessed);
+      border-left: 3px solid var(--ccnp);
+      padding: var(--s-sm) var(--s-md);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin-bottom: var(--s-md);
+      min-height: 2.4rem;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── Non-preemptive note ──────────────────────────── */
+    .note-box {
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      color: var(--ink-secondary);
+      background: rgba(var(--ccnp-rgb), 0.05);
+      border: 1px solid rgba(var(--ccnp-rgb), 0.15);
+      border-radius: var(--radius);
+      padding: var(--s-sm) var(--s-md);
+      margin-top: var(--s-md);
+    }
+    .note-box strong { color: var(--ccnp-dark); }
+
+    /* ── Area type toggle ─────────────────────────────── */
+    .toggle-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-xs);
+      margin-bottom: var(--s-md);
+    }
+    .toggle-btn {
+      padding: 6px 14px;
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      cursor: pointer;
+      background: var(--bg-surface);
+      color: var(--ink-secondary);
+      transition: all 0.15s;
+    }
+    .toggle-btn.active {
+      background: var(--ccnp);
+      color: #fff;
+      border-color: var(--ccnp);
+    }
+    .toggle-btn:hover:not(.active) { border-color: var(--ccnp); color: var(--ccnp); }
+
+    /* ── LSA legend ───────────────────────────────────── */
+    .lsa-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-sm) var(--s-lg);
+      margin-bottom: var(--s-md);
+    }
+    .lsa-legend-item {
+      display: flex;
+      align-items: center;
+      gap: var(--s-xs);
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--ink-secondary);
+    }
+    .lsa-dot {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .lsa-legend-item.blocked { opacity: 0.3; text-decoration: line-through; }
+
+    /* ── Filter rules table ───────────────────────────── */
+    .filter-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: var(--s-md);
+    }
+    .filter-table th {
+      font-family: var(--font-display);
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: var(--s-xs) var(--s-sm);
+      border-bottom: 1px solid var(--border);
+    }
+    .filter-table td {
+      padding: var(--s-xs) var(--s-sm);
+      border-bottom: 1px solid var(--bg-recessed);
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      vertical-align: top;
+    }
+    .filter-table td:first-child {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.76rem;
+      color: var(--ink);
+    }
+    .allowed { color: var(--prof-strong); }
+    .blocked-txt { color: var(--prof-weak); }
+    .replaced { color: var(--prof-mid); }
+
+    /* ── Originator table ────────────────────────────── */
+    .orig-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--s-sm);
+      margin-top: var(--s-md);
+    }
+    .orig-card {
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--s-sm) var(--s-md);
+    }
+    .orig-card .lsa-type {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-bottom: 2px;
+    }
+    .orig-card .orig-name {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .orig-card .orig-desc {
+      font-family: var(--font-body);
+      font-size: 0.76rem;
+      color: var(--ink-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── Takeaway box ─────────────────────────────────── */
+    .takeaway {
+      background: rgba(var(--ccnp-rgb), 0.05);
+      border: 1px solid rgba(var(--ccnp-rgb), 0.18);
+      border-left: 3px solid var(--ccnp);
+      border-radius: var(--radius);
+      padding: var(--s-md) var(--s-lg);
+      margin-top: var(--s-xl);
+    }
+    .takeaway h3 {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--ccnp);
+      font-weight: 700;
+      margin-bottom: var(--s-sm);
+    }
+    .takeaway ul {
+      list-style: none;
+      padding: 0;
+    }
+    .takeaway ul li {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--ink-secondary);
+      padding: 3px 0;
+      padding-left: var(--s-md);
+      position: relative;
+    }
+    .takeaway ul li::before {
+      content: 'v';
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--ccnp);
+      position: absolute;
+      left: 0;
+    }
+
+    /* ── Reduced motion ───────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <main>
+    <a href="encor-hub.html" class="back-link">Back to ENCOR Hub</a>
+
+    <div class="page-header">
+      <div class="kicker">ENCOR 350-401 / OSPF Advanced</div>
+      <h1>DR/BDR Election + LSA Flooding</h1>
+      <p class="subtitle">Interactive: elect the DR/BDR on a shared segment, then watch LSAs flood through a multi-area topology.</p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- PART A: DR/BDR ELECTION                           -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="section-card">
+      <div class="part-label">Part A</div>
+      <h2>DR/BDR Election: Multi-Access Segment</h2>
+      <p class="section-intro">
+        On a broadcast network (e.g. Ethernet), OSPF elects one Designated Router (DR) and one Backup DR (BDR).
+        All others become DROTHER. Priority 0 permanently excludes a router from election. The election is
+        non-preemptive: a higher-priority router arriving after the election does NOT take over.
+      </p>
+
+      <!-- Router configuration table -->
+      <table class="router-table" id="routerTable">
+        <thead>
+          <tr>
+            <th>Router</th>
+            <th>Priority (0-255)</th>
+            <th>Router-ID</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody id="routerTbody">
+          <!-- rows injected by JS -->
+        </tbody>
+      </table>
+
+      <!-- Canvas for the segment diagram -->
+      <div class="canvas-wrap">
+        <canvas id="electionCanvas" height="260"></canvas>
+      </div>
+
+      <div class="status-callout" id="electionStatus">Configure priorities and router-IDs, then click Run Election.</div>
+
+      <div class="ctrl-row">
+        <button class="btn btn-primary" id="runElectionBtn">Run Election</button>
+        <button class="btn btn-secondary" id="resetElectionBtn">Reset</button>
+        <button class="btn btn-secondary" id="addRouterBtn" title="Add a higher-priority router after election">Add Router (post-election)</button>
+      </div>
+
+      <div class="note-box" id="nonPreemptNote" style="display:none">
+        <strong>Non-preemptive:</strong> Router R5 (priority 255) joined the segment after the DR/BDR election already ran.
+        It stays DROTHER. The current DR holds its role until it fails or OSPF resets. This is exam-critical.
+      </div>
+
+      <div class="note-box" style="margin-top: var(--s-sm)">
+        <strong>Tie-break rule:</strong> Highest priority wins. If priorities are equal, the router with the
+        highest Router-ID wins. A router with priority 0 can never become DR or BDR.
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- PART B: LSA FLOODING + AREA TYPES                 -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="section-card">
+      <div class="part-label">Part B</div>
+      <h2>LSA Flooding + Area-Type Filtering</h2>
+      <p class="section-intro">
+        OSPF routers flood Link-State Advertisements (LSAs) within and between areas.
+        Each LSA type has a specific originator and a specific scope. Area type determines which LSAs are
+        permitted to enter an area. Select an area type, then trigger a link change to watch the flood.
+      </p>
+
+      <!-- LSA legend -->
+      <div class="lsa-legend" id="lsaLegend">
+        <div class="lsa-legend-item" data-type="1"><div class="lsa-dot" style="background:var(--lsa1)"></div>T1 Router</div>
+        <div class="lsa-legend-item" data-type="2"><div class="lsa-dot" style="background:var(--lsa2)"></div>T2 Network (DR)</div>
+        <div class="lsa-legend-item" data-type="3"><div class="lsa-dot" style="background:var(--lsa3)"></div>T3 Summary (ABR)</div>
+        <div class="lsa-legend-item" data-type="4"><div class="lsa-dot" style="background:var(--lsa4)"></div>T4 ASBR-Sum (ABR)</div>
+        <div class="lsa-legend-item" data-type="5"><div class="lsa-dot" style="background:var(--lsa5)"></div>T5 External (ASBR)</div>
+        <div class="lsa-legend-item" data-type="7"><div class="lsa-dot" style="background:var(--lsa7)"></div>T7 NSSA-Ext (ASBR)</div>
+      </div>
+
+      <!-- Area type toggle -->
+      <div style="margin-bottom: var(--s-xs)">
+        <span style="font-family:var(--font-display);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted);font-weight:600;">Area 1 Type:</span>
+      </div>
+      <div class="toggle-group" id="areaTypeGroup">
+        <button class="toggle-btn active" data-area="normal">Normal</button>
+        <button class="toggle-btn" data-area="stub">Stub</button>
+        <button class="toggle-btn" data-area="totally-stubby">Totally Stubby</button>
+        <button class="toggle-btn" data-area="nssa">NSSA</button>
+      </div>
+
+      <!-- Canvas for topology -->
+      <div class="canvas-wrap">
+        <canvas id="lsaCanvas" height="360"></canvas>
+      </div>
+
+      <div class="status-callout" id="lsaStatus">Select an area type, then click Trigger Link Change.</div>
+
+      <div class="ctrl-row">
+        <button class="btn btn-primary" id="triggerFloodBtn">Trigger Link Change</button>
+        <button class="btn btn-secondary" id="resetFloodBtn">Reset</button>
+      </div>
+
+      <!-- Filter rules table -->
+      <table class="filter-table">
+        <thead>
+          <tr>
+            <th>Area Type</th>
+            <th>T1/T2</th>
+            <th>T3 Summary</th>
+            <th>T4 ASBR-Sum</th>
+            <th>T5 External</th>
+            <th>T7 NSSA-Ext</th>
+            <th>Default Route</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Normal</td>
+            <td class="allowed">Allowed</td>
+            <td class="allowed">Allowed</td>
+            <td class="allowed">Allowed</td>
+            <td class="allowed">Allowed</td>
+            <td class="blocked-txt">N/A</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>Stub</td>
+            <td class="allowed">Allowed</td>
+            <td class="allowed">Allowed</td>
+            <td class="blocked-txt">Blocked</td>
+            <td class="blocked-txt">Blocked</td>
+            <td class="blocked-txt">N/A</td>
+            <td class="replaced">Default injected</td>
+          </tr>
+          <tr>
+            <td>Totally Stubby</td>
+            <td class="allowed">Allowed</td>
+            <td class="blocked-txt">Blocked</td>
+            <td class="blocked-txt">Blocked</td>
+            <td class="blocked-txt">Blocked</td>
+            <td class="blocked-txt">N/A</td>
+            <td class="replaced">Default injected</td>
+          </tr>
+          <tr>
+            <td>NSSA</td>
+            <td class="allowed">Allowed</td>
+            <td class="allowed">Allowed</td>
+            <td class="blocked-txt">Blocked</td>
+            <td class="blocked-txt">Blocked</td>
+            <td class="allowed">Allowed</td>
+            <td>Optional</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Originator reference -->
+      <div style="margin-top:var(--s-xl)">
+        <h3 style="font-family:var(--font-display);font-size:0.9rem;margin-bottom:var(--s-sm);">LSA Originator Reference</h3>
+        <div class="orig-grid">
+          <div class="orig-card">
+            <div class="lsa-type" style="color:var(--lsa1)">TYPE 1: ROUTER LSA</div>
+            <div class="orig-name">Every Router</div>
+            <div class="orig-desc">Describes links and costs. Flooded within the originating area only.</div>
+          </div>
+          <div class="orig-card">
+            <div class="lsa-type" style="color:var(--lsa2)">TYPE 2: NETWORK LSA</div>
+            <div class="orig-name">DR (on broadcast)</div>
+            <div class="orig-desc">Lists routers on the multi-access segment. Area-local scope.</div>
+          </div>
+          <div class="orig-card">
+            <div class="lsa-type" style="color:var(--lsa3)">TYPE 3: SUMMARY LSA</div>
+            <div class="orig-name">ABR</div>
+            <div class="orig-desc">Advertises intra-area prefixes into other areas. Blocked by totally stubby.</div>
+          </div>
+          <div class="orig-card">
+            <div class="lsa-type" style="color:var(--lsa4)">TYPE 4: ASBR SUMMARY</div>
+            <div class="orig-name">ABR</div>
+            <div class="orig-desc">Tells routers how to reach the ASBR. Blocked in stub/totally-stubby/NSSA.</div>
+          </div>
+          <div class="orig-card">
+            <div class="lsa-type" style="color:var(--lsa5)">TYPE 5: EXTERNAL LSA</div>
+            <div class="orig-name">ASBR</div>
+            <div class="orig-desc">Redistributed external routes. Flooded everywhere except stubs. AS-wide scope.</div>
+          </div>
+          <div class="orig-card">
+            <div class="lsa-type" style="color:var(--lsa7)">TYPE 7: NSSA EXTERNAL</div>
+            <div class="orig-name">ASBR in NSSA</div>
+            <div class="orig-desc">Like T5 but stays within the NSSA. ABR converts T7 to T5 at the boundary.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- TAKEAWAYS                                         -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="takeaway">
+      <h3>Exam Walk-Away</h3>
+      <ul>
+        <li>DR = highest priority, tie-break = highest Router-ID. Priority 0 = forever ineligible.</li>
+        <li>Election is non-preemptive. A better router joining later stays DROTHER.</li>
+        <li>Every router originates T1. The DR originates T2. The ABR originates T3 and T4. The ASBR originates T5 (T7 in NSSA).</li>
+        <li>Area 0 is mandatory. All inter-area traffic must traverse the backbone (no area-to-area shortcuts).</li>
+        <li>Stub: blocks T4+T5, injects a default route. Totally Stubby: also blocks T3. NSSA: blocks T5 but allows T7 from a local ASBR, which the ABR converts to T5.</li>
+        <li>T7 never leaves the NSSA. The ABR translates it to T5 before flooding into area 0.</li>
+      </ul>
+    </div>
+  </main>
+</div>
+
+<script defer src="js/nav.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ================================================================
+     PART A: DR/BDR ELECTION
+     ================================================================ */
+
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var ANIM_DURATION = reducedMotion ? 0 : 600; // ms per step
+
+  // Default routers
+  var routers = [
+    { id: 'R1', priority: 1,  rid: '1.1.1.1' },
+    { id: 'R2', priority: 2,  rid: '2.2.2.2' },
+    { id: 'R3', priority: 1,  rid: '3.3.3.3' },
+    { id: 'R4', priority: 0,  rid: '4.4.4.4' }
+  ];
+
+  var electionRun = false;
+  var roles = []; // computed during election
+
+  var electionCanvas = document.getElementById('electionCanvas');
+  var electionCtx = electionCanvas.getContext('2d');
+
+  function setupCanvas(canvas) {
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width  = rect.width  * dpr;
+    canvas.height = parseInt(canvas.getAttribute('height'), 10) * dpr;
+    canvas.style.height = canvas.getAttribute('height') + 'px';
+    canvas.getContext('2d').scale(dpr, dpr);
+    return rect.width;
+  }
+
+  function ridVal(ridStr) {
+    // Convert dotted-decimal RID to comparable integer
+    return ridStr.split('.').reduce(function (acc, octet) {
+      return acc * 256 + parseInt(octet || '0', 10);
+    }, 0);
+  }
+
+  function buildRouterTable() {
+    var tbody = document.getElementById('routerTbody');
+    tbody.innerHTML = '';
+    routers.forEach(function (r, i) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td style="font-family:var(--font-mono);font-weight:700">' + r.id + '</td>' +
+        '<td><input type="number" min="0" max="255" value="' + r.priority + '" data-idx="' + i + '" data-field="priority"></td>' +
+        '<td><input type="text" value="' + r.rid + '" data-idx="' + i + '" data-field="rid" style="width:110px"></td>' +
+        '<td><span class="role-badge role-other" id="role-' + i + '">--</span></td>';
+      tbody.appendChild(tr);
+    });
+    // Bind inputs
+    tbody.querySelectorAll('input').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var idx   = parseInt(inp.dataset.idx, 10);
+        var field = inp.dataset.field;
+        if (field === 'priority') {
+          routers[idx].priority = Math.max(0, Math.min(255, parseInt(inp.value, 10) || 0));
+          inp.value = routers[idx].priority;
+        } else {
+          routers[idx].rid = inp.value.trim();
+        }
+        if (electionRun) {
+          resetElection();
+        }
+      });
+    });
+  }
+
+  function computeRoles(routerList) {
+    // Separate eligible (priority > 0) from ineligible
+    var eligible = routerList
+      .map(function (r, i) { return { idx: i, r: r }; })
+      .filter(function (x) { return x.r.priority > 0; })
+      .sort(function (a, b) {
+        if (b.r.priority !== a.r.priority) return b.r.priority - a.r.priority;
+        return ridVal(b.r.rid) - ridVal(a.r.rid);
+      });
+
+    var result = routerList.map(function () { return 'DROTHER'; });
+    routerList.forEach(function (r, i) {
+      if (r.priority === 0) result[i] = 'EXCL';
+    });
+    if (eligible.length >= 1) result[eligible[0].idx] = 'DR';
+    if (eligible.length >= 2) result[eligible[1].idx] = 'BDR';
+    return result;
+  }
+
+  function applyRoleBadges(routerList, roleList, animate) {
+    routerList.forEach(function (r, i) {
+      var badge = document.getElementById('role-' + i);
+      if (!badge) return;
+      var role = roleList[i];
+      badge.className = 'role-badge';
+      if (role === 'DR')      { badge.classList.add('role-dr');    badge.textContent = 'DR'; }
+      else if (role === 'BDR'){ badge.classList.add('role-bdr');   badge.textContent = 'BDR'; }
+      else if (role === 'EXCL'){ badge.classList.add('role-excl'); badge.textContent = 'EXCL (priority 0)'; }
+      else                    { badge.classList.add('role-other'); badge.textContent = 'DROTHER'; }
+    });
+  }
+
+  function drawSegment(routerList, roleList, highlight) {
+    var w = electionCanvas.width  / (window.devicePixelRatio || 1);
+    var h = parseInt(electionCanvas.getAttribute('height'), 10);
+    var ctx = electionCtx;
+
+    ctx.clearRect(0, 0, electionCanvas.width, electionCanvas.height);
+
+    // Ethernet bus line
+    var busY = h * 0.55;
+    var busX1 = 60, busX2 = w - 60;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(busX1, busY);
+    ctx.lineTo(busX2, busY);
+    ctx.strokeStyle = '#C7C3BC';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    // Shared Ethernet label
+    ctx.save();
+    ctx.font = '600 11px "Space Grotesk", sans-serif';
+    ctx.fillStyle = '#A8A29E';
+    ctx.textAlign = 'center';
+    ctx.fillText('Shared Ethernet Segment', w / 2, busY + 22);
+    ctx.restore();
+
+    var count = routerList.length;
+    var spacing = (busX2 - busX1) / (count + 1);
+
+    routerList.forEach(function (r, i) {
+      var role = roleList[i] || 'DROTHER';
+      var cx = busX1 + spacing * (i + 1);
+      var cy = busY - 70;
+
+      // Vertical stub line to bus
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + 28);
+      ctx.lineTo(cx, busY);
+      ctx.strokeStyle = role === 'EXCL' ? '#EF4444' : '#C7C3BC';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash(role === 'EXCL' ? [4, 3] : []);
+      ctx.stroke();
+      ctx.restore();
+
+      // Router circle
+      var isHighlight = highlight === i;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 26, 0, Math.PI * 2);
+
+      if (role === 'DR') {
+        ctx.fillStyle = 'rgba(15,118,110,0.12)';
+        ctx.strokeStyle = '#0F766E';
+        ctx.lineWidth = 2.5;
+      } else if (role === 'BDR') {
+        ctx.fillStyle = 'rgba(2,132,199,0.1)';
+        ctx.strokeStyle = '#0369A1';
+        ctx.lineWidth = 2.5;
+      } else if (role === 'EXCL') {
+        ctx.fillStyle = 'rgba(239,68,68,0.08)';
+        ctx.strokeStyle = '#EF4444';
+        ctx.lineWidth = 1.5;
+      } else {
+        ctx.fillStyle = '#F9FAFB';
+        ctx.strokeStyle = '#C7C3BC';
+        ctx.lineWidth = 1.5;
+      }
+      if (isHighlight) {
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 3]);
+      }
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Router label
+      ctx.save();
+      ctx.font = '700 12px "JetBrains Mono", monospace';
+      ctx.fillStyle = role === 'EXCL' ? '#EF4444' : '#1C1917';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(r.id, cx, cy);
+      ctx.restore();
+
+      // Role label above circle
+      if (role !== 'DROTHER' && role !== 'EXCL') {
+        ctx.save();
+        ctx.font = '700 10px "Space Grotesk", sans-serif';
+        ctx.fillStyle = role === 'DR' ? '#0B5249' : '#0369A1';
+        ctx.textAlign = 'center';
+        ctx.fillText(role, cx, cy - 36);
+        ctx.restore();
+      }
+
+      // Priority / RID below
+      ctx.save();
+      ctx.font = '500 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#78716C';
+      ctx.textAlign = 'center';
+      ctx.fillText('pri=' + r.priority, cx, busY + 38);
+      ctx.fillText(r.rid, cx, busY + 50);
+      ctx.restore();
+    });
+  }
+
+  function resetElection() {
+    electionRun = false;
+    roles = routers.map(function () { return '--'; });
+    document.getElementById('electionStatus').textContent = 'Configure priorities and router-IDs, then click Run Election.';
+    document.getElementById('nonPreemptNote').style.display = 'none';
+    buildRouterTable();
+    var w = setupCanvas(electionCanvas);
+    drawSegment(routers, routers.map(function () { return 'DROTHER'; }), -1);
+    // Remove extra router if present
+    if (routers.length > 4) routers = routers.slice(0, 4);
+    buildRouterTable();
+    drawSegment(routers, routers.map(function () { return 'DROTHER'; }), -1);
+  }
+
+  document.getElementById('runElectionBtn').addEventListener('click', function () {
+    if (electionRun) return;
+    electionRun = true;
+
+    var computed = computeRoles(routers);
+    roles = computed;
+
+    if (!reducedMotion) {
+      // Animate step by step: first show all as DROTHER, then reveal DR, then BDR
+      var steps = [
+        { delay: 0,   msg: 'All routers send Hello packets. Priority 0 routers are immediately excluded...' },
+        { delay: 600, msg: 'Routers compare priorities. Highest priority wins. Tie-break: highest Router-ID...' },
+        { delay: 1400, msg: 'Election complete. DR and BDR assigned.' }
+      ];
+      steps.forEach(function (step) {
+        setTimeout(function () {
+          document.getElementById('electionStatus').textContent = step.msg;
+          if (step.delay === 0) {
+            drawSegment(routers, routers.map(function (r) { return r.priority === 0 ? 'EXCL' : 'DROTHER'; }), -1);
+            applyRoleBadges(routers, routers.map(function (r) { return r.priority === 0 ? 'EXCL' : 'DROTHER'; }), true);
+          } else if (step.delay === 600) {
+            var partial = routers.map(function () { return 'DROTHER'; });
+            routers.forEach(function (r, i) { if (r.priority === 0) partial[i] = 'EXCL'; });
+            var drIdx = computed.indexOf('DR');
+            if (drIdx >= 0) partial[drIdx] = 'DR';
+            drawSegment(routers, partial, drIdx);
+            applyRoleBadges(routers, partial, true);
+          } else {
+            drawSegment(routers, computed, -1);
+            applyRoleBadges(routers, computed, true);
+          }
+        }, step.delay);
+      });
+    } else {
+      drawSegment(routers, computed, -1);
+      applyRoleBadges(routers, computed, false);
+      document.getElementById('electionStatus').textContent = 'Election complete. DR and BDR assigned.';
+    }
+  });
+
+  document.getElementById('resetElectionBtn').addEventListener('click', function () {
+    routers = [
+      { id: 'R1', priority: 1, rid: '1.1.1.1' },
+      { id: 'R2', priority: 2, rid: '2.2.2.2' },
+      { id: 'R3', priority: 1, rid: '3.3.3.3' },
+      { id: 'R4', priority: 0, rid: '4.4.4.4' }
+    ];
+    resetElection();
+  });
+
+  document.getElementById('addRouterBtn').addEventListener('click', function () {
+    if (!electionRun) {
+      document.getElementById('electionStatus').textContent = 'Run the election first, then add a post-election router.';
+      return;
+    }
+    // Add a high-priority router AFTER election
+    routers.push({ id: 'R5', priority: 255, rid: '5.5.5.5' });
+    buildRouterTable();
+    // R5 gets DROTHER (non-preemptive); existing DR/BDR unchanged
+    var displayRoles = roles.slice(); // keep existing
+    displayRoles.push('DROTHER');
+    var idx5 = routers.length - 1;
+    applyRoleBadges(routers, displayRoles, true);
+    drawSegment(routers, displayRoles, idx5);
+    document.getElementById('nonPreemptNote').style.display = 'block';
+    document.getElementById('electionStatus').textContent =
+      'R5 (priority 255) joined after the election already ran. DR/BDR unchanged. Non-preemptive!';
+  });
+
+  // Initial draw
+  setupCanvas(electionCanvas);
+  buildRouterTable();
+  drawSegment(routers, routers.map(function () { return 'DROTHER'; }), -1);
+
+  /* ================================================================
+     PART B: LSA FLOODING
+     ================================================================ */
+
+  var currentAreaType = 'normal';
+  var floodAnimating = false;
+  var floodParticles = [];
+  var floodAnimFrame = null;
+
+  var lsaCanvas  = document.getElementById('lsaCanvas');
+  var lsaCtx     = lsaCanvas.getContext('2d');
+
+  // Topology nodes: area 0 (left), ABR (center), area 1 (right), ASBR (far right)
+  // Coordinates are logical (0-1 range), scaled at draw time
+  var topo = {
+    area0: { label: 'Area 0\n(Backbone)', x: 0.18, y: 0.45 },
+    r0a:   { label: 'R0A',  x: 0.08, y: 0.28 },
+    r0b:   { label: 'R0B',  x: 0.08, y: 0.62 },
+    abr:   { label: 'ABR',  x: 0.42, y: 0.45 },
+    r1a:   { label: 'R1A',  x: 0.68, y: 0.28 },
+    r1b:   { label: 'R1B',  x: 0.68, y: 0.62 },
+    asbr:  { label: 'ASBR', x: 0.88, y: 0.45 }
+  };
+
+  // LSA type -> color map
+  var lsaColors = {
+    1: '#2563EB',
+    2: '#7C3AED',
+    3: '#D97706',
+    4: '#DC2626',
+    5: '#059669',
+    7: '#0891B2'
+  };
+
+  function lsaBlocked(type, areaType) {
+    if (areaType === 'normal') return false;
+    if (areaType === 'stub')         return type === 4 || type === 5;
+    if (areaType === 'totally-stubby') return type === 3 || type === 4 || type === 5;
+    if (areaType === 'nssa')         return type === 4 || type === 5;
+    return false;
+  }
+
+  function updateLegendBlocked(areaType) {
+    var items = document.querySelectorAll('.lsa-legend-item');
+    items.forEach(function (item) {
+      var t = parseInt(item.dataset.type, 10);
+      if (lsaBlocked(t, areaType)) {
+        item.classList.add('blocked');
+      } else {
+        item.classList.remove('blocked');
+      }
+    });
+  }
+
+  function getNodePos(key, w, h) {
+    var n = topo[key];
+    return { x: n.x * w, y: n.y * h };
+  }
+
+  function drawTopology(w, h, particles) {
+    var ctx = lsaCtx;
+    ctx.clearRect(0, 0, lsaCanvas.width, lsaCanvas.height);
+
+    // Area backgrounds
+    // Area 0 background
+    ctx.save();
+    ctx.fillStyle = 'rgba(15,118,110,0.05)';
+    ctx.strokeStyle = 'rgba(15,118,110,0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.roundRect(16, 20, w * 0.52, h - 40, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Area 1 background
+    var areaBlocked = currentAreaType !== 'normal';
+    ctx.save();
+    ctx.fillStyle = areaBlocked ? 'rgba(245,158,11,0.04)' : 'rgba(37,99,235,0.04)';
+    ctx.strokeStyle = areaBlocked ? 'rgba(245,158,11,0.22)' : 'rgba(37,99,235,0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.roundRect(w * 0.5, 20, w * 0.46, h - 40, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Area labels
+    ctx.save();
+    ctx.font = '600 11px "Space Grotesk", sans-serif';
+    ctx.fillStyle = 'rgba(15,118,110,0.6)';
+    ctx.textAlign = 'left';
+    ctx.fillText('Area 0 (Backbone)', 26, 38);
+    ctx.fillStyle = areaBlocked ? 'rgba(217,119,6,0.7)' : 'rgba(37,99,235,0.5)';
+    ctx.fillText('Area 1 (' + currentAreaType.charAt(0).toUpperCase() + currentAreaType.slice(1) + ')', w * 0.52 + 10, 38);
+    ctx.restore();
+
+    // Edges
+    var edges = [
+      ['r0a', 'abr'], ['r0b', 'abr'],
+      ['abr', 'r1a'], ['abr', 'r1b'],
+      ['r1a', 'asbr'], ['r1b', 'asbr']
+    ];
+    edges.forEach(function (edge) {
+      var a = getNodePos(edge[0], w, h);
+      var b = getNodePos(edge[1], w, h);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = '#E2DFD9';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    // ABR boundary line
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(w * 0.52, 20);
+    ctx.lineTo(w * 0.52, h - 20);
+    ctx.strokeStyle = areaBlocked ? 'rgba(217,119,6,0.35)' : 'rgba(37,99,235,0.2)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.restore();
+
+    // Draw nodes
+    var nodeKeys = ['r0a', 'r0b', 'abr', 'r1a', 'r1b', 'asbr'];
+    nodeKeys.forEach(function (key) {
+      var pos = getNodePos(key, w, h);
+      var label = topo[key].label;
+      var isABR  = key === 'abr';
+      var isASBR = key === 'asbr';
+      var r = 24;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      if (isABR) {
+        ctx.fillStyle = 'rgba(15,118,110,0.1)';
+        ctx.strokeStyle = '#0F766E';
+        ctx.lineWidth = 2.5;
+      } else if (isASBR) {
+        ctx.fillStyle = 'rgba(5,150,105,0.1)';
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 2.5;
+      } else {
+        ctx.fillStyle = 'var(--bg-surface)';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = '#C7C3BC';
+        ctx.lineWidth = 1.5;
+      }
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.font = '700 11px "JetBrains Mono", monospace';
+      ctx.fillStyle = isABR ? '#0B5249' : (isASBR ? '#047857' : '#1C1917');
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, pos.x, pos.y);
+      ctx.restore();
+
+      // Sub-label for ABR/ASBR
+      if (isABR || isASBR) {
+        ctx.save();
+        ctx.font = '500 8px "Space Grotesk", sans-serif';
+        ctx.fillStyle = isABR ? '#0F766E' : '#059669';
+        ctx.textAlign = 'center';
+        ctx.fillText(isABR ? 'Area Border' : 'AS Border', pos.x, pos.y + r + 12);
+        ctx.restore();
+      }
+    });
+
+    // Draw particles
+    particles.forEach(function (p) {
+      if (p.done) return;
+      var blocked = p.toArea1 && lsaBlocked(p.type, currentAreaType);
+      ctx.save();
+      ctx.globalAlpha = blocked ? 0.25 : p.alpha;
+      ctx.beginPath();
+      ctx.arc(p.cx, p.cy, 7, 0, Math.PI * 2);
+      ctx.fillStyle = lsaColors[p.type] || '#888';
+      ctx.fill();
+      ctx.restore();
+
+      // Type label on particle
+      ctx.save();
+      ctx.globalAlpha = blocked ? 0.2 : Math.min(p.alpha, 0.95);
+      ctx.font = '700 7px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('T' + p.type, p.cx, p.cy);
+      ctx.restore();
+    });
+  }
+
+  // Particle: interpolates from (x0,y0) to (x1,y1)
+  function makeParticle(type, x0, y0, x1, y1, startFrac, dur, toArea1) {
+    return {
+      type: type,
+      x0: x0, y0: y0, x1: x1, y1: y1,
+      startFrac: startFrac,
+      dur: dur,        // fraction of total animation
+      cx: x0, cy: y0,
+      alpha: 0,
+      done: false,
+      toArea1: !!toArea1
+    };
+  }
+
+  function buildFloodParticles(w, h, areaType) {
+    var ps = [];
+    var n = function (key) { return getNodePos(key, w, h); };
+
+    // T1: R0A -> ABR, R0B -> ABR (intra area 0)
+    ps.push(makeParticle(1, n('r0a').x, n('r0a').y, n('abr').x, n('abr').y, 0,    0.25, false));
+    ps.push(makeParticle(1, n('r0b').x, n('r0b').y, n('abr').x, n('abr').y, 0.05, 0.25, false));
+
+    // T1: R1A -> ABR, R1B -> ABR (intra area 1)
+    ps.push(makeParticle(1, n('r1a').x, n('r1a').y, n('abr').x, n('abr').y, 0,    0.25, true));
+    ps.push(makeParticle(1, n('r1b').x, n('r1b').y, n('abr').x, n('abr').y, 0.05, 0.25, true));
+
+    // T2: ABR -> R0A, R0B (DR generates network LSA; simulated at ABR for layout)
+    ps.push(makeParticle(2, n('abr').x, n('abr').y, n('r0a').x, n('r0a').y, 0.08, 0.22, false));
+    ps.push(makeParticle(2, n('abr').x, n('abr').y, n('r0b').x, n('r0b').y, 0.08, 0.22, false));
+
+    // T3: ABR -> R1A, R1B (Summary into area 1)
+    ps.push(makeParticle(3, n('abr').x, n('abr').y, n('r1a').x, n('r1a').y, 0.3,  0.25, true));
+    ps.push(makeParticle(3, n('abr').x, n('abr').y, n('r1b').x, n('r1b').y, 0.3,  0.25, true));
+
+    // T4: ABR -> R1A, R1B (ASBR summary)
+    ps.push(makeParticle(4, n('abr').x, n('abr').y, n('r1a').x, n('r1a').y, 0.38, 0.22, true));
+    ps.push(makeParticle(4, n('abr').x, n('abr').y, n('r1b').x, n('r1b').y, 0.38, 0.22, true));
+
+    // T5 or T7 depending on area type
+    if (areaType === 'nssa') {
+      // ASBR in NSSA generates T7, stays in area 1; ABR converts to T5 at boundary
+      ps.push(makeParticle(7, n('asbr').x, n('asbr').y, n('r1a').x, n('r1a').y, 0.5, 0.22, true));
+      ps.push(makeParticle(7, n('asbr').x, n('asbr').y, n('r1b').x, n('r1b').y, 0.5, 0.22, true));
+      // ABR converts T7 -> T5 into area 0
+      ps.push(makeParticle(5, n('abr').x, n('abr').y, n('r0a').x, n('r0a').y, 0.72, 0.22, false));
+      ps.push(makeParticle(5, n('abr').x, n('abr').y, n('r0b').x, n('r0b').y, 0.72, 0.22, false));
+    } else {
+      // ASBR generates T5 externals (blocked at ABR for stub/totally-stubby)
+      ps.push(makeParticle(5, n('asbr').x, n('asbr').y, n('r1a').x, n('r1a').y, 0.5, 0.22, true));
+      ps.push(makeParticle(5, n('asbr').x, n('asbr').y, n('abr').x,  n('abr').y, 0.5, 0.25, true));
+      // T5 crosses into area 0 only if not blocked
+      if (!lsaBlocked(5, areaType)) {
+        ps.push(makeParticle(5, n('abr').x, n('abr').y, n('r0a').x, n('r0a').y, 0.75, 0.2, false));
+        ps.push(makeParticle(5, n('abr').x, n('abr').y, n('r0b').x, n('r0b').y, 0.75, 0.2, false));
+      }
+    }
+
+    return ps;
+  }
+
+  var floodStart = null;
+  var FLOOD_TOTAL = 3000; // ms total
+
+  function animateFlood(timestamp) {
+    if (!floodStart) floodStart = timestamp;
+    var elapsed = timestamp - floodStart;
+    var frac = Math.min(elapsed / FLOOD_TOTAL, 1);
+
+    var w = lsaCanvas.width  / (window.devicePixelRatio || 1);
+    var h = parseInt(lsaCanvas.getAttribute('height'), 10);
+
+    floodParticles.forEach(function (p) {
+      var localStart = p.startFrac;
+      var localEnd   = p.startFrac + p.dur;
+      if (frac < localStart) {
+        p.cx = p.x0; p.cy = p.y0; p.alpha = 0;
+      } else if (frac >= localEnd) {
+        p.cx = p.x1; p.cy = p.y1; p.alpha = 0.85; p.done = true;
+      } else {
+        var t = (frac - localStart) / p.dur;
+        p.cx = p.x0 + (p.x1 - p.x0) * t;
+        p.cy = p.y0 + (p.y1 - p.y0) * t;
+        p.alpha = Math.min(t * 3, 1) * 0.9;
+        p.done = false;
+      }
+    });
+
+    drawTopology(w, h, floodParticles);
+
+    // Status update
+    var pct = Math.floor(frac * 100);
+    if (pct < 35) {
+      document.getElementById('lsaStatus').textContent = 'T1 Router and T2 Network LSAs flooding within each area...';
+    } else if (pct < 60) {
+      document.getElementById('lsaStatus').textContent = 'ABR generating T3 Summary and T4 ASBR-Summary LSAs across the boundary...';
+    } else if (pct < 80) {
+      document.getElementById('lsaStatus').textContent =
+        currentAreaType === 'nssa'
+          ? 'ASBR injecting T7 NSSA-External into Area 1...'
+          : 'ASBR injecting T5 External LSAs...';
+    } else if (pct < 95) {
+      document.getElementById('lsaStatus').textContent =
+        currentAreaType === 'nssa'
+          ? 'ABR converting T7 to T5 at area boundary. T5 floods into Area 0.'
+          : lsaBlocked(5, currentAreaType)
+            ? 'T5 blocked at ABR. Area 1 is ' + currentAreaType + '. ABR injects a default route instead.'
+            : 'T5 crossing into Area 0...';
+    } else {
+      document.getElementById('lsaStatus').textContent = 'Flood complete. Blocked LSA types are shown dimmed.';
+    }
+
+    if (frac < 1) {
+      floodAnimFrame = requestAnimationFrame(animateFlood);
+    } else {
+      floodAnimating = false;
+    }
+  }
+
+  function resetFlood() {
+    floodAnimating = false;
+    floodStart = null;
+    floodParticles = [];
+    if (floodAnimFrame) cancelAnimationFrame(floodAnimFrame);
+    document.getElementById('lsaStatus').textContent = 'Select an area type, then click Trigger Link Change.';
+    var w = lsaCanvas.width / (window.devicePixelRatio || 1);
+    var h = parseInt(lsaCanvas.getAttribute('height'), 10);
+    drawTopology(w, h, []);
+  }
+
+  document.getElementById('triggerFloodBtn').addEventListener('click', function () {
+    if (floodAnimating) return;
+    if (floodAnimFrame) cancelAnimationFrame(floodAnimFrame);
+    floodStart = null;
+    floodAnimating = true;
+
+    var w = lsaCanvas.width / (window.devicePixelRatio || 1);
+    var h = parseInt(lsaCanvas.getAttribute('height'), 10);
+
+    if (reducedMotion) {
+      // Snap: just draw final state with all particles at destination
+      floodParticles = buildFloodParticles(w, h, currentAreaType);
+      floodParticles.forEach(function (p) { p.cx = p.x1; p.cy = p.y1; p.alpha = 0.85; p.done = true; });
+      drawTopology(w, h, floodParticles);
+      document.getElementById('lsaStatus').textContent = 'Flood complete. Blocked LSA types are shown dimmed.';
+      floodAnimating = false;
+    } else {
+      floodParticles = buildFloodParticles(w, h, currentAreaType);
+      floodAnimFrame = requestAnimationFrame(animateFlood);
+    }
+  });
+
+  document.getElementById('resetFloodBtn').addEventListener('click', resetFlood);
+
+  // Area type toggle
+  document.getElementById('areaTypeGroup').addEventListener('click', function (e) {
+    var btn = e.target.closest('.toggle-btn');
+    if (!btn) return;
+    document.querySelectorAll('.toggle-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentAreaType = btn.dataset.area;
+    updateLegendBlocked(currentAreaType);
+    resetFlood();
+  });
+
+  // Initial LSA canvas draw
+  var lsaW = setupCanvas(lsaCanvas);
+  var lsaH = parseInt(lsaCanvas.getAttribute('height'), 10);
+  drawTopology(lsaW, lsaH, []);
+  updateLegendBlocked('normal');
+
+  // Redraw on resize
+  window.addEventListener('resize', function () {
+    setupCanvas(electionCanvas);
+    drawSegment(routers, electionRun ? roles : routers.map(function () { return 'DROTHER'; }), -1);
+    setupCanvas(lsaCanvas);
+    var w = lsaCanvas.width / (window.devicePixelRatio || 1);
+    var h = parseInt(lsaCanvas.getAttribute('height'), 10);
+    drawTopology(w, h, floodParticles.length ? floodParticles : []);
+  });
+
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
