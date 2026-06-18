@@ -4,6 +4,11 @@
   var isNetPlus = certTrack === 'net+';
   var isCCNP = certTrack === 'ccnp';
 
+  // CCNP section pages always show the CCNP nav, regardless of saved cert track.
+  if (((location.pathname.split('/').pop()) || '').indexOf('encor-') === 0) {
+    isCCNP = true; isNetPlus = false;
+  }
+
   var TIPS = {
     'CORE': isCCNP ? 'CCNP ENCOR hub — your enterprise core command center' : (isNetPlus ? 'Net+ hub — your Network+ command center' : 'Your main study hub — all 53 objectives with videos, articles, and quizzes'),
     'Guide': 'How to use this website — every page explained',
