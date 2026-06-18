@@ -158,7 +158,26 @@
   .cb-card,.cb-startbtn,.cb-obar>span{transition:none}
   .cb-card:hover,.cb-startbtn:hover{transform:none}
 }
+
+/* ── IOS terminal (shared with console-labs) ─────────────────── */
+.cb-term-outer{background:#1c1917;border:1px solid #292524;border-radius:var(--radius-lg);margin-bottom:var(--s-sm);overflow:hidden}
+.cb-term-chrome{display:flex;align-items:center;gap:var(--s-sm);padding:8px 14px;background:#0f0d0c;border-bottom:1px solid rgba(214,211,209,.12);font-family:var(--font-mono);font-size:.7rem;color:#a8a29e;border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+.cb-term-dots{display:flex;gap:6px;flex-shrink:0}
+.cb-term-dot{width:11px;height:11px;border-radius:50%}
+.cb-term-chrome-label{flex:1;text-align:center;color:#a8a29e}
+.cb-term-wrap{background:#1c1917;min-height:220px;max-height:340px;overflow-y:auto;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.5;cursor:text;position:relative}
+.cb-term-wrap .term-line{color:#d6d3d1;white-space:pre-wrap;word-break:break-word}
+.cb-term-wrap .term-line.cmd{color:#a8a29e}
+.cb-term-wrap .term-input-row{display:flex;align-items:center;color:#d6d3d1;min-height:30px;padding:4px 0}
+.cb-term-wrap:focus-within .term-input-row{background:rgba(253,230,138,.06);border-radius:var(--radius)}
+.cb-term-wrap .term-prompt{color:#a8a29e;white-space:nowrap}
+.cb-term-wrap:focus-within .term-prompt{color:#fde68a}
+.cb-term-wrap .term-input{background:none;border:none;outline:none;color:#fde68a;font-family:inherit;font-size:inherit;flex:1;caret-color:#fde68a;min-width:4px}
+.cb-term-wrap .term-cursor{display:inline-block;width:8px;height:14px;background:#fde68a;animation:cb-blink 1s step-end infinite;vertical-align:text-bottom}
+@keyframes cb-blink{0%,100%{opacity:1}50%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.cb-term-wrap .term-cursor{animation:none}}
 </style>
+<script defer src="js/lab-engine.js?v=11"></script>
 </head>
 <body>
 <nav class="top-nav"></nav>
@@ -656,6 +675,11 @@ document.addEventListener('DOMContentLoaded', function () {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // ── Active engine instance for Phase B ─────────────────────────────
+  // Declared at module scope so openTopic and closeTopic share it.
+  var cbInst = null;
+  var cbCaptured = [];
+
   // ── Render the topic grid ───────────────────────────────────────────
   var gridWrap = document.getElementById('cbGridWrap');
   var grid = document.getElementById('cbGrid');
@@ -767,10 +791,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
       '<section class="cb-phase" id="phaseB" role="tabpanel">' +
         '<div class="cb-scenario"><div class="sh">Scenario</div><div class="sb">' + escapeHtml(t.scenario) + '</div></div>' +
-        '<p class="cb-recall-hint">Type the config from memory, one command per line. Abbreviations like <code>int g0/1</code> are accepted. End by typing the verify command. Press Ctrl+Enter to check.</p>' +
-        '<div class="cb-term">' +
-          '<label for="cbTermArea">R(config)#</label>' +
-          '<textarea class="cb-termarea" id="cbTermArea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="type each config line here..."></textarea>' +
+        '<p class="cb-recall-hint">Type the config from memory in the IOS console below. Abbreviations, <code>?</code> help, and mode prompts work. End by typing the verify command. Press Check when done.</p>' +
+        '<div class="cb-term-outer">' +
+          '<div class="cb-term-chrome">' +
+            '<div class="cb-term-dots" aria-hidden="true">' +
+              '<span class="cb-term-dot" style="background:var(--prof-weak)"></span>' +
+              '<span class="cb-term-dot" style="background:var(--accent)"></span>' +
+              '<span class="cb-term-dot" style="background:var(--prof-strong)"></span>' +
+            '</div>' +
+            '<span class="cb-term-chrome-label">R1 console</span>' +
+          '</div>' +
+          '<div class="cb-term-wrap" id="cbTermWrap">' +
+            '<div class="term-output" id="cbTermOut"></div>' +
+            '<div class="term-input-row">' +
+              '<span class="term-prompt" id="cbTermPrompt">R1&gt; </span>' +
+              '<span class="term-input" id="cbTermInput" contenteditable="true" spellcheck="false" autocapitalize="off" autocorrect="off"></span>' +
+              '<span class="term-cursor" aria-hidden="true"></span>' +
+            '</div>' +
+          '</div>' +
         '</div>' +
         '<div class="cb-recall-actions">' +
           '<button class="cb-checkbtn" type="button" id="cbCheck">Check recall</button>' +
@@ -783,12 +821,51 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('cbBack').addEventListener('click', closeTopic);
     var tabA = document.getElementById('tabA'), tabB = document.getElementById('tabB');
     var phaseA = document.getElementById('phaseA'), phaseB = document.getElementById('phaseB');
+
+    // ── IOS engine mount for Phase B ─────────────────────────────────
+    // cbInst and cbCaptured are module-level; openTopic resets them here.
+    cbInst = null;
+    cbCaptured = [];
+
+    function mountEngine() {
+      if (cbInst) return; // already mounted
+      // LabBase is exposed as window.Lab.LabBase by lab-engine.js
+      var LabBase = (window.Lab && window.Lab.LabBase);
+      if (!LabBase) return; // engine not loaded yet (shouldn't happen with defer)
+
+      cbInst = new LabBase({ objectives: [], hintsAvailable: 0 });
+      cbInst.addDevice('R1', 'router', { hostname: 'R1' });
+
+      // Intercept processCommand to append every entered line to cbCaptured.
+      var _orig = cbInst.processCommand.bind(cbInst);
+      cbInst.processCommand = function (raw) {
+        var trimmed = (raw || '').trim();
+        if (trimmed && trimmed !== '?') cbCaptured.push(trimmed);
+        return _orig(raw);
+      };
+
+      var termEl = document.getElementById('cbTermWrap');
+      cbInst.initTerminal(termEl);
+      cbInst.terminal.writeLine('R1 config recall console. Type ? for help.');
+      cbInst.terminal.writeLine('Work through the scenario above, then press Check recall.');
+      cbInst.terminal.writeLine('');
+    }
+
+    function destroyEngine() {
+      if (cbInst && cbInst.terminal) cbInst.terminal.destroy();
+      cbInst = null;
+      cbCaptured = [];
+    }
+
     function showPhase(which) {
       var a = which === 'A';
       tabA.classList.toggle('active', a); tabA.setAttribute('aria-selected', a);
       tabB.classList.toggle('active', !a); tabB.setAttribute('aria-selected', !a);
       phaseA.classList.toggle('active', a); phaseB.classList.toggle('active', !a);
-      if (!a) { var ta = document.getElementById('cbTermArea'); if (ta) ta.focus(); }
+      if (!a) {
+        mountEngine();
+        if (cbInst && cbInst.terminal) cbInst.terminal.focus();
+      }
     }
     tabA.addEventListener('click', function () { showPhase('A'); });
     tabB.addEventListener('click', function () { showPhase('B'); });
@@ -800,15 +877,16 @@ document.addEventListener('DOMContentLoaded', function () {
       showPhase('B');
     });
 
-    var area = document.getElementById('cbTermArea');
     document.getElementById('cbCheck').addEventListener('click', function () { checkRecall(t); });
     document.getElementById('cbClear').addEventListener('click', function () {
-      area.value = ''; document.getElementById('cbResults').classList.remove('show'); area.focus();
+      // Destroy and remount so the terminal is completely fresh
+      destroyEngine();
+      document.getElementById('cbTermOut').innerHTML = '';
+      document.getElementById('cbResults').classList.remove('show');
+      mountEngine();
+      if (cbInst && cbInst.terminal) cbInst.terminal.focus();
     });
     document.getElementById('cbReveal').addEventListener('click', function () { revealAnswer(t); });
-    area.addEventListener('keydown', function (e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); checkRecall(t); }
-    });
 
     updateTabTick(t);
   }
@@ -821,6 +899,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function closeTopic() {
+    // Tear down any live engine terminal before wiping the DOM
+    if (cbInst && cbInst.terminal) cbInst.terminal.destroy();
+    cbInst = null;
+    cbCaptured = [];
     detail.classList.remove('active');
     detail.innerHTML = '';
     gridWrap.classList.remove('hidden');
@@ -837,11 +919,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function checkRecall(t) {
-    var raw = document.getElementById('cbTermArea').value;
-    var userLinesRaw = raw.split('\n')
-      .map(function (l) { return l.replace(/^[A-Za-z0-9_().#-]+[#>]\s*/, ''); }) // strip a typed prompt if present
+    // Read from the engine capture buffer. Strip any prompt prefixes the engine
+    // echoes back, drop blanks and IOS comment lines (same logic as before).
+    var userLinesRaw = cbCaptured
+      .map(function (l) { return l.replace(/^[A-Za-z0-9_().#-]+[#>]\s*/, ''); })
       .map(function (l) { return l.trim(); })
-      .filter(function (l) { return l.length && l.charAt(0) !== '!'; }); // ignore comments and blanks
+      .filter(function (l) { return l.length && l.charAt(0) !== '!'; });
     var userCanon = userLinesRaw.map(canon);
     var usedUser = userCanon.map(function () { return false; });
 
@@ -928,11 +1011,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function revealAnswer(t) {
-    var lines = t.recall.map(function (r) { return r.cmds[0]; });
-    lines.push(t.hintVerify);
-    document.getElementById('cbTermArea').value = lines.join('\n');
+    // Print expected lines into the terminal output for reference.
+    // Do NOT add them to cbCaptured so the scorer stays clean.
+    if (cbInst && cbInst.terminal) {
+      cbInst.terminal.writeLine('');
+      cbInst.terminal.writeLine('-- Answer (read and retype from memory to score) --');
+      t.recall.forEach(function (r) { cbInst.terminal.writeLine('  ' + r.cmds[0]); });
+      cbInst.terminal.writeLine('  ' + t.hintVerify);
+      cbInst.terminal.writeLine('--');
+      cbInst.terminal.writeLine('');
+    }
     var box = document.getElementById('cbResults');
-    box.innerHTML = '<div class="cb-score"><span class="sl">Answer shown above. Clear it and type it yourself to score.</span></div>';
+    box.innerHTML = '<div class="cb-score"><span class="sl">Answer shown above. Clear the terminal and type it yourself to score.</span></div>';
     box.classList.add('show');
   }
 

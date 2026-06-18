@@ -156,25 +156,24 @@
   margin-left: 8px; font-family: var(--font-mono); font-size: .72rem;
   color: #6f8478; letter-spacing: .05em;
 }
-.ed-term-prompt {
-  font-family: var(--font-mono); font-size: .82rem; color: #34d399;
-  padding: 9px 14px 0; user-select: none;
-}
-.ed-term-screen {
-  background: #07100c; padding: 10px 14px 12px; min-height: 180px;
-  max-height: 340px; overflow-y: auto; cursor: text;
+/* Engine-driven terminal body inside .ed-term */
+#termWrap .term-wrap {
+  background: #07100c; min-height: 200px; max-height: 340px;
+  overflow-y: auto; cursor: text; padding: 10px 14px 12px;
   font-family: var(--font-mono); font-size: .9rem; line-height: 1.7;
 }
-.ed-term-scroll { white-space: pre-wrap; word-break: break-word; }
-.ed-term-echo { color: #d6f5e0; }
-.ed-term-echo .ps { color: #34d399; }
-.ed-term-sys { color: #6f8478; }
-.ed-term-line { display: flex; align-items: baseline; }
-.ed-term-ps { color: #34d399; white-space: pre; user-select: none; }
-.ed-term-in {
-  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
-  color: #d6f5e0; caret-color: #34d399; padding: 0 0 0 6px; margin: 0;
-  font-family: var(--font-mono); font-size: .9rem; line-height: 1.7;
+#termWrap .term-output { white-space: pre-wrap; word-break: break-word; }
+#termWrap .term-line { color: #d6f5e0; }
+#termWrap .term-line.cmd { color: #d6f5e0; }
+#termWrap .term-input-row {
+  display: flex; align-items: center; color: #d6f5e0;
+  min-height: 28px; padding: 2px 0;
+}
+#termWrap .term-prompt { color: #34d399; white-space: pre; user-select: none; }
+#termWrap .term-input {
+  background: none; border: none; outline: none;
+  color: #34d399; font-family: inherit; font-size: inherit;
+  flex: 1; caret-color: #34d399; padding-left: 4px;
 }
 .ed-term-hint {
   font-family: var(--font-body); font-size: .8rem; color: var(--ink-muted);
@@ -407,12 +406,16 @@
       <div class="ed-config-task" id="configTask"></div>
       <div class="ed-term" id="termWrap">
         <div class="ed-term-bar"><span class="ed-term-dot r"></span><span class="ed-term-dot y"></span><span class="ed-term-dot g"></span><span class="ed-term-title">R1 — console 0</span></div>
-        <div class="ed-term-screen" id="termScreen">
-          <div class="ed-term-scroll" id="termScroll"></div>
-          <div class="ed-term-line"><span class="ed-term-ps" id="termPrompt">R1&gt;</span><input class="ed-term-in" id="termInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="router console"></div>
+        <!-- lab-engine mounts here; initTerminal() populates .term-output + .term-input-row -->
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">R1&gt; </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="router console"></span>
+          </div>
         </div>
       </div>
-      <div class="ed-term-hint">Real IOS: type <code>enable</code>, then <code>configure terminal</code>, then the config. The prompt tracks your mode. <code>exit</code> backs out, <code>end</code> returns to <code>R1#</code>.</div>
+      <div class="ed-term-hint">Type <code>enable</code>, then <code>configure terminal</code>, then the config. <code>?</code> for help. <code>exit</code> backs out one level, <code>end</code> returns to <code>R1#</code>.</div>
       <textarea id="configInput" style="display:none"></textarea>
       <div class="ed-btn-row">
         <button class="ed-btn primary" id="configReveal">Reveal Answer</button>
@@ -541,6 +544,7 @@
 </div><!-- /container-wide -->
 
 <script src="data/encor-drill-data.js"></script>
+<script defer src="js/lab-engine.js?v=11"></script>
 <script defer src="js/nav.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -854,82 +858,53 @@ document.addEventListener('DOMContentLoaded', function () {
   // ════════════════════════════════════════════════════════════════
   // BLOCK 2: Configs
   // ════════════════════════════════════════════════════════════════
-  // ── Interactive IOS console (tracks user/priv/config modes like a real CLI) ──
-  var TERM = (function () {
-    var scroll = document.getElementById('termScroll');
-    var input  = document.getElementById('termInput');
-    var ps     = document.getElementById('termPrompt');
-    var screen = document.getElementById('termScreen');
-    var hidden = document.getElementById('configInput');
-    var HOST = 'R1';
-    var st = { exec: 'user', cfg: [] };
+  // ── Interactive IOS console: lab-engine.js LabBase instance ──────────────────
+  // Build a LabBase with a single router named R1. No objectives — this block
+  // is pure recall practice; scoring is done by the existing scoreConfig / Reveal flow.
+  var hidden = document.getElementById('configInput');
+  // Build one LabBase instance for the Config block. No objectives — scoring
+  // is done by scoreConfig / Reveal. Terminal is mounted inside loadConfigItem().
+  var inst = (function () {
+    if (!window.Lab) { return null; } // engine not loaded yet — fail gracefully
+    var lb = new Lab.LabBase({ objectives: [] });
+    lb.addDevice('R1', 'router', { hostname: 'R1' });
 
-    function promptStr() {
-      if (st.cfg.length) return HOST + '(' + st.cfg[st.cfg.length - 1] + ')#';
-      return st.exec === 'priv' ? HOST + '#' : HOST + '>';
-    }
-    function render() { ps.textContent = promptStr(); }
-    function echo(line) {
-      var d = document.createElement('div');
-      d.className = 'ed-term-echo';
-      d.textContent = line;
-      scroll.appendChild(d);
-      screen.scrollTop = screen.scrollHeight;
-    }
-    function tok(c) { return c.trim().split(/\s+/)[0].toLowerCase(); }
-    function apply(cmd) {
-      var c = cmd.trim(); if (!c) return;
-      var t = tok(c), inCfg = st.cfg.length > 0;
-      if (!inCfg) {
-        if (st.exec === 'user') {
-          if (/^en(a(b(l(e)?)?)?)?$/.test(t)) st.exec = 'priv';
-        } else {
-          if (/^conf(i(g(u(r(e)?)?)?)?)?$/.test(t)) st.cfg = ['config'];
-          else if (t === 'disable' || t === 'exit' || t === 'logout') st.exec = 'user';
-        }
-        return;
-      }
-      if (t === 'end') { st.cfg = []; st.exec = 'priv'; return; }
-      if (t === 'exit') { st.cfg.pop(); if (!st.cfg.length) st.exec = 'priv'; return; }
-      var cur = st.cfg[st.cfg.length - 1];
-      function g(label) { st.cfg = ['config', label]; }
-      if (t === 'interface') return g(c.indexOf('.') !== -1 ? 'config-subif' : 'config-if');
-      if (t === 'router') return g('config-router');
-      if (t === 'line') return g('config-line');
-      if (t === 'vlan' && cur === 'config') return g('config-vlan');
-      if (t === 'class-map') return g('config-cmap');
-      if (t === 'policy-map') return g('config-pmap');
-      if (t === 'class' && cur === 'config-pmap') { st.cfg.push('config-pmap-c'); return; }
-      if (t === 'control-plane') return g('config-cp');
-      if (t === 'vrf') return g('config-vrf');
-      if (t === 'address-family') { st.cfg.push('config-router-af'); return; }
-      if (t === 'af-interface') { st.cfg.push('config-router-af-interface'); return; }
-      if (t === 'topology') { st.cfg.push('config-router-af-topology'); return; }
-    }
-    if (input) {
-      input.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter') return;
-        e.preventDefault();
-        var cmd = input.value;
-        echo(promptStr() + cmd);
-        var t = cmd.trim();
-        if (t) hidden.value += t + '\n';
-        apply(cmd);
-        input.value = '';
-        render();
-      });
-      screen.addEventListener('click', function () { input.focus(); });
-    }
-    function reset() { st = { exec: 'user', cfg: [] }; if (scroll) scroll.textContent = ''; if (hidden) hidden.value = ''; render(); }
-    return { reset: reset };
-  })();
+    // Wrap processCommand so every non-? command line also feeds #configInput.
+    // Terminal.executeCommand calls this.lab.processCommand(cmd) internally.
+    var _orig = lb.processCommand.bind(lb);
+    lb.processCommand = function (cmd) {
+      var t = (cmd || '').trim();
+      // Record substantive lines only; skip bare ? queries (help lookups, not config).
+      if (t && t.slice(-1) !== '?') { hidden.value += t + '\n'; }
+      return _orig(cmd);
+    };
+
+    return lb;
+  }());
 
   function loadConfigItem() {
     var item = configs[fi];
     if (!item) { return; }
     document.getElementById('configTask').textContent = item.task;
-    document.getElementById('configInput').value = '';
-    TERM.reset();
+
+    // Reset the engine terminal for this new task: clear output, clear the
+    // hidden buffer, and return the device to user EXEC so the prompt resets.
+    hidden.value = '';
+    if (inst) {
+      // Destroy old terminal instance to prevent double-keydown listeners.
+      if (inst.terminal) { inst.terminal.destroy(); }
+      // Re-create device at user EXEC, then re-mount a fresh terminal.
+      inst.devices['R1'].mode = 'user';
+      inst.devices['R1'].currentInterface = null;
+      inst.initTerminal(document.getElementById('termMount'));
+      inst.terminal.clear();
+      inst.terminal.writeLine('Type enable, then configure terminal, then the config commands.');
+      inst.terminal.writeLine('Press ? for help. exit backs out one level; end returns to R1#.');
+      inst.terminal.writeLine('');
+      inst.terminal.updatePrompt();
+      inst.terminal.focus();
+    }
+
     var can = document.getElementById('configCanonical');
     can.textContent = '';
     can.classList.remove('open');

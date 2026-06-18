@@ -182,9 +182,16 @@
         </div>
       </aside>
     </div>
+
+    <section class="visual-block" style="margin-top:var(--s-xl)">
+      <div style="font-family:var(--font-display);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted);margin-bottom:8px">Lab · Type the config</div>
+      <p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--ink-secondary);margin-bottom:14px;max-width:68ch">R1 has Gi0/0 (inside, 192.168.1.1/24) and Gi0/1 (outside, 203.0.113.1/24). Build PAT: ACL 1 matching the inside LAN, mark the interfaces, enable overload. Then run <code>show ip nat translations</code>.</p>
+      <div id="nat-lab-term"></div>
+    </section>
   </div>
 
 <script defer src="js/nav.js?v=4.56"></script>
+<script defer src="js/lab-engine.js?v=11"></script>
 <script>
 window.ntConfig = { storageKey: 'ccna_nt_best' };
 </script>
@@ -541,6 +548,75 @@ document.addEventListener('DOMContentLoaded', function(){
     })();
 
   window.ntNew();
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.Lab || !window.Lab.LabBase) {
+    document.getElementById('nat-lab-term').innerHTML = '<p style="padding:12px;font-family:var(--font-mono);font-size:0.85rem;color:var(--ink-secondary)">Lab engine failed to load.</p>';
+    return;
+  }
+
+  function NatLab() {
+    Lab.LabBase.call(this, { objectives: [], hintsAvailable: 0 });
+    this.addDevice('R1', 'router', {
+      hostname: 'R1',
+      interfaces: {
+        'GigabitEthernet0/0': { up: true, ip: '192.168.1.1' },
+        'GigabitEthernet0/1': { up: true, ip: '203.0.113.1' },
+      },
+    });
+  }
+  NatLab.prototype = Object.create(Lab.LabBase.prototype);
+  NatLab.prototype.constructor = NatLab;
+
+  NatLab.prototype.handleCommand = function (dev, raw, lower) {
+    // ACL
+    var aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+    if (aclMatch && dev.mode === 'config') {
+      var id = aclMatch[1];
+      if (!dev.acls[id]) dev.acls[id] = [];
+      dev.acls[id].push({ action: aclMatch[2].toLowerCase(), src: aclMatch[3], wildcard: aclMatch[4] });
+      return '';
+    }
+    // ip nat inside / outside (config-if)
+    if (lower === 'ip nat inside' && dev.mode === 'config-if' && dev.currentInterface) {
+      if (!dev.nat.inside.includes(dev.currentInterface)) dev.nat.inside.push(dev.currentInterface);
+      return '';
+    }
+    if (lower === 'ip nat outside' && dev.mode === 'config-if' && dev.currentInterface) {
+      if (!dev.nat.outside.includes(dev.currentInterface)) dev.nat.outside.push(dev.currentInterface);
+      return '';
+    }
+    // ip nat inside source list N interface X overload
+    var overloadMatch = raw.match(/^ip nat inside source list\s+(\d+)\s+interface\s+(\S+)\s+overload/i);
+    if (overloadMatch && dev.mode === 'config') {
+      dev.nat.overload = true;
+      dev.nat.overloadList = overloadMatch[1];
+      dev.nat.overloadIf = overloadMatch[2]
+        .replace(/^gi(?:gabitethernet)?\s*/i, 'GigabitEthernet')
+        .replace(/^fa(?:stethernet)?\s*/i, 'FastEthernet')
+        .replace(/^se(?:rial)?\s*/i, 'Serial')
+        .replace(/^lo(?:opback)?\s*/i, 'Loopback');
+      return '';
+    }
+    // show ip nat translations (priv mode; also accept `do show ip nat tr` from config)
+    if ((lower === 'show ip nat translations' || lower === 'show ip nat tr') &&
+        (dev.mode === 'priv' || dev.mode === 'user')) {
+      if (!dev.nat.overload && !dev.nat.poolName) return '(NAT not configured yet. Set up PAT first.)';
+      return 'Pro Inside global         Inside local          Outside local         Outside global\n' +
+             'tcp 203.0.113.1:1024      192.168.1.10:52341    8.8.8.8:443           8.8.8.8:443\n' +
+             'tcp 203.0.113.1:1025      192.168.1.11:43892    8.8.8.8:443           8.8.8.8:443\n' +
+             'tcp 203.0.113.1:1026      192.168.1.12:61203    1.1.1.1:443           1.1.1.1:443';
+    }
+    return undefined;
+  };
+
+  var inst = new NatLab();
+  inst.initTerminal(document.getElementById('nat-lab-term'));
+  inst.terminal.writeLine('--- NAT Config Lab (R1) ---', 'cmd');
+  inst.terminal.writeLine('Topology: Gi0/0 inside 192.168.1.1/24  |  Gi0/1 outside 203.0.113.1/24');
+  inst.terminal.writeLine('Goal: ACL 1 -> ip nat inside/outside -> overload -> show ip nat translations\n');
 });
 </script>
 <script defer src="js/tutor.js"></script>
