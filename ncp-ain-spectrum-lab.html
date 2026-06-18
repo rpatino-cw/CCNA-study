@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Spectrum-X / NVUE Console Lab — NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+.lab-back { margin-bottom: var(--s-md); }
+.lab-header { margin-bottom: var(--s-lg); }
+.lab-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.lab-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 68ch;
+}
+.ncp-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.08); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 5px 13px; margin-bottom: var(--s-md);
+  font-family: var(--font-display); font-weight: 700; font-size: .85rem; color: var(--ncp);
+}
+.ncp-badge .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--ncp);
+}
+
+/* ── Terminal chrome ─────────────────────────────────────────────── */
+.term-chrome {
+  background: #06090d; border: 1px solid #243140; border-radius: 12px;
+  overflow: hidden; margin-bottom: var(--s-lg);
+  box-shadow: 0 4px 24px rgba(0,0,0,.35);
+}
+.term-titlebar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: #0d131b; border-bottom: 1px solid #243140;
+}
+.term-dot { width: 12px; height: 12px; border-radius: 50%; }
+.term-dot.r { background: #ff5f56; }
+.term-dot.y { background: #ffbd2e; }
+.term-dot.g { background: #27c93f; }
+.term-title-text {
+  margin-left: 8px; font-family: var(--font-mono); font-size: .82rem;
+  color: #9aa7b4; letter-spacing: .02em;
+}
+.term-title-text span { color: var(--ncp-light, #A4D65E); font-weight: 600; }
+
+/* The scrollable output area that lab-engine writes into */
+.term-wrap {
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+  color: #cfe3e0; height: 440px; overflow-y: auto;
+  padding: 14px 16px 8px;
+  /* engine needs .term-output + .term-input-row inside */
+}
+.term-output { white-space: pre-wrap; word-break: break-word; }
+.term-line { white-space: pre-wrap; word-break: break-word; }
+.term-line.cmd { color: #a4d65e; }
+.term-input-row {
+  display: flex; align-items: flex-start; gap: 0;
+  margin-top: 2px; padding-bottom: 4px;
+}
+.term-prompt {
+  color: var(--ncp-light, #A4D65E); white-space: pre; user-select: none;
+  font-family: var(--font-mono); font-size: 13px; flex-shrink: 0;
+}
+.term-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #e6edf3; font-family: var(--font-mono); font-size: 13px;
+  line-height: 1.6; caret-color: var(--ncp-light, #A4D65E);
+  white-space: pre-wrap; word-break: break-word; min-width: 0;
+}
+/* hide placeholder cursor when input is empty and unfocused */
+.term-input:empty::before { content: '\00a0'; }
+
+/* ── Cheat sheet panel ───────────────────────────────────────────── */
+.cheat-panel {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--s-lg);
+}
+.cheat-panel h2 {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  color: var(--ink); margin: 0 0 var(--s-md);
+  padding-bottom: var(--s-sm); border-bottom: 1px solid var(--border);
+}
+.cheat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .cheat-grid { grid-template-columns: 1fr; } }
+.cheat-entry {
+  background: var(--bg-recessed); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 13px; cursor: pointer;
+  transition: border-color .15s;
+}
+.cheat-entry:hover { border-color: var(--ncp); }
+.cheat-entry code {
+  font-family: var(--font-mono); font-size: .82rem; color: var(--ncp);
+  font-weight: 600; display: block; margin-bottom: 3px;
+}
+.cheat-entry .desc {
+  font-family: var(--font-display); font-size: .8rem; color: var(--ink-secondary);
+}
+.workflow-note {
+  margin-top: var(--s-md); padding: 12px 15px;
+  background: rgba(var(--ncp-rgb),.06); border: 1px solid rgba(var(--ncp-rgb),.2);
+  border-radius: var(--radius); font-family: var(--font-display); font-size: .85rem;
+  color: var(--ink-secondary); line-height: 1.6;
+}
+.workflow-note strong { color: var(--ncp); font-weight: 700; }
+.workflow-note code { font-family: var(--font-mono); font-size: .83em; color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cheat-entry { transition: none; }
+}
+</style>
+</head>
+<body>
+<script defer src="js/lab-engine.js?v=11"></script>
+<div id="navMount"></div>
+
+<div class="container-wide" style="padding-top: var(--s-lg); padding-bottom: 80px;">
+
+  <!-- Back link -->
+  <div class="lab-back">
+    <a href="ncp-ain-hub.html" style="font-family:var(--font-display);font-size:.88rem;color:var(--ink-muted);text-decoration:none;">
+      &larr; NCP-AIN Hub
+    </a>
+  </div>
+
+  <!-- Header -->
+  <div class="lab-header">
+    <div class="ncp-badge"><span class="dot"></span>NCP-AIN · Spectrum-X Lab</div>
+    <h1>Spectrum-4 / NVUE Console Lab</h1>
+    <p class="subtitle">
+      Configure RoCE lossless transport on a Spectrum-4 leaf switch using NVUE (Cumulus Linux).
+      Type commands in the terminal below. The NVUE workflow is: <strong>nv set</strong> a change,
+      inspect with <strong>nv config diff</strong>, then commit with <strong>nv config apply</strong>.
+    </p>
+  </div>
+
+  <!-- Terminal -->
+  <div class="term-chrome">
+    <div class="term-titlebar">
+      <span class="term-dot r"></span>
+      <span class="term-dot y"></span>
+      <span class="term-dot g"></span>
+      <span class="term-title-text">
+        <span>cumulus@leaf01</span> &mdash; Spectrum-X / NVUE
+      </span>
+    </div>
+    <!-- lab-engine mounts here: initTerminal() drives .term-output + .term-input-row -->
+    <div class="term-wrap" id="termMount">
+      <div class="term-output"></div>
+      <div class="term-input-row">
+        <span class="term-prompt">cumulus@leaf01:mgmt:~$ </span>
+        <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="NVUE console"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cheat sheet -->
+  <div class="cheat-panel">
+    <h2>Try these commands</h2>
+    <div class="cheat-grid" id="cheatGrid">
+      <!-- populated by JS below -->
+    </div>
+    <div class="workflow-note">
+      <strong>NVUE workflow:</strong>
+      <code>nv set ...</code> stages a change (pending, not active).
+      Run <code>nv config diff</code> to preview what will change.
+      Run <code>nv config apply</code> to commit and activate.
+      Run <code>nv config save</code> to persist across reboots.
+      A clean fabric keeps <code>nv show qos roce counters</code> PFC PAUSE at zero.
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // ── NVUE command map ────────────────────────────────────────────────────────
+  // Keys: exact lowercase command string, or "first-token ..." for prefix match.
+  // Values: function(dev, raw, lower) -> string, or static string.
+  // Unknown commands fall through to "-bash: ...: command not found" in the engine.
+
+  var NVUE_MAP = {};
+
+  // ── nv show interface ───────────────────────────────────────────────────────
+  NVUE_MAP['nv show interface'] = function () {
+    return [
+      'Interface  State  Speed   MTU    Type      Remote Host       Remote Port',
+      '---------  -----  -----   ----   ----      -----------       -----------',
+      'lo         up     N/A     65536  loopback',
+      'mgmt       up     1G      1500   eth       oob-mgmt-switch   swp1',
+      'swp1       up     400G    9216   swp       gb300-host-01     mlx5_0',
+      'swp2       up     400G    9216   swp       gb300-host-02     mlx5_0',
+      'swp3       up     400G    9216   swp       gb300-host-03     mlx5_0',
+      'swp4       up     400G    9216   swp       gb300-host-04     mlx5_0',
+      'swp5       up     400G    9216   swp       gb300-host-05     mlx5_0',
+      'swp6       up     400G    9216   swp       gb300-host-06     mlx5_0',
+      'swp7       up     400G    9216   swp       gb300-host-07     mlx5_0',
+      'swp8       up     400G    9216   swp       gb300-host-08     mlx5_0',
+      'swp49      up     400G    9216   swp       sn5600-spine-01   swp1',
+      'swp50      up     400G    9216   swp       sn5600-spine-02   swp1',
+      'swp51      up     400G    9216   swp       sn5600-spine-03   swp1',
+      'swp52      up     400G    9216   swp       sn5600-spine-04   swp1',
+    ].join('\n');
+  };
+
+  // ── nv show interface swp1 (exact match for the most common demo port) ──────
+  NVUE_MAP['nv show interface swp1'] = function () { return showInterfaceSwp('swp1'); };
+
+  // Per-port handler reused by exact keys and the catch-all below
+  function showInterfaceSwp(swp) {
+    var num = parseInt(swp.replace('swp', ''), 10);
+    var remote = (num >= 49)
+      ? 'sn5600-spine-0' + (num - 48) + '   swp1'
+      : 'gb300-host-' + String(num).padStart(2, '0') + '     mlx5_0';
+    return [
+      'operational  applied    description',
+      '-----------  -------    -----------',
+      '',
+      'link',
+      '  state      up         up',
+      '  speed      400G       400G',
+      '  duplex     full       full',
+      '  mtu        9216       9216',
+      '  fec        rs         rs',
+      '',
+      'ip',
+      '  address    10.1.' + num + '.1/31',
+      '',
+      'remote: ' + remote,
+      '',
+      'counters',
+      '  rx-bytes   ' + (8192000000 + num * 3017211),
+      '  tx-bytes   ' + (8400000000 + num * 2918301),
+      '  rx-errors  0   tx-errors  0   rx-drops  0   tx-drops  0',
+    ].join('\n');
+  }
+
+  // ── nv show system ──────────────────────────────────────────────────────────
+  NVUE_MAP['nv show system'] = function () {
+    return [
+      'operational              applied',
+      '-----------              -------',
+      'hostname                 leaf01',
+      'build                    Cumulus Linux 5.12.0',
+      'uptime                   14 days, 03:27:51',
+      'timezone                 America/Chicago',
+      'platform-name            SN5600',
+      'platform-asic            Spectrum-4',
+      'platform-port-config     64x400G',
+    ].join('\n');
+  };
+
+  // ── nv show service ─────────────────────────────────────────────────────────
+  NVUE_MAP['nv show service'] = function () {
+    return [
+      'Service    Status   Description',
+      '-------    ------   -----------',
+      'ntp        active   Network Time Protocol (4 servers synced)',
+      'syslog     active   System logging to 10.0.0.50:514',
+      'snmp       active   v2c, v3 enabled',
+      'lldp       active   Topology discovery',
+      'ssh        active   OpenSSH 9.2p1',
+      'frr        active   FRRouting (BGP/EVPN)',
+      'ptmd       active   Prescriptive Topology Manager',
+    ].join('\n');
+  };
+
+  // ── nv show qos roce ───────────────────────────────────────────────────────
+  NVUE_MAP['nv show qos roce'] = function () {
+    return [
+      '                      operational            applied',
+      '------------------  ---------------------  ---------------------',
+      'state                                      enabled',
+      'mode                lossless-single-ipool  lossless-single-ipool',
+      'pfc',
+      '  pfc-priority      3',
+      '  rx-enabled        enabled',
+      '  tx-enabled        enabled',
+      '  cable-length      100',
+      'congestion-control',
+      '  congestion-mode   ECN',
+      '  enabled-tc        0,3',
+      '  min-threshold     146.48 KB',
+      '  max-threshold     1.43 MB',
+      '  probability       100',
+      'trust',
+      '  trust-mode        pcp,dscp',
+      'lldp-app-tlv',
+      '  priority          3',
+      '  protocol-id       4791',
+      '  selector          UDP',
+    ].join('\n');
+  };
+
+  // ── nv show qos roce counters ───────────────────────────────────────────────
+  NVUE_MAP['nv show qos roce counters'] = function () {
+    return [
+      'Port   Pri  PFC-PAUSE-RX  PFC-PAUSE-TX  ECN-Marked  Discards',
+      '-----  ---  ------------  ------------  ----------  --------',
+      'swp1   3    0             0             192847      0',
+      'swp2   3    0             0             184332      0',
+      'swp3   3    0             0             201093      0',
+      'swp4   3    0             0             176554      0',
+      'swp5   3    0             0             188901      0',
+      'swp6   3    0             0             193827      0',
+      'swp7   3    0             0             179402      0',
+      'swp8   3    0             0             185674      0',
+      '',
+      'PFC PAUSE counters at 0 — ECN/DCQCN is doing the congestion work.',
+      'A non-zero PFC-PAUSE-TX indicates the queue hit the PFC threshold.',
+    ].join('\n');
+  };
+
+  // ── nv show router bgp summary ─────────────────────────────────────────────
+  NVUE_MAP['nv show router bgp summary'] = function () {
+    return [
+      'BGP router identifier 10.0.0.1, local AS number 65001 vrf-id 0',
+      'BGP table version 42',
+      '',
+      'Neighbor        V    AS    MsgRcvd  MsgSent  TblVer  InQ OutQ  Up/Down     State/PfxRcd',
+      '10.0.0.101      4    65100  12804    12794    42      0   0     14d01h03m   8',
+      '10.0.0.102      4    65100  12801    12791    42      0   0     14d01h01m   8',
+      '10.0.0.103      4    65100  12798    12788    42      0   0     14d00h58m   8',
+      '10.0.0.104      4    65100  12795    12785    42      0   0     14d00h54m   8',
+      '',
+      'Total number of neighbors 4',
+      'EVPN address-family: 4 peers up, 32 VNIs advertised',
+    ].join('\n');
+  };
+
+  // ── nv set <anything> (staged config) ─────────────────────────────────────
+  // The engine's executeShellCommand only splits on the FIRST token for wildcard
+  // lookup, so 'nv set ...' would never be reached. Instead, exact-match the
+  // most common set commands and fall through to the 'nv' catch-all for others.
+  function stageMsg(what) {
+    return [
+      'staged: nv set ' + what,
+      '',
+      'Change is pending. Run "nv config diff" to review, then "nv config apply" to activate.',
+    ].join('\n');
+  }
+  NVUE_MAP['nv set qos roce']                 = function () { return stageMsg('qos roce'); };
+  NVUE_MAP['nv set qos roce mode lossless']   = function () { return stageMsg('qos roce mode lossless'); };
+  NVUE_MAP['nv set qos roce mode lossy']      = function () { return stageMsg('qos roce mode lossy'); };
+  NVUE_MAP['nv set qos roce cable-length 100']= function () { return stageMsg('qos roce cable-length 100'); };
+  NVUE_MAP['nv set interface swp1 link speed 400g'] = function () { return stageMsg('interface swp1 link speed 400G'); };
+  NVUE_MAP['nv set interface swp1 link mtu 9216']   = function () { return stageMsg('interface swp1 link mtu 9216'); };
+
+  // ── nv config apply ────────────────────────────────────────────────────────
+  NVUE_MAP['nv config apply'] = function () {
+    return [
+      'applying...',
+      '',
+      'Configuration applied successfully.',
+      'ASIC programmed. Verify with "nv show qos roce" or "nv show interface".',
+    ].join('\n');
+  };
+
+  // ── nv config diff ─────────────────────────────────────────────────────────
+  NVUE_MAP['nv config diff'] = function () {
+    return [
+      '--- running',
+      '+++ pending',
+      '',
+      '  qos:',
+      '    roce:',
+      '+     mode: lossless',
+      '',
+      'Run "nv config apply" to activate, or "nv config detach" to discard.',
+    ].join('\n');
+  };
+
+  // ── nv config save ─────────────────────────────────────────────────────────
+  NVUE_MAP['nv config save'] = function () {
+    return 'Configuration saved to /etc/nvue.d/startup.yaml';
+  };
+
+  // ── nv config detach ───────────────────────────────────────────────────────
+  NVUE_MAP['nv config detach'] = function () {
+    return 'Pending configuration discarded.';
+  };
+
+  // ── help / ? ───────────────────────────────────────────────────────────────
+  var NV_HELP = [
+    'NVUE commands (Spectrum-X / Cumulus Linux):', '',
+    '  nv show interface              — all interfaces with state/speed/MTU',
+    '  nv show interface <swp>        — per-port detail and counters',
+    '  nv show system                 — hostname, version, platform, uptime',
+    '  nv show service                — NTP, SNMP, FRR, LLDP status',
+    '  nv show qos roce               — RoCE mode, ECN thresholds, PFC priority',
+    '  nv show qos roce counters      — per-port PFC PAUSE + ECN-marked counts',
+    '  nv show router bgp summary     — BGP-EVPN neighbor table',
+    '',
+    '  nv set qos roce                — enable RoCE lossless (staged)',
+    '  nv set qos roce mode lossless  — set lossless mode (staged)',
+    '  nv set interface swp1 link speed 400G  — set port speed (staged)',
+    '  nv set qos roce cable-length 100       — tune buffer for cable (staged)',
+    '',
+    '  nv config diff                 — show pending vs running',
+    '  nv config apply                — commit staged changes to ASIC',
+    '  nv config save                 — persist config across reboots',
+    '  nv config detach               — discard pending changes',
+    '',
+    '  clear, pwd, ls                 — basic shell stubs',
+    '  help, ?                        — print this list',
+  ].join('\n');
+
+  NVUE_MAP['help'] = NV_HELP;
+  NVUE_MAP['?']    = NV_HELP;
+
+  // ── basic shell stubs ──────────────────────────────────────────────────────
+  NVUE_MAP['clear'] = '';   // engine prints nothing; terminal clears via writeLine
+  NVUE_MAP['pwd']   = '/home/cumulus';
+  NVUE_MAP['ls']    = 'cumulus@leaf01:mgmt:~$';  // just the prompt echo
+
+  // ── nv ... (catch-all: first token is "nv", no exact key matched) ──────────
+  // The engine checks exact key, then "nv ..." wildcard, then bare "nv".
+  // Any "nv ..." command not resolved above lands here.
+  NVUE_MAP['nv ...'] = function (dev, raw, lower) {
+    // nv show interface swp<N> — any port except swp1 (handled by exact key)
+    var swpM = lower.match(/^nv show interface (swp\d+)$/);
+    if (swpM) return showInterfaceSwp(swpM[1]);
+
+    // nv show router bgp (without "summary") — brief info
+    if (lower === 'nv show router bgp' || lower.startsWith('nv show router bgp ')) {
+      return [
+        'BGP router identifier 10.0.0.1  AS 65001',
+        'Hold time: 9  Keepalive: 3',
+        '',
+        'Address families: ipv4 unicast, l2vpn evpn',
+        'Run "nv show router bgp summary" for neighbor state.',
+      ].join('\n');
+    }
+
+    if (lower.startsWith('nv show')) {
+      return [
+        '% Unrecognized nv show sub-command.',
+        'Try: nv show interface | system | service | qos roce | qos roce counters | router bgp summary',
+      ].join('\n');
+    }
+    if (lower.startsWith('nv set')) {
+      // generic staged response for any nv set not exact-matched above
+      var what = raw.slice('nv set '.length).trim() || '(nothing)';
+      return stageMsg(what);
+    }
+    if (lower.startsWith('nv config')) {
+      return '% Unknown nv config sub-command. Try: apply | diff | save | detach';
+    }
+    return [
+      'Usage: nv <action> <object> [options]',
+      'Actions: show | set | unset | config',
+      'Try "help" or "?" for a command list.',
+    ].join('\n');
+  };
+
+  // ── nv (bare, no sub-command) ──────────────────────────────────────────────
+  NVUE_MAP['nv'] = [
+    'Usage: nv <action> <object> [options]',
+    'Actions: show | set | unset | config',
+    'Try "help" or "?" for a command list.',
+  ].join('\n');
+
+  // ── Mount the lab engine ────────────────────────────────────────────────────
+  if (!window.Lab) {
+    // Engine script is deferred; wait for it.
+    var _retry = 0;
+    var _wait = setInterval(function () {
+      if (window.Lab || _retry++ > 40) {
+        clearInterval(_wait);
+        if (window.Lab) mount();
+      }
+    }, 100);
+  } else {
+    mount();
+  }
+
+  function mount() {
+    var lb = new Lab.LabBase({ objectives: [] });
+    lb.addDevice('leaf01', 'switch', {
+      hostname: 'cumulus@leaf01',
+      shellPromptFormat: 'nvue',
+      commandMap: NVUE_MAP,
+    });
+
+    var el = document.getElementById('termMount');
+    lb.initTerminal(el);
+
+    // Welcome banner
+    lb.terminal.writeLine('Cumulus Linux 5.12.0 (Spectrum-4 SN5600)');
+    lb.terminal.writeLine('NVUE 2.0.0  |  leaf01  |  64x400G');
+    lb.terminal.writeLine('');
+    lb.terminal.writeLine('Type "help" or "?" for a command list. Try: nv show system');
+    lb.terminal.writeLine('');
+    lb.terminal.updatePrompt();
+    lb.terminal.focus();
+  }
+
+  // ── Cheat sheet (inject clickable chips) ────────────────────────────────────
+  var CHEAT = [
+    { cmd: 'nv show system',               desc: 'Platform, version, uptime' },
+    { cmd: 'nv show interface',            desc: 'All ports: state / speed / MTU' },
+    { cmd: 'nv show interface swp1',       desc: 'Per-port detail + counters' },
+    { cmd: 'nv show qos roce',             desc: 'RoCE mode, ECN thresholds, PFC priority' },
+    { cmd: 'nv show qos roce counters',    desc: 'PFC PAUSE + ECN-marked per port' },
+    { cmd: 'nv show router bgp summary',   desc: 'BGP-EVPN neighbor table' },
+    { cmd: 'nv show service',              desc: 'NTP / SNMP / FRR / LLDP status' },
+    { cmd: 'nv set qos roce',              desc: 'Stage: enable RoCE lossless' },
+    { cmd: 'nv set qos roce mode lossless',desc: 'Stage: set lossless mode' },
+    { cmd: 'nv set interface swp1 link speed 400G', desc: 'Stage: set port speed' },
+    { cmd: 'nv config diff',               desc: 'Preview pending vs running' },
+    { cmd: 'nv config apply',              desc: 'Commit staged changes to ASIC' },
+    { cmd: 'nv config save',               desc: 'Persist config across reboots' },
+  ];
+
+  var grid = document.getElementById('cheatGrid');
+  CHEAT.forEach(function (item) {
+    var div = document.createElement('div');
+    div.className = 'cheat-entry';
+    div.innerHTML =
+      '<code>' + escHtml(item.cmd) + '</code>' +
+      '<span class="desc">' + escHtml(item.desc) + '</span>';
+    div.addEventListener('click', function () {
+      // Paste command into the terminal input and submit
+      var inputEl = document.querySelector('#termMount .term-input');
+      if (inputEl) {
+        inputEl.textContent = item.cmd;
+        inputEl.focus();
+        // Place cursor at end
+        var range = document.createRange();
+        var sel = window.getSelection();
+        if (inputEl.childNodes.length > 0) {
+          range.setStartAfter(inputEl.lastChild);
+        } else {
+          range.setStart(inputEl, 0);
+        }
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        // Dispatch Enter to let the engine process it
+        inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      }
+    });
+    grid.appendChild(div);
+  });
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+});
+</script>
+
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

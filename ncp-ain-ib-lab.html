@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>InfiniBand Fabric Diagnostics Lab — NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+.ib-back { margin-bottom: var(--s-md); }
+.ib-header { margin-bottom: var(--s-lg); }
+.ib-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.ib-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 62ch;
+}
+
+/* ── NCP badge ──────────────────────────────────────────────────── */
+.ib-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.1); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 6px 14px;
+  font-family: var(--font-display); font-weight: 700; font-size: .9rem;
+  color: var(--ncp-dark); margin-bottom: var(--s-md);
+}
+
+/* ── Two-column body: terminal + cheat list ─────────────────────── */
+.ib-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--s-lg);
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .ib-body { grid-template-columns: 1fr; }
+}
+
+/* ── Terminal chrome (matches encor-daily.html .ed-term pattern) ── */
+.ed-term {
+  background: #161b22; border-radius: var(--radius-lg);
+  overflow: hidden; border: 1px solid #30363d;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.ed-term-bar {
+  display: flex; align-items: center; gap: 7px;
+  background: #21262d; padding: 10px 14px; border-bottom: 1px solid #30363d;
+}
+.ed-term-dot { width: 11px; height: 11px; border-radius: 50%; }
+.ed-term-dot.r { background: #ff5f56; }
+.ed-term-dot.y { background: #ffbd2e; }
+.ed-term-dot.g { background: #27c93f; }
+.ed-term-title {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: #8b949e; margin-left: 6px; letter-spacing: .02em;
+}
+
+/* ── Terminal body ──────────────────────────────────────────────── */
+#termWrap .term-wrap {
+  padding: 14px 18px;
+  min-height: 340px;
+  max-height: 520px;
+  overflow-y: auto;
+  cursor: text;
+}
+#termWrap .term-output {
+  white-space: pre-wrap; word-break: break-word;
+  color: #e6edf3; font-size: .82rem; line-height: 1.55;
+  margin-bottom: 4px;
+}
+#termWrap .term-line { margin: 0; }
+#termWrap .term-line.cmd { color: #a5d6ff; }
+#termWrap .term-input-row {
+  display: flex; align-items: baseline; gap: 0;
+  color: #e6edf3; font-size: .82rem;
+}
+#termWrap .term-prompt { color: #7ee787; white-space: pre; user-select: none; }
+#termWrap .term-input {
+  flex: 1; outline: none; caret-color: #e6edf3;
+  color: #e6edf3; min-width: 2ch;
+  font-family: inherit; font-size: inherit;
+}
+
+/* ── Cheat-list sidebar ─────────────────────────────────────────── */
+.ib-cheat {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--s-md);
+}
+.ib-cheat h2 {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+}
+.ib-cheat ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ib-cheat li {}
+.ib-cheat code {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .78rem; font-weight: 600; color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.1); border-radius: 4px;
+  padding: 1px 5px; display: block; margin-bottom: 2px;
+}
+.ib-cheat .desc {
+  font-family: var(--font-body); font-size: .78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+
+/* ── Motion safety ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="navMount"></div>
+
+<div class="container-wide">
+
+  <!-- Back link -->
+  <div class="ib-back">
+    <a href="ncp-ain-hub.html" class="back-link">← NCP-AIN Hub</a>
+  </div>
+
+  <!-- Header -->
+  <div class="ib-header">
+    <div class="ib-badge">NCP-AIN · InfiniBand Fabric Diagnostics</div>
+    <h1>IB Fabric Diagnostics Console</h1>
+    <p class="subtitle">
+      You're on a DGX H100 compute node (dgx-h100-01). The InfiniBand fabric is live.
+      Use the diagnostic tools below to inspect HCA state, link health, fabric topology,
+      and performance counters. Type <code>help</code> or <code>?</code> for the command list.
+    </p>
+  </div>
+
+  <!-- Body: terminal + sidebar -->
+  <div class="ib-body">
+
+    <!-- Terminal -->
+    <div>
+      <div class="ed-term" id="termWrap">
+        <div class="ed-term-bar">
+          <span class="ed-term-dot r"></span>
+          <span class="ed-term-dot y"></span>
+          <span class="ed-term-dot g"></span>
+          <span class="ed-term-title">admin@dgx-h100-01 — InfiniBand fabric</span>
+        </div>
+        <!-- lab-engine mounts here; initTerminal() populates .term-output + .term-input-row -->
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">admin@dgx-h100-01:~$ </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="InfiniBand diagnostics console"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cheat list sidebar -->
+    <aside class="ib-cheat" aria-label="Available commands">
+      <h2>Try these</h2>
+      <ul>
+        <li>
+          <code>ibstat</code>
+          <span class="desc">HCA port state, physical state, rate, LID, GUIDs</span>
+        </li>
+        <li>
+          <code>ibstatus</code>
+          <span class="desc">Terse per-port status summary</span>
+        </li>
+        <li>
+          <code>iblinkinfo</code>
+          <span class="desc">Fabric-wide link map: speed, width, state per port</span>
+        </li>
+        <li>
+          <code>ibhosts</code>
+          <span class="desc">List all CA (compute/host) nodes in the fabric</span>
+        </li>
+        <li>
+          <code>ibnetdiscover</code>
+          <span class="desc">Full fabric topology: nodes, links, GUIDs</span>
+        </li>
+        <li>
+          <code>ibdiagnet</code>
+          <span class="desc">Full fabric health scan: errors, BER, SM state</span>
+        </li>
+        <li>
+          <code>perfquery</code>
+          <span class="desc">Port counters (Tx/Rx data+pkts, error counts)</span>
+        </li>
+        <li>
+          <code>sminfo</code>
+          <span class="desc">Subnet manager info: GUID, priority, activity count</span>
+        </li>
+        <li>
+          <code>ibping &lt;lid&gt;</code>
+          <span class="desc">Ping a fabric node by LID (e.g. ibping 4)</span>
+        </li>
+        <li>
+          <code>ibportstate &lt;lid&gt; &lt;port&gt;</code>
+          <span class="desc">Physical port state for a specific LID+port</span>
+        </li>
+      </ul>
+    </aside>
+
+  </div><!-- /.ib-body -->
+
+</div><!-- /.container-wide -->
+
+<script defer src="js/lab-engine.js?v=11"></script>
+<script defer src="js/ib-tools.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ── IB command map: delegate every IB tool to IBTools.run(rawCmd) ──────────
+  // Wildcard "cmd ..." catches any args; bare "cmd" catches no-arg invocations.
+  var IB_CMDS = [
+    'ibstat', 'ibstatus', 'iblinkinfo', 'ibdiagnet',
+    'perfquery', 'ibhosts', 'ibnetdiscover', 'sminfo',
+    'ibping', 'ibportstate'
+  ];
+
+  var MAP = {};
+  IB_CMDS.forEach(function (c) {
+    MAP[c] = function (dev, raw) { return window.IBTools.run(raw); };
+    MAP[c + ' ...'] = function (dev, raw) { return window.IBTools.run(raw); };
+  });
+
+  // Shell utility stubs
+  MAP['clear'] = function () {
+    // Return empty string; terminal clears output on next writeLine cycle.
+    // Actual screen clear via the terminal's clear() method below.
+    if (lab && lab.terminal) { lab.terminal.clear(); }
+    return '';
+  };
+
+  MAP['pwd']  = '/home/admin';
+  MAP['ls']   = 'bin  etc  home  lib  proc  run  sys  tmp  usr  var';
+  MAP['ls ...' ] = function (dev, raw) {
+    var path = raw.replace(/^ls\s*/, '').trim() || '/home/admin';
+    return path + ': (no listing in sim)';
+  };
+  MAP['uname'] = 'Linux';
+  MAP['uname ...'] = function (dev, raw) {
+    if (raw.indexOf('-a') !== -1) return 'Linux dgx-h100-01 5.15.0-102-generic #112-Ubuntu SMP x86_64 GNU/Linux';
+    if (raw.indexOf('-r') !== -1) return '5.15.0-102-generic';
+    return 'Linux';
+  };
+  MAP['whoami'] = 'admin';
+  MAP['hostname'] = 'dgx-h100-01';
+  MAP['date'] = new Date().toUTCString();
+
+  MAP['help'] = MAP['?'] = [
+    'Available InfiniBand diagnostic commands:',
+    '',
+    '  ibstat              HCA/port state, rate, LID, GUIDs',
+    '  ibstatus            Terse per-port status',
+    '  iblinkinfo          Fabric link map (speed, width, state)',
+    '  ibhosts             List all CA nodes in the fabric',
+    '  ibnetdiscover       Full fabric topology discovery',
+    '  ibdiagnet           Full fabric health scan',
+    '  perfquery [lid [p]] Port performance counters',
+    '  sminfo              Subnet manager info',
+    '  ibping <lid>        Ping a fabric node by LID',
+    '  ibportstate <l> <p> Physical port state for LID+port',
+    '',
+    '  pwd / ls / whoami / hostname / uname / date / clear',
+  ].join('\n');
+
+  // ── Build LabBase + device ───────────────────────────────────────
+  var lab = new Lab.LabBase({ objectives: [] });
+  lab.addDevice('dgx-h100-01', 'host', {
+    hostname: 'admin@dgx-h100-01',
+    shellPromptFormat: 'linux',
+    commandMap: MAP
+  });
+
+  // ── Mount terminal ───────────────────────────────────────────────
+  lab.initTerminal(document.getElementById('termMount'));
+
+  lab.terminal.writeLine('NCP-AIN InfiniBand Fabric Diagnostics Lab');
+  lab.terminal.writeLine('Node: dgx-h100-01   Fabric: QM9700 NDR 400Gb/s');
+  lab.terminal.writeLine('Type ibstat to begin.  help for the full command list.');
+  lab.terminal.writeLine('');
+  lab.terminal.updatePrompt();
+  lab.terminal.focus();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

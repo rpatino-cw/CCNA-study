@@ -23,7 +23,7 @@
   var FABRIC = {
     // Local host running commands
     localHost: {
-      hostname: 'dgx-node-01',
+      hostname: 'dgx-h100-01',
       hcas: [
         {
           caType: 'mlx5_0',
@@ -69,21 +69,21 @@
     // All CA (host) nodes in the fabric, including the local host
     nodes: [
       {
-        hostname: 'dgx-node-01',
+        hostname: 'dgx-h100-01',
         hcas: [
           { caType: 'mlx5_0', portGuid: '0xe41d2d03007c0001', numPorts: 1, lid: 2 },
           { caType: 'mlx5_1', portGuid: '0xe41d2d03007c0002', numPorts: 1, lid: 3 }
         ]
       },
       {
-        hostname: 'dgx-node-02',
+        hostname: 'dgx-h100-02',
         hcas: [
           { caType: 'mlx5_0', portGuid: '0xe41d2d03007c0011', numPorts: 1, lid: 4 },
           { caType: 'mlx5_1', portGuid: '0xe41d2d03007c0012', numPorts: 1, lid: 5 }
         ]
       },
       {
-        hostname: 'dgx-node-03',
+        hostname: 'dgx-h100-03',
         hcas: [
           { caType: 'mlx5_0', portGuid: '0xe41d2d03007c0021', numPorts: 1, lid: 6 },
           { caType: 'mlx5_1', portGuid: '0xe41d2d03007c0022', numPorts: 1, lid: 7 }
@@ -107,6 +107,23 @@
   // ---------------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------------
+
+  // Build the link-local default GID from a port GUID.
+  // GID = fe80::/64 prefix + the 64-bit GUID as the interface identifier,
+  // split into 4 colon-separated groups of 4 hex digits (Mellanox shows the
+  // GUID unchanged, i.e. no U/L bit flip).
+  function gidFromGuid(portGuid) {
+    var hex = portGuid.replace(/^0x/, '').toLowerCase();
+    while (hex.length < 16) hex = '0' + hex;
+    var iid = hex.slice(0, 4) + ':' + hex.slice(4, 8) + ':' +
+              hex.slice(8, 12) + ':' + hex.slice(12, 16);
+    return 'fe80:0000:0000:0000:' + iid;
+  }
+
+  // Format a LID as lowercase hex with 0x prefix (e.g. ibstatus style).
+  function lidHex(lid) {
+    return '0x' + lid.toString(16);
+  }
 
   function ibStandardName(rateGbps) {
     if (rateGbps >= 1600) return 'XDR2';
@@ -194,7 +211,7 @@
         out += '\tPort ' + port.portNumber + ':\n';
         out += '\t\tState: ' + port.state + '\n';
         out += '\t\tPhysical state: ' + port.physicalState + '\n';
-        out += '\t\tRate: ' + port.rate + ' Gb/s (4X ' + ibStandardName(port.rate) + ')\n';
+        out += '\t\tRate: ' + port.rate + ' Gb/sec (4X ' + ibStandardName(port.rate) + ')\n';
         out += '\t\tBase lid: ' + port.lid + '\n';
         out += '\t\tLMC: 0\n';
         out += '\t\tSM lid: ' + port.smLid + '\n';
@@ -214,9 +231,9 @@
     host.hcas.forEach(function (hca) {
       hca.ports.forEach(function (port) {
         out += 'Infiniband device \'' + hca.caType + '\' port ' + port.portNumber + ' status:\n';
-        out += '\tdefault gid:\t fe80:0000:0000:0000' + port.portGuid.replace('0x', ':') + '\n';
-        out += '\tbase lid:\t' + port.lid + '\n';
-        out += '\tsm lid:\t\t' + port.smLid + '\n';
+        out += '\tdefault gid:\t ' + gidFromGuid(port.portGuid) + '\n';
+        out += '\tbase lid:\t' + lidHex(port.lid) + '\n';
+        out += '\tsm lid:\t\t' + lidHex(port.smLid) + '\n';
         out += '\tstate:\t\t4: ACTIVE\n';
         out += '\tphys state:\t5: LinkUp\n';
         out += '\trate:\t\t' + port.rate + ' Gb/sec (' + '4X ' + ibStandardName(port.rate) + ')\n';
@@ -234,8 +251,7 @@
     // Switch port 1 -> node-01 mlx5_0 (lid 2), port 2 -> node-01 mlx5_1 (lid 3)
     // port 3 -> node-02 mlx5_0 (lid 4), etc.
     var sw = FABRIC;
-    var out = 'Switch 0x' + parseInt(sw.switchGuid).toString(16) + ' ' + sw.switchModel + ':\n';
-    out = 'Switch ' + sw.switchGuid + ' "' + sw.switchModel + '":\n';
+    var out = 'Switch ' + sw.switchGuid + ' "' + sw.switchModel + '":\n';
 
     var portNum = 1;
     FABRIC.nodes.forEach(function (node) {
