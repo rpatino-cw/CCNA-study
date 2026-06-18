@@ -1,13 +1,13 @@
 /* Shared navigation — cert-aware, single nav, two content modes */
 (function () {
   var certTrack = localStorage.getItem('ccna_cert_track') || 'ccna';
-  var isNetPlus = certTrack === 'net+';
-  var isCCNP = certTrack === 'ccnp';
-
-  // CCNP section pages always show the CCNP nav, regardless of saved cert track.
-  if (((location.pathname.split('/').pop()) || '').indexOf('encor-') === 0) {
-    isCCNP = true; isNetPlus = false;
-  }
+  var pageFile = (location.pathname.split('/').pop()) || '';
+  var onEncorPage = pageFile.indexOf('encor-') === 0;
+  // Nav is PAGE-SCOPED for CCNP: the CCNP nav shows ONLY on encor-* pages.
+  // Every other page keeps the CCNA (or Net+) nav, so the CCNA track is never hidden
+  // even when the saved cert track is 'ccnp'.
+  var isCCNP = onEncorPage;
+  var isNetPlus = !onEncorPage && certTrack === 'net+';
 
   var TIPS = {
     'CORE': isCCNP ? 'CCNP ENCOR hub — your enterprise core command center' : (isNetPlus ? 'Net+ hub — your Network+ command center' : 'Your main study hub — all 53 objectives with videos, articles, and quizzes'),
@@ -24,6 +24,7 @@
   /* ── Two complete NAV configs — pick one based on cert track ─── */
 
   var CCNA_NAV = [
+    { text: 'CCNP ✦', href: 'encor-hub.html' },
     { text: 'Core v2 ✦', href: 'core-v2.html' },
     { text: 'Cram Driller 🔥', href: 'exam-cram-driller.html' },
     { text: 'Tiny Gaps 🎯', href: 'tiny-gaps.html' },
@@ -170,6 +171,7 @@
     ]},
     { text: 'Mega Lab', href: 'encor-megalab.html' },
     { text: 'Study Group', href: 'peers.html' },
+    { text: '↩ CCNA', href: 'core.html' },
   ];
 
   var NAV = isCCNP ? CCNP_NAV : (isNetPlus ? NETPLUS_NAV : CCNA_NAV);
