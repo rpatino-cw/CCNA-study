@@ -160,6 +160,7 @@
 
   var CCNP_NAV = [
     { text: 'CORE', href: 'encor-hub.html' },
+    { text: 'Daily Drill 🔥', href: 'encor-daily.html' },
     { text: 'Pillars', href: 'encor-pillars.html' },
     { text: 'The Numbers', href: 'encor-numbers.html' },
     { text: 'Visualize', children: [
