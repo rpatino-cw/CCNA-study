@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<title>Lossless Congestion Pipeline (PFC / ECN / DCQCN) -- NCP-AIN</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  :root {
+    --ncp: #76B900;
+    --ncp-rgb: 118,185,0;
+    --ncp-light: #A4D65E;
+    --ncp-dark: #5A8C00;
+    --pfc-color: #E53E3E;
+    --ecn-color: #D69E2E;
+    --dcqcn-color: #3182CE;
+    --cnp-color: #805AD5;
+  }
+
+  .gc-bar,.gc-chat-panel,#guidePill { display:none!important }
+
+  /* ---- Page header ---- */
+  .page-header { padding: var(--s-lg) 0 var(--s-md); border-bottom: 3px solid var(--ncp); margin-bottom: var(--s-md); }
+  .page-header h1 { font-size: clamp(1.4rem,3.5vw,1.9rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 6px; color: var(--ncp); }
+  .page-header .subtitle { font-family: var(--font-display); font-size: .88rem; color: var(--ink-muted); max-width: 70ch; line-height: 1.55; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-display); font-size: .8rem; font-weight: 600; color: var(--ncp); text-decoration: none; margin-bottom: var(--s-md); }
+  .back-link:hover { color: var(--ncp-dark); }
+  .back-link svg { width: 14px; height: 14px; }
+
+  /* ---- Tabs ---- */
+  .tab-row { display: flex; gap: 2px; margin-bottom: var(--s-lg); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  .tab-row::-webkit-scrollbar { display: none; }
+  .tab-btn { padding: 10px 18px; background: none; border: none; color: var(--ink-muted); cursor: pointer; white-space: nowrap; font-size: .88rem; font-family: var(--font-display); font-weight: 500; border-bottom: 2px solid transparent; transition: all .15s; }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--ncp); border-bottom-color: var(--ncp); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ---- Scene canvas ---- */
+  .scene-wrap { position: relative; width: 100%; background: #0F1117; border: 1px solid #2A2D35; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--s-md); }
+  .scene-wrap canvas { display: block; width: 100%; cursor: default; }
+
+  /* ---- Controls ---- */
+  .controls { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-recessed); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: var(--s-md); flex-wrap: wrap; }
+  .ctrl-btn { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink); transition: all .15s; font-family: var(--font-display); font-size: .82rem; font-weight: 600; }
+  .ctrl-btn:hover { border-color: var(--ncp); color: var(--ncp); }
+  .ctrl-btn.active { background: var(--ncp); color: #fff; border-color: var(--ncp); }
+  .ctrl-btn svg { width: 16px; height: 16px; }
+  .speed-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; font-family: var(--font-mono); font-size: .75rem; color: var(--ink-muted); }
+  .speed-wrap input[type=range] { width: 80px; accent-color: var(--ncp); height: 4px; }
+  .step-label { font-family: var(--font-display); font-size: .82rem; color: var(--ink-secondary); font-weight: 500; padding: 0 8px; }
+
+  /* ---- Stage callout panel ---- */
+  .stage-callout { background: var(--bg-surface); border: 1px solid var(--border); border-left: 3px solid var(--ncp); border-radius: var(--radius-lg); padding: 14px 18px; margin-bottom: var(--s-md); min-height: 88px; transition: border-left-color .25s; }
+  .stage-callout h3 { font-family: var(--font-display); font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .stage-callout p { font-family: var(--font-body); font-size: .88rem; color: var(--ink-secondary); line-height: 1.6; margin: 0; }
+  .stage-callout code { font-family: var(--font-mono); font-size: .8rem; background: var(--bg-recessed); padding: 1px 5px; border-radius: 3px; color: var(--ink); }
+  .tag-real { display: inline-block; font-family: var(--font-mono); font-size: .58rem; font-weight: 700; padding: 1px 5px; border-radius: 2px; background: rgba(118,185,0,.15); color: var(--ncp); margin-left: 4px; vertical-align: middle; }
+  .tag-illus { display: inline-block; font-family: var(--font-mono); font-size: .58rem; font-weight: 700; padding: 1px 5px; border-radius: 2px; background: rgba(49,130,206,.12); color: var(--dcqcn-color); margin-left: 4px; vertical-align: middle; }
+
+  /* ---- Buffer meter (in canvas tab) ---- */
+  /* rendered on canvas */
+
+  /* ---- Capture terminal ---- */
+  .capture-terminal { background: #1E1E1E; border-radius: var(--radius-lg); overflow: hidden; margin-top: var(--s-md); border: 1px solid #333; }
+  .capture-titlebar { display: flex; align-items: center; gap: 8px; padding: 7px 14px; background: #2D2D2D; border-bottom: 1px solid #444; }
+  .capture-titlebar .dots { display: flex; gap: 5px; }
+  .capture-titlebar .dots span { width: 10px; height: 10px; border-radius: 50%; }
+  .capture-titlebar .dots span:nth-child(1) { background: #FF5F57; }
+  .capture-titlebar .dots span:nth-child(2) { background: #FEBC2E; }
+  .capture-titlebar .dots span:nth-child(3) { background: #28C840; }
+  .capture-titlebar .title { font-family: var(--font-mono); font-size: .72rem; color: #999; margin-left: 6px; }
+  .capture-toolbar { display: flex; align-items: center; gap: 8px; padding: 5px 14px; background: #262626; border-bottom: 1px solid #333; }
+  .capture-toolbar .filter-input { flex: 1; background: #1A1A1A; border: 1px solid #444; border-radius: 3px; padding: 3px 8px; color: #4EC9B0; font-family: var(--font-mono); font-size: .72rem; }
+  .capture-toolbar .filter-input:focus { outline: none; border-color: #4EC9B0; }
+  .capture-toolbar .apply-btn { background: #3C5A6E; color: #A8D0E6; border: none; font-family: var(--font-mono); font-size: .68rem; padding: 3px 10px; border-radius: 3px; cursor: pointer; }
+  .capture-header { display: grid; grid-template-columns: 42px 58px 118px 118px 68px 50px 1fr; gap: 0; padding: 2px 14px; background: #2A2A2A; border-bottom: 1px solid #333; font-family: var(--font-mono); font-size: .66rem; color: #888; font-weight: 600; letter-spacing: .02em; }
+  .capture-body { max-height: 210px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #444 #1E1E1E; }
+  .capture-body::-webkit-scrollbar { width: 6px; }
+  .capture-body::-webkit-scrollbar-track { background: #1E1E1E; }
+  .capture-body::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+  .capture-row { display: grid; grid-template-columns: 42px 58px 118px 118px 68px 50px 1fr; gap: 0; padding: 2px 14px; font-family: var(--font-mono); font-size: .68rem; color: #D4D4D4; border-bottom: 1px solid #2A2A2A; opacity: 0; animation: captureIn .3s ease forwards; cursor: default; transition: background .1s; }
+  .capture-row:hover { background: #264F78; }
+  @keyframes captureIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .capture-row.proto-ecn { background: #2B2A14; color: #E6D87A; }
+  .capture-row.proto-ecn:hover { background: #4A4720; }
+  .capture-row.proto-pfc { background: #2B1616; color: #E69090; }
+  .capture-row.proto-pfc:hover { background: #4A2020; }
+  .capture-row.proto-cnp { background: #1E1A2B; color: #B09AE6; }
+  .capture-row.proto-cnp:hover { background: #352A4A; }
+  .capture-row.proto-data { background: #1A1E1A; color: #90D090; }
+  .capture-row.proto-data:hover { background: #243024; }
+  .capture-row .col { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 6px; }
+  .capture-status { padding: 4px 14px; background: #262626; border-top: 1px solid #333; font-family: var(--font-mono); font-size: .66rem; color: #666; display: flex; justify-content: space-between; }
+
+  /* ---- Contrast panel (tab 2) ---- */
+  .contrast-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-md); margin-bottom: var(--s-lg); }
+  @media (max-width: 700px) { .contrast-grid { grid-template-columns: 1fr; } }
+  .contrast-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-md); }
+  .contrast-card.pfc { border-top: 3px solid var(--pfc-color); }
+  .contrast-card.ecn-dcqcn { border-top: 3px solid var(--dcqcn-color); }
+  .contrast-card h3 { font-family: var(--font-display); font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: var(--s-sm); }
+  .contrast-card h3.pfc { color: var(--pfc-color); }
+  .contrast-card h3.ecn { color: var(--dcqcn-color); }
+  .contrast-card ul { padding-left: 1.1em; margin: 0; }
+  .contrast-card ul li { font-family: var(--font-body); font-size: .84rem; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 4px; }
+  .contrast-card .verdict { font-family: var(--font-display); font-size: .78rem; font-weight: 700; margin-top: var(--s-sm); padding: 8px 12px; border-radius: var(--radius); }
+  .contrast-card .verdict.bad { background: rgba(229,62,62,.1); color: var(--pfc-color); }
+  .contrast-card .verdict.good { background: rgba(118,185,0,.1); color: var(--ncp-dark); }
+
+  .numbers-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: .8rem; margin-bottom: var(--s-lg); }
+  .numbers-table th { background: var(--bg-recessed); font-family: var(--font-display); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border); }
+  .numbers-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--ink); vertical-align: top; }
+  .numbers-table tr:last-child td { border-bottom: none; }
+  .numbers-table .val { color: var(--ncp); font-weight: 600; }
+  .numbers-table .src { font-size: .68rem; color: var(--ink-muted); }
+
+  /* ---- Quiz ---- */
+  .quiz-wrap { margin-top: var(--s-lg); }
+  .quiz-q { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-md); margin-bottom: var(--s-md); }
+  .quiz-q p { font-family: var(--font-body); font-size: .92rem; color: var(--ink); margin-bottom: var(--s-sm); }
+  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-opt { background: var(--bg-recessed); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-family: var(--font-display); font-size: .84rem; cursor: pointer; color: var(--ink); transition: all .15s; text-align: left; }
+  .quiz-opt:hover { border-color: var(--ncp); }
+  .quiz-opt.correct { border-color: var(--ncp); background: rgba(118,185,0,.1); color: var(--ncp-dark); }
+  .quiz-opt.wrong { border-color: var(--pfc-color); background: rgba(229,62,62,.08); color: var(--pfc-color); }
+  .quiz-feedback { font-family: var(--font-body); font-size: .84rem; color: var(--ink-secondary); margin-top: 8px; padding: 8px 12px; background: var(--bg-recessed); border-radius: var(--radius); display: none; line-height: 1.55; }
+
+  /* ---- Reduced motion ---- */
+  @media (prefers-reduced-motion: reduce) {
+    .capture-row { animation: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container-wide">
+
+  <a href="ncp-ain-hub.html" class="back-link">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/></svg>
+    NCP-AIN Hub
+  </a>
+
+  <header class="page-header">
+    <h1>Lossless Congestion Pipeline</h1>
+    <p class="subtitle">Step through PFC, ECN, and DCQCN as a coordinated chain on a leaf-spine RoCEv2 fabric. Each stage lights up with the exact mechanism, real default values, and Wireshark-style frame capture. Pillar 11 (obj 2.3, 30% domain).</p>
+  </header>
+
+  <div class="tab-row">
+    <button class="tab-btn active" data-tab="pipeline">Pipeline Sim</button>
+    <button class="tab-btn" data-tab="contrast">PFC vs ECN/DCQCN</button>
+    <button class="tab-btn" data-tab="numbers">Key Numbers</button>
+    <button class="tab-btn" data-tab="quiz">Exam Drill</button>
+  </div>
+
+  <!-- ====== TAB 1: PIPELINE SIM ====== -->
+  <section class="tab-content active" id="tab-pipeline">
+    <div class="scene-wrap">
+      <canvas id="pipelineCanvas" height="340"></canvas>
+    </div>
+
+    <div class="controls" id="pipelineControls">
+      <button class="ctrl-btn" id="btnPlay" title="Play">
+        <svg viewBox="0 0 16 16" fill="currentColor"><polygon points="4,2 14,8 4,14"/></svg>
+      </button>
+      <button class="ctrl-btn" id="btnPause" title="Pause">
+        <svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/></svg>
+      </button>
+      <button class="ctrl-btn" id="btnStep" title="Step forward">
+        <svg viewBox="0 0 16 16" fill="currentColor"><polygon points="2,2 9,8 2,14"/><rect x="10" y="2" width="3" height="12"/></svg>
+      </button>
+      <button class="ctrl-btn" id="btnReset" title="Reset">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8a5 5 0 0 1 9-3"/><path d="M13 8a5 5 0 0 1-9 3"/><polyline points="3,3 3,8 8,8" fill="none"/></svg>
+      </button>
+      <span class="step-label" id="stepLabel">Ready -- press Step or Play</span>
+      <div class="speed-wrap">
+        <span>Speed</span>
+        <input type="range" id="speedSlider" min="0.3" max="3" step="0.1" value="1">
+        <span id="speedVal">1.0x</span>
+      </div>
+    </div>
+
+    <div class="stage-callout" id="stageCallout">
+      <h3 id="calloutTitle" style="color:var(--ncp);">Stage 0 of 5 -- Idle</h3>
+      <p id="calloutBody">Press <strong>Step</strong> to walk one stage at a time, or <strong>Play</strong> to auto-advance. The canvas shows a 2-tier leaf-spine topology with sender (GPU server) and receiver.</p>
+    </div>
+
+    <div class="capture-terminal">
+      <div class="capture-titlebar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span class="title">RoCEv2 frame capture -- leaf01 swp3 (uplink to Sender NIC)</span>
+      </div>
+      <div class="capture-toolbar">
+        <input class="filter-input" type="text" id="captureFilter" value="roce || pfc || cnp" readonly>
+        <button class="apply-btn">Applied</button>
+      </div>
+      <div class="capture-header">
+        <span>No.</span><span>Time</span><span>Source</span><span>Destination</span><span>Proto</span><span>Len</span><span>Info</span>
+      </div>
+      <div class="capture-body" id="captureBody"></div>
+      <div class="capture-status">
+        <span id="captureCount">Packets: 0</span>
+        <span id="captureNote">Display filter: roce || pfc || cnp</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== TAB 2: CONTRAST ====== -->
+  <section class="tab-content" id="tab-contrast">
+    <p style="font-family:var(--font-body);font-size:.9rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:70ch;">
+      PFC and ECN/DCQCN address the same problem (congestion) at different layers and with different trade-offs. The system works best when ECN/DCQCN absorbs most congestion so PFC rarely fires.
+    </p>
+
+    <div class="contrast-grid">
+      <div class="contrast-card pfc">
+        <h3 class="pfc">PFC -- Priority Flow Control (802.1Qbb)</h3>
+        <ul>
+          <li>Acts at the <strong>switch</strong>: sends a PAUSE frame per priority class upstream</li>
+          <li>Blunt: freezes the <em>entire</em> priority queue, not just the congested flow</li>
+          <li>Immediate effect -- no NIC involvement required for the stop</li>
+          <li>Fires when buffer crosses the PFC threshold (separate from ECN thresholds)</li>
+          <li>Default priority: SP3 (RoCE traffic class)</li>
+          <li>Risk: head-of-line (HOL) blocking -- unrelated flows on the same priority also pause</li>
+          <li>Risk: PFC storm / deadlock if pause frames loop back (watchdog: 100ms polling, robustness 3)</li>
+          <li>Propagates pause hop-by-hop upstream until sender NIC stops transmitting</li>
+        </ul>
+        <div class="verdict bad">Blunt last resort -- tune ECN/DCQCN so PFC rarely fires</div>
+      </div>
+
+      <div class="contrast-card ecn-dcqcn">
+        <h3 class="ecn">ECN + DCQCN -- Graceful Rate Control</h3>
+        <ul>
+          <li>ECN acts at the <strong>switch ASIC</strong>: marks CE bit on packets (no drop, no pause)</li>
+          <li>Marks start at Kmin (146.48 KB) and reach 100% probability at Kmax (1.43 MB) <span class="tag-real">[know]</span></li>
+          <li>Receiver NIC sees CE-marked packet and generates a <strong>CNP</strong> back to sender (TC6, strict priority)</li>
+          <li>DCQCN runs at the <strong>sender NIC</strong>: multiplicative decrease, then additive increase recovery</li>
+          <li>Fine-grained: per-flow rate control, other flows on the same priority are unaffected</li>
+          <li>DCQCN rate curve shape: illustrative <span class="tag-illus">[inferred]</span> -- exact algorithm is vendor implementation-specific</li>
+          <li>ECN enabled on TC0 and TC3 (RoCE data) by default</li>
+          <li>CNP scheduling on TC6 ensures feedback reaches sender without delay</li>
+        </ul>
+        <div class="verdict good">Preferred mechanism -- proactive, per-flow, lossless, low latency impact</div>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--font-display);font-size:.9rem;font-weight:700;margin-bottom:var(--s-sm);color:var(--ink);">Operational order of events</h3>
+    <ol style="font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.7;padding-left:1.3em;margin-bottom:var(--s-lg);">
+      <li>Traffic builds. Switch buffer fills toward Kmin (146.48 KB on TC0/3).</li>
+      <li>Buffer crosses Kmin: switch marks ECN CE bit. Probability scales linearly to 100% at Kmax.</li>
+      <li>Receiver NIC generates CNP (UDP/4791, TC6, strict priority) to sender.</li>
+      <li>Sender NIC runs DCQCN: multiplicative rate decrease (alpha-based), then additive recovery.</li>
+      <li>If ECN/DCQCN is insufficient and buffer keeps growing past the PFC threshold: switch sends 802.1Qbb PAUSE frame on SP3. Upstream sender halts that priority.</li>
+      <li>Buffer drains. PFC XOFF resolves, XON frame restores flow. DCQCN continues additive increase.</li>
+    </ol>
+
+    <div style="background:rgba(118,185,0,.06);border:1px solid rgba(118,185,0,.25);border-left:3px solid var(--ncp);border-radius:var(--radius-lg);padding:14px 18px;font-family:var(--font-body);font-size:.86rem;line-height:1.6;color:var(--ink-secondary);">
+      <strong style="font-family:var(--font-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ncp);display:block;margin-bottom:4px;">Exam shortcut</strong>
+      One command configures all three layers: <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px;">nv set qos roce</code> auto-configures PFC on SP3, ECN on TC0+TC3 with the exact thresholds, CNP on TC6 strict priority, DSCP trust, and buffer pools. No per-parameter tuning needed for baseline lossless RoCEv2.
+    </div>
+  </section>
+
+  <!-- ====== TAB 3: NUMBERS ====== -->
+  <section class="tab-content" id="tab-numbers">
+    <p style="font-family:var(--font-body);font-size:.9rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:70ch;">
+      These are the values shown in <code style="font-family:var(--font-mono);font-size:.82rem;background:var(--bg-recessed);padding:1px 5px;border-radius:3px;">nv show qos roce</code> on a Spectrum switch with the default lossless config. Numbers tagged <span class="tag-real">[know]</span> are from the pillars data source (pillar n10/n11); numbers tagged <span class="tag-illus">[inferred]</span> are illustrative.
+    </p>
+
+    <table class="numbers-table">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Value</th>
+          <th>Mechanism</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ECN min-threshold (Kmin)</td>
+          <td class="val">146.48 KB</td>
+          <td>Buffer depth at which ECN marking begins (prob = 0 below this)</td>
+          <td class="src"><span class="tag-real">[know]</span> pillars n10/n11, nv show qos roce</td>
+        </tr>
+        <tr>
+          <td>ECN max-threshold (Kmax)</td>
+          <td class="val">1.43 MB</td>
+          <td>Buffer depth at which ECN marking probability reaches 100%</td>
+          <td class="src"><span class="tag-real">[know]</span> pillars n10/n11, nv show qos roce</td>
+        </tr>
+        <tr>
+          <td>ECN probability</td>
+          <td class="val">100%</td>
+          <td>Marks every eligible packet at or above Kmax</td>
+          <td class="src"><span class="tag-real">[know]</span> nv show qos roce</td>
+        </tr>
+        <tr>
+          <td>ECN enabled-tc</td>
+          <td class="val">TC0, TC3</td>
+          <td>Traffic classes where ECN marking is active</td>
+          <td class="src"><span class="tag-real">[know]</span> pillars n11</td>
+        </tr>
+        <tr>
+          <td>PFC priority (switch-priority)</td>
+          <td class="val">SP3</td>
+          <td>The priority class that gets PAUSE frames (802.1Qbb)</td>
+          <td class="src"><span class="tag-real">[know]</span> pillars n11</td>
+        </tr>
+        <tr>
+          <td>RoCE data traffic class</td>
+          <td class="val">TC3</td>
+          <td>DSCP 26 maps to SP3 maps to TC3; DWRR 50%</td>
+          <td class="src"><span class="tag-real">[know]</span> pillar n10</td>
+        </tr>
+        <tr>
+          <td>CNP traffic class</td>
+          <td class="val">TC6 (strict priority)</td>
+          <td>CNP always delivered before data; DSCP 48 maps to SP6</td>
+          <td class="src"><span class="tag-real">[know]</span> pillars n11</td>
+        </tr>
+        <tr>
+          <td>RoCEv2 UDP port</td>
+          <td class="val">4791</td>
+          <td>BTH carried in UDP/IP; L3-routable; LLDP App TLV protocol-id</td>
+          <td class="src"><span class="tag-real">[know]</span> pillar n10</td>
+        </tr>
+        <tr>
+          <td>DCQCN rate curve</td>
+          <td class="val">Illustrative only</td>
+          <td>Multiplicative decrease / additive increase; exact curve is NIC firmware-specific</td>
+          <td class="src"><span class="tag-illus">[inferred]</span> shape documented in RFC; exact params = vendor</td>
+        </tr>
+        <tr>
+          <td>PFC watchdog polling</td>
+          <td class="val">100 ms, robustness 3</td>
+          <td>Detects DEADLOCK state per TC; auto-drops pause frames to break storm</td>
+          <td class="src"><span class="tag-real">[know]</span> pillar n19</td>
+        </tr>
+        <tr>
+          <td>Spectrum-4 SN5600 packet buffer</td>
+          <td class="val">128 MB shared</td>
+          <td>On-chip buffer; lossless mode carves a dedicated pool for SP3</td>
+          <td class="src"><span class="tag-real">[know]</span> pillar n9</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;font-family:var(--font-mono);font-size:.78rem;color:#4EC9B0;white-space:pre-wrap;overflow-x:auto;">cumulus@switch:mgmt:~$ nv show qos roce
+                    operational  applied
+------------------  -----------  --------
+mode                lossless     lossless
+congestion-control
+  congestion-mode   ECN
+  enabled-tc        0,3
+  min-threshold     146.48 KB
+  max-threshold     1.43 MB
+  probability       100
+pfc
+  pfc-priority      3
+  rx-enabled        enabled
+  tx-enabled        enabled
+trust
+  trust-mode        pcp,dscp
+lldp-app-tlv
+  priority          3
+  protocol-id       4791
+  selector          UDP</div>
+  </section>
+
+  <!-- ====== TAB 4: QUIZ ====== -->
+  <section class="tab-content" id="tab-quiz">
+    <p style="font-family:var(--font-body);font-size:.9rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:68ch;">
+      Recall drill on PFC / ECN / DCQCN. Click an answer, then read the explanation before moving on.
+    </p>
+
+    <div class="quiz-wrap" id="quizWrap"></div>
+  </section>
+
+</div><!-- .container-wide -->
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ======================================================
+     TAB SWITCHING
+  ====================================================== */
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  var tabContents = document.querySelectorAll('.tab-content');
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var target = btn.getAttribute('data-tab');
+      tabBtns.forEach(function (b) { b.classList.remove('active'); });
+      tabContents.forEach(function (c) { c.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + target).classList.add('active');
+      if (target === 'pipeline') { requestAnimationFrame(drawFrame); }
+    });
+  });
+
+  /* ======================================================
+     PIPELINE CANVAS
+  ====================================================== */
+  var canvas = document.getElementById('pipelineCanvas');
+  var ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    var w = canvas.parentElement.clientWidth;
+    canvas.width = w * (window.devicePixelRatio || 1);
+    canvas.height = 340 * (window.devicePixelRatio || 1);
+    canvas.style.height = '340px';
+    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+    drawFrame();
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  /* ---- Stage definitions ---- */
+  var STAGES = [
+    {
+      id: 0,
+      title: 'Stage 0 -- Idle',
+      color: '#76B900',
+      body: 'Packets flow normally from Sender NIC through Leaf-01 to Receiver. Buffer occupancy is low. No ECN marks, no PFC, no CNP. This is the baseline lossless RoCEv2 steady state.',
+      captureFrames: [
+        { proto: 'data', src: '10.0.0.1:49200', dst: '10.0.0.2:4791', info: 'RoCEv2 RDMA Write (BTH OpCode 0x0A), DSCP 26, SP3' },
+        { proto: 'data', src: '10.0.0.1:49200', dst: '10.0.0.2:4791', info: 'RoCEv2 RDMA Write (BTH), seq 1001, no CE mark' }
+      ]
+    },
+    {
+      id: 1,
+      title: 'Stage 1 -- ECN Kmin Crossed (146.48 KB)',
+      color: '#D69E2E',
+      body: 'Leaf-01 egress buffer for TC3 grows past the ECN min-threshold (Kmin = 146.48 KB). The switch ASIC begins marking the CE (Congestion Experienced) bit on eligible packets. Marking probability scales linearly from 0% at Kmin to 100% at Kmax (1.43 MB). No drops, no pause yet -- just a signal in the packet header.',
+      captureFrames: [
+        { proto: 'ecn', src: '10.0.0.1:49200', dst: '10.0.0.2:4791', info: 'RoCEv2 RDMA Write, ECN=CE (0x03), buf=152 KB (>Kmin 146.48 KB)' },
+        { proto: 'ecn', src: '10.0.0.1:49200', dst: '10.0.0.2:4791', info: 'RoCEv2 RDMA Write, ECN=CE (0x03), marking prob ~4%' }
+      ]
+    },
+    {
+      id: 2,
+      title: 'Stage 2 -- PFC Threshold Crossed (PAUSE fired)',
+      color: '#E53E3E',
+      body: 'Buffer continues rising past the PFC headroom threshold. Leaf-01 sends an 802.1Qbb PFC PAUSE frame upstream toward Sender NIC on priority 3 (SP3). This is a blunt link-level mechanism -- all traffic on SP3 from that upstream port halts until an XON frame is sent. Head-of-line blocking risk: non-congested flows sharing SP3 also pause.',
+      captureFrames: [
+        { proto: 'pfc', src: 'leaf01 swp3', dst: 'Sender NIC (BC)', info: '802.1Qbb PFC XOFF -- priority 3 -- quanta 65535 (pause ~2ms at 400G)' },
+        { proto: 'pfc', src: 'leaf01 swp3', dst: 'Sender NIC (BC)', info: '802.1Qbb PFC XOFF -- priority 3 -- pause propagating upstream' }
+      ]
+    },
+    {
+      id: 3,
+      title: 'Stage 3 -- Receiver NIC Generates CNP',
+      color: '#805AD5',
+      body: 'Receiver NIC sees the CE-marked packet. It generates a Congestion Notification Packet (CNP) addressed back to the sender. CNP is scheduled on TC6 with strict priority so it is never delayed or dropped. CNP encapsulation: RoCEv2 / UDP port 4791, DSCP 48, BTH OpCode 0x81 (CNP).',
+      captureFrames: [
+        { proto: 'cnp', src: '10.0.0.2:4791', dst: '10.0.0.1:4791', info: 'CNP -- BTH OpCode 0x81, DSCP 48, TC6 strict-prio, QPN of congested flow' },
+        { proto: 'cnp', src: '10.0.0.2:4791', dst: '10.0.0.1:4791', info: 'CNP -- feedback to sender, len 60B (minimum-size notification)' }
+      ]
+    },
+    {
+      id: 4,
+      title: 'Stage 4 -- DCQCN Rate Reduction (Sender NIC)',
+      color: '#3182CE',
+      body: 'Sender NIC receives the CNP. DCQCN algorithm runs entirely at the NIC (not the switch). It applies a multiplicative rate decrease proportional to alpha (congestion factor). After the decrease, the NIC begins additive increase recovery, ramping back toward line rate. Note: the exact DCQCN curve shown is illustrative -- actual rate parameters are NIC firmware-specific.',
+      captureFrames: [
+        { proto: 'data', src: '10.0.0.1:49200', dst: '10.0.0.2:4791', info: 'RoCEv2 rate-limited by DCQCN: ~50% of baseline injection rate [inferred]' },
+        { proto: 'data', src: '10.0.0.1:49200', dst: '10.0.0.2:4791', info: 'DCQCN additive increase phase -- rate recovering toward line rate' }
+      ]
+    },
+    {
+      id: 5,
+      title: 'Stage 5 -- Recovery Complete',
+      color: '#76B900',
+      body: 'Buffer drains below the PFC threshold. Leaf-01 sends an 802.1Qbb XON frame to resume SP3. DCQCN continues additive rate increase. System returns to steady-state lossless flow. ECN marking stops when buffer drops below Kmin. No packets were lost.',
+      captureFrames: [
+        { proto: 'pfc', src: 'leaf01 swp3', dst: 'Sender NIC (BC)', info: '802.1Qbb PFC XON -- priority 3 -- quanta 0 (resume)' },
+        { proto: 'data', src: '10.0.0.1:49200', dst: '10.0.0.2:4791', info: 'RoCEv2 RDMA Write -- no CE mark, full rate -- pipeline recovered' }
+      ]
+    }
+  ];
+
+  var currentStage = -1;
+  var isPlaying = false;
+  var playTimer = null;
+  var pktCount = 0;
+  var speed = 1.0;
+  var animT = 0; // animation progress 0-1
+  var raf = null;
+
+  /* ---- Buffer fill fraction per stage ---- */
+  var bufFills = [0.12, 0.42, 0.78, 0.68, 0.35, 0.14];
+
+  /* ---- Layout constants (logical px, canvas is scaled) ---- */
+  var L = {
+    W: 900, H: 340,
+    senderX: 80, senderY: 200,
+    leafX: 380, leafY: 180,
+    spineX: 520, spineY: 80,
+    receiverX: 800, receiverY: 200,
+    bufX: 320, bufY: 210, bufW: 50, bufH: 80
+  };
+
+  function getW() { return canvas.width / (window.devicePixelRatio || 1); }
+  function getH() { return canvas.height / (window.devicePixelRatio || 1); }
+
+  function scaleX(x) { return x * getW() / L.W; }
+  function scaleY(y) { return y * getH() / L.H; }
+
+  /* ---- Draw helpers ---- */
+  function drawBox(x, y, w, h, fill, stroke, label, subLabel, radius) {
+    radius = radius || 8;
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, x - w/2, y - h/2, w, h, radius);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#E8E8E8';
+    ctx.font = '600 ' + (getW() > 600 ? '11px' : '9px') + ' "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, subLabel ? y - 5 : y);
+    if (subLabel) {
+      ctx.fillStyle = '#AAA';
+      ctx.font = '400 9px "JetBrains Mono", monospace';
+      ctx.fillText(subLabel, x, y + 8);
+    }
+    ctx.restore();
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r);
+    c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+  }
+
+  function drawArrow(x1, y1, x2, y2, color, label, dashed) {
+    ctx.save();
+    ctx.beginPath();
+    if (dashed) { ctx.setLineDash([5, 4]); } else { ctx.setLineDash([]); }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.moveTo(scaleX(x1), scaleY(y1));
+    ctx.lineTo(scaleX(x2), scaleY(y2));
+    ctx.stroke();
+    // arrowhead
+    var angle = Math.atan2(scaleY(y2 - y1), scaleX(x2 - x1));
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(scaleX(x2), scaleY(y2));
+    ctx.lineTo(scaleX(x2) - 10 * Math.cos(angle - 0.4), scaleY(y2) - 10 * Math.sin(angle - 0.4));
+    ctx.lineTo(scaleX(x2) - 10 * Math.cos(angle + 0.4), scaleY(y2) - 10 * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    if (label) {
+      ctx.fillStyle = color;
+      ctx.font = '600 9px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, scaleX((x1 + x2) / 2), scaleY((y1 + y2) / 2) - 8);
+    }
+    ctx.restore();
+  }
+
+  function drawBufferMeter(bufFill, stageColor) {
+    var bx = scaleX(L.bufX);
+    var by = scaleY(L.bufY);
+    var bw = scaleX(L.bufW + L.bufX) - bx;
+    var bh = scaleY(L.bufY + L.bufH) - by;
+
+    ctx.save();
+    // background
+    ctx.fillStyle = '#1A1D24';
+    roundRect(ctx, bx - bw/2, by, bw, bh, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // fill
+    var fillH = bh * Math.min(bufFill, 1);
+    ctx.fillStyle = bufFill > 0.7 ? '#E53E3E' : (bufFill > 0.38 ? '#D69E2E' : '#4CAF50');
+    roundRect(ctx, bx - bw/2, by + bh - fillH, bw, fillH, 4);
+    ctx.fill();
+
+    // Kmin line
+    var kminY = by + bh * (1 - 0.38);
+    ctx.beginPath();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#D69E2E';
+    ctx.lineWidth = 1;
+    ctx.moveTo(bx - bw/2 - 4, kminY);
+    ctx.lineTo(bx + bw/2 + 4, kminY);
+    ctx.stroke();
+
+    // Kmax line
+    var kmaxY = by + bh * (1 - 0.75);
+    ctx.beginPath();
+    ctx.strokeStyle = '#E53E3E';
+    ctx.moveTo(bx - bw/2 - 4, kmaxY);
+    ctx.lineTo(bx + bw/2 + 4, kmaxY);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#D69E2E';
+    ctx.font = '7px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('Kmin', bx - bw/2 - 6, kminY + 3);
+    ctx.fillStyle = '#E53E3E';
+    ctx.fillText('Kmax', bx - bw/2 - 6, kmaxY + 3);
+
+    // label
+    ctx.fillStyle = '#888';
+    ctx.font = '7px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('BUF', bx, by + bh + 12);
+    ctx.restore();
+  }
+
+  function drawFrame() {
+    var W = getW();
+    var H = getH();
+
+    // Background
+    ctx.fillStyle = '#0F1117';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid lines (subtle)
+    ctx.strokeStyle = '#1A1D24';
+    ctx.lineWidth = 1;
+    for (var gy = 40; gy < H; gy += 40) {
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    }
+
+    var st = currentStage < 0 ? -1 : currentStage;
+    var bufFill = st >= 0 ? bufFills[st] : 0.12;
+    var stageColor = st >= 0 ? STAGES[st].color : '#76B900';
+
+    /* ---- Spine switch ---- */
+    drawBox(scaleX(L.spineX), scaleY(L.spineY), 90, 36, '#1C2A1C', '#76B900', 'Spine-01', 'Spectrum-4', 6);
+
+    /* ---- Leaf switch with highlight ---- */
+    var leafHL = (st >= 1 && st <= 2) ? stageColor : '#888';
+    drawBox(scaleX(L.leafX), scaleY(L.leafY), 110, 44, '#1A1E2A', leafHL, 'Leaf-01', 'Spectrum-4 SN5600', 8);
+
+    /* ---- Buffer meter ---- */
+    drawBufferMeter(bufFill, stageColor);
+
+    /* ---- Sender NIC ---- */
+    var senderHL = (st === 4 || st === 5) ? stageColor : '#555';
+    drawBox(scaleX(L.senderX), scaleY(L.senderY), 110, 44, '#18202C', senderHL, 'Sender', 'ConnectX NIC (GPU srv)', 8);
+
+    /* ---- Receiver NIC ---- */
+    var receiverHL = (st === 3) ? '#805AD5' : '#555';
+    drawBox(scaleX(L.receiverX), scaleY(L.receiverY), 110, 44, '#201828', receiverHL, 'Receiver', 'ConnectX NIC (GPU srv)', 8);
+
+    /* ---- Link lines ---- */
+    // Sender to Leaf
+    var linkSendColor = (st === 2) ? '#E53E3E' : '#2A3040';
+    drawArrow(L.senderX + 55, L.senderY, L.leafX - 55, L.leafY + 8, linkSendColor, null, false);
+
+    // Leaf to Spine (uplink)
+    drawArrow(L.leafX + 10, L.leafY - 22, L.spineX - 10, L.spineY + 18, '#2A3040', null, false);
+
+    // Leaf to Receiver
+    var linkRecvColor = '#2A3040';
+    drawArrow(L.leafX + 55, L.leafY + 8, L.receiverX - 55, L.receiverY, linkRecvColor, null, false);
+
+    /* ---- Stage-specific overlays ---- */
+    if (st === 1 || st === 2) {
+      // ECN CE mark packet moving sender->leaf
+      var px = scaleX(lerp(L.senderX + 55, L.leafX - 55, animT));
+      var py = scaleY(lerp(L.senderY, L.leafY + 8, animT));
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(px, py, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#D69E2E';
+      ctx.fill();
+      ctx.fillStyle = '#1A1A00';
+      ctx.font = '700 7px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('CE', px, py);
+      ctx.restore();
+    }
+
+    if (st === 2) {
+      // PFC PAUSE frame leaf->sender (dashed red, reverse direction)
+      var pfcT = (animT + 0.5) % 1;
+      var pfcX = scaleX(lerp(L.leafX - 55, L.senderX + 55, pfcT));
+      var pfcY = scaleY(lerp(L.leafY + 8, L.senderY, pfcT)) + 12;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(pfcX, pfcY, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#E53E3E';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 6px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('PFC', pfcX, pfcY);
+      ctx.restore();
+    }
+
+    if (st === 3) {
+      // CNP packet receiver->leaf->sender
+      var cnpX = scaleX(lerp(L.receiverX - 55, L.leafX + 55, animT));
+      var cnpY = scaleY(lerp(L.receiverY, L.leafY + 8, animT)) - 10;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cnpX, cnpY, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#805AD5';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 6px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('CNP', cnpX, cnpY);
+      ctx.restore();
+    }
+
+    if (st === 4) {
+      // DCQCN rate curve (illustrative) -- simple wave on sender box
+      var curveX0 = scaleX(L.senderX - 50);
+      var curveY0 = scaleY(L.senderY + 30);
+      ctx.save();
+      ctx.strokeStyle = '#3182CE';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (var i = 0; i <= 60; i++) {
+        var fx = curveX0 + i * 1.2;
+        var fy = curveY0 - (i < 20 ? (i / 20) * 14 : (14 - (i - 20) * 0.3));
+        if (i === 0) { ctx.moveTo(fx, fy); } else { ctx.lineTo(fx, fy); }
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#3182CE';
+      ctx.font = '8px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('DCQCN [inferred]', curveX0, curveY0 - 20);
+      ctx.restore();
+    }
+
+    /* ---- Stage badge ---- */
+    if (st >= 0) {
+      ctx.save();
+      ctx.fillStyle = stageColor;
+      ctx.font = '700 10px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Stage ' + st + ': ' + STAGES[st].title.split(' -- ').slice(1).join(' -- '), scaleX(20), scaleY(20));
+      ctx.restore();
+    }
+
+    /* ---- Labels for buffer thresholds ---- */
+    ctx.save();
+    ctx.fillStyle = '#666';
+    ctx.font = '8px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('146.48 KB = Kmin', scaleX(L.bufX + L.bufW/2 + 32), scaleY(L.bufY + L.bufH * 0.62));
+    ctx.fillText('1.43 MB = Kmax', scaleX(L.bufX + L.bufW/2 + 32), scaleY(L.bufY + L.bufH * 0.25));
+    ctx.restore();
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  /* ---- Animation loop ---- */
+  var lastTime = 0;
+  function animate(ts) {
+    if (!isPlaying) return;
+    var dt = (ts - lastTime) / 1000;
+    lastTime = ts;
+    animT = (animT + dt * speed * 0.6) % 1;
+    drawFrame();
+    raf = requestAnimationFrame(animate);
+  }
+
+  function startPlay() {
+    if (currentStage < 0) { advanceStage(); }
+    isPlaying = true;
+    lastTime = performance.now();
+    raf = requestAnimationFrame(animate);
+    document.getElementById('btnPlay').classList.add('active');
+    scheduleAutoAdvance();
+  }
+
+  function pausePlay() {
+    isPlaying = false;
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+    if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+    document.getElementById('btnPlay').classList.remove('active');
+  }
+
+  function scheduleAutoAdvance() {
+    if (playTimer) { clearTimeout(playTimer); }
+    var delay = (3200 / speed);
+    playTimer = setTimeout(function () {
+      if (!isPlaying) return;
+      if (currentStage < STAGES.length - 1) {
+        advanceStage();
+        scheduleAutoAdvance();
+      } else {
+        pausePlay();
+        document.getElementById('stepLabel').textContent = 'Pipeline complete -- press Reset';
+      }
+    }, delay);
+  }
+
+  function advanceStage() {
+    currentStage++;
+    if (currentStage >= STAGES.length) { currentStage = STAGES.length - 1; return; }
+    animT = 0;
+    updateCallout();
+    addCaptureRows();
+    drawFrame();
+  }
+
+  function updateCallout() {
+    if (currentStage < 0 || currentStage >= STAGES.length) return;
+    var s = STAGES[currentStage];
+    var el = document.getElementById('stageCallout');
+    el.style.borderLeftColor = s.color;
+    document.getElementById('calloutTitle').style.color = s.color;
+    document.getElementById('calloutTitle').textContent = 'Stage ' + s.id + ' of ' + (STAGES.length - 1) + ' -- ' + s.title.split(' -- ').slice(1).join(' -- ');
+    document.getElementById('calloutBody').innerHTML = s.body;
+    document.getElementById('stepLabel').textContent = 'Stage ' + s.id + ' / ' + (STAGES.length - 1);
+  }
+
+  /* ---- Capture pane ---- */
+  function addCaptureRows() {
+    if (currentStage < 0 || currentStage >= STAGES.length) return;
+    var frames = STAGES[currentStage].captureFrames;
+    var body = document.getElementById('captureBody');
+    frames.forEach(function (f, i) {
+      pktCount++;
+      var row = document.createElement('div');
+      var t = ((pktCount - 1) * 0.041 + currentStage * 0.2).toFixed(3);
+      var len = f.proto === 'pfc' ? '64' : (f.proto === 'cnp' ? '60' : '1082');
+      var proto = f.proto === 'pfc' ? 'PFC-PAUSE' : (f.proto === 'cnp' ? 'RoCEv2-CNP' : 'RoCEv2');
+      row.className = 'capture-row proto-' + f.proto;
+      row.style.animationDelay = (i * 80) + 'ms';
+      row.innerHTML =
+        '<span class="col">' + pktCount + '</span>' +
+        '<span class="col">' + t + '</span>' +
+        '<span class="col">' + (f.src || '') + '</span>' +
+        '<span class="col">' + (f.dst || '') + '</span>' +
+        '<span class="col">' + proto + '</span>' +
+        '<span class="col">' + len + '</span>' +
+        '<span class="col">' + (f.info || '') + '</span>';
+      body.appendChild(row);
+      body.scrollTop = body.scrollHeight;
+    });
+    document.getElementById('captureCount').textContent = 'Packets: ' + pktCount;
+  }
+
+  function resetSim() {
+    pausePlay();
+    currentStage = -1;
+    animT = 0;
+    pktCount = 0;
+    document.getElementById('captureBody').innerHTML = '';
+    document.getElementById('captureCount').textContent = 'Packets: 0';
+    document.getElementById('calloutTitle').textContent = 'Stage 0 of 5 -- Idle';
+    document.getElementById('calloutTitle').style.color = 'var(--ncp)';
+    document.getElementById('calloutBody').textContent = 'Press Step to walk one stage at a time, or Play to auto-advance. The canvas shows a 2-tier leaf-spine topology with sender (GPU server) and receiver.';
+    document.getElementById('stageCallout').style.borderLeftColor = 'var(--ncp)';
+    document.getElementById('stepLabel').textContent = 'Ready -- press Step or Play';
+    document.getElementById('btnPlay').classList.remove('active');
+    drawFrame();
+  }
+
+  /* ---- Control bindings ---- */
+  document.getElementById('btnPlay').addEventListener('click', function () {
+    if (isPlaying) { pausePlay(); } else { startPlay(); }
+  });
+  document.getElementById('btnPause').addEventListener('click', pausePlay);
+  document.getElementById('btnStep').addEventListener('click', function () {
+    pausePlay();
+    if (currentStage < STAGES.length - 1) {
+      advanceStage();
+    } else {
+      document.getElementById('stepLabel').textContent = 'Pipeline complete -- press Reset';
+    }
+  });
+  document.getElementById('btnReset').addEventListener('click', resetSim);
+
+  var speedSlider = document.getElementById('speedSlider');
+  speedSlider.addEventListener('input', function () {
+    speed = parseFloat(speedSlider.value);
+    document.getElementById('speedVal').textContent = speed.toFixed(1) + 'x';
+  });
+
+  /* ---- Initial draw ---- */
+  resizeCanvas();
+
+  /* ======================================================
+     QUIZ
+  ====================================================== */
+  var QUIZ = [
+    {
+      q: 'What is the default ECN min-threshold (Kmin) on a Spectrum switch in lossless RoCEv2 mode?',
+      opts: ['64 KB', '146.48 KB', '1.43 MB', '512 KB'],
+      correct: 1,
+      explain: 'Kmin is 146.48 KB (from nv show qos roce). Below this depth, no ECN marking occurs. Marking scales linearly from Kmin to Kmax (1.43 MB) where probability reaches 100%.'
+    },
+    {
+      q: 'Which device generates the Congestion Notification Packet (CNP)?',
+      opts: ['The congested leaf switch ASIC', 'The sender NIC after running DCQCN', 'The receiver NIC upon seeing a CE-marked packet', 'The spine switch when buffer is full'],
+      correct: 2,
+      explain: 'The receiver NIC detects the ECN CE bit and generates the CNP. DCQCN then runs at the sender NIC after it receives the CNP. The switch only marks CE bits -- it does not generate CNPs.'
+    },
+    {
+      q: 'Which traffic class carries CNP (Congestion Notification Packets) by default?',
+      opts: ['TC0 (DWRR)', 'TC3 (DWRR 50%)', 'TC6 (strict priority)', 'TC7 (strict priority)'],
+      correct: 2,
+      explain: 'CNP uses TC6 with strict priority scheduling. This ensures feedback reaches the sender without being queued behind data. DSCP 48 maps to SP6 which maps to TC6.'
+    },
+    {
+      q: 'PFC (Priority Flow Control) is described as "blunt" primarily because:',
+      opts: [
+        'It requires a firmware update to activate',
+        'It pauses the entire priority queue, blocking flows that are not congested',
+        'It drops packets instead of pausing',
+        'It only works on TC0 and TC3'
+      ],
+      correct: 1,
+      explain: 'PFC is per-priority, not per-flow. When it fires on SP3, all traffic on SP3 from that upstream port halts -- including non-congested flows. This head-of-line (HOL) blocking is the key risk. ECN+DCQCN is per-flow and avoids this.'
+    },
+    {
+      q: 'What is the correct order of the congestion pipeline from first signal to last resort?',
+      opts: [
+        'PFC PAUSE -> ECN CE mark -> CNP -> DCQCN rate cut',
+        'ECN CE mark -> CNP -> DCQCN rate cut -> PFC PAUSE (last resort)',
+        'CNP -> ECN mark -> DCQCN -> PFC',
+        'DCQCN rate cut -> CNP -> ECN mark -> PFC'
+      ],
+      correct: 1,
+      explain: 'ECN marks first (proactive, at Kmin). Receiver generates CNP. Sender NIC runs DCQCN (rate cut). If congestion persists and buffer keeps rising past the PFC threshold, PFC PAUSE fires as a last resort. The goal is for ECN/DCQCN to resolve congestion before PFC is needed.'
+    },
+    {
+      q: 'Which single NVUE command activates the full lossless RoCEv2 config (PFC, ECN, CNP, trust, buffer pools)?',
+      opts: [
+        'nv set qos pfc enable sp3',
+        'nv set qos ecn min-threshold 146480',
+        'nv set qos roce',
+        'nv set interface swp1 qos roce mode lossless'
+      ],
+      correct: 2,
+      explain: '"nv set qos roce" (plus nv config apply) is the one-command path. It auto-configures PFC on SP3, ECN on TC0+TC3 with exact thresholds, CNP on TC6 strict priority, DSCP trust, LLDP App TLV, and buffer pools. No per-parameter tuning needed for baseline lossless.'
+    },
+    {
+      q: 'The DCQCN rate curve displayed in the pipeline simulator is labeled as:',
+      opts: [
+        '[know] -- exact values from the NVUE config',
+        '[inferred] -- illustrative; exact curve is NIC firmware-specific',
+        '[know] -- standardized in RFC 8257',
+        'Not labeled -- it is always accurate'
+      ],
+      correct: 1,
+      explain: 'DCQCN is a NIC-side algorithm. The rate reduction and recovery curve shape is vendor/firmware-specific. The simulator shows an illustrative shape only. Do not cite exact DCQCN rate numbers as authoritative without a specific vendor datasheet.'
+    }
+  ];
+
+  var quizWrap = document.getElementById('quizWrap');
+  QUIZ.forEach(function (item, idx) {
+    var div = document.createElement('div');
+    div.className = 'quiz-q';
+    var optsHtml = item.opts.map(function (opt, oi) {
+      return '<button class="quiz-opt" data-q="' + idx + '" data-oi="' + oi + '">' + opt + '</button>';
+    }).join('');
+    div.innerHTML =
+      '<p><strong>Q' + (idx + 1) + '.</strong> ' + item.q + '</p>' +
+      '<div class="quiz-options">' + optsHtml + '</div>' +
+      '<div class="quiz-feedback" id="qfb-' + idx + '">' + item.explain + '</div>';
+    quizWrap.appendChild(div);
+  });
+
+  quizWrap.addEventListener('click', function (e) {
+    var btn = e.target.closest('.quiz-opt');
+    if (!btn) return;
+    var qIdx = parseInt(btn.getAttribute('data-q'), 10);
+    var oIdx = parseInt(btn.getAttribute('data-oi'), 10);
+    var item = QUIZ[qIdx];
+    var siblings = quizWrap.querySelectorAll('[data-q="' + qIdx + '"]');
+    siblings.forEach(function (b) { b.disabled = true; });
+    siblings[item.correct].classList.add('correct');
+    if (oIdx !== item.correct) { btn.classList.add('wrong'); }
+    var fb = document.getElementById('qfb-' + qIdx);
+    fb.style.display = 'block';
+  });
+
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

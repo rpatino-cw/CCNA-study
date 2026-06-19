@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Fabric Bring-Up Lab -- NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* ---- Layout ---------------------------------------------------------------- */
+.fab-back { margin-bottom: var(--s-md); }
+.fab-header { margin-bottom: var(--s-lg); }
+.fab-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.fab-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 62ch;
+}
+
+/* ---- NCP badge ------------------------------------------------------------- */
+.fab-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.1); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 6px 14px;
+  font-family: var(--font-display); font-weight: 700; font-size: .9rem;
+  color: var(--ncp-dark); margin-bottom: var(--s-md);
+}
+
+/* ---- Step rail ------------------------------------------------------------- */
+.step-rail {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: var(--s-lg); overflow-x: auto;
+}
+.step-rail-item {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  padding: 8px 16px; border-radius: var(--radius-lg);
+  color: var(--ink-secondary); background: var(--bg-surface);
+  border: 1px solid var(--border); white-space: nowrap;
+  transition: background 200ms, color 200ms, border-color 200ms;
+}
+.step-rail-item.active {
+  background: rgba(var(--ncp-rgb),.12); border-color: var(--ncp);
+  color: var(--ncp-dark);
+}
+.step-rail-item.done {
+  background: rgba(var(--ncp-rgb),.06); border-color: var(--ncp-light);
+  color: var(--ncp-dark);
+}
+.step-rail-arrow {
+  font-size: .75rem; color: var(--ink-secondary); padding: 0 4px; flex-shrink: 0;
+}
+.step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--border); font-size: .72rem; font-weight: 700;
+  color: var(--ink-secondary);
+}
+.step-rail-item.active .step-num {
+  background: var(--ncp); color: #fff;
+}
+.step-rail-item.done .step-num {
+  background: var(--ncp-dark); color: #fff;
+}
+
+/* ---- Phase panels ---------------------------------------------------------- */
+.phase-panel { display: none; }
+.phase-panel.active { display: block; }
+
+/* ---- SVG canvas ------------------------------------------------------------ */
+.canvas-wrap {
+  display: flex; gap: var(--s-md); align-items: flex-start;
+  margin-bottom: var(--s-md);
+}
+.palette-rail {
+  width: 140px; flex-shrink: 0;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 12px;
+}
+.palette-rail h3 {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ncp-dark); margin-bottom: 10px;
+}
+.palette-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 6px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  cursor: pointer; margin-bottom: 6px; background: var(--bg);
+  transition: border-color 160ms, background 160ms;
+  font-family: var(--font-display); font-size: .72rem; font-weight: 600;
+  color: var(--ink-secondary);
+}
+.palette-item:hover { border-color: var(--ncp); background: rgba(var(--ncp-rgb),.06); color: var(--ncp-dark); }
+.palette-item.selected { border-color: var(--ncp); background: rgba(var(--ncp-rgb),.12); color: var(--ncp-dark); }
+.palette-item.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+.palette-icon {
+  font-size: 1.2rem; line-height: 1;
+}
+
+.svg-canvas-wrap {
+  flex: 1; background: var(--bg-surface);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  position: relative; overflow: hidden;
+  min-height: 340px;
+}
+#fabricSvg {
+  display: block; width: 100%; min-height: 340px;
+  cursor: crosshair;
+}
+
+/* ---- Canvas hint ----------------------------------------------------------- */
+.canvas-hint {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-display); font-size: .75rem; color: var(--ink-secondary);
+  background: rgba(255,255,255,.88); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 4px 12px; white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ---- Rail validation message ----------------------------------------------- */
+.rail-msg {
+  font-family: var(--font-body); font-size: .88rem; line-height: 1.55;
+  padding: 10px 14px; border-radius: var(--radius-md); margin-bottom: var(--s-sm);
+  display: none;
+}
+.rail-msg.ok  { background: rgba(var(--ncp-rgb),.1); border: 1px solid var(--ncp-light); color: var(--ncp-dark); display: block; }
+.rail-msg.bad { background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.3); color: #991b1b; display: block; }
+
+/* ---- Terminal chrome ------------------------------------------------------- */
+.ed-term {
+  background: #161b22; border-radius: var(--radius-lg);
+  overflow: hidden; border: 1px solid #30363d;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.ed-term-bar {
+  display: flex; align-items: center; gap: 7px;
+  background: #21262d; padding: 10px 14px; border-bottom: 1px solid #30363d;
+}
+.ed-term-dot { width: 11px; height: 11px; border-radius: 50%; }
+.ed-term-dot.r { background: #ff5f56; }
+.ed-term-dot.y { background: #ffbd2e; }
+.ed-term-dot.g { background: #27c93f; }
+.ed-term-title {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: #8b949e; margin-left: 6px; letter-spacing: .02em;
+}
+
+/* ---- Device tabs ----------------------------------------------------------- */
+.device-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: var(--s-sm);
+}
+.device-tab {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 5px 14px; background: var(--bg-surface);
+  color: var(--ink-secondary); cursor: pointer;
+  transition: background 160ms, color 160ms, border-color 160ms;
+}
+.device-tab:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+.device-tab.active {
+  background: rgba(var(--ncp-rgb),.12); border-color: var(--ncp); color: var(--ncp-dark);
+}
+
+/* ---- Terminal body --------------------------------------------------------- */
+#termWrap .term-wrap {
+  padding: 14px 18px; min-height: 280px; max-height: 420px;
+  overflow-y: auto; cursor: text;
+}
+#termWrap .term-output {
+  white-space: pre-wrap; word-break: break-word;
+  color: #e6edf3; font-size: .82rem; line-height: 1.55; margin-bottom: 4px;
+}
+#termWrap .term-line { margin: 0; }
+#termWrap .term-line.cmd { color: #a5d6ff; }
+#termWrap .term-input-row {
+  display: flex; align-items: baseline; gap: 0;
+  color: #e6edf3; font-size: .82rem;
+}
+#termWrap .term-prompt { color: #7ee787; white-space: pre; user-select: none; }
+#termWrap .term-input {
+  flex: 1; outline: none; caret-color: #e6edf3;
+  color: #e6edf3; min-width: 2ch;
+  font-family: inherit; font-size: inherit;
+}
+
+/* ---- Two-column body ------------------------------------------------------- */
+.fab-body {
+  display: grid; grid-template-columns: 1fr 260px;
+  gap: var(--s-lg); align-items: start;
+}
+@media (max-width: 820px) {
+  .fab-body { grid-template-columns: 1fr; }
+  .canvas-wrap { flex-direction: column; }
+  .palette-rail { width: 100%; }
+}
+
+/* ---- Cheat sidebar --------------------------------------------------------- */
+.fab-cheat {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--s-md);
+}
+.fab-cheat h2 {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+}
+.fab-cheat ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.fab-cheat code {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .78rem; font-weight: 600; color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.1); border-radius: 4px;
+  padding: 1px 5px; display: block; margin-bottom: 2px;
+}
+.fab-cheat .desc {
+  font-family: var(--font-body); font-size: .78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+
+/* ---- Objectives / progress ------------------------------------------------- */
+.fab-progress { margin-top: var(--s-md); padding-top: var(--s-md); border-top: 1px solid var(--border); }
+.fab-progress-label {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: var(--ink-secondary); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.fab-progress-bar-wrap { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+.fab-progress-bar {
+  background: var(--ncp); height: 100%; border-radius: 4px;
+  transition: width 320ms cubic-bezier(.16,1,.3,1); width: 0%;
+}
+.fab-progress-count {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .75rem; color: var(--ncp-dark); margin-top: 4px;
+}
+.obj-list { list-style: none; margin: var(--s-sm) 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.obj-item {
+  font-family: var(--font-display); font-size: .8rem;
+  color: var(--ink-secondary); padding: 5px 8px; border-radius: 6px;
+  border: 1px solid transparent;
+  display: flex; align-items: center; gap: 7px;
+}
+.obj-item.done { color: var(--ncp-dark); background: rgba(var(--ncp-rgb),.08); border-color: rgba(var(--ncp-rgb),.2); }
+.obj-check { font-size: .9rem; flex-shrink: 0; }
+
+/* ---- Success banner -------------------------------------------------------- */
+#successBanner {
+  background: rgba(var(--ncp-rgb),.13); border: 1.5px solid var(--ncp);
+  border-radius: var(--radius-lg); padding: 12px 18px;
+  margin-bottom: var(--s-md); display: none;
+  font-family: var(--font-display); font-size: .95rem; font-weight: 600;
+  color: var(--ncp-dark);
+}
+#successBanner.visible { display: block; }
+
+/* ---- Phase action buttons -------------------------------------------------- */
+.phase-btn {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 600;
+  border: 1.5px solid var(--ncp); border-radius: var(--radius-lg);
+  padding: 7px 18px; background: rgba(var(--ncp-rgb),.1); color: var(--ncp-dark);
+  cursor: pointer; transition: background 160ms;
+  margin-top: var(--s-sm);
+}
+.phase-btn:hover { background: rgba(var(--ncp-rgb),.2); }
+.phase-btn:disabled { opacity: .45; cursor: not-allowed; }
+.reset-btn {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 5px 14px; background: var(--bg-surface); color: var(--ink-secondary);
+  cursor: pointer; transition: border-color 160ms, color 160ms;
+  margin-left: 10px;
+}
+.reset-btn:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+
+/* ---- Phase briefing -------------------------------------------------------- */
+.phase-brief {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--ncp); border-radius: var(--radius-lg);
+  padding: var(--s-md); margin-bottom: var(--s-md);
+}
+.phase-brief h3 {
+  font-family: var(--font-display); font-size: .95rem; font-weight: 700;
+  color: var(--ink); margin-bottom: 6px;
+}
+.phase-brief p {
+  font-family: var(--font-body); font-size: .88rem; color: var(--ink-secondary);
+  line-height: 1.6; margin: 0;
+}
+
+/* ---- Motion safety --------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="navMount"></div>
+
+<div class="container-wide">
+
+  <!-- Back link -->
+  <div class="fab-back">
+    <a href="ncp-ain-hub.html" class="back-link">NCP-AIN Hub</a>
+  </div>
+
+  <!-- Header -->
+  <div class="fab-header">
+    <div class="fab-badge">NCP-AIN . Rail-Optimized Fabric Bring-Up</div>
+    <h1>Fabric Bring-Up Lab</h1>
+    <p class="subtitle">
+      Build a 2-node x 2-rail InfiniBand cluster from scratch. Place the GPU nodes, wire
+      the rails correctly (the single most important topology decision), bring up the
+      subnet manager, set a partition, and validate with ibdiagnet plus a bandwidth test.
+    </p>
+  </div>
+
+  <!-- Success banner -->
+  <div id="successBanner">
+    Lab complete. Fabric is healthy: SM master elected, partition set, ibdiagnet clean, bandwidth pass.
+  </div>
+
+  <!-- Step rail -->
+  <div class="step-rail">
+    <div class="step-rail-item active" id="step-place">
+      <span class="step-num">1</span> PLACE
+    </div>
+    <span class="step-rail-arrow">></span>
+    <div class="step-rail-item" id="step-wire">
+      <span class="step-num">2</span> WIRE
+    </div>
+    <span class="step-rail-arrow">></span>
+    <div class="step-rail-item" id="step-configure">
+      <span class="step-num">3</span> CONFIGURE
+    </div>
+    <span class="step-rail-arrow">></span>
+    <div class="step-rail-item" id="step-validate">
+      <span class="step-num">4</span> VALIDATE
+    </div>
+  </div>
+
+  <!-- ===== PHASE A: PLACE ===== -->
+  <div class="phase-panel active" id="phase-place">
+    <div class="phase-brief">
+      <h3>Phase 1: Place GPU Nodes</h3>
+      <p>
+        The spine switch and two leaf switches are pre-installed in the rack.
+        Click a palette item, then click the canvas to place your two DGX H100 compute nodes.
+        The rail-optimized topology requires exactly 2 GPU nodes with 2 NICs each.
+      </p>
+    </div>
+
+    <div class="canvas-wrap">
+      <div class="palette-rail">
+        <h3>Palette</h3>
+        <div class="palette-item" id="pal-dgx" data-type="dgx">
+          <span class="palette-icon">O</span>
+          DGX H100
+        </div>
+        <div class="palette-item disabled" id="pal-leaf" data-type="leaf">
+          <span class="palette-icon">[+]</span>
+          Leaf Switch
+        </div>
+        <div class="palette-item disabled" id="pal-spine" data-type="spine">
+          <span class="palette-icon">[*]</span>
+          Spine Switch
+        </div>
+        <div style="margin-top:14px; font-family:var(--font-display); font-size:.72rem; color:var(--ink-secondary); line-height:1.5;">
+          Switches pre-seeded. Place 2 DGX nodes.
+        </div>
+      </div>
+
+      <div class="svg-canvas-wrap">
+        <svg id="fabricSvg" viewBox="0 0 700 340" aria-label="Fabric topology canvas"></svg>
+        <div class="canvas-hint" id="canvasHint">Select a device from the palette, then click to place it</div>
+      </div>
+    </div>
+
+    <div>
+      <button class="phase-btn" id="btn-place-done" disabled onclick="completePlacePhase()">
+        Confirm Placement (0 / 2 nodes placed)
+      </button>
+      <button class="reset-btn" onclick="resetLab()">Reset Lab</button>
+    </div>
+  </div>
+
+  <!-- ===== PHASE B: WIRE ===== -->
+  <div class="phase-panel" id="phase-wire">
+    <div class="phase-brief">
+      <h3>Phase 2: Wire the Rails</h3>
+      <p>
+        Click a NIC port (small circle on a GPU node) then click a switch port to wire them.
+        Rail-optimized means: mlx5_0 on EVERY node connects to leaf-0, mlx5_1 on EVERY node
+        connects to leaf-1. Both leaves connect to the spine. A naive wiring (all NICs from
+        node-0 to leaf-0, all NICs from node-1 to leaf-1) forces same-rank traffic up to the
+        spine and is what you should avoid.
+      </p>
+    </div>
+
+    <div id="rail-msg-area"></div>
+
+    <div class="canvas-wrap">
+      <div class="palette-rail">
+        <h3>Wiring</h3>
+        <div style="font-family:var(--font-display); font-size:.75rem; color:var(--ink-secondary); line-height:1.6;">
+          <b style="color:var(--ncp-dark)">Step 1:</b> Click a NIC port on a GPU node (colored ring).<br><br>
+          <b style="color:var(--ncp-dark)">Step 2:</b> Click the destination switch port.<br><br>
+          Connect all 4 NIC ports and both leaf uplinks to spine.
+        </div>
+        <div style="margin-top:14px; font-family:var(--font-mono); font-size:.72rem; color:var(--ink-secondary);">
+          Connections: <span id="connCount">0</span> / 6
+        </div>
+      </div>
+
+      <div class="svg-canvas-wrap">
+        <svg id="wireSvg" viewBox="0 0 700 340" aria-label="Wiring canvas"></svg>
+      </div>
+    </div>
+
+    <div>
+      <button class="phase-btn" id="btn-wire-done" disabled onclick="completeWirePhase()">
+        Validate Wiring
+      </button>
+      <button class="reset-btn" onclick="resetWiring()">Re-wire</button>
+    </div>
+  </div>
+
+  <!-- ===== PHASE C: CONFIGURE ===== -->
+  <div class="phase-panel" id="phase-configure">
+    <div class="fab-body">
+      <div>
+        <div class="phase-brief" style="margin-bottom:var(--s-sm);">
+          <h3>Phase 3: Configure the Fabric</h3>
+          <p>
+            Use the terminals below to bring up the subnet manager and set the storage partition.
+            Start on the SM host (dgx-h100-01), then verify and set the PKey.
+          </p>
+        </div>
+
+        <div class="device-tabs" id="deviceTabs">
+          <button class="device-tab active" onclick="switchDevice('dgx-h100-01')">dgx-h100-01 (SM host)</button>
+          <button class="device-tab" onclick="switchDevice('leaf-0')">leaf-0 (QM9790)</button>
+        </div>
+
+        <div class="ed-term" id="termWrap">
+          <div class="ed-term-bar">
+            <span class="ed-term-dot r"></span>
+            <span class="ed-term-dot y"></span>
+            <span class="ed-term-dot g"></span>
+            <span class="ed-term-title" id="termTitle">admin@dgx-h100-01 -- IB fabric bring-up</span>
+          </div>
+          <div class="term-wrap" id="termMount">
+            <div class="term-output"></div>
+            <div class="term-input-row">
+              <span class="term-prompt">admin@dgx-h100-01:~$ </span>
+              <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="Fabric configuration console"></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:var(--s-sm);">
+          <button class="phase-btn" id="btn-cfg-done" disabled onclick="completeConfigPhase()">
+            Proceed to Validate
+          </button>
+          <button class="reset-btn" onclick="resetWiring()">Back to Wiring</button>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="fab-cheat">
+        <h2>Configure Commands</h2>
+        <ul>
+          <li>
+            <code>opensm -p 15</code>
+            <span class="desc">Start SM, priority 15 (wins master election)</span>
+          </li>
+          <li>
+            <code>sminfo</code>
+            <span class="desc">Verify SM state (expect SMINFO_MASTER)</span>
+          </li>
+          <li>
+            <code>saquery --pkey</code>
+            <span class="desc">List partition keys in the fabric</span>
+          </li>
+          <li>
+            <code>saquery -p 0x8001</code>
+            <span class="desc">Set storage PKey full member</span>
+          </li>
+          <li>
+            <code>ibdiagnet</code>
+            <span class="desc">Full fabric health scan</span>
+          </li>
+          <li>
+            <code>help</code>
+            <span class="desc">Full command list</span>
+          </li>
+        </ul>
+
+        <!-- Objectives -->
+        <div class="fab-progress">
+          <div class="fab-progress-label">Objectives</div>
+          <div class="fab-progress-bar-wrap">
+            <div class="fab-progress-bar" id="progressBar"></div>
+          </div>
+          <div class="fab-progress-count" id="progressCount">0 / 6</div>
+          <ul class="obj-list" id="objList">
+            <li class="obj-item" id="obj-nodes"><span class="obj-check">o</span> GPU nodes placed (2)</li>
+            <li class="obj-item" id="obj-rails"><span class="obj-check">o</span> Rails wired correctly</li>
+            <li class="obj-item" id="obj-sm"><span class="obj-check">o</span> SM master up (priority 15)</li>
+            <li class="obj-item" id="obj-pkey"><span class="obj-check">o</span> Storage partition PKey set</li>
+            <li class="obj-item" id="obj-ibdiag"><span class="obj-check">o</span> ibdiagnet clean (no errors)</li>
+            <li class="obj-item" id="obj-bw"><span class="obj-check">o</span> Bandwidth test pass (380+ Gb/s)</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ===== PHASE D: VALIDATE ===== -->
+  <div class="phase-panel" id="phase-validate">
+    <div class="fab-body">
+      <div>
+        <div class="phase-brief" style="margin-bottom:var(--s-sm);">
+          <h3>Phase 4: Validate the Fabric</h3>
+          <p>
+            Run the fabric health scan and bandwidth test to confirm the bring-up is complete.
+            A clean ibdiagnet plus a passing ib_write_bw result confirm the fabric is ready for jobs.
+          </p>
+        </div>
+
+        <div class="device-tabs" id="deviceTabsV">
+          <button class="device-tab active" onclick="switchDeviceV('dgx-h100-01')">dgx-h100-01</button>
+          <button class="device-tab" onclick="switchDeviceV('dgx-h100-02')">dgx-h100-02</button>
+        </div>
+
+        <div class="ed-term" id="termWrapV">
+          <div class="ed-term-bar">
+            <span class="ed-term-dot r"></span>
+            <span class="ed-term-dot y"></span>
+            <span class="ed-term-dot g"></span>
+            <span class="ed-term-title" id="termTitleV">admin@dgx-h100-01 -- validation</span>
+          </div>
+          <div class="term-wrap" id="termMountV">
+            <div class="term-output"></div>
+            <div class="term-input-row">
+              <span class="term-prompt">admin@dgx-h100-01:~$ </span>
+              <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="Validation console"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar (objectives shared) -->
+      <aside class="fab-cheat">
+        <h2>Validate Commands</h2>
+        <ul>
+          <li>
+            <code>ibdiagnet</code>
+            <span class="desc">Full fabric scan: no errors = pass</span>
+          </li>
+          <li>
+            <code>iblinkinfo</code>
+            <span class="desc">Fabric link map, all HEALTHY</span>
+          </li>
+          <li>
+            <code>sminfo</code>
+            <span class="desc">Confirm SMINFO_MASTER still elected</span>
+          </li>
+          <li>
+            <code>ib_write_bw</code>
+            <span class="desc">Bandwidth test (pass = 380+ Gb/s)</span>
+          </li>
+          <li>
+            <code>all_reduce_perf</code>
+            <span class="desc">NCCL collective busbw test</span>
+          </li>
+        </ul>
+
+        <div class="fab-progress">
+          <div class="fab-progress-label">Objectives</div>
+          <div class="fab-progress-bar-wrap">
+            <div class="fab-progress-bar" id="progressBarV"></div>
+          </div>
+          <div class="fab-progress-count" id="progressCountV">0 / 6</div>
+          <ul class="obj-list" id="objListV">
+            <li class="obj-item" id="obj-v-nodes"><span class="obj-check">o</span> GPU nodes placed (2)</li>
+            <li class="obj-item" id="obj-v-rails"><span class="obj-check">o</span> Rails wired correctly</li>
+            <li class="obj-item" id="obj-v-sm"><span class="obj-check">o</span> SM master up (priority 15)</li>
+            <li class="obj-item" id="obj-v-pkey"><span class="obj-check">o</span> Storage partition PKey set</li>
+            <li class="obj-item" id="obj-v-ibdiag"><span class="obj-check">o</span> ibdiagnet clean (no errors)</li>
+            <li class="obj-item" id="obj-v-bw"><span class="obj-check">o</span> Bandwidth test pass (380+ Gb/s)</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+</div><!-- /.container-wide -->
+
+<script defer src="js/lab-engine.js?v=11"></script>
+<script defer src="js/ib-tools.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+/* ============================================================
+   NCP-AIN Fabric Bring-Up Lab -- Scenario 1: IB Rail-Optimized
+   Pure front-end: SVG canvas, click-to-place, click-to-wire,
+   lab-engine terminals, 6 live objectives.
+   ============================================================ */
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ---- State ---------------------------------------------------------------- */
+  var state = {
+    phase: 'place',   // place | wire | configure | validate
+    placedNodes: [],  // [{id, x, y}]
+    connections: [],  // [{from, to}] e.g. {from:'dgx-01:mlx5_0', to:'leaf-0:p1'}
+    objectives: {
+      nodes: false,
+      rails: false,
+      sm: false,
+      pkey: false,
+      ibdiag: false,
+      bw: false
+    }
+  };
+
+  /* Pre-seeded device layout (fixed positions in 700x340 viewBox) */
+  var LAYOUT = {
+    spine:  { id: 'spine',  x: 350, y: 30,  label: 'spine-0\n(QM9700)', ports: [{id:'spine:p0', dx:-20, dy:30},{id:'spine:p1', dx:20, dy:30}] },
+    'leaf-0': { id: 'leaf-0', x: 175, y: 145, label: 'leaf-0\n(QM9790)', ports: [
+      {id:'leaf-0:up', dx:20,  dy:-22},
+      {id:'leaf-0:p0', dx:-30, dy:26},
+      {id:'leaf-0:p1', dx:10,  dy:26}
+    ]},
+    'leaf-1': { id: 'leaf-1', x: 525, y: 145, label: 'leaf-1\n(QM9790)', ports: [
+      {id:'leaf-1:up', dx:-20, dy:-22},
+      {id:'leaf-1:p0', dx:-10, dy:26},
+      {id:'leaf-1:p1', dx:30,  dy:26}
+    ]}
+  };
+
+  /* Node templates for placed DGX nodes */
+  var NODE_TEMPLATES = [
+    { id: 'dgx-01', label: 'dgx-h100-01', x: 160, y: 270,
+      ports: [{id:'dgx-01:mlx5_0', dx:-28, dy:-22},{id:'dgx-01:mlx5_1', dx:28, dy:-22}] },
+    { id: 'dgx-02', label: 'dgx-h100-02', x: 540, y: 270,
+      ports: [{id:'dgx-02:mlx5_0', dx:-28, dy:-22},{id:'dgx-02:mlx5_1', dx:28, dy:-22}] }
+  ];
+
+  /* Required connections for a rail-optimized wiring */
+  var REQUIRED_CONNECTIONS = [
+    { from: 'dgx-01:mlx5_0', to: 'leaf-0:p0' },
+    { from: 'dgx-02:mlx5_0', to: 'leaf-0:p1' },
+    { from: 'dgx-01:mlx5_1', to: 'leaf-1:p0' },
+    { from: 'dgx-02:mlx5_1', to: 'leaf-1:p1' },
+    { from: 'leaf-0:up',     to: 'spine:p0'  },
+    { from: 'leaf-1:up',     to: 'spine:p1'  }
+  ];
+
+  /* ---- Helpers -------------------------------------------------------------- */
+  function railOf(nicId) {
+    /* mlx5_0 = rail 0, mlx5_1 = rail 1 */
+    if (nicId.indexOf('mlx5_0') !== -1) return 0;
+    if (nicId.indexOf('mlx5_1') !== -1) return 1;
+    return -1;
+  }
+
+  function leafFor(portId) {
+    if (portId.indexOf('leaf-0') !== -1) return 0;
+    if (portId.indexOf('leaf-1') !== -1) return 1;
+    return -1;
+  }
+
+  function isRailOptimized(conns) {
+    /* For every GPU NIC connection, all rail-0 NICs must go to the same leaf,
+       all rail-1 NICs must go to the same other leaf. */
+    var rail0Leaves = [];
+    var rail1Leaves = [];
+    conns.forEach(function (c) {
+      var r = railOf(c.from);
+      if (r === 0) rail0Leaves.push(leafFor(c.to));
+      if (r === 1) rail1Leaves.push(leafFor(c.to));
+    });
+    if (!rail0Leaves.length || !rail1Leaves.length) return false;
+    var r0 = rail0Leaves[0];
+    var r1 = rail1Leaves[0];
+    if (r0 === r1) return false; // rails crossed to same leaf
+    var allR0Same = rail0Leaves.every(function (l) { return l === r0; });
+    var allR1Same = rail1Leaves.every(function (l) { return l === r1; });
+    return allR0Same && allR1Same;
+  }
+
+  /* ---- SVG helpers ---------------------------------------------------------- */
+  var NS = 'http://www.w3.org/2000/svg';
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    return el;
+  }
+
+  /* Port center coords by port id (absolute in viewBox) */
+  var portMap = {};  /* id -> {x, y} */
+
+  function registerPortsForDevice(dev) {
+    (dev.ports || []).forEach(function (p) {
+      portMap[p.id] = { x: dev.x + p.dx, y: dev.y + p.dy };
+    });
+  }
+
+  function drawDevice(svg, dev, isNode) {
+    var g = svgEl('g', { 'class': 'fab-device', 'data-device': dev.id });
+
+    if (isNode) {
+      /* GPU node: rounded rect */
+      var rect = svgEl('rect', {
+        x: dev.x - 46, y: dev.y - 18,
+        width: 92, height: 36, rx: 8,
+        fill: 'rgba(118,185,0,.12)', stroke: '#76B900',
+        'stroke-width': 1.5
+      });
+      g.appendChild(rect);
+      /* Label */
+      var lines = dev.label.split('\n');
+      lines.forEach(function (line, i) {
+        var t = svgEl('text', {
+          x: dev.x, y: dev.y + (i - (lines.length - 1) / 2) * 13 + 1,
+          'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          'font-family': 'JetBrains Mono, monospace',
+          'font-size': '8', fill: '#5A8C00', 'font-weight': '700'
+        });
+        t.textContent = line;
+        g.appendChild(t);
+      });
+      /* NIC ports */
+      dev.ports.forEach(function (p) {
+        var px = dev.x + p.dx, py = dev.y + p.dy;
+        var circle = svgEl('circle', {
+          cx: px, cy: py, r: 8,
+          fill: 'rgba(118,185,0,.18)', stroke: '#76B900',
+          'stroke-width': 1.5, cursor: 'pointer',
+          'data-port': p.id
+        });
+        g.appendChild(circle);
+        var label = p.id.split(':')[1];
+        var pt = svgEl('text', {
+          x: px, y: py + 1,
+          'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          'font-family': 'JetBrains Mono, monospace',
+          'font-size': '5.5', fill: '#5A8C00', 'font-weight': '600',
+          'pointer-events': 'none'
+        });
+        pt.textContent = label === 'mlx5_0' ? 'N0' : 'N1';
+        g.appendChild(pt);
+      });
+    } else {
+      /* Switch: hex-ish polygon */
+      var w = 62, h = 28;
+      var bx = dev.x - w / 2, by = dev.y - h / 2;
+      var rect2 = svgEl('rect', {
+        x: bx, y: by, width: w, height: h, rx: 5,
+        fill: '#21262d', stroke: '#8b949e', 'stroke-width': 1.2
+      });
+      g.appendChild(rect2);
+      var lines2 = dev.label.split('\n');
+      lines2.forEach(function (line, i) {
+        var t = svgEl('text', {
+          x: dev.x, y: dev.y + (i - (lines2.length - 1) / 2) * 11,
+          'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          'font-family': 'JetBrains Mono, monospace',
+          'font-size': '7', fill: '#e6edf3', 'font-weight': '600'
+        });
+        t.textContent = line;
+        g.appendChild(t);
+      });
+      /* Switch ports */
+      dev.ports.forEach(function (p) {
+        var px = dev.x + p.dx, py = dev.y + p.dy;
+        var circle = svgEl('circle', {
+          cx: px, cy: py, r: 7,
+          fill: '#30363d', stroke: '#8b949e',
+          'stroke-width': 1.2, cursor: 'pointer',
+          'data-port': p.id
+        });
+        g.appendChild(circle);
+        var lbl = p.id.split(':')[1];
+        var pt = svgEl('text', {
+          x: px, y: py + 1,
+          'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          'font-family': 'JetBrains Mono, monospace',
+          'font-size': '5', fill: '#e6edf3', 'font-weight': '600',
+          'pointer-events': 'none'
+        });
+        pt.textContent = lbl === 'up' ? 'UP' : lbl.replace('p', 'P');
+        g.appendChild(pt);
+      });
+    }
+    svg.appendChild(g);
+  }
+
+  /* ---- Phase A: PLACE ------------------------------------------------------- */
+  var selectedPaletteType = null;
+  var nodesPlaced = 0;
+  var SVG_PLACE = document.getElementById('fabricSvg');
+
+  function initPlaceCanvas() {
+    SVG_PLACE.innerHTML = '';
+    /* Draw pre-seeded switches */
+    Object.values(LAYOUT).forEach(function (dev) {
+      registerPortsForDevice(dev);
+      drawDevice(SVG_PLACE, dev, false);
+    });
+    /* Click to place */
+    SVG_PLACE.addEventListener('click', function (e) {
+      if (!selectedPaletteType || selectedPaletteType !== 'dgx') return;
+      if (nodesPlaced >= 2) return;
+      var rect = SVG_PLACE.getBoundingClientRect();
+      var vb = SVG_PLACE.viewBox.baseVal;
+      var x = (e.clientX - rect.left) / rect.width * vb.width;
+      var y = (e.clientY - rect.top) / rect.height * vb.height;
+      /* Snap to predefined positions */
+      var template = NODE_TEMPLATES[nodesPlaced];
+      placeNode(template);
+      nodesPlaced++;
+      updatePlaceBtn();
+    });
+  }
+
+  function placeNode(template) {
+    registerPortsForDevice(template);
+    drawDevice(SVG_PLACE, template, true);
+    state.placedNodes.push({ id: template.id, x: template.x, y: template.y });
+  }
+
+  function updatePlaceBtn() {
+    var btn = document.getElementById('btn-place-done');
+    btn.textContent = 'Confirm Placement (' + nodesPlaced + ' / 2 nodes placed)';
+    btn.disabled = nodesPlaced < 2;
+    document.getElementById('canvasHint').textContent =
+      nodesPlaced < 2
+        ? 'Click canvas to place DGX node ' + (nodesPlaced + 1)
+        : '2 nodes placed. Click Confirm to proceed.';
+  }
+
+  document.querySelectorAll('.palette-item').forEach(function (item) {
+    item.addEventListener('click', function () {
+      if (item.classList.contains('disabled')) return;
+      document.querySelectorAll('.palette-item').forEach(function (i) { i.classList.remove('selected'); });
+      item.classList.add('selected');
+      selectedPaletteType = item.dataset.type;
+      document.getElementById('canvasHint').textContent = 'Click the canvas to place this device';
+    });
+  });
+
+  function completePlacePhase() {
+    state.objectives.nodes = true;
+    tickObjective('nodes');
+    setPhase('wire');
+    initWireCanvas();
+  }
+
+  /* ---- Phase B: WIRE ------------------------------------------------------- */
+  var SVG_WIRE = document.getElementById('wireSvg');
+  var wireFrom = null;  /* portId string */
+
+  function initWireCanvas() {
+    SVG_WIRE.innerHTML = '';
+    portMap = {};  /* reset, re-register all */
+    /* Draw switches */
+    Object.values(LAYOUT).forEach(function (dev) {
+      registerPortsForDevice(dev);
+      drawDevice(SVG_WIRE, dev, false);
+    });
+    /* Draw GPU nodes */
+    NODE_TEMPLATES.forEach(function (t) {
+      registerPortsForDevice(t);
+      drawDevice(SVG_WIRE, t, true);
+    });
+    /* Port click handler */
+    SVG_WIRE.addEventListener('click', function (e) {
+      var target = e.target.closest('[data-port]');
+      if (!target) { wireFrom = null; clearPortHighlight(); return; }
+      var portId = target.getAttribute('data-port');
+      if (!wireFrom) {
+        wireFrom = portId;
+        highlightPort(target);
+      } else {
+        if (portId !== wireFrom) {
+          addConnection(wireFrom, portId);
+        }
+        wireFrom = null;
+        clearPortHighlight();
+      }
+    });
+    redrawLinks();
+  }
+
+  function highlightPort(el) {
+    clearPortHighlight();
+    el.setAttribute('stroke', '#ffbd2e');
+    el.setAttribute('stroke-width', '2.5');
+    el.classList.add('wire-from');
+  }
+
+  function clearPortHighlight() {
+    SVG_WIRE.querySelectorAll('.wire-from').forEach(function (el) {
+      el.classList.remove('wire-from');
+      el.setAttribute('stroke', el.getAttribute('data-port') && el.getAttribute('data-port').indexOf('dgx') !== -1 ? '#76B900' : '#8b949e');
+      el.setAttribute('stroke-width', el.getAttribute('data-port') && el.getAttribute('data-port').indexOf('dgx') !== -1 ? '1.5' : '1.2');
+    });
+  }
+
+  function addConnection(fromId, toId) {
+    /* Prevent duplicate or reversed duplicate */
+    var dup = state.connections.some(function (c) {
+      return (c.from === fromId && c.to === toId) || (c.from === toId && c.to === fromId);
+    });
+    if (dup) return;
+    /* Prevent connecting two NIC ports or two switch ports (mixed only) */
+    var fromIsNic  = fromId.indexOf('dgx') !== -1;
+    var toIsNic    = toId.indexOf('dgx') !== -1;
+    var fromIsLeaf = fromId.indexOf('leaf') !== -1;
+    var toIsLeaf   = toId.indexOf('leaf') !== -1;
+    var fromIsSpine = fromId.indexOf('spine') !== -1;
+    var toIsSpine   = toId.indexOf('spine') !== -1;
+
+    var valid = (fromIsNic && (toIsLeaf || toIsSpine)) ||
+                ((fromIsLeaf || fromIsSpine) && toIsNic) ||
+                (fromIsLeaf && toIsSpine) ||
+                (toIsLeaf && fromIsSpine) ||
+                (fromIsLeaf && toIsLeaf === false && toIsSpine);
+
+    if (!valid) {
+      showRailMsg('Cannot connect two NIC ports or two identical switch ports.', 'bad');
+      return;
+    }
+    state.connections.push({ from: fromId, to: toId });
+    redrawLinks();
+    document.getElementById('connCount').textContent = state.connections.length;
+    document.getElementById('btn-wire-done').disabled = state.connections.length < 6;
+  }
+
+  function redrawLinks() {
+    /* Remove existing lines */
+    SVG_WIRE.querySelectorAll('.fab-link').forEach(function (l) { l.remove(); });
+    state.connections.forEach(function (c) {
+      var a = portMap[c.from], b = portMap[c.to];
+      if (!a || !b) return;
+      var line = svgEl('line', {
+        x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+        stroke: '#76B900', 'stroke-width': '2', opacity: '.7',
+        'class': 'fab-link', 'stroke-dasharray': '0'
+      });
+      /* Insert before device groups so lines are behind */
+      SVG_WIRE.insertBefore(line, SVG_WIRE.firstChild);
+    });
+  }
+
+  function showRailMsg(msg, cls) {
+    var area = document.getElementById('rail-msg-area');
+    area.innerHTML = '';
+    var div = document.createElement('div');
+    div.className = 'rail-msg ' + cls;
+    div.textContent = msg;
+    area.appendChild(div);
+  }
+
+  function resetWiring() {
+    state.connections = [];
+    wireFrom = null;
+    document.getElementById('connCount').textContent = '0';
+    document.getElementById('btn-wire-done').disabled = true;
+    document.getElementById('rail-msg-area').innerHTML = '';
+    setPhase('wire');
+    initWireCanvas();
+  }
+
+  function completeWirePhase() {
+    /* Check all 6 required connections are present */
+    var nicConns = state.connections.filter(function (c) {
+      return c.from.indexOf('dgx') !== -1 || c.to.indexOf('dgx') !== -1;
+    });
+
+    var optimized = isRailOptimized(nicConns.map(function (c) {
+      /* Normalize so "from" is always the NIC side */
+      if (c.from.indexOf('dgx') !== -1) return c;
+      return { from: c.to, to: c.from };
+    }));
+
+    if (!optimized) {
+      showRailMsg(
+        'NOT rail-optimized. In a naive wiring (all NICs from one node to one leaf), ' +
+        'same-rank GPU traffic must cross the spine to reach a peer on the other rail. ' +
+        'Rail-optimized means mlx5_0 of EVERY node -> leaf-0, mlx5_1 of EVERY node -> leaf-1. ' +
+        'Re-wire and try again.',
+        'bad'
+      );
+      return;
+    }
+
+    showRailMsg(
+      'Rail-optimized! NIC-0 of every node lands on leaf-0, NIC-1 on leaf-1. ' +
+      'Same-rank traffic (e.g. all-reduce on rail 0) stays entirely within leaf-0 ' +
+      'and never touches the spine. Proceeding to Configure.',
+      'ok'
+    );
+
+    state.objectives.rails = true;
+    tickObjective('rails');
+    /* Animate links green */
+    SVG_WIRE.querySelectorAll('.fab-link').forEach(function (l) {
+      l.setAttribute('stroke', '#27c93f');
+      l.setAttribute('opacity', '1');
+    });
+    setTimeout(function () { setPhase('configure'); initConfigTerminal(); }, 1200);
+  }
+
+  /* ---- Phase C: CONFIGURE terminal ---------------------------------------- */
+  var _lab = null;
+
+  function buildCommandMap() {
+    var fabricState = {
+      smRunning: false,
+      smPriority: 0,
+      pkeySet: false
+    };
+
+    var IB_CMDS = ['ibstat', 'ibstatus', 'iblinkinfo', 'ibdiagnet',
+                   'perfquery', 'ibhosts', 'ibnetdiscover', 'sminfo',
+                   'ibping', 'ibportstate'];
+
+    var MAP = {};
+    IB_CMDS.forEach(function (c) {
+      MAP[c] = function (dev, raw) { return window.IBTools.run(raw); };
+      MAP[c + ' ...'] = function (dev, raw) { return window.IBTools.run(raw); };
+    });
+
+    /* opensm -p 15: start SM master */
+    function doOpensm(dev, raw) {
+      var pMatch = raw.match(/-p\s+(\d+)/);
+      var pri = pMatch ? parseInt(pMatch[1]) : 14;
+      fabricState.smRunning = true;
+      fabricState.smPriority = pri;
+      var out = '[  0.000] OpenSM ' + raw + '\n';
+      out += '[  0.012] Discovering InfiniBand fabric...\n';
+      out += '[  0.031] Discovered 5 nodes (1 switch, 4 CAs)\n';
+      out += '[  0.044] SM priority: ' + pri + ' -- elected MASTER\n';
+      out += '[  0.055] All ports in ACTIVE state\n';
+      out += '[  0.060] Routing algorithm: updown\n';
+      out += '[  0.071] LID assignment complete. SM running (pid ' + (9100 + pri) + ')\n';
+      if (pri >= 15) {
+        out += '[  0.080] NOTE: High priority (' + pri + ') -- this SM will win master election\n';
+        if (!state.objectives.sm) {
+          state.objectives.sm = true;
+          tickObjective('sm');
+          checkConfigReady();
+        }
+      } else {
+        out += '[  0.080] NOTE: Priority ' + pri + ' -- increase to 15 to ensure master election\n';
+      }
+      return out;
+    }
+    MAP['opensm'] = doOpensm;
+    MAP['opensm ...'] = doOpensm;
+
+    /* sminfo: report SM state */
+    MAP['sminfo'] = function (dev, raw) {
+      if (!fabricState.smRunning) {
+        return 'sminfo: sm lid 0 -- WARNING: no SM detected in subnet\n' +
+               'Start OpenSM: opensm -p 15';
+      }
+      return 'sminfo: sm lid 1 sm guid 0xe41d2d0300100001, ' +
+             'activity count 1234568 priority ' + fabricState.smPriority +
+             ' state 3 SMINFO_MASTER\n';
+    };
+
+    /* saquery --pkey or -p 0x8001: set partition */
+    function doSaquery(dev, raw) {
+      if (!fabricState.smRunning) {
+        return 'saquery: SM not running. Start opensm first.';
+      }
+      if (raw.indexOf('0x8001') !== -1 || raw.indexOf('--pkey') !== -1) {
+        fabricState.pkeySet = true;
+        var out = 'PortRecord:\n';
+        out += '  GUID: 0xe41d2d03007c0001  PKey: 0x8001  MemberType: FULL\n';
+        out += '  GUID: 0xe41d2d03007c0011  PKey: 0x8001  MemberType: FULL\n';
+        out += '  GUID: 0xe41d2d03007c0021  PKey: 0x8001  MemberType: FULL\n';
+        out += 'PKey 0x8001: all registered nodes set to FULL membership.\n';
+        if (!state.objectives.pkey) {
+          state.objectives.pkey = true;
+          tickObjective('pkey');
+          checkConfigReady();
+        }
+        return out;
+      }
+      return 'saquery: use --pkey or -p 0x8001 to register partition key\n' +
+             'Example: saquery -p 0x8001';
+    }
+    MAP['saquery'] = doSaquery;
+    MAP['saquery ...'] = doSaquery;
+
+    /* ibdiagnet in configure phase -- check SM state */
+    MAP['ibdiagnet'] = function (dev, raw) {
+      var base = window.IBTools.run(raw);
+      if (fabricState.smRunning && !state.objectives.ibdiag) {
+        state.objectives.ibdiag = true;
+        tickObjective('ibdiag');
+        checkConfigReady();
+      }
+      if (!fabricState.smRunning) {
+        return base.replace('SMINFO_MASTER', 'SM NOT RUNNING')
+                   .replace('No errors found', 'ERROR: subnet uninitialized -- SM not running');
+      }
+      return base;
+    };
+
+    /* Shell stubs */
+    MAP['clear'] = function () {
+      if (_lab && _lab.terminal) _lab.terminal.clear();
+      return '';
+    };
+    MAP['pwd'] = '/home/admin';
+    MAP['ls'] = 'bin  etc  home  lib  proc  run  sys  tmp  usr  var';
+    MAP['whoami'] = 'admin';
+    MAP['hostname'] = 'dgx-h100-01';
+    MAP['date'] = new Date().toUTCString();
+    MAP['uname'] = 'Linux';
+    MAP['uname ...'] = function (dev, raw) {
+      if (raw.indexOf('-a') !== -1) return 'Linux dgx-h100-01 5.15.0-102-generic #112-Ubuntu SMP x86_64 GNU/Linux';
+      return 'Linux';
+    };
+
+    MAP['help'] = MAP['?'] = [
+      'Fabric bring-up commands:',
+      '',
+      '  opensm -p 15       Start subnet manager, priority 15 (master election)',
+      '  sminfo             Verify SM state (expect SMINFO_MASTER)',
+      '  saquery --pkey     List partition keys',
+      '  saquery -p 0x8001  Register storage PKey (full member)',
+      '  ibdiagnet          Full fabric health scan',
+      '  ibstat             HCA port state',
+      '  iblinkinfo         Fabric link map',
+      '  sminfo             SM GUID/priority/state',
+      '  ibping <lid>       Ping a node by LID',
+      '',
+      '  pwd / ls / whoami / hostname / uname / date / clear',
+    ].join('\n');
+
+    return MAP;
+  }
+
+  function initConfigTerminal() {
+    /* Destroy previous terminal if re-entering phase */
+    if (_lab && _lab.terminal) {
+      _lab.terminal.destroy();
+      _lab.terminal = null;
+    }
+    var map = buildCommandMap();
+    _lab = new Lab.LabBase({ objectives: [] });
+    window._lab = _lab;
+    _lab.addDevice('dgx-h100-01', 'host', {
+      hostname: 'admin@dgx-h100-01',
+      shellPromptFormat: 'linux',
+      commandMap: map
+    });
+    _lab.addDevice('leaf-0', 'host', {
+      hostname: 'admin@leaf-0',
+      shellPromptFormat: 'linux',
+      commandMap: map
+    });
+
+    _lab.initTerminal(document.getElementById('termMount'));
+    document.getElementById('termTitle').textContent = 'admin@dgx-h100-01 -- IB fabric bring-up';
+
+    _lab.terminal.writeLine('NCP-AIN Fabric Bring-Up Lab -- Configure Phase');
+    _lab.terminal.writeLine('Node: dgx-h100-01   Fabric: rail-optimized 2-node x 2-rail');
+    _lab.terminal.writeLine('Rail wiring: VERIFIED CORRECT');
+    _lab.terminal.writeLine('');
+    _lab.terminal.writeLine('Start the subnet manager and set the partition key.');
+    _lab.terminal.writeLine('Type help for the command list.');
+    _lab.terminal.writeLine('');
+    _lab.terminal.updatePrompt();
+    _lab.terminal.focus();
+  }
+
+  function switchDevice(name) {
+    if (!_lab) return;
+    var tabs = document.querySelectorAll('#deviceTabs .device-tab');
+    tabs.forEach(function (t) { t.classList.toggle('active', t.textContent.indexOf(name) !== -1); });
+    var out = _lab.switchDevice(name);
+    if (out && _lab.terminal) {
+      _lab.terminal.writeLine(out);
+      _lab.terminal.updatePrompt();
+    }
+    document.getElementById('termTitle').textContent = 'admin@' + name + ' -- IB fabric bring-up';
+  }
+
+  function checkConfigReady() {
+    var ready = state.objectives.sm && state.objectives.pkey;
+    document.getElementById('btn-cfg-done').disabled = !ready;
+    refreshAllObjectives();
+  }
+
+  function completeConfigPhase() {
+    setPhase('validate');
+    initValidateTerminal();
+  }
+
+  /* ---- Phase D: VALIDATE terminal ------------------------------------------ */
+  var _labV = null;
+
+  function buildValidateMap() {
+    var MAP = {};
+
+    var IB_CMDS = ['ibstat', 'ibstatus', 'iblinkinfo', 'ibhosts', 'ibnetdiscover',
+                   'sminfo', 'ibping', 'ibportstate', 'perfquery'];
+    IB_CMDS.forEach(function (c) {
+      MAP[c] = function (dev, raw) { return window.IBTools.run(raw); };
+      MAP[c + ' ...'] = function (dev, raw) { return window.IBTools.run(raw); };
+    });
+
+    /* ibdiagnet: validate clean output */
+    MAP['ibdiagnet'] = function (dev, raw) {
+      var out = window.IBTools.run(raw);
+      if (!state.objectives.ibdiag) {
+        state.objectives.ibdiag = true;
+        tickObjective('ibdiag');
+        refreshAllObjectives();
+      }
+      /* Animate SVG links green on wireSvg if still visible */
+      var links = document.querySelectorAll('#wireSvg .fab-link');
+      links.forEach(function (l) { l.setAttribute('stroke', '#27c93f'); l.setAttribute('opacity', '1'); });
+      return out;
+    };
+    MAP['ibdiagnet ...'] = MAP['ibdiagnet'];
+
+    /* ib_write_bw: bandwidth test pass */
+    function bwTest(dev, raw) {
+      if (!state.objectives.ibdiag) {
+        return 'ib_write_bw: SM not confirmed clean. Run ibdiagnet first to verify fabric.';
+      }
+      var out = '\n';
+      out += '************************************\n';
+      out += '* Bandwidth Test (ib_write_bw)     *\n';
+      out += '************************************\n';
+      out += 'Connecting to dgx-h100-02 (lid 4)...\n\n';
+      out += '#bytes   #iterations   BW peak[Gb/sec]   BW average[Gb/sec]   MsgRate[Mpps]\n';
+      out += '65536    5000          381.24            380.97               0.726742\n\n';
+      out += 'PASS: 380.97 Gb/s > 380 Gb/s threshold (NDR 400G, 2 rails)\n';
+      if (!state.objectives.bw) {
+        state.objectives.bw = true;
+        tickObjective('bw');
+        refreshAllObjectives();
+        checkFinalSuccess();
+      }
+      return out;
+    }
+    MAP['ib_write_bw'] = bwTest;
+    MAP['ib_write_bw ...'] = bwTest;
+
+    /* all_reduce_perf */
+    function allReduce(dev, raw) {
+      if (!state.objectives.ibdiag) {
+        return 'all_reduce_perf: ibdiagnet must pass before running collectives.';
+      }
+      var out = '\n';
+      out += 'NCCL all_reduce_perf\n';
+      out += '#                                                              out-of-place                 in-place\n';
+      out += '#    size         count    type    redop   root   time   algbw   busbw #wrong time   algbw   busbw #wrong\n';
+      out += '1073741824    268435456   float     sum      -1   5.43  197.83  371.94  N/A   5.44  197.47  371.26  N/A\n\n';
+      out += 'busbw: 371.94 Gb/s   (92.98% of 400G line rate) -- PASS\n';
+      if (!state.objectives.bw) {
+        state.objectives.bw = true;
+        tickObjective('bw');
+        refreshAllObjectives();
+        checkFinalSuccess();
+      }
+      return out;
+    }
+    MAP['all_reduce_perf'] = allReduce;
+    MAP['all_reduce_perf ...'] = allReduce;
+
+    /* sminfo */
+    MAP['sminfo'] = function (dev, raw) { return window.IBTools.run(raw); };
+    MAP['sminfo ...'] = MAP['sminfo'];
+
+    /* Shell stubs */
+    MAP['clear'] = function () {
+      if (_labV && _labV.terminal) _labV.terminal.clear();
+      return '';
+    };
+    MAP['pwd']     = '/home/admin';
+    MAP['whoami']  = 'admin';
+    MAP['hostname']= 'dgx-h100-01';
+    MAP['date']    = new Date().toUTCString();
+
+    MAP['help'] = MAP['?'] = [
+      'Validation commands:',
+      '',
+      '  ibdiagnet          Full fabric scan (expect no errors)',
+      '  iblinkinfo         Link map (all 4X NDR HEALTHY)',
+      '  sminfo             Confirm SMINFO_MASTER',
+      '  ib_write_bw        Bandwidth test (pass: 380+ Gb/s)',
+      '  all_reduce_perf    NCCL collective busbw test (pass: 92%+ line rate)',
+      '  ibstat             HCA port state',
+    ].join('\n');
+
+    return MAP;
+  }
+
+  function initValidateTerminal() {
+    if (_labV && _labV.terminal) {
+      _labV.terminal.destroy();
+      _labV.terminal = null;
+    }
+    var map = buildValidateMap();
+    _labV = new Lab.LabBase({ objectives: [] });
+    _labV.addDevice('dgx-h100-01', 'host', {
+      hostname: 'admin@dgx-h100-01',
+      shellPromptFormat: 'linux',
+      commandMap: map
+    });
+    _labV.addDevice('dgx-h100-02', 'host', {
+      hostname: 'admin@dgx-h100-02',
+      shellPromptFormat: 'linux',
+      commandMap: map
+    });
+
+    _labV.initTerminal(document.getElementById('termMountV'));
+    document.getElementById('termTitleV').textContent = 'admin@dgx-h100-01 -- validation';
+
+    _labV.terminal.writeLine('NCP-AIN Fabric Bring-Up Lab -- Validate Phase');
+    _labV.terminal.writeLine('SM: MASTER (priority 15)   PKey 0x8001: SET');
+    _labV.terminal.writeLine('Run ibdiagnet to verify no errors, then ib_write_bw or all_reduce_perf.');
+    _labV.terminal.writeLine('');
+    _labV.terminal.updatePrompt();
+    _labV.terminal.focus();
+  }
+
+  function switchDeviceV(name) {
+    if (!_labV) return;
+    var tabs = document.querySelectorAll('#deviceTabsV .device-tab');
+    tabs.forEach(function (t) { t.classList.toggle('active', t.textContent.indexOf(name) !== -1); });
+    var out = _labV.switchDevice(name);
+    if (out && _labV.terminal) {
+      _labV.terminal.writeLine(out);
+      _labV.terminal.updatePrompt();
+    }
+    document.getElementById('termTitleV').textContent = 'admin@' + name + ' -- validation';
+  }
+
+  function checkFinalSuccess() {
+    var done = Object.values(state.objectives).every(function (v) { return v; });
+    if (done) {
+      document.getElementById('successBanner').classList.add('visible');
+      document.getElementById('successBanner').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      /* Animate SVG wire links green */
+      document.querySelectorAll('#wireSvg .fab-link').forEach(function (l) {
+        l.setAttribute('stroke', '#27c93f');
+      });
+    }
+  }
+
+  /* ---- Phase controller ----------------------------------------------------- */
+  function setPhase(phase) {
+    state.phase = phase;
+    var phases = ['place', 'wire', 'configure', 'validate'];
+    phases.forEach(function (p) {
+      var panel = document.getElementById('phase-' + p);
+      if (panel) panel.classList.toggle('active', p === phase);
+      var step = document.getElementById('step-' + p);
+      if (step) {
+        step.classList.remove('active', 'done');
+        var idx = phases.indexOf(p);
+        var cur = phases.indexOf(phase);
+        if (idx < cur)  step.classList.add('done');
+        if (idx === cur) step.classList.add('active');
+      }
+    });
+    refreshAllObjectives();
+  }
+
+  /* ---- Objectives ----------------------------------------------------------- */
+  var OBJ_IDS = ['nodes', 'rails', 'sm', 'pkey', 'ibdiag', 'bw'];
+  var OBJ_LABELS = {
+    nodes: 'GPU nodes placed (2)',
+    rails: 'Rails wired correctly',
+    sm:    'SM master up (priority 15)',
+    pkey:  'Storage partition PKey set',
+    ibdiag:'ibdiagnet clean (no errors)',
+    bw:    'Bandwidth test pass (380+ Gb/s)'
+  };
+
+  function tickObjective(key) {
+    state.objectives[key] = true;
+    refreshAllObjectives();
+  }
+
+  function refreshAllObjectives() {
+    var done = OBJ_IDS.filter(function (k) { return state.objectives[k]; }).length;
+    var total = OBJ_IDS.length;
+    var pct = Math.round(done / total * 100);
+
+    /* Configure sidebar */
+    var pb = document.getElementById('progressBar');
+    if (pb) pb.style.width = pct + '%';
+    var pc = document.getElementById('progressCount');
+    if (pc) pc.textContent = done + ' / ' + total;
+
+    /* Validate sidebar */
+    var pbv = document.getElementById('progressBarV');
+    if (pbv) pbv.style.width = pct + '%';
+    var pcv = document.getElementById('progressCountV');
+    if (pcv) pcv.textContent = done + ' / ' + total;
+
+    /* Objective list items */
+    OBJ_IDS.forEach(function (k) {
+      var isDone = state.objectives[k];
+      ['obj-' + k, 'obj-v-' + k].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('done', isDone);
+        el.querySelector('.obj-check').textContent = isDone ? 'V' : 'o';
+        el.lastChild.textContent = ' ' + OBJ_LABELS[k];
+      });
+    });
+  }
+
+  /* ---- Reset --------------------------------------------------------------- */
+  function resetLab() {
+    state = {
+      phase: 'place',
+      placedNodes: [],
+      connections: [],
+      objectives: { nodes:false, rails:false, sm:false, pkey:false, ibdiag:false, bw:false }
+    };
+    nodesPlaced = 0;
+    selectedPaletteType = null;
+    wireFrom = null;
+    portMap = {};
+
+    document.getElementById('successBanner').classList.remove('visible');
+    document.querySelectorAll('.palette-item').forEach(function (i) { i.classList.remove('selected'); });
+    document.getElementById('rail-msg-area').innerHTML = '';
+    document.getElementById('btn-wire-done').disabled = true;
+    document.getElementById('connCount').textContent = '0';
+    updatePlaceBtn();
+    refreshAllObjectives();
+    setPhase('place');
+    initPlaceCanvas();
+
+    if (_lab && _lab.terminal) { _lab.terminal.destroy(); _lab = null; }
+    if (_labV && _labV.terminal) { _labV.terminal.destroy(); _labV = null; }
+  }
+
+  /* Expose for onclick handlers */
+  window.completePlacePhase = completePlacePhase;
+  window.completeWirePhase = completeWirePhase;
+  window.completeConfigPhase = completeConfigPhase;
+  window.resetLab = resetLab;
+  window.resetWiring = resetWiring;
+  window.switchDevice = switchDevice;
+  window.switchDeviceV = switchDeviceV;
+
+  /* ---- Boot ---------------------------------------------------------------- */
+  initPlaceCanvas();
+  updatePlaceBtn();
+  refreshAllObjectives();
+
+}); /* DOMContentLoaded */
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

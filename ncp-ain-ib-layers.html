@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0B1108">
+<title>InfiniBand Layer Stack Sim: NCP-AIN</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ── Root / theme ── */
+:root {
+  --ncp:#76B900;
+  --ncp-rgb:118,185,0;
+  --ncp-light:#A4D65E;
+  --ncp-dark:#5A8C00;
+}
+html,body{margin:0;padding:0;background:#0B1108}
+.gc-bar,.gc-chat-panel,#guidePill{display:none!important}
+
+.sim-page{
+  min-height:100vh;
+  background:#0B1108;
+  color:#E2E8F0;
+  font-family:'Space Grotesk',system-ui,sans-serif;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── Topbar ── */
+.sim-topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;
+  background:#111A0A;
+  border-bottom:1px solid #1E3010;
+  flex-wrap:wrap;flex-shrink:0;
+}
+.sim-topbar h1{font-size:.95rem;font-weight:700;color:#F8FAFC;margin:0;letter-spacing:-.01em;white-space:nowrap}
+.back-sim{font-size:.72rem;color:#4A6A30;text-decoration:none;flex-shrink:0;transition:color .15s}
+.back-sim:hover{color:var(--ncp-light)}
+.sim-scenario{
+  font-family:'Space Grotesk',sans-serif;font-size:.75rem;font-weight:600;
+  padding:5px 9px;border:1px solid #2A4A1A;border-radius:6px;
+  background:#0B1108;color:#E2E8F0;cursor:pointer;
+}
+.sim-controls{display:flex;align-items:center;gap:5px;margin-left:auto;flex-wrap:wrap}
+.sim-btn{
+  font-family:'Space Grotesk',sans-serif;font-size:.7rem;font-weight:700;
+  padding:6px 12px;border:1px solid #2A4A1A;border-radius:6px;
+  background:#111A0A;color:#E2E8F0;cursor:pointer;
+  transition:all .15s;letter-spacing:.02em;
+}
+.sim-btn:hover:not(:disabled){border-color:var(--ncp);color:var(--ncp)}
+.sim-btn.primary{background:var(--ncp);color:#0B1108;border-color:var(--ncp)}
+.sim-btn.primary:hover:not(:disabled){background:var(--ncp-light)}
+.sim-btn:disabled{opacity:.3;cursor:default}
+.speed-sel{
+  font-family:'Space Grotesk',sans-serif;font-size:.7rem;
+  padding:5px 7px;border:1px solid #2A4A1A;border-radius:6px;
+  background:#0B1108;color:#E2E8F0;
+}
+.step-ctr{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#3A5A22;white-space:nowrap}
+
+/* ── IB layer bar (top mnemonic equivalent) ── */
+.ib-layer-bar{display:flex;flex-shrink:0;border-bottom:1px solid #111A0A}
+.ibl{
+  flex:1;padding:4px 2px;text-align:center;
+  font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+  opacity:.35;transition:opacity .25s,background .25s;cursor:pointer;line-height:1.4;
+}
+.ibl:hover{opacity:.65}
+.ibl.on{opacity:1}
+.ibl-4{background:rgba(118,185,0,.1);color:#A4D65E}
+.ibl-3{background:rgba(245,158,11,.1);color:#FCD34D}
+.ibl-2{background:rgba(59,130,246,.1);color:#93C5FD}
+.ibl-1{background:rgba(139,92,246,.1);color:#C4B5FD}
+
+/* ── Progress ── */
+.sim-prog{height:3px;background:#111A0A;flex-shrink:0}
+.sim-prog-fill{height:100%;background:var(--ncp);transition:width .35s ease;border-radius:0 2px 2px 0}
+
+/* ── Main 3-col ── */
+.sim-main{display:grid;grid-template-columns:155px 1fr 155px;flex:1;min-height:0;overflow:hidden}
+
+/* ── IB stacks ── */
+.ib-stack{
+  display:flex;flex-direction:column;
+  background:#0A1208;border-right:1px solid #111A0A;
+  padding:6px;gap:3px;overflow:hidden;
+}
+.ib-stack.rx{border-right:none;border-left:1px solid #111A0A}
+.stack-lbl{
+  font-size:.55rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:#2A4A1A;text-align:center;padding:3px 0 5px;flex-shrink:0;
+}
+.ib-layer{
+  padding:7px 9px;border-radius:5px;border:1px solid transparent;
+  cursor:pointer;transition:background .2s,border-color .2s,box-shadow .2s;
+  flex:1;display:flex;flex-direction:column;justify-content:center;
+  min-height:0;user-select:none;
+}
+.ib-layer:hover{opacity:.9}
+.il-num{font-family:'JetBrains Mono',monospace;font-size:.52rem;font-weight:700;opacity:.55;margin-bottom:1px}
+.il-name{font-size:.7rem;font-weight:700;line-height:1.1}
+.il-pdu{font-family:'JetBrains Mono',monospace;font-size:.52rem;opacity:.5;margin-top:2px}
+.il-hdr{font-size:.55rem;opacity:.45;margin-top:1px;line-height:1.3}
+
+/* IB layer colors: 4=Transport(ncp-green), 3=Network(amber), 2=Link(blue), 1=Physical(purple) */
+.ily4{background:rgba(118,185,0,.1);border-color:rgba(118,185,0,.18);color:#A4D65E}
+.ily4.on{background:rgba(118,185,0,.3);border-color:var(--ncp);color:#ECFFD8;box-shadow:0 0 18px rgba(118,185,0,.4)}
+.ily3{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.18);color:#FCD34D}
+.ily3.on{background:rgba(245,158,11,.3);border-color:#F59E0B;color:#FEF3C7;box-shadow:0 0 18px rgba(245,158,11,.4)}
+.ily2{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.18);color:#93C5FD}
+.ily2.on{background:rgba(59,130,246,.3);border-color:#3B82F6;color:#DBEAFE;box-shadow:0 0 18px rgba(59,130,246,.4)}
+.ily1{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.18);color:#C4B5FD}
+.ily1.on{background:rgba(139,92,246,.3);border-color:#8B5CF6;color:#EDE9FE;box-shadow:0 0 18px rgba(139,92,246,.4)}
+
+/* ── OSI mapping sidebar toggle ── */
+.osi-map{
+  padding:6px 8px;background:#0A1208;border-top:1px solid #111A0A;
+  font-size:.58rem;flex-shrink:0;
+}
+.osi-map-head{
+  font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:#2A4A1A;margin-bottom:4px;
+}
+.osi-row{
+  display:flex;gap:6px;align-items:center;padding:2px 0;
+  border-bottom:1px solid #111A0A;
+}
+.osi-row:last-child{border-bottom:none}
+.osi-ib{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--ncp-light);min-width:80px}
+.osi-eq{color:#2A4A1A;font-size:.55rem}
+.osi-tcp{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:#94A3B8}
+
+/* ── Center ── */
+.sim-center{display:flex;flex-direction:column;overflow:hidden;background:#0B1108}
+
+/* ── Topology ── */
+.topo-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+.topo-svg{width:100%;height:100%;display:block}
+.dev-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;fill:#4A6A30}
+.dev-lbl-sm{font-family:'JetBrains Mono',monospace;font-size:7.5px;fill:#2A4A1A}
+.ib-link{stroke:#1A2A10;stroke-width:2;transition:stroke .3s,stroke-width .3s}
+.ib-link.hot{stroke:var(--ncp);stroke-width:3;stroke-dasharray:7 3;animation:linkdash .8s linear infinite}
+@keyframes linkdash{to{stroke-dashoffset:-20}}
+.dev-rect{rx:7;ry:7;fill:#111A0A;stroke:#1E3010;stroke-width:1.5;transition:stroke .25s,stroke-width .25s,filter .25s}
+.dev-rect.hot{stroke:var(--ncp);stroke-width:2.5;filter:drop-shadow(0 0 8px rgba(118,185,0,.55))}
+
+/* Packet dot */
+.pkt-dot{transition:cx .55s cubic-bezier(.4,0,.2,1),cy .55s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 0 6px var(--ncp))}
+
+/* ── Packet header strip ── */
+.pkt-vis{padding:7px 12px;background:#0A1208;border-top:1px solid #111A0A;flex-shrink:0}
+.pkt-vis-lbl{font-size:.55rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#2A4A1A;margin-bottom:5px}
+.pkt-hdrs{display:flex;align-items:stretch;gap:2px;height:28px;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700}
+.ph{
+  display:flex;align-items:center;justify-content:center;
+  border-radius:4px;white-space:nowrap;padding:0 7px;
+  transition:all .35s;flex-shrink:0;
+}
+/* IB header colors matching layer colors */
+.ph.bth{background:#76B900;color:#0B1108;min-width:52px}
+.ph.lrh{background:#3B82F6;color:#EFF6FF;min-width:60px}
+.ph.grh{background:#F59E0B;color:#1C0A00;min-width:52px}
+.ph.data{background:#4B5563;color:#E5E7EB;flex:1;min-width:60px}
+.ph.sym{background:#8B5CF6;color:#EDE9FE;min-width:52px;font-size:.52rem}
+.ph.icrc{background:#374151;color:#9CA3AF;min-width:40px;font-size:.52rem}
+
+/* ── Step info ── */
+.step-info{padding:9px 13px;background:#0D1609;border-top:1px solid #111A0A;flex-shrink:0}
+.step-title{font-size:.8rem;font-weight:700;color:#F8FAFC;margin-bottom:3px;line-height:1.3}
+.step-desc{font-size:.73rem;color:#94A3B8;line-height:1.55}
+.step-fact{
+  margin-top:6px;padding:6px 10px;
+  background:rgba(118,185,0,.08);border-left:3px solid var(--ncp);
+  border-radius:0 4px 4px 0;font-size:.7rem;color:var(--ncp-light);line-height:1.45;
+}
+
+/* ── Bottom panels ── */
+.sim-bottom{display:grid;grid-template-columns:1fr 1fr;height:185px;border-top:1px solid #111A0A;flex-shrink:0}
+.panel{display:flex;flex-direction:column;overflow:hidden}
+.panel.log{border-right:1px solid #111A0A}
+.panel-head{
+  padding:5px 11px;background:#111A0A;border-bottom:1px solid #1E3010;
+  font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:#2A4A1A;display:flex;align-items:center;gap:7px;flex-shrink:0;
+}
+.ph-dot{width:6px;height:6px;border-radius:50%}
+.ph-dot.g{background:var(--ncp)}
+.ph-dot.a{background:#F59E0B}
+.panel-body{
+  flex:1;overflow-y:auto;padding:7px 11px;
+  font-family:'JetBrains Mono',monospace;font-size:.65rem;line-height:1.6;
+  scrollbar-width:thin;scrollbar-color:#1E3010 transparent;
+}
+.panel-body::-webkit-scrollbar{width:4px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:#1E3010;border-radius:2px}
+
+/* Log entries */
+.le{display:flex;gap:7px;margin-bottom:3px;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.le-t{color:#2A4A1A;flex-shrink:0}
+.le-lyr{padding:1px 5px;border-radius:3px;font-size:.56rem;font-weight:700;flex-shrink:0;letter-spacing:.03em}
+.le-lyr.l4{background:rgba(118,185,0,.2);color:#A4D65E}
+.le-lyr.l3{background:rgba(245,158,11,.2);color:#FCD34D}
+.le-lyr.l2{background:rgba(59,130,246,.2);color:#93C5FD}
+.le-lyr.l1{background:rgba(139,92,246,.2);color:#C4B5FD}
+.le-lyr.dev{background:rgba(74,106,48,.2);color:#6A8A50}
+.le-lyr.sw{background:rgba(74,106,48,.2);color:#6A8A50}
+.le-msg{color:#CBD5E1;word-break:break-word}
+
+/* Terminal */
+.term-body{color:#76B900;white-space:pre-wrap;word-break:break-all}
+.tl{display:block;margin-bottom:1px}
+.tl.p{color:#2A4A1A}
+.tl.h{color:#60A5FA;font-weight:700}
+.tl.w{color:#FBBF24}
+.tl.e{color:#F87171}
+.tl.r{color:#A4D65E}
+
+/* ── Layer detail popup ── */
+.ldetail{
+  position:fixed;z-index:9999;background:#111A0A;border:1px solid #2A4A1A;
+  border-radius:10px;padding:13px 15px;max-width:280px;width:280px;
+  box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;
+}
+.ldetail.show{display:block}
+.ld-close{float:right;background:none;border:none;color:#2A4A1A;cursor:pointer;font-size:.95rem;padding:0;line-height:1;margin:-2px -2px 0 0}
+.ld-close:hover{color:var(--ncp-light)}
+.ld-num{font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:700;margin-bottom:3px}
+.ld-name{font-size:.9rem;font-weight:700;margin-bottom:5px}
+.ld-pdu{font-family:'JetBrains Mono',monospace;font-size:.67rem;color:#4A6A30;margin-bottom:8px}
+.ld-sec{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#2A4A1A;margin:7px 0 3px}
+.ld-txt{font-size:.7rem;line-height:1.65;color:#CBD5E1}
+.ld-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.55rem;padding:1px 5px;border-radius:3px;background:rgba(118,185,0,.12);color:var(--ncp-light);margin-right:3px;margin-bottom:2px}
+
+/* ── Mobile ── */
+@media(max-width:680px){
+  .sim-main{grid-template-columns:1fr}
+  .ib-stack{display:none}
+  .sim-bottom{grid-template-columns:1fr;height:auto}
+  .panel.log{height:160px;border-right:none;border-bottom:1px solid #111A0A}
+  .panel.term{height:140px}
+  .ibl{font-size:.48rem}
+}
+@media(max-width:900px){
+  .sim-main{grid-template-columns:110px 1fr 110px}
+  .il-hdr{display:none}
+  .ib-stack{padding:4px}
+  .ib-layer{padding:5px 7px}
+}
+</style>
+</head>
+<body>
+<div class="sim-page">
+
+  <nav class="top-nav" id="main-nav"></nav>
+  <script defer src="js/nav.js?v=3"></script>
+
+  <!-- Topbar -->
+  <div class="sim-topbar">
+    <a class="back-sim" href="ncp-ain-hub.html">back NCP-AIN</a>
+    <h1>InfiniBand Layer Stack Sim</h1>
+    <select class="sim-scenario" id="scenSel">
+      <option value="local">Local Subnet RC Send (LID only)</option>
+      <option value="routed">Cross-Subnet Routed (GRH/GID added)</option>
+      <option value="rdma">RDMA Write (RC, zero-copy)</option>
+    </select>
+    <div class="sim-controls">
+      <button class="sim-btn" id="btnBack" title="Previous">prev</button>
+      <button class="sim-btn primary" id="btnPlay" title="Play/Pause (Space)">play</button>
+      <button class="sim-btn" id="btnFwd" title="Next">next</button>
+      <select class="speed-sel" id="speedSel">
+        <option value="2200">Slow</option>
+        <option value="1300" selected>Normal</option>
+        <option value="650">Fast</option>
+      </select>
+      <span class="step-ctr" id="stepCtr">1 / 1</span>
+    </div>
+  </div>
+
+  <!-- IB layer bar -->
+  <div class="ib-layer-bar">
+    <div class="ibl ibl-4" data-l="4">L4 IB<br>Transport<br><span style="opacity:.6;font-weight:400">BTH/QP</span></div>
+    <div class="ibl ibl-3" data-l="3">L3 IB<br>Network<br><span style="opacity:.6;font-weight:400">GRH/GID</span></div>
+    <div class="ibl ibl-2" data-l="2">L2 IB<br>Link<br><span style="opacity:.6;font-weight:400">LRH/LID</span></div>
+    <div class="ibl ibl-1" data-l="1">L1 IB<br>Physical<br><span style="opacity:.6;font-weight:400">Symbols</span></div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="sim-prog"><div class="sim-prog-fill" id="progFill" style="width:0%"></div></div>
+
+  <!-- Main -->
+  <div class="sim-main">
+
+    <!-- Sender IB stack -->
+    <div class="ib-stack tx" id="txStack">
+      <div class="stack-lbl">HCA-A (sender)</div>
+    </div>
+
+    <!-- Center -->
+    <div class="sim-center">
+
+      <!-- Topology SVG: HCA-A -- Switch -- HCA-B, optional Router for cross-subnet -->
+      <div class="topo-wrap">
+        <svg class="topo-svg" id="topoSvg" viewBox="0 0 620 190" preserveAspectRatio="xMidYMid meet">
+          <!-- Subnet labels -->
+          <text x="110" y="22" text-anchor="middle" class="dev-lbl-sm" id="lbl-subnet-a">Subnet A (LID space)</text>
+          <text x="510" y="22" text-anchor="middle" class="dev-lbl-sm" id="lbl-subnet-b">Subnet B (LID space)</text>
+
+          <!-- IB links -->
+          <line class="ib-link" id="lk-hca-sw"  x1="82"  y1="105" x2="240" y2="105"/>
+          <line class="ib-link" id="lk-sw-rt"   x1="280" y1="105" x2="340" y2="105" style="display:none"/>
+          <line class="ib-link" id="lk-rt-sw2"  x1="380" y1="105" x2="440" y2="105" style="display:none"/>
+          <line class="ib-link" id="lk-sw-hca"  x1="280" y1="105" x2="440" y2="105"/>
+          <line class="ib-link" id="lk-sw2-hcab" x1="440" y1="105" x2="538" y2="105" style="display:none"/>
+          <line class="ib-link" id="lk-sw-hcab-direct" x1="280" y1="105" x2="538" y2="105" style="display:none"/>
+
+          <!-- HCA-A -->
+          <g id="dev-hca-a">
+            <rect class="dev-rect" x="22" y="81" width="60" height="48"/>
+            <text x="52" y="100" text-anchor="middle" font-size="15" fill="#76B900">HCA</text>
+            <text x="52" y="114" text-anchor="middle" class="dev-lbl">HCA-A</text>
+            <text x="52" y="124" text-anchor="middle" class="dev-lbl-sm" id="lbl-hca-a">LID 0x0010</text>
+          </g>
+
+          <!-- QM Switch 1 -->
+          <g id="dev-sw">
+            <rect class="dev-rect" x="240" y="85" width="40" height="40"/>
+            <text x="260" y="101" text-anchor="middle" font-size="12" fill="#76B900">QM</text>
+            <text x="260" y="113" text-anchor="middle" class="dev-lbl">Leaf-1</text>
+            <text x="260" y="122" text-anchor="middle" class="dev-lbl-sm">L2 fwd</text>
+          </g>
+
+          <!-- IB Router (shown only in routed scenario) -->
+          <g id="dev-rt" style="display:none">
+            <rect class="dev-rect" x="340" y="85" width="40" height="40"/>
+            <text x="360" y="101" text-anchor="middle" font-size="12" fill="#F59E0B">IB</text>
+            <text x="360" y="113" text-anchor="middle" class="dev-lbl">Router</text>
+            <text x="360" y="122" text-anchor="middle" class="dev-lbl-sm">L3 GRH</text>
+          </g>
+
+          <!-- QM Switch 2 (shown only in routed scenario) -->
+          <g id="dev-sw2" style="display:none">
+            <rect class="dev-rect" x="440" y="85" width="40" height="40"/>
+            <text x="460" y="101" text-anchor="middle" font-size="12" fill="#76B900">QM</text>
+            <text x="460" y="113" text-anchor="middle" class="dev-lbl">Leaf-2</text>
+            <text x="460" y="122" text-anchor="middle" class="dev-lbl-sm">L2 fwd</text>
+          </g>
+
+          <!-- HCA-B -->
+          <g id="dev-hca-b">
+            <rect class="dev-rect" x="538" y="81" width="60" height="48"/>
+            <text x="568" y="100" text-anchor="middle" font-size="15" fill="#76B900">HCA</text>
+            <text x="568" y="114" text-anchor="middle" class="dev-lbl">HCA-B</text>
+            <text x="568" y="124" text-anchor="middle" class="dev-lbl-sm" id="lbl-hca-b">LID 0x0020</text>
+          </g>
+
+          <!-- Packet dot -->
+          <circle class="pkt-dot" id="pktDot" cx="-50" cy="105" r="9" fill="#76B900" style="display:none"/>
+          <text class="pkt-dot" id="pktLbl" x="-50" y="88" text-anchor="middle"
+                font-family="JetBrains Mono,monospace" font-size="8" fill="#A4D65E" style="display:none"></text>
+
+          <!-- Device processing hints -->
+          <text x="260" y="160" text-anchor="middle" class="dev-lbl-sm" id="swHint"></text>
+          <text x="360" y="160" text-anchor="middle" class="dev-lbl-sm" id="rtHint"></text>
+        </svg>
+      </div>
+
+      <!-- Packet header strip -->
+      <div class="pkt-vis">
+        <div class="pkt-vis-lbl">IB encapsulation (outermost header left, payload right)</div>
+        <div class="pkt-hdrs" id="pktHdrs">
+          <span style="font-size:.65rem;color:#2A4A1A;font-family:'JetBrains Mono',monospace">press play to start</span>
+        </div>
+      </div>
+
+      <!-- Step description -->
+      <div class="step-info">
+        <div class="step-title" id="stepTitle">Select a scenario and press Play</div>
+        <div class="step-desc" id="stepDesc">Three InfiniBand scenarios: Local RC Send (LID routing, no GRH), Cross-Subnet Routed (GRH with GID added by the router boundary), and RDMA Write (zero-copy transport, BTH opcode RDMA_WRITE_FIRST). Use prev/next or Space to navigate.</div>
+        <div class="step-fact" id="stepFact" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Receiver IB stack -->
+    <div class="ib-stack rx" id="rxStack">
+      <div class="stack-lbl">HCA-B (receiver)</div>
+    </div>
+
+  </div>
+
+  <!-- Bottom: log + terminal -->
+  <div class="sim-bottom">
+    <div class="panel log">
+      <div class="panel-head"><div class="ph-dot g"></div> Event Log</div>
+      <div class="panel-body" id="logBody">
+        <div class="le">
+          <span class="le-t">0.0s</span>
+          <span class="le-lyr dev">SYS</span>
+          <span class="le-msg">Simulator ready. Select a scenario and press Play.</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel term">
+      <div class="panel-head"><div class="ph-dot a"></div> ibstat / Packet Decode</div>
+      <div class="panel-body term-body" id="termBody"><span class="tl p">$ _</span></div>
+    </div>
+  </div>
+
+</div><!-- sim-page -->
+
+<!-- Layer detail popup -->
+<div class="ldetail" id="ldetail">
+  <button class="ld-close" id="ldClose">x</button>
+  <div class="ld-num" id="ldNum"></div>
+  <div class="ld-name" id="ldName"></div>
+  <div class="ld-pdu" id="ldPdu"></div>
+  <div class="ld-sec">Key Headers / Fields</div>
+  <div class="ld-txt" id="ldFields"></div>
+  <div class="ld-sec">OSI/TCP-IP Equivalent</div>
+  <div class="ld-txt" id="ldOsi"></div>
+  <div class="ld-sec">NCP-AIN Exam Tip</div>
+  <div class="ld-txt" id="ldTip"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+/* =====================================================================
+   IB LAYER DATA
+   [know] = from IB specification / NCP-AIN pillars-data.js n2,n4,n5,n6
+   [inferred] = reasoned from well-known IB architecture documents
+===================================================================== */
+var IB_LAYERS = [
+  {
+    n: 4, name: 'Transport', cls: 'ily4', iblCls: 'ibl-4', color: '#76B900',
+    pdu: 'Message / RDMA Op',
+    fields: 'BTH (Base Transport Header, 12 bytes): OpCode (8b) -- selects RC/UD/RD and verb (SEND, RDMA_WRITE, RDMA_READ); DestQP (24b) -- destination Queue Pair number; PSN (24b) -- Packet Sequence Number for ordering and reliability; AckReq bit. IETH/RETH/AtomicETH extend BTH for specific opcodes. ICRC (4 bytes) appended at tail.',
+    osi: 'Closest to OSI L4 (Transport): end-to-end QP-to-QP delivery, sequencing, reliability (RC) or best-effort (UD). IB Transport is implemented in hardware on the HCA -- no OS kernel path for data.',
+    tip: '[know] BTH is present in EVERY IB packet regardless of scenario. PSN wraps at 2^24. RC (Reliable Connected) provides per-message ACK/retransmit; UD (Unreliable Datagram) does not. RDMA_WRITE bypasses the receiver CPU entirely -- key differentiator from TCP.'
+  },
+  {
+    n: 3, name: 'Network', cls: 'ily3', iblCls: 'ibl-3', color: '#F59E0B',
+    pdu: 'Packet (inter-subnet only)',
+    fields: 'GRH (Global Routing Header, 40 bytes, IPv6-like): Version(4b) + TClass(8b) + FlowLabel(20b); PayLen (16b); NextHdr (0x1B = IB Transport); HopLimit (8b, decremented by IB routers); SGID (128b source GID); DGID (128b dest GID). GRH is OPTIONAL -- present only when crossing a subnet boundary.',
+    osi: 'Equivalent to OSI L3 (Network) / IPv6: provides global addressing (GID = 64-bit subnet prefix + 64-bit GUID). [know] GID structure: upper 64 bits are subnet prefix (configured by SM), lower 64 bits are port GUID (burned into HCA). Same field layout as IPv6 header.',
+    tip: '[know] GRH is absent for intra-subnet packets; the LRH LNH field flags whether GRH follows. An IB router rewrites DLID to the next-hop LID but preserves the original DGID -- analogous to a router rewriting dst MAC while keeping dst IP. Exam: "GRH present" = routed packet.'
+  },
+  {
+    n: 2, name: 'Link', cls: 'ily2', iblCls: 'ibl-2', color: '#3B82F6',
+    pdu: 'Frame (Local Packet)',
+    fields: 'LRH (Local Routing Header, 8 bytes): VL (4b, VL0-VL14 data, VL15=SMP-only); LVer(4b); SL (4b, Service Level, set by app); LNH (2b, 00=raw, 01=IPv6, 10=IB with GRH, 11=IB no GRH); DLID (16b, destination LID in current subnet); SLID (16b). Credit-based flow control: sender checks per-VL credits (64-byte units) before transmitting; prevents head-of-line blocking.',
+    osi: '[know] Closest to OSI L2 (Data Link): local-scope MAC-like addressing via LIDs, framing, and per-VL flow control. Switch forwarding table (LFT) is LID-indexed -- same concept as a MAC table but programmed by the SM, not learned. DLID changes at each IB router hop (like dst MAC hop-by-hop).',
+    tip: '[know] LID is 16-bit, scoped to one subnet (0x0001-0xBFFF unicast). VL15 is credit-free and reserved for SMP (QP0); only VL0-VL14 use credit flow control. SL is the application-level QoS hint; SM maps SL->VL via SL2VL table in each switch port.'
+  },
+  {
+    n: 1, name: 'Physical', cls: 'ily1', iblCls: 'ibl-1', color: '#8B5CF6',
+    pdu: 'Symbols / Lane bits',
+    fields: 'Encoding: SDR/DDR/QDR/FDR use NRZ modulation. HDR/NDR/XDR use PAM4 (4-level pulse amplitude). Framing: SDR-QDR use 8b/10b (20% overhead), FDR/EDR use 64b/66b (~3%), HDR+ use 256b/257b (~0.4%). Lane counts: 4x is the standard IB link. NDR = 4x PAM4 at 106.25 Gbaud = 400 Gb/s per direction. XDR = 4x PAM4 at 212.5 Gbaud = 800 Gb/s.',
+    osi: 'OSI L1 (Physical): raw signal on fiber or copper. No addressing. Differences from Ethernet L1: IB uses stricter latency targets and credit-flow prevents link-level congestion. [know] NRZ vs PAM4 is modulation; 8b/10b vs 64b/66b vs 256b/257b is framing -- do not conflate them (NCP-AIN exam trap).',
+    tip: '[know] HDR/NDR/XDR marketing speeds (200/400/800 Gb/s) are EFFECTIVE data rates after 256b/257b framing. SDR-QDR quoted speeds are SIGNALING rates -- subtract 8b/10b overhead (20%) for usable throughput. NDR hardware: ConnectX-7 HCA + Quantum-2 switch.'
+  },
+];
+
+/* IB layer lookup by number */
+function ibLayer(n) {
+  return IB_LAYERS.find(function(l){ return l.n === n; });
+}
+
+/* OSI mapping table data */
+var OSI_MAP = [
+  { ib:'IB Transport (L4)', osi:'OSI L4 / TCP equiv.' },
+  { ib:'IB Network (L3)',   osi:'OSI L3 / IPv6 equiv.' },
+  { ib:'IB Link (L2)',      osi:'OSI L2 / Ethernet' },
+  { ib:'IB Physical (L1)', osi:'OSI L1 / Eth PHY' },
+];
+
+/* =====================================================================
+   TOPOLOGY / DEVICE POSITIONS
+===================================================================== */
+var POS = {
+  'hca-a': { x: 52, y: 85 },
+  'sw':    { x: 260, y: 85 },
+  'rt':    { x: 360, y: 85 },
+  'sw2':   { x: 460, y: 85 },
+  'hca-b': { x: 568, y: 85 },
+};
+
+/* =====================================================================
+   SCENARIOS
+   sL = sender active IB layer number, rL = receiver IB layer number
+   devs = highlighted device element IDs (without 'dev-' prefix)
+   links = highlighted link element IDs
+   hdrs = header array (outermost first): 'lrh','grh','bth','data','sym','icrc'
+===================================================================== */
+var SC = {
+
+/* ─── SCENARIO 1: Local Subnet RC Send ─────────────────────────── */
+local: {
+  label: 'Local RC Send',
+  termInit: '$ ibstat mlx5_0\nCA mlx5_0\n  Port 1:\n    State: Active\n    Physical state: LinkUp\n    Rate: 400 Gb/sec (4X NDR)\n    SM lid: 1\n    LID: 16 (0x0010)\n    GUID: 0x0002c903004a1234',
+  steps: [
+    {
+      sL: 4, devs: ['hca-a'], hdrs: [],
+      title: 'Transport (L4) -- Application posts a Send WQE to the HCA',
+      desc: 'The application (e.g., MPI or NCCL) posts a Work Queue Entry (WQE) to the send queue of Queue Pair 42 (QP42). The operation is RC SEND. The HCA hardware reads the WQE, segments the message if it exceeds the path MTU, and begins building the first IB packet. The CPU is not involved in the data path after posting.',
+      fact: '[know] IB verbs are RDMA-native: the HCA DMA-reads the send buffer directly from pinned application memory without kernel involvement. RC (Reliable Connected) means the HCA will ACK every packet and retransmit on loss -- hardware-level reliability, no OS participation.',
+      log: { lyr: 'l4', msg: 'Transport: QP42 RC SEND WQE posted | seg 1/1 | PSN=0x000001 | DestQP=0x0070' },
+      term: ''
+    },
+    {
+      sL: 4, devs: ['hca-a'], hdrs: ['bth', 'data', 'icrc'],
+      title: 'Transport (L4) -- BTH built: opcode RC_SEND_ONLY, QP, PSN',
+      desc: 'The HCA builds the Base Transport Header (BTH, 12 bytes): OpCode=0x04 (RC SEND ONLY, meaning single-packet message), DestQP=0x000070, PSN=0x000001, AckReq=1 (request ACK from receiver). ICRC (4-byte Invariant CRC) is computed over the packet and appended. The BTH is the innermost IB header, directly wrapping the payload.',
+      fact: '[know] BTH OpCode encodes both the transport service (RC=0, UC=1, RD=2, UD=3) and the verb (SEND, RDMA_WRITE, RDMA_READ). RC_SEND_ONLY = 0x04. For RDMA_WRITE_ONLY the BTH contains an RETH extension with virtual address and rkey.',
+      log: { lyr: 'l4', msg: 'Transport: BTH built | opcode=0x04 (RC_SEND_ONLY) | DestQP=70 | PSN=1 | AckReq=1 | ICRC appended' },
+      term: 'BTH (12 bytes):\n  OpCode:  0x04 (RC_SEND_ONLY)\n  SE=0 M=0 Pad=0 TVer=0\n  P_Key:   0xFFFF (default partition, full member)\n  DestQP:  0x000070\n  A=1 PSN: 0x000001\n+ ICRC (4 bytes): 0x7A3C1E09'
+    },
+    {
+      sL: 2, devs: ['hca-a'], hdrs: ['lrh', 'bth', 'data', 'icrc'],
+      title: 'Link (L2) -- LRH added: DLID=0x0020, VL=0, SL=0',
+      desc: 'The HCA adds the Local Routing Header (LRH, 8 bytes). DLID=0x0020 (HCA-B in this subnet). SLID=0x0010 (HCA-A). VL=0 (default data Virtual Lane). SL=0 (Service Level 0). LNH=0x3 (IB transport, no GRH follows). This LRH is the outermost header and is consumed hop-by-hop by each switch -- each switch reads DLID from its Linear Forwarding Table to pick the output port.',
+      fact: '[know] LID is 16-bit and subnet-scoped (0x0001-0xBFFF unicast). The SM assigns LIDs during initialization and stores them in the LFT of every switch. VL15 carries only SMP (Subnet Management Packets on QP0) and is NOT credit-flow-controlled. All data VLs (0-14) require credits.',
+      log: { lyr: 'l2', msg: 'Link: LRH added | VL=0 SL=0 LNH=11 (no GRH) | DLID=0x0020 SLID=0x0010 | 8 bytes' },
+      term: 'LRH (8 bytes):\n  VL=0  LVer=0  SL=0  LNH=3 (IB, no GRH)\n  DLID: 0x0020 (HCA-B)\n  PktLen: 0x0012 (words)\n  SLID: 0x0010 (HCA-A)\n\nNo GRH -- intra-subnet LID routing only.'
+    },
+    {
+      sL: 1, devs: ['hca-a'], links: ['lk-hca-sw'],
+      hdrs: ['sym', 'lrh', 'bth', 'data', 'icrc'],
+      title: 'Physical (L1) -- Packet encoded and transmitted on NDR link',
+      desc: 'The HCA serializes the packet: 256b/257b framing applied (PAM4 modulation, NDR 4x). At 400 Gb/s per direction the link latency for a small IB packet is on the order of hundreds of nanoseconds. The physical delimiter (Start of Packet / End of Packet symbols) wraps the LRH+BTH+DATA+ICRC bytes on the wire. The Quantum-2 switch fabric begins receiving.',
+      fact: '[know] NDR uses PAM4 (4-level pulse amplitude modulation) at 4x lanes. 256b/257b framing adds only ~0.4% overhead -- this is why NDR effective rate (400 Gb/s) is nearly equal to the signaling rate. Compare to SDR 8b/10b with 20% overhead.',
+      log: { lyr: 'l1', msg: 'Physical: NDR 4x PAM4 | 256b/257b framing | packet on wire to Leaf-1' },
+      term: '$ mlxlink -d mlx5_0 -p 1\nState:             Active\nPhysical state:    LinkUp\nSpeed:             NDR\nWidth:             4x\nFEC:               RS(544,514)\nBER:               1e-15 (no errors)'
+    },
+    {
+      devs: ['sw'], links: ['lk-hca-sw', 'lk-sw-hca'],
+      hint: 'sw:LFT[0x0020]->port3',
+      hdrs: ['lrh', 'bth', 'data', 'icrc'],
+      title: 'Leaf-1 Switch -- LFT lookup: DLID 0x0020 -> port 3',
+      desc: 'The Quantum-2 switch receives the packet on its ingress port. It reads DLID=0x0020 from the LRH and performs a table lookup in the Linear Forwarding Table (LFT). The LFT was programmed by the SM (opensm or UFM) during initialization. DLID 0x0020 maps to egress port 3. The switch forwards the packet at line rate and does not modify the LRH, BTH, or payload.',
+      fact: '[know] IB switches are cut-through forwarders -- they begin forwarding before the full packet arrives. Adaptive Routing (AR) may select among equal-cost paths by checking per-output-port credit levels. The switch never strips or adds headers -- it only reads DLID.',
+      log: { lyr: 'sw', msg: 'Leaf-1: LFT[DLID=0x0020] -> port 3 | cut-through forward | AR: port credits checked' },
+      term: '$ ibroute 4 0x0020\nLFT on switch (LID=4, GUID 0x0021283a...):\n  DLID 0x0020 -> port 3\n\n(SM programmed this entry during heavy sweep)'
+    },
+    {
+      rL: 1, devs: ['hca-b'], links: ['lk-sw-hca'],
+      hdrs: ['sym', 'lrh', 'bth', 'data', 'icrc'],
+      title: 'Physical (L1) -- HCA-B receives symbols, reconstitutes packet',
+      desc: 'HCA-B detects the Start of Packet symbol on the NDR link. The PAM4 signal is decoded, 256b/257b delimited, and the raw bytes are assembled into the IB packet frame. The HCA checks the VCRC (Variant CRC, protecting the link frame). If the VCRC fails the packet is dropped at L1 -- no L1 retransmit; the RC transport will handle retransmit via ACK timeout.',
+      fact: '[inferred] VCRC (Variant CRC) protects the link-level frame (changes at each hop); ICRC (Invariant CRC) is set by the source and checked end-to-end without being re-computed at intermediate hops. Both CRCs are distinct IB concepts.',
+      log: { lyr: 'l1', msg: 'HCA-B Physical: NDR link | SOP received | VCRC OK | packet assembled' },
+      term: ''
+    },
+    {
+      rL: 2, devs: ['hca-b'], hdrs: ['bth', 'data', 'icrc'],
+      title: 'Link (L2) -- LRH consumed: DLID matches, check VL credits',
+      desc: 'HCA-B strips the LRH. It verifies DLID=0x0020 matches its own LID. LNH=3 means no GRH follows -- next header is the BTH. The VL=0 credit is noted (the HCA will replenish by sending a credit update to HCA-A via VL flow control). The Link layer has done its job -- local delivery confirmed.',
+      fact: '[know] Credit replenishment: the receiver sends link-level credits back to the sender through the physical channel. Each credit = 64 bytes of buffer space. A sender with 0 credits on a VL must stall -- this is the mechanism that prevents buffer overflow without dropping packets.',
+      log: { lyr: 'l2', msg: 'HCA-B Link: DLID=0x0020 match | LNH=3 no-GRH | VL0 credit replenish queued | LRH stripped' },
+      term: ''
+    },
+    {
+      rL: 4, devs: ['hca-b'], hdrs: ['data'],
+      title: 'Transport (L4) -- BTH processed: QP match, PSN check, ICRC verify',
+      desc: 'HCA-B reads the BTH: DestQP=0x000070 -- matches a connected QP. PSN=0x000001 -- expected sequence (no reorder). ICRC validated -- no corruption. OpCode=0x04 (RC_SEND_ONLY) means this is a complete message. The HCA places the payload into the registered receive buffer and posts a Work Completion (WC) to the receive CQ. An ACK is generated and sent back to HCA-A.',
+      fact: '[know] RC ACK: HCA-B sends an ACK packet (BTH-only, no payload) back to HCA-A QP42. If HCA-A does not receive ACK within the retry timeout, it retransmits from PSN 1. Retransmit is hardware-driven -- no OS involvement. This is fundamentally different from TCP where the OS kernel manages retransmit.',
+      log: { lyr: 'l4', msg: 'HCA-B Transport: QP70 RC match | PSN=1 OK | ICRC valid | payload placed | WC posted | ACK queued to HCA-A' },
+      term: '$ ibv_devinfo -d mlx5_1\nhca_id: mlx5_1\n  transport:          InfiniBand (0)\n  fw_ver:             28.39.1002\n  node_guid:          0002:c903:004b:5678\n  sys_image_guid:     0002:c903:004b:5678\n  vendor_id:          0x02c9 (NVIDIA/Mellanox)\n\nWC: QP=70 | wr_id=1 | status=SUCCESS | opcode=RECV'
+    },
+  ]
+},
+
+/* ─── SCENARIO 2: Cross-Subnet Routed (GRH/GID) ────────────────── */
+routed: {
+  label: 'Cross-Subnet Routed',
+  termInit: '$ saquery -g\nGID: 0xfe80:0000:0000:0000:0002:c903:004a:1234  (HCA-A port 1)\nGID: 0xfe80:0000:0000:0000:0002:c903:004b:5678  (HCA-B port 1)\n\n(Different subnet prefixes -- GRH required)',
+  steps: [
+    {
+      sL: 4, devs: ['hca-a'], hdrs: [],
+      title: 'Transport (L4) -- RC SEND to remote GID (cross-subnet)',
+      desc: 'HCA-A wants to reach HCA-B which lives in a different IB subnet. The path record returned by the SA (Subnet Administrator) includes a GRH flag. The HCA must include a GRH carrying the source GID and destination GID so the IB router can route globally. Within each subnet, LIDs still handle local forwarding.',
+      fact: '[know] The SA (Subnet Administrator, part of the SM) stores PathRecords. A PathRecord returned for a cross-subnet path includes: DLID of the first IB router, DGID of the ultimate destination HCA-B, and the GRH flag set. The HCA uses this PathRecord to know it must generate a GRH.',
+      log: { lyr: 'l4', msg: 'Transport: cross-subnet RC SEND | PathRecord: GRH required | DGID=0xfe80::004b:5678' },
+      term: '$ saquery -p --sgid=0xfe80::004a:1234 --dgid=0xfe80::004b:5678\nPathRecord:\n  SGID: fe80::2:c903:4a:1234\n  DGID: fe80::2:c903:4b:5678\n  DLID: 0x0030 (IB Router port in Subnet A)\n  SL:   0\n  MTU:  2048\n  GRH required: yes'
+    },
+    {
+      sL: 4, devs: ['hca-a'], hdrs: ['bth', 'data', 'icrc'],
+      title: 'Transport (L4) -- BTH built (same as local, opcode RC_SEND_ONLY)',
+      desc: 'The BTH is identical to the local case: OpCode=0x04, DestQP=0x000070, PSN=0x000001. The transport layer does not know or care about subnet boundaries -- that is the Network (L3) layer\'s job. ICRC is computed.',
+      fact: '[know] IB is a layered protocol: the Transport layer (BTH) is unaware of routing. The Network layer (GRH) handles inter-subnet addressing. This is the same separation-of-concerns as TCP (transport) vs IP (network).',
+      log: { lyr: 'l4', msg: 'Transport: BTH opcode=0x04 DestQP=70 PSN=1 AckReq=1 | ICRC computed' },
+      term: 'BTH:\n  OpCode: 0x04 (RC_SEND_ONLY)\n  DestQP: 0x000070\n  PSN:    0x000001\n  ICRC:   0xA1B2C3D4'
+    },
+    {
+      sL: 3, devs: ['hca-a'], hdrs: ['grh', 'bth', 'data', 'icrc'],
+      title: 'Network (L3) -- GRH inserted: SGID, DGID, HopLimit=1',
+      desc: 'Since the path crosses a subnet boundary, the HCA inserts the GRH (Global Routing Header, 40 bytes) BETWEEN the LRH and the BTH. SGID=GID of HCA-A port. DGID=GID of HCA-B port (the ultimate destination, preserved end-to-end). HopLimit=1 (one IB router hop allowed). NextHdr=0x1B (IB Transport). The GRH is analogous to an IPv6 header.',
+      fact: '[know] GID = 128 bits = 64-bit subnet prefix + 64-bit port GUID. The SM assigns the subnet prefix (stored in PortInfo.GIDPrefix). The lower 64 bits are the port GUID (unique to the HCA port, factory-burned). Two GIDs from different subnets will differ in the upper 64 bits.',
+      log: { lyr: 'l3', msg: 'Network: GRH inserted | SGID=fe80::4a:1234 DGID=fe80::4b:5678 | HopLimit=1 | NextHdr=0x1B | 40 bytes' },
+      term: 'GRH (40 bytes, IPv6-like structure):\n  Ver=6  TClass=0x00  FlowLabel=0x00000\n  PayLen: <payload bytes>\n  NextHdr: 0x1B (IB Transport)\n  HopLimit: 1\n  SGID: fe80:0000:0000:0000:0002:c903:004a:1234\n  DGID: fe80:0000:0000:0000:0002:c903:004b:5678'
+    },
+    {
+      sL: 2, devs: ['hca-a'], hdrs: ['lrh', 'grh', 'bth', 'data', 'icrc'],
+      title: 'Link (L2) -- LRH: DLID = IB Router LID (not HCA-B!), LNH=0x2',
+      desc: 'The LRH DLID is set to 0x0030 -- the LID of the IB Router\'s port in Subnet A (from the PathRecord). This is NOT HCA-B\'s LID. LNH=0x2 (GRH present). The switch in Subnet A will forward to the router based on this DLID. The router is the subnet boundary device that bridges the two LID spaces.',
+      fact: '[know] This is the key router analogy: DLID in LRH = next-hop LID (the router), like dst MAC pointing to the gateway. DGID in GRH = ultimate destination GID (HCA-B), like dst IP that stays constant. The IB router rewrites DLID at the boundary but never touches the DGID.',
+      log: { lyr: 'l2', msg: 'Link: LRH | DLID=0x0030 (IB Router, Subnet A port) | LNH=2 (GRH follows) | SLID=0x0010' },
+      term: 'LRH:\n  VL=0  SL=0  LNH=2 (GRH present)\n  DLID: 0x0030 (IB Router port in Subnet A)\n  SLID: 0x0010 (HCA-A)\n\nNote: DLID points to ROUTER, not HCA-B.'
+    },
+    {
+      sL: 1, devs: ['hca-a'], links: ['lk-hca-sw'],
+      hdrs: ['sym', 'lrh', 'grh', 'bth', 'data', 'icrc'],
+      title: 'Physical (L1) -- Packet transmitted to Leaf-1 switch',
+      desc: 'The fully encapsulated packet (LRH + GRH + BTH + DATA + ICRC) exits HCA-A on the NDR link toward Leaf-1. The LRH is the outermost header; everything inside (including GRH) is opaque to the switch.',
+      fact: '[know] Switches only inspect the LRH (specifically DLID). GRH, BTH, and payload are forwarded without inspection by the switch. Only the IB router needs to read the GRH to determine the next-hop LID in the destination subnet.',
+      log: { lyr: 'l1', msg: 'Physical: packet on wire | LRH+GRH+BTH+DATA+ICRC | NDR 4x PAM4' },
+      term: ''
+    },
+    {
+      devs: ['sw'], links: ['lk-hca-sw', 'lk-sw-rt'],
+      hint: 'sw:LFT[0x0030]->port7',
+      hdrs: ['lrh', 'grh', 'bth', 'data', 'icrc'],
+      title: 'Leaf-1 Switch -- LFT lookup: DLID 0x0030 -> IB Router port',
+      desc: 'Leaf-1 reads DLID=0x0030 from the LRH. LFT lookup points to the port connected to the IB Router. The switch forwards without inspecting GRH or BTH. The packet arrives at the IB Router\'s ingress port in Subnet A.',
+      fact: '[inferred] The IB Router appears in the fabric as a regular LID-addressable node within each subnet. It has one LID per subnet it connects. The SM knows the router topology and programs LFTs accordingly.',
+      log: { lyr: 'sw', msg: 'Leaf-1: LFT[0x0030] -> router port | forwarded | GRH/BTH not inspected' },
+      term: ''
+    },
+    {
+      devs: ['rt'], links: ['lk-sw-rt', 'lk-rt-sw2'],
+      hint: 'rt:GRH->DLID rewrite',
+      hdrs: ['lrh', 'grh', 'bth', 'data', 'icrc'],
+      title: 'IB Router -- Reads GRH DGID, rewrites LRH DLID for Subnet B',
+      desc: 'The IB Router receives the packet. It strips the LRH (Subnet A context). It reads the GRH DGID=0xfe80::004b:5678. It looks up the DGID in its routing table and determines: HCA-B is in Subnet B with local LID 0x0040. It builds a new LRH: DLID=0x0040 (HCA-B in Subnet B), SLID = router\'s Subnet B port LID. The GRH DGID is NOT modified. HopLimit is decremented: 1 -> 0.',
+      fact: '[know] This is exactly analogous to IP routing: the router reads the dst IP (DGID), rewrites the L2 header (LRH with new DLID = next-hop LID), preserves the L3 header (GRH with original DGID). HopLimit=0 after decrement means no further IB router hops are allowed.',
+      log: { lyr: 'l3', msg: 'IB Router: DGID lookup -> Subnet B | new LRH DLID=0x0040 | HopLimit 1->0 | DGID unchanged' },
+      term: 'IB Router forwarding:\n  Strip old LRH (Subnet A)\n  Read GRH DGID: fe80::004b:5678\n  Lookup: Subnet B, HCA-B LID=0x0040\n  Build new LRH:\n    DLID: 0x0040 (HCA-B in Subnet B)\n    SLID: 0x0031 (Router Subnet B port)\n    LNH: 2 (GRH still present)\n  Decrement HopLimit: 1 -> 0'
+    },
+    {
+      devs: ['sw2'], links: ['lk-rt-sw2', 'lk-sw2-hcab'],
+      hint: 'sw2:LFT[0x0040]->port2',
+      hdrs: ['lrh', 'grh', 'bth', 'data', 'icrc'],
+      title: 'Leaf-2 Switch (Subnet B) -- LFT lookup: DLID 0x0040 -> HCA-B',
+      desc: 'Leaf-2 in Subnet B receives the packet with the new LRH. DLID=0x0040 maps to the port connected to HCA-B. The switch forwards at line rate. This is identical to the intra-subnet switch step, just in Subnet B with its own LFT programmed by the Subnet B SM.',
+      fact: '[inferred] A cross-subnet IB fabric requires a SM per subnet (or a combined SM that manages both). Each SM programs its own subnet\'s LFTs independently. The IB router is the gateway between the two LID namespaces.',
+      log: { lyr: 'sw', msg: 'Leaf-2 (Subnet B): LFT[0x0040] -> HCA-B port | forwarded' },
+      term: ''
+    },
+    {
+      rL: 2, devs: ['hca-b'], links: ['lk-sw2-hcab'],
+      hdrs: ['grh', 'bth', 'data', 'icrc'],
+      title: 'Link (L2) HCA-B -- LRH consumed: DLID=0x0040 matches, GRH present',
+      desc: 'HCA-B strips the LRH. DLID=0x0040 matches its own LID in Subnet B. LNH=0x2 means a GRH follows. The link layer passes the remaining packet (GRH + BTH + DATA + ICRC) upward to the Network layer.',
+      fact: '[know] Even though the GRH is present at the receiver, it is only consumed to confirm DGID matches the receiver\'s GID and to record the SGID for the application. The critical work is done -- the packet arrived from a foreign subnet via the IB router.',
+      log: { lyr: 'l2', msg: 'HCA-B Link: DLID=0x0040 match | LNH=2 GRH present | LRH stripped | pass to L3' },
+      term: ''
+    },
+    {
+      rL: 3, devs: ['hca-b'], hdrs: ['bth', 'data', 'icrc'],
+      title: 'Network (L3) HCA-B -- GRH consumed: DGID verified, HopLimit=0',
+      desc: 'HCA-B reads the GRH: DGID=0xfe80::004b:5678 -- matches its own GID. HopLimit=0 (correct, no further routing). SGID recorded for the application if needed. GRH stripped. The IB packet is now identical to what would arrive in an intra-subnet case at this point: BTH + DATA + ICRC.',
+      fact: '[know] If HopLimit were > 0 at the destination HCA, the packet would still be accepted -- HopLimit only prevents forwarding by routers, not reception by endpoints. HopLimit=0 reaching an endpoint is normal.',
+      log: { lyr: 'l3', msg: 'HCA-B Network: DGID match | HopLimit=0 | SGID noted | GRH stripped | pass to Transport' },
+      term: 'GRH consumed:\n  DGID: fe80::004b:5678 (my GID) -- match\n  SGID: fe80::004a:1234 (HCA-A)\n  HopLimit: 0 (final hop)\n  NextHdr: 0x1B -> BTH'
+    },
+    {
+      rL: 4, devs: ['hca-b'], hdrs: ['data'],
+      title: 'Transport (L4) HCA-B -- BTH: QP match, PSN, ICRC -- payload delivered',
+      desc: 'Identical to the local scenario: BTH processed, QP70 matched, PSN=1 verified, ICRC valid. Payload placed in registered receive buffer. WC posted to CQ. RC ACK sent back. The application on HCA-B is oblivious to the fact that a router was involved.',
+      fact: '[know] End-to-end transparency is a core IB design goal: the application uses the same verbs API whether the destination is intra-subnet (no GRH) or inter-subnet (GRH). The HCA and path record selection handle the routing transparently.',
+      log: { lyr: 'l4', msg: 'HCA-B Transport: QP70 | PSN=1 OK | ICRC valid | payload delivered | ACK -> HCA-A' },
+      term: 'WC (Work Completion):\n  status: IBV_WC_SUCCESS\n  opcode: IBV_WC_RECV\n  qp_num: 70\n  src_qp: 42\n  slid:   0x0031 (router Subnet B port)\n  pkey_index: 0'
+    },
+  ]
+},
+
+/* ─── SCENARIO 3: RDMA Write ──────────────────────────────────── */
+rdma: {
+  label: 'RDMA Write',
+  termInit: '$ ib_write_bw -d mlx5_0 -x 1 --report_gbits 10.0.0.2\n#bytes  #iters  BW avg (Gb/sec)\n 65536   1000    375.42\n\n(NDR 400G expected: 380+ Gb/s effective)',
+  steps: [
+    {
+      sL: 4, devs: ['hca-a'], hdrs: [],
+      title: 'Transport (L4) -- Application posts RDMA_WRITE WQE',
+      desc: 'The application on HCA-A wants to write 65536 bytes directly into a memory buffer on HCA-B -- WITHOUT involving HCA-B\'s CPU. The application posts a WQE with opcode RDMA_WRITE: local buffer VA + lkey, remote buffer VA + rkey (obtained out-of-band during connection setup). HCA-A will DMA-read from the local buffer and transmit. HCA-B\'s CPU will never be interrupted.',
+      fact: '[know] RDMA Write is one-sided: only the initiating HCA (HCA-A here) needs a posted WQE. HCA-B hardware places the data directly into the remote registered memory region using the rkey and virtual address in the RETH. This is the core performance advantage of RDMA over TCP: zero receiver CPU overhead for data movement.',
+      log: { lyr: 'l4', msg: 'Transport: RDMA_WRITE WQE posted | len=65536 | local lkey=0xABC | remote rkey=0x123 raddr=0x7F00001000' },
+      term: '$ ib_write_bw posting WQE:\n  opcode:      RDMA_WRITE\n  local_addr:  0x7F00000000\n  local_lkey:  0x00000ABC\n  remote_addr: 0x7F00001000\n  remote_rkey: 0x00000123\n  length:      65536 bytes'
+    },
+    {
+      sL: 4, devs: ['hca-a'], hdrs: ['bth', 'data', 'icrc'],
+      title: 'Transport (L4) -- BTH opcode RDMA_WRITE_FIRST + RETH extension',
+      desc: 'Since 65536 bytes exceeds the path MTU (2048 bytes here), the HCA segments the message into multiple IB packets. First packet: BTH opcode=0x06 (RDMA_WRITE_FIRST). BTH is extended with RETH (RDMA Extended Transport Header, 16 bytes): DMALen=65536, VA=0x7F00001000, R_Key=0x00000123. Subsequent packets use opcode RDMA_WRITE_MIDDLE (0x07) with only BTH+DATA. Last packet: RDMA_WRITE_LAST (0x08). PSN increments for each segment.',
+      fact: '[know] RETH is only in the FIRST packet of a multi-packet RDMA_WRITE (or the only packet for single-packet WRITE). It carries the DMA length, remote virtual address, and rkey. HCA-B uses these to know where to place each segment without any CPU involvement.',
+      log: { lyr: 'l4', msg: 'Transport: BTH opcode=RDMA_WRITE_FIRST | RETH: VA=0x7F00001000 RKey=0x123 DMALen=65536 | PSN=1' },
+      term: 'BTH (12 bytes) + RETH (16 bytes):\n  BTH.OpCode:   0x06 (RDMA_WRITE_FIRST)\n  BTH.DestQP:   0x000070\n  BTH.PSN:      0x000001\n  RETH.VA:      0x00007F00001000\n  RETH.R_Key:   0x00000123\n  RETH.DMALen:  0x00010000 (65536)'
+    },
+    {
+      sL: 2, devs: ['hca-a'], hdrs: ['lrh', 'bth', 'data', 'icrc'],
+      title: 'Link (L2) -- LRH: same intra-subnet LID routing, no GRH',
+      desc: 'RDMA Write uses the same Link layer as any RC packet: LRH with DLID=0x0020 (HCA-B), LNH=3 (no GRH, intra-subnet). VL=0. The QoS level could be configured to a higher-priority VL for latency-sensitive RDMA traffic using the SL field and SM SL2VL mapping.',
+      fact: '[know] AI training workloads (AllReduce) often use SL=0 (default). Storage RDMA may use SL=4 mapped to a dedicated VL for isolation. VL15 is never used by application traffic -- it is strictly reserved for SMP (opensm heartbeats and SM queries on QP0).',
+      log: { lyr: 'l2', msg: 'Link: LRH DLID=0x0020 SLID=0x0010 | VL=0 SL=0 | LNH=3 (no GRH) | intra-subnet' },
+      term: ''
+    },
+    {
+      sL: 1, devs: ['hca-a'], links: ['lk-hca-sw'],
+      hdrs: ['sym', 'lrh', 'bth', 'data', 'icrc'],
+      title: 'Physical (L1) -- First segment (2048 bytes) on wire',
+      desc: 'The HCA transmits the first 2048-byte IB packet: LRH(8) + BTH(12) + RETH(16) + DATA(2012) + ICRC(4) = 2052 bytes on the wire. At 400 Gb/s NDR, this takes approximately 41 nanoseconds. The HCA immediately begins DMA-reading the next segment from the application buffer and building the second packet.',
+      fact: '[know] IB pipelining: the HCA overlaps DMA-read of the next segment with transmission of the current one. This is why IB achieves near-line-rate for large messages. The NDR 4x theoretical max is 400 Gb/s; ib_write_bw typically achieves 375-395 Gb/s for large messages.',
+      log: { lyr: 'l1', msg: 'Physical: seg 1/32 | 2052 bytes | NDR 4x PAM4 | ~41ns transmit time' },
+      term: ''
+    },
+    {
+      devs: ['sw'], links: ['lk-hca-sw', 'lk-sw-hca'],
+      hint: 'sw:LFT[0x0020]->port3',
+      hdrs: ['lrh', 'bth', 'data', 'icrc'],
+      title: 'Leaf-1 Switch -- Cut-through forward, all 32 segments',
+      desc: 'Leaf-1 forwards all 32 segments (32 x 2048-byte packets, last one may be smaller) using the same LFT lookup: DLID=0x0020 -> port 3. Each packet is cut-through forwarded. The switch inspects only the LRH. RETH inside BTH is invisible to the switch. For NDR 400G, all 32 packets cross the switch fabric in well under 10 microseconds.',
+      fact: '[inferred] Adaptive Routing may distribute RDMA Write segments across multiple equal-cost paths to avoid link hotspots. Out-of-order arrival is handled by the HCA-B reorder buffer (RC PSN sequencing). AR is transparent to the application.',
+      log: { lyr: 'sw', msg: 'Leaf-1: 32 segments LFT[0x0020]->port3 | cut-through | AR distributing across paths' },
+      term: ''
+    },
+    {
+      rL: 4, devs: ['hca-b'], links: ['lk-sw-hca'],
+      hdrs: ['data'],
+      title: 'Transport (L4) HCA-B -- RETH triggers zero-copy DMA write',
+      desc: 'HCA-B receives the first packet, reads the RETH: VA=0x7F00001000, R_Key=0x00000123. It validates the rkey against its memory registration table. It begins DMA-writing the payload directly to the virtual address in the registered memory region. Each subsequent segment (RDMA_WRITE_MIDDLE, then RDMA_WRITE_LAST) is appended at the correct offset using PSN. HCA-B\'s CPU is never involved in the data path.',
+      fact: '[know] rkey (Remote Key) is a capability token that grants one-sided write access to a specific memory region. It is exchanged out-of-band (e.g., via a control connection) during QP setup. An invalid rkey causes an immediate NAK and WC error. Memory must be pinned (not swappable) during RDMA operations.',
+      log: { lyr: 'l4', msg: 'HCA-B Transport: RETH rkey=0x123 valid | DMA write to 0x7F00001000 | 32 segs | CPU=0 interrupts' },
+      term: '$ ib_write_bw result:\n#bytes   #iters  BW avg (Gb/sec)\n 65536    1000    375.42\n\nHCA-B CPU interrupts during data: 0\nWC posted after RDMA_WRITE_LAST ACK'
+    },
+  ]
+},
+
+}; // end SC
+
+/* =====================================================================
+   BUILD IB STACKS
+===================================================================== */
+function buildStack(stackId, label) {
+  var stack = document.getElementById(stackId);
+  stack.innerHTML = '<div class="stack-lbl">' + label + '</div>';
+  IB_LAYERS.forEach(function(l) {
+    var d = document.createElement('div');
+    d.className = 'ib-layer ' + l.cls;
+    d.id = stackId + '-l' + l.n;
+    d.setAttribute('tabindex', '0');
+    d.setAttribute('role', 'button');
+    d.setAttribute('aria-label', 'IB Layer ' + l.n + ': ' + l.name + '. Click for details.');
+    d.innerHTML =
+      '<div class="il-num">IB L' + l.n + '</div>' +
+      '<div class="il-name">' + l.name + '</div>' +
+      '<div class="il-pdu">' + l.pdu.split('(')[0].trim() + '</div>' +
+      '<div class="il-hdr">' + (l.n===4 ? 'BTH/RETH' : l.n===3 ? 'GRH' : l.n===2 ? 'LRH' : 'PAM4/NRZ') + '</div>';
+    d.addEventListener('click', function(e) { showDetail(l, e); });
+    d.addEventListener('keydown', function(e) { if (e.key==='Enter'||e.key===' ') showDetail(l, e); });
+    stack.appendChild(d);
+  });
+  /* OSI mapping panel inside stack */
+  var om = document.createElement('div');
+  om.className = 'osi-map';
+  om.innerHTML = '<div class="osi-map-head">IB vs OSI/TCP-IP</div>';
+  OSI_MAP.forEach(function(row) {
+    om.innerHTML += '<div class="osi-row">' +
+      '<span class="osi-ib">' + row.ib + '</span>' +
+      '<span class="osi-eq">~</span>' +
+      '<span class="osi-tcp">' + row.osi + '</span>' +
+      '</div>';
+  });
+  stack.appendChild(om);
+}
+buildStack('txStack', 'HCA-A (sender)');
+buildStack('rxStack', 'HCA-B (receiver)');
+
+/* =====================================================================
+   LAYER DETAIL POPUP
+===================================================================== */
+function showDetail(l, e) {
+  var det = document.getElementById('ldetail');
+  var num = document.getElementById('ldNum');
+  var nm  = document.getElementById('ldName');
+  num.textContent = 'IB Layer ' + l.n;
+  num.style.color = l.color;
+  nm.textContent  = l.name;
+  nm.style.color  = l.color;
+  document.getElementById('ldPdu').textContent   = 'PDU: ' + l.pdu;
+  document.getElementById('ldFields').textContent = l.fields;
+  document.getElementById('ldOsi').textContent    = l.osi;
+  document.getElementById('ldTip').textContent    = l.tip;
+  det.className = 'ldetail show';
+  var bx = Math.min(e.clientX + 12, window.innerWidth - 295);
+  var by = Math.min(e.clientY - 30, window.innerHeight - 360);
+  det.style.left = bx + 'px';
+  det.style.top  = Math.max(8, by) + 'px';
+}
+document.getElementById('ldClose').addEventListener('click', function() {
+  document.getElementById('ldetail').className = 'ldetail';
+});
+document.addEventListener('click', function(e) {
+  var det = document.getElementById('ldetail');
+  if (det.classList.contains('show') && !det.contains(e.target) && !e.target.closest('.ib-layer')) {
+    det.className = 'ldetail';
+  }
+});
+
+/* =====================================================================
+   HEADER LABEL MAP
+===================================================================== */
+var HDR_LABEL = {
+  lrh:  'LRH (L2)',
+  grh:  'GRH (L3)',
+  bth:  'BTH (L4)',
+  data: 'DATA',
+  sym:  '~BITS~',
+  icrc: 'ICRC',
+};
+
+/* =====================================================================
+   TOPOLOGY: show/hide routed elements per scenario
+===================================================================== */
+function setTopologyMode(key) {
+  var routed = (key === 'routed');
+  /* Router and SW2 only visible in routed scenario */
+  document.getElementById('dev-rt').style.display   = routed ? '' : 'none';
+  document.getElementById('dev-sw2').style.display  = routed ? '' : 'none';
+  /* Links */
+  document.getElementById('lk-sw-rt').style.display    = routed ? '' : 'none';
+  document.getElementById('lk-rt-sw2').style.display   = routed ? '' : 'none';
+  document.getElementById('lk-sw2-hcab').style.display = routed ? '' : 'none';
+  /* For non-routed: single link sw->hca-b spans the gap */
+  document.getElementById('lk-sw-hca').style.display   = routed ? 'none' : '';
+  document.getElementById('lbl-subnet-b').style.display = routed ? '' : 'none';
+}
+
+/* =====================================================================
+   APPLY STEP
+===================================================================== */
+var simStart = Date.now();
+
+function applyStep(step, steps) {
+  if (!step) return;
+
+  /* IB stack highlights */
+  IB_LAYERS.forEach(function(l) {
+    var tx = document.getElementById('txStack-l' + l.n);
+    var rx = document.getElementById('rxStack-l' + l.n);
+    if (tx) tx.classList.toggle('on', l.n === step.sL);
+    if (rx) rx.classList.toggle('on', l.n === step.rL);
+  });
+
+  /* IB layer bar */
+  var activeL = step.sL || step.rL || null;
+  document.querySelectorAll('.ibl').forEach(function(m) {
+    m.classList.toggle('on', parseInt(m.dataset.l) === activeL);
+  });
+
+  /* Device highlights */
+  var ALL_DEVS = ['hca-a', 'sw', 'rt', 'sw2', 'hca-b'];
+  ALL_DEVS.forEach(function(id) {
+    var rect = document.querySelector('#dev-' + id + ' .dev-rect');
+    var active = step.devs && step.devs.indexOf(id) >= 0;
+    if (rect) {
+      rect.classList.toggle('hot', active);
+      rect.setAttribute('stroke', active ? '#76B900' : '#1E3010');
+    }
+  });
+
+  /* Link highlights */
+  var ALL_LINKS = ['lk-hca-sw','lk-sw-rt','lk-rt-sw2','lk-sw-hca','lk-sw2-hcab'];
+  ALL_LINKS.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el || el.style.display === 'none') return;
+    var active = step.links && step.links.indexOf(id) >= 0;
+    el.classList.toggle('hot', active);
+    el.setAttribute('stroke', active ? '#76B900' : '#1A2A10');
+    el.setAttribute('stroke-width', active ? '3' : '2');
+  });
+
+  /* Packet dot */
+  var dot = document.getElementById('pktDot');
+  var lbl = document.getElementById('pktLbl');
+  var mainDev = step.devs && step.devs[0];
+  if (mainDev && POS[mainDev]) {
+    dot.style.display = '';
+    lbl.style.display = '';
+    dot.setAttribute('cx', POS[mainDev].x);
+    dot.setAttribute('cy', POS[mainDev].y - 18);
+    lbl.setAttribute('x', POS[mainDev].x);
+    lbl.setAttribute('y', POS[mainDev].y - 30);
+    var hc = step.hdrs && step.hdrs.length;
+    lbl.textContent = hc ? step.hdrs[step.hdrs.length - 1].toUpperCase() : '';
+  } else {
+    dot.style.display = 'none';
+    lbl.style.display = 'none';
+  }
+
+  /* Device hints */
+  var swHint = document.getElementById('swHint');
+  var rtHint = document.getElementById('rtHint');
+  if (swHint) swHint.textContent = (step.hint && step.hint.startsWith('sw:')) ? step.hint.slice(3) : '';
+  if (rtHint) rtHint.textContent = (step.hint && step.hint.startsWith('rt:')) ? step.hint.slice(3) : '';
+
+  /* Packet header strip */
+  var hdrEl = document.getElementById('pktHdrs');
+  if (step.hdrs && step.hdrs.length > 0) {
+    hdrEl.innerHTML = step.hdrs.map(function(h) {
+      return '<div class="ph ' + h + '">' + (HDR_LABEL[h] || h.toUpperCase()) + '</div>';
+    }).join('');
+    if (step.hdrs.indexOf('data') < 0 && step.hdrs.indexOf('sym') < 0) {
+      hdrEl.innerHTML += '<div class="ph data">payload</div>';
+    }
+  } else {
+    var ph = step.sL ? 'encapsulating...' : step.rL ? 'decapsulated' : 'ready';
+    hdrEl.innerHTML = '<span style="font-size:.62rem;color:#2A4A1A;font-family:\'JetBrains Mono\',monospace">' + ph + '</span>';
+  }
+
+  /* Step info */
+  document.getElementById('stepTitle').textContent = step.title;
+  document.getElementById('stepDesc').textContent  = step.desc;
+  var factEl = document.getElementById('stepFact');
+  if (step.fact) {
+    factEl.textContent = step.fact;
+    factEl.style.display = 'block';
+  } else {
+    factEl.style.display = 'none';
+  }
+
+  /* Log */
+  if (step.log) {
+    var elapsed = ((Date.now() - simStart) / 1000).toFixed(1) + 's';
+    var logEl   = document.getElementById('logBody');
+    var entry   = document.createElement('div');
+    entry.className = 'le';
+    entry.innerHTML =
+      '<span class="le-t">' + elapsed + '</span>' +
+      '<span class="le-lyr ' + step.log.lyr + '">' + step.log.lyr.toUpperCase() + '</span>' +
+      '<span class="le-msg">' + step.log.msg + '</span>';
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  /* Terminal */
+  if (step.term) {
+    var term = document.getElementById('termBody');
+    step.term.split('\n').forEach(function(line) {
+      var sp = document.createElement('span');
+      sp.className = 'tl ' + (
+        /^\$/.test(line)                        ? 'p' :
+        /^(BTH|GRH|LRH|RETH|WC|IB Router|LFT)/.test(line) ? 'h' :
+        /^>>>/.test(line)                       ? 'w' :
+        /^(Note:|#)/.test(line)                 ? 'p' :
+                                                  'r'
+      );
+      sp.textContent = line || ' ';
+      term.appendChild(sp);
+      term.appendChild(document.createElement('br'));
+    });
+    term.scrollTop = term.scrollHeight;
+  }
+
+  /* Progress + counter */
+  var total = steps.length;
+  var pct   = ((stepIdx + 1) / total * 100).toFixed(1);
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('stepCtr').textContent  = (stepIdx + 1) + ' / ' + total;
+  document.getElementById('btnBack').disabled = stepIdx === 0;
+  document.getElementById('btnFwd').disabled  = stepIdx === total - 1;
+}
+
+/* =====================================================================
+   PLAYBACK CONTROLS
+===================================================================== */
+var scenario = 'local';
+var stepIdx  = 0;
+var playing  = false;
+var timer    = null;
+
+function steps() { return SC[scenario].steps; }
+
+function goTo(i) {
+  var s = steps();
+  stepIdx = Math.max(0, Math.min(i, s.length - 1));
+  applyStep(s[stepIdx], s);
+}
+
+function loadScenario(key) {
+  scenario = key;
+  stepIdx  = 0;
+  stopPlay();
+  simStart = Date.now();
+  setTopologyMode(key);
+  document.getElementById('logBody').innerHTML = '';
+  var term = document.getElementById('termBody');
+  term.innerHTML = '';
+  var init = SC[key].termInit || '';
+  init.split('\n').forEach(function(line) {
+    var sp = document.createElement('span');
+    sp.className = 'tl p';
+    sp.textContent = line;
+    term.appendChild(sp);
+    term.appendChild(document.createElement('br'));
+  });
+  goTo(0);
+}
+
+function startPlay() {
+  playing = true;
+  document.getElementById('btnPlay').textContent = 'pause';
+  document.getElementById('btnPlay').classList.remove('primary');
+  tick();
+}
+function stopPlay() {
+  playing = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = 'play';
+  document.getElementById('btnPlay').classList.add('primary');
+}
+function tick() {
+  var s = steps();
+  if (stepIdx >= s.length - 1) { stopPlay(); return; }
+  goTo(stepIdx + 1);
+  if (playing) {
+    var spd = parseInt(document.getElementById('speedSel').value) || 1300;
+    timer = setTimeout(tick, spd);
+  }
+}
+
+document.getElementById('btnPlay').addEventListener('click', function() {
+  if (playing) stopPlay(); else startPlay();
+});
+document.getElementById('btnBack').addEventListener('click', function() { stopPlay(); goTo(stepIdx - 1); });
+document.getElementById('btnFwd').addEventListener('click',  function() { stopPlay(); goTo(stepIdx + 1); });
+document.getElementById('scenSel').addEventListener('change', function() { loadScenario(this.value); });
+
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowRight' || e.key === 'l') { stopPlay(); goTo(stepIdx + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'h') { stopPlay(); goTo(stepIdx - 1); }
+  if (e.key === ' ') { e.preventDefault(); playing ? stopPlay() : startPlay(); }
+});
+
+/* ── IB layer bar clickable ── */
+document.querySelectorAll('.ibl').forEach(function(m) {
+  m.addEventListener('click', function() {
+    var l = ibLayer(parseInt(m.dataset.l));
+    if (l) {
+      var rect = m.getBoundingClientRect();
+      showDetail(l, { clientX: rect.left, clientY: rect.bottom, target: m });
+    }
+  });
+});
+
+/* ── Init ── */
+loadScenario('local');
+
+}); // DOMContentLoaded
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

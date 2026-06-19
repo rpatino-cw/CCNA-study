@@ -3,14 +3,23 @@
   var certTrack = localStorage.getItem('ccna_cert_track') || 'ccna';
   var pageFile = (location.pathname.split('/').pop()) || '';
   var onEncorPage = pageFile.indexOf('encor-') === 0;
-  // Nav is PAGE-SCOPED for CCNP: the CCNP nav shows ONLY on encor-* pages.
-  // Every other page keeps the CCNA (or Net+) nav, so the CCNA track is never hidden
-  // even when the saved cert track is 'ccnp'.
-  var isCCNP = onEncorPage;
-  var isNetPlus = !onEncorPage && certTrack === 'net+';
+  var onAinPage = pageFile.indexOf('ncp-ain-') === 0;
+  // Nav is PAGE-SCOPED: each cert's nav shows ONLY on its own pages. A cert's nav is
+  // never polluted with another cert's study pages, and the CCNA track is never hidden.
+  var isNCPAIN = onAinPage;
+  var isCCNP = onEncorPage && !onAinPage;
+  var isNetPlus = !onEncorPage && !onAinPage && certTrack === 'net+';
+
+  // Cross-cert "Tracks" switcher — the ONLY cross-cert element in any nav; jumps hubs.
+  var TRACKS = { text: 'Tracks ✦', children: [
+    { text: 'CCNA', href: 'core.html' },
+    { text: 'Network+', href: 'netplus.html' },
+    { text: 'CCNP ENCOR', href: 'encor-hub.html' },
+    { text: 'NVIDIA NCP-AIN', href: 'ncp-ain-hub.html' },
+  ]};
 
   var TIPS = {
-    'CORE': isCCNP ? 'CCNP ENCOR hub — your enterprise core command center' : (isNetPlus ? 'Net+ hub — your Network+ command center' : 'Your main study hub — all 53 objectives with videos, articles, and quizzes'),
+    'CORE': isNCPAIN ? 'NVIDIA NCP-AIN hub — AI networking command center' : (isCCNP ? 'CCNP ENCOR hub — your enterprise core command center' : (isNetPlus ? 'Net+ hub — your Network+ command center' : 'Your main study hub — all 53 objectives with videos, articles, and quizzes')),
     'Guide': 'How to use this website — every page explained',
     'Learn': 'Reference material — visuals, glossary, devices, subnetting',
     'Practice': 'Active testing — quizzes, labs, exams, games',
@@ -24,7 +33,6 @@
   /* ── Two complete NAV configs — pick one based on cert track ─── */
 
   var CCNA_NAV = [
-    { text: 'CCNP ✦', href: 'encor-hub.html' },
     { text: 'Core v2 ✦', href: 'core-v2.html' },
     { text: 'Cram Driller 🔥', href: 'exam-cram-driller.html' },
     { text: 'Tiny Gaps 🎯', href: 'tiny-gaps.html' },
@@ -172,10 +180,42 @@
     ]},
     { text: 'Mega Lab', href: 'encor-megalab.html' },
     { text: 'Study Group', href: 'peers.html' },
-    { text: '↩ CCNA', href: 'core.html' },
   ];
 
-  var NAV = isCCNP ? CCNP_NAV : (isNetPlus ? NETPLUS_NAV : CCNA_NAV);
+  var NCPAIN_NAV = [
+    { text: 'CORE', href: 'ncp-ain-hub.html' },
+    { text: 'Pillars', href: 'ncp-ain-pillars.html' },
+    { text: 'Exam Simulator', href: 'ncp-ain-exam-sim.html' },
+    { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
+    { text: 'Cram Driller', href: 'ncp-ain-cram-driller.html' },
+    { text: 'RoCE Frogger 🎮', href: 'ncp-ain-roce-frogger.html' },
+    { text: 'Troubleshooting', href: 'ncp-ain-troubleshoot.html' },
+    { text: 'Console Labs', children: [
+      { text: 'InfiniBand Diagnostics', href: 'ncp-ain-ib-lab.html' },
+      { text: 'Spectrum-X / NVUE', href: 'ncp-ain-spectrum-lab.html' },
+      { text: 'Perf Validation', href: 'ncp-ain-perf-lab.html' },
+      { text: 'WJH Drop Analysis', href: 'ncp-ain-wjh-lab.html' },
+      { text: 'Fabric Bring-Up: SM + SHARP', href: 'ncp-ain-bringup-lab.html' },
+      { text: 'Rail-Optimized Bring-Up Lab', href: 'ncp-ain-fabric-lab.html' },
+    ]},
+    { text: 'Sims & Visuals', children: [
+      { text: 'Learn Visually (15 cards)', href: 'ncp-ain-learn-visually.html' },
+      { text: 'IB Layer Stack', href: 'ncp-ain-ib-layers.html' },
+      { text: 'Congestion Pipeline', href: 'ncp-ain-congestion-pipeline.html' },
+      { text: 'Fat-Tree Builder', href: 'ncp-ain-fattree-builder.html' },
+      { text: 'Engine Map', href: 'ncp-ain-engine-map.html' },
+      { text: 'Devices & QoS', href: 'ncp-ain-devices.html' },
+    ]},
+    { text: 'Study Group', href: 'peers.html' },
+  ];
+
+  // Every cert nav gets the Tracks switcher (and nothing else cross-cert).
+  CCNA_NAV.push(TRACKS);
+  NETPLUS_NAV.push(TRACKS);
+  CCNP_NAV.push(TRACKS);
+  NCPAIN_NAV.push(TRACKS);
+
+  var NAV = isNCPAIN ? NCPAIN_NAV : (isCCNP ? CCNP_NAV : (isNetPlus ? NETPLUS_NAV : CCNA_NAV));
 
   var nav = document.querySelector('nav.top-nav');
   if (!nav) return;
@@ -203,6 +243,8 @@
   if (isNetPlus) nav.classList.add('netplus-mode');
   // Apply CCNP mode class to nav for teal border indicator
   if (isCCNP) nav.classList.add('ccnp-mode');
+  // Apply NCP-AIN mode class to nav for NVIDIA-green border indicator
+  if (isNCPAIN) nav.classList.add('ncpain-mode');
 
   nav.innerHTML = NAV.map(function (item) {
     if (item.children) {
@@ -229,7 +271,7 @@
 
   var mobileLabel = document.createElement('span');
   mobileLabel.className = 'nav-mobile-label';
-  mobileLabel.textContent = isCCNP ? 'CCNP' : (isNetPlus ? 'Network+' : 'CCNA');
+  mobileLabel.textContent = isNCPAIN ? 'NCP-AIN' : (isCCNP ? 'CCNP' : (isNetPlus ? 'Network+' : 'CCNA'));
   nav.insertBefore(mobileLabel, hamburger.nextSibling);
 
   // Build flat drawer for mobile
@@ -300,7 +342,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.12.0</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.13.3</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page

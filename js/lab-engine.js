@@ -147,10 +147,16 @@
       this.routes = config.routes || [];
       this.runningConfig = [];
       this.custom = config.custom || {};
+      // Non-IOS shell support (NVUE / Linux / InfiniBand diagnostics).
+      // shellPromptFormat: 'cisco' (default) | 'nvue' | 'linux'
+      this.shellPromptFormat = config.shellPromptFormat || 'cisco';
+      this.commandMap = config.commandMap || {};
     }
 
     prompt() {
       const h = this.hostname;
+      if (this.shellPromptFormat === 'nvue')  return `${h}:mgmt:~$`;
+      if (this.shellPromptFormat === 'linux') return `${h}:~$`;
       switch (this.mode) {
         case 'user': return `${h}>`;
         case 'priv': return `${h}#`;
@@ -838,10 +844,41 @@
     return undefined;
   };
 
+  // Flat (non-IOS) command executor for shell devices (NVUE / Linux / InfiniBand).
+  // A device's commandMap maps a command string (or first-token, or "first ...") to a
+  // function(dev,raw,lower)->string or a static string. Returns undefined if no match.
+  LabBase.prototype.executeShellCommand = function(dev, raw, lower) {
+    if (!dev.commandMap || typeof dev.commandMap !== 'object') return undefined;
+    var fn = dev.commandMap[lower] || dev.commandMap[raw];
+    if (fn === undefined) {
+      var first = lower.split(/\s+/)[0];
+      fn = dev.commandMap[first + ' ...'];
+      if (fn === undefined) fn = dev.commandMap[first];
+    }
+    if (typeof fn === 'function') {
+      try { return fn.call(this, dev, raw, lower); }
+      catch (e) { return '% error: ' + (e && e.message ? e.message : 'unknown'); }
+    }
+    if (typeof fn === 'string') return fn;
+    return undefined;
+  };
+
   LabBase.prototype.processCommand = function(cmd) {
     if (!cmd || !cmd.trim()) return '';
 
     var raw = cmd.trim();
+
+    // ── Non-IOS shell devices (NVUE / Linux / InfiniBand diagnostics) ──────
+    // Bypass all Cisco IOS logic (shorthand, modes, ? help) and use the flat map.
+    var sdev = this.activeDevice;
+    if (sdev && sdev.shellPromptFormat && sdev.shellPromptFormat !== 'cisco') {
+      this.commandLog.push({ device: this.activeDeviceName, cmd: raw, time: Date.now() });
+      var shellOut = this.executeShellCommand(sdev, raw, raw.toLowerCase());
+      this.checkObjectives();
+      if (shellOut !== undefined) return shellOut;
+      return '-bash: ' + raw.split(/\s+/)[0] + ': command not found';
+    }
+
     // Expand Cisco IOS shorthand (sh ip int br → show ip interface brief)
     raw = this.expandShorthand(raw);
     var lower = raw.toLowerCase();

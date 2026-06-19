@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>RoCE Frogger - NCP-AIN</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<link rel="stylesheet" href="css/mobile-game.css?v=1">
+<style>
+:root{--ncp:#76B900;--ncp-light:#A4D65E;--ncp-dark:#5A8C00}
+.game-wrap{max-width:480px;margin:0 auto;padding:14px 14px 80px}
+.title{font-family:var(--font-display);font-weight:700;font-size:1.3rem;text-align:center;margin:6px 0;color:var(--ncp)}
+.sub{text-align:center;font-family:var(--font-body);font-style:italic;color:var(--ink-muted);font-size:.85rem;margin-bottom:10px}
+.hud{display:flex;justify-content:space-between;margin-bottom:10px;font-family:var(--font-mono);font-size:.78rem}
+.hud .stat{display:flex;flex-direction:column;align-items:center;flex:1}
+.hud .stat .v{font-family:var(--font-display);font-size:1.2rem;font-weight:700;color:var(--ncp)}
+.hud .stat .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted)}
+.prompt-card{background:var(--bg-surface);border:2px solid var(--ncp);border-radius:12px;padding:10px 14px;text-align:center;margin-bottom:10px;font-family:var(--font-mono)}
+.prompt-card .pl{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ncp);margin-bottom:4px}
+.prompt-card .pv{font-size:1.35rem;font-weight:700;color:var(--ink);word-break:break-word;line-height:1.25}
+.prompt-card .ptable{font-size:.65rem;color:var(--ink-muted);margin-top:4px;font-family:var(--font-display)}
+.choices{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.choice{padding:14px;border:2px solid var(--border);border-radius:12px;background:var(--bg-surface);cursor:pointer;font-family:var(--font-mono);font-size:.88rem;transition:border-color .15s,background .15s;word-break:break-word;line-height:1.3}
+.choice:active{transform:scale(.98)}
+.choice.right{background:#dcfce7;border-color:#15803d;color:#14532d}
+.choice.wrong{background:#fee2e2;border-color:#b91c1c;color:#7f1d1d}
+.choice.show-correct{background:#fef9c3;border-color:#ca8a04}
+.fb{text-align:center;font-family:var(--font-mono);font-size:.82rem;margin:10px 0;min-height:36px;color:var(--ink-muted);line-height:1.45;padding:0 4px}
+.fb .why{font-size:.72rem;color:var(--ink-muted);margin-top:4px;font-family:var(--font-display);font-style:italic}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btns button{padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg-surface);font-family:var(--font-display);font-weight:700;font-size:.85rem;cursor:pointer}
+.back-link{display:block;text-align:center;margin-top:10px;font-family:var(--font-display);font-size:.8rem;color:var(--ncp);text-decoration:none}
+.back-link:hover{text-decoration:underline}
+.finish-wrap{text-align:center;padding:30px 14px}
+.finish-wrap h2{font-family:var(--font-display);font-size:1.4rem;margin-bottom:6px}
+.finish-wrap .final-score{font-family:var(--font-mono);font-size:2.4rem;color:var(--ncp);font-weight:700;margin:14px 0}
+.finish-wrap .best-score{font-family:var(--font-mono);font-size:.85rem;color:var(--ink-muted);margin-bottom:20px}
+.finish-wrap button{padding:14px 28px;border-radius:12px;border:none;background:var(--ncp);color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;font-size:.95rem}
+.finish-wrap button:active{transform:scale(.97)}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="game-wrap" id="gameWrap">
+  <div class="title">RoCE Frogger</div>
+  <div class="sub">Match each label to its value. 15 rounds.</div>
+  <div class="hud">
+    <div class="stat"><div class="v" id="score">0</div><div class="l">Score</div></div>
+    <div class="stat"><div class="v" id="streak">0</div><div class="l">Streak</div></div>
+    <div class="stat"><div class="v" id="round">1/15</div><div class="l">Round</div></div>
+    <div class="stat"><div class="v" id="best">--</div><div class="l">Best</div></div>
+  </div>
+  <div class="prompt-card" id="promptCard">
+    <div class="pl" id="promptLabel">Label</div>
+    <div class="pv" id="promptValue">...</div>
+    <div class="ptable" id="promptTable"></div>
+  </div>
+  <div class="choices" id="choices"></div>
+  <div class="fb" id="fb">&nbsp;</div>
+  <div class="btns"><button onclick="newGame()">Restart</button></div>
+  <a class="back-link" href="ncp-ain-hub.html">NCP-AIN Hub</a>
+</div>
+<script src="data/ncp-ain-drill-data.js"></script>
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var ROUNDS = 15;
+  var BEST_KEY = 'roce_frogger_best';
+
+  var score = 0, streak = 0, round = 0, locked = false;
+  var current = null;
+
+  /* Flatten all rows from every subtable into one pool */
+  function buildPool() {
+    var pool = [];
+    var tables = window.NCPAIN_DRILL && window.NCPAIN_DRILL.NUMBERS;
+    if (!tables) return pool;
+    Object.keys(tables).forEach(function (tname) {
+      tables[tname].forEach(function (row) {
+        pool.push({ label: row.label, value: row.value, note: row.note, table: tname });
+      });
+    });
+    return pool;
+  }
+
+  var pool = buildPool();
+
+  /* Pick a random element from an array excluding given indices */
+  function pickExcluding(arr, excludeIndices) {
+    var tries = 0;
+    while (tries < 200) {
+      var idx = Math.floor(Math.random() * arr.length);
+      if (excludeIndices.indexOf(idx) === -1) return idx;
+      tries++;
+    }
+    return -1;
+  }
+
+  /* Build one round: show label, player matches value (or vice versa) */
+  function genRound() {
+    if (pool.length < 4) return null;
+    var correctIdx = Math.floor(Math.random() * pool.length);
+    var correctRow = pool[correctIdx];
+
+    /* Randomly choose direction: show label -> pick value, or show value -> pick label */
+    var showLabel = Math.random() < 0.5;
+
+    /* Pick 3 distractors from the same pool (different rows) */
+    var distractorIndices = [];
+    while (distractorIndices.length < 3) {
+      var di = pickExcluding(pool, [correctIdx].concat(distractorIndices));
+      if (di === -1) break;
+      distractorIndices.push(di);
+    }
+
+    /* Build options: the correct answer + 3 distractors */
+    var correctAnswer = showLabel ? correctRow.value : correctRow.label;
+    var options = [correctAnswer];
+    distractorIndices.forEach(function (di) {
+      options.push(showLabel ? pool[di].value : pool[di].label);
+    });
+
+    /* Shuffle options */
+    for (var i = options.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = options[i]; options[i] = options[j]; options[j] = tmp;
+    }
+
+    var correctOptionIdx = options.indexOf(correctAnswer);
+
+    return {
+      promptLabel: showLabel ? 'Match the value for:' : 'Match the label for:',
+      promptValue: showLabel ? correctRow.label : correctRow.value,
+      promptTable: correctRow.table.replace(/_/g, ' '),
+      options: options,
+      correctOptionIdx: correctOptionIdx,
+      note: correctRow.note,
+      correctAnswer: correctAnswer
+    };
+  }
+
+  function getBest() {
+    return parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+  }
+
+  function saveBest(s) {
+    var prev = getBest();
+    if (s > prev) localStorage.setItem(BEST_KEY, String(s));
+  }
+
+  function renderHud() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('streak').textContent = streak;
+    document.getElementById('round').textContent = (round + 1) + '/' + ROUNDS;
+    var b = getBest();
+    document.getElementById('best').textContent = b > 0 ? b : '--';
+  }
+
+  function render() {
+    document.getElementById('promptLabel').textContent = current.promptLabel;
+    document.getElementById('promptValue').textContent = current.promptValue;
+    document.getElementById('promptTable').textContent = current.promptTable;
+    renderHud();
+
+    var wrap = document.getElementById('choices');
+    wrap.innerHTML = '';
+    current.options.forEach(function (opt, i) {
+      var d = document.createElement('div');
+      d.className = 'choice';
+      d.textContent = opt;
+      d.onclick = function () { pick(i); };
+      wrap.appendChild(d);
+    });
+
+    document.getElementById('fb').innerHTML = '&nbsp;';
+    locked = false;
+  }
+
+  function buzz(ms) {
+    if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} }
+  }
+
+  function pick(i) {
+    if (locked) return;
+    locked = true;
+
+    var correct = i === current.correctOptionIdx;
+    document.querySelectorAll('.choice').forEach(function (el, idx) {
+      if (idx === current.correctOptionIdx && !correct) el.classList.add('show-correct');
+      if (idx === i) el.classList.add(correct ? 'right' : 'wrong');
+    });
+
+    var fb = document.getElementById('fb');
+    if (correct) {
+      score += 10 + streak * 2;
+      streak++;
+      buzz(15);
+      fb.style.color = '#15803d';
+      fb.innerHTML = 'Correct! +' + (10 + (streak - 1) * 2) + ' pts'
+        + '<div class="why">' + escHtml(current.note) + '</div>';
+    } else {
+      streak = 0;
+      buzz([40, 30, 40]);
+      fb.style.color = '#b91c1c';
+      fb.innerHTML = 'Wrong. Answer: ' + escHtml(current.correctAnswer)
+        + '<div class="why">' + escHtml(current.note) + '</div>';
+    }
+
+    renderHud();
+    round++;
+    setTimeout(function () {
+      if (round >= ROUNDS) { saveBest(score); finish(); return; }
+      current = genRound();
+      render();
+    }, 1200);
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function finish() {
+    var b = getBest();
+    var wrap = document.getElementById('gameWrap');
+    wrap.innerHTML = '<div class="finish-wrap">'
+      + '<h2>Round Done</h2>'
+      + '<div class="final-score">' + score + ' pts</div>'
+      + '<div class="best-score">Best: ' + b + ' pts</div>'
+      + '<button onclick="location.reload()">Play Again</button>'
+      + '<div style="margin-top:20px">'
+      + '<a href="ncp-ain-hub.html" style="color:var(--ncp);font-family:var(--font-display);text-decoration:none">NCP-AIN Hub</a>'
+      + '</div>'
+      + '</div>';
+  }
+
+  window.newGame = function () {
+    score = 0; streak = 0; round = 0; locked = false;
+    current = genRound();
+    render();
+  };
+
+  newGame();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

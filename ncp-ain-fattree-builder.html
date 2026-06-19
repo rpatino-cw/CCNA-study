@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Rail-Optimized Fat-Tree Builder -- NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+  --ncp-dim: rgba(118,185,0,.10);
+}
+
+.page-header {
+  padding: var(--s-lg) 0 var(--s-md);
+  border-bottom: 3px solid var(--ncp);
+  margin-bottom: var(--s-xl);
+}
+.page-header h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+  color: var(--ncp);
+}
+.page-header .subtitle {
+  font-family: var(--font-body);
+  color: var(--ink-secondary);
+  font-size: .92rem;
+  font-style: italic;
+  max-width: 62ch;
+}
+.page-header .back-link {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--ncp-dark);
+  text-decoration: none;
+  margin-bottom: var(--s-sm);
+  letter-spacing: .03em;
+}
+.page-header .back-link:hover { text-decoration: underline; }
+
+/* ── Layout: two-column on wide screens ── */
+.builder-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--s-lg);
+  align-items: start;
+  margin-bottom: var(--s-2xl);
+}
+@media (max-width: 900px) { .builder-layout { grid-template-columns: 1fr; } }
+
+/* ── Controls panel ── */
+.ctrl-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--ncp);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: sticky;
+  top: 60px;
+}
+.ctrl-panel h3 {
+  font-family: var(--font-display);
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ncp-dark);
+  margin: 0 0 14px;
+}
+.ctrl-group { margin-bottom: 14px; }
+.ctrl-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  margin-bottom: 5px;
+}
+.ctrl-label .ctrl-val {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--ncp-dark);
+  min-width: 24px;
+  text-align: right;
+}
+.ctrl-panel input[type=range] {
+  width: 100%;
+  accent-color: var(--ncp);
+  cursor: pointer;
+}
+.ctrl-divider {
+  border: none;
+  border-top: 1px dashed var(--border-strong);
+  margin: 14px 0;
+}
+.ctrl-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ctrl-toggle-label {
+  font-family: var(--font-display);
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  flex: 1;
+}
+.toggle-switch {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.toggle-slider:before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--ncp); }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+.preset-row { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: all .15s;
+}
+.preset-btn:hover { border-color: var(--ncp); color: var(--ncp); background: var(--ncp-dim); }
+
+/* ── SVG topology canvas ── */
+.topo-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.topo-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.topo-title {
+  font-family: var(--font-display);
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-muted);
+  flex: 1;
+}
+.verdict-badge {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: .04em;
+}
+.verdict-badge.ok { background: rgba(22,163,74,.14); color: #16a34a; }
+.verdict-badge.warn { background: rgba(220,38,38,.12); color: #dc2626; }
+.verdict-badge.partial { background: rgba(217,119,6,.12); color: #d97706; }
+
+.svg-wrap {
+  background: #12130f;
+  overflow-x: auto;
+  min-height: 260px;
+  max-height: 440px;
+}
+.svg-wrap svg { display: block; }
+
+.topo-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  color: var(--ink-muted);
+}
+.leg-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+/* ── Metrics grid ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 700px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+.metric-card {
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+.metric-lbl {
+  font-family: var(--font-display);
+  font-size: .58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+.metric-val {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.metric-val.green { color: #16a34a; }
+.metric-val.red { color: #dc2626; }
+.metric-val.amber { color: #d97706; }
+.metric-sub {
+  font-family: var(--font-mono);
+  font-size: .6rem;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+/* ── Narration box ── */
+.narration-box {
+  background: #0f1008;
+  border: 1px solid #2a3010;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: var(--s-xl);
+}
+.narration-box h3 {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ncp-light);
+  margin: 0 0 10px;
+}
+.narr-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.narr-item {
+  font-family: var(--font-mono);
+  font-size: .73rem;
+  line-height: 1.55;
+  color: #c8d9a0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--ncp-dark);
+  background: rgba(118,185,0,.05);
+  border-radius: 0 4px 4px 0;
+}
+.narr-item .tag {
+  font-size: .58rem;
+  font-weight: 700;
+  color: var(--ncp-light);
+  margin-right: 5px;
+  text-transform: uppercase;
+}
+
+/* ── Math reference ── */
+.math-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: var(--s-2xl);
+}
+.math-section h3 {
+  font-family: var(--font-display);
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ncp-dark);
+  margin: 0 0 12px;
+}
+.math-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  align-items: baseline;
+  margin-bottom: 8px;
+  font-size: .83rem;
+}
+.math-row code {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  background: var(--ncp-dim);
+  color: var(--ncp-dark);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.math-row .note {
+  font-family: var(--font-body);
+  font-size: .8rem;
+  color: var(--ink-secondary);
+  line-height: 1.5;
+}
+.assume-tag {
+  font-family: var(--font-mono);
+  font-size: .6rem;
+  font-weight: 700;
+  background: rgba(217,119,6,.12);
+  color: #d97706;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <a class="back-link" href="ncp-ain-hub.html">&#8592; NCP-AIN Hub</a>
+    <h1>Rail-Optimized Fat-Tree Builder</h1>
+    <div class="subtitle">
+      Configure a 2-tier leaf/spine topology, see live metrics recompute:
+      bisection bandwidth, oversubscription, GPU count, cable count, and a
+      nonblocking verdict. Toggle rail-optimized wiring to see why AI clusters
+      target 1:1 nonblocking.
+    </div>
+  </header>
+
+  <!-- Narration -->
+  <div class="narration-box" role="region" aria-label="Concept narration">
+    <h3>Why This Matters (n1, n15, n29)</h3>
+    <div class="narr-items">
+      <div class="narr-item"><span class="tag">[know]</span>AllReduce collectives are barrier-synchronous: every rank waits on the slowest. Any oversubscription on the compute path directly caps bus bandwidth -- the entire step is gated on the slowest link.</div>
+      <div class="narr-item"><span class="tag">[know]</span>1:1 nonblocking: uplink count per leaf equals downlink count. SU example = 8 leaf x 6 spine on NDR400. Blocking begins the moment uplinks are fewer than downlinks.</div>
+      <div class="narr-item"><span class="tag">[know]</span>Rail-optimized wiring: NIC-0 of EVERY node goes to the same leaf (rail 0), NIC-1 to the same leaf (rail 1). Same-rail GPU-to-GPU traffic is one hop, staying on the leaf. Cross-rail traffic climbs to spine only when crossing rails.</div>
+      <div class="narr-item"><span class="tag">[know]</span>DGX H100: 8 compute ConnectX-7 NICs, 8 rails, 8 leaf switches per SU. Rail count equals GPU count per server. A non-rail-optimized design adds spine hops for traffic that should be local.</div>
+      <div class="narr-item"><span class="tag">[know]</span>Storage fabric is intentionally near 4:3 oversubscribed because bulk I/O tolerates blocking that collectives cannot. Compute fabric is always 1:1.</div>
+      <div class="narr-item"><span class="tag">[inferred]</span>Bisection bandwidth = half the total bandwidth crossing the imaginary vertical cut through the spine layer. For a 1:1 fat-tree, bisection BW = (spine switches x ports-per-spine x link-speed) / 2.</div>
+    </div>
+  </div>
+
+  <!-- Builder -->
+  <div class="builder-layout">
+
+    <!-- Controls -->
+    <div class="ctrl-panel" role="form" aria-label="Topology controls">
+      <h3>Topology Controls</h3>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Leaf switches<span class="ctrl-val" id="valLeaf">8</span></div>
+        <input type="range" id="rLeaf" min="2" max="16" value="8" aria-label="Number of leaf switches">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Spine switches<span class="ctrl-val" id="valSpine">6</span></div>
+        <input type="range" id="rSpine" min="1" max="12" value="6" aria-label="Number of spine switches">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Switch ports (radix)<span class="ctrl-val" id="valPorts">64</span></div>
+        <input type="range" id="rPorts" min="16" max="128" step="8" value="64" aria-label="Ports per switch">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">GPUs / NICs per leaf<span class="ctrl-val" id="valGpus">8</span></div>
+        <input type="range" id="rGpus" min="1" max="16" value="8" aria-label="GPUs or NICs per leaf">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Uplinks per leaf<span class="ctrl-val" id="valUplinks">6</span></div>
+        <input type="range" id="rUplinks" min="1" max="32" value="6" aria-label="Uplink ports per leaf to spine">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Link speed (Gb/s)<span class="ctrl-val" id="valSpeed">400</span></div>
+        <input type="range" id="rSpeed" min="50" max="800" step="50" value="400" aria-label="Link speed in Gbps">
+      </div>
+
+      <hr class="ctrl-divider">
+
+      <div class="ctrl-toggle-row">
+        <span class="ctrl-toggle-label">Rail-optimized wiring</span>
+        <label class="toggle-switch" title="Toggle rail-optimized vs simple wiring">
+          <input type="checkbox" id="toggleRail" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <hr class="ctrl-divider">
+
+      <div class="ctrl-panel-sub" style="margin-bottom:8px">
+        <div class="ctrl-label" style="margin-bottom:6px">Presets</div>
+      </div>
+      <div class="preset-row">
+        <button class="preset-btn" id="presetSU" title="SuperPOD Scalable Unit: 8 leaf, 6 spine, NDR400, 1:1">
+          SU (8L/6S, NDR400, 1:1)
+        </button>
+        <button class="preset-btn" id="preset2to1" title="2:1 oversubscribed example: 8 leaf, 4 spine">
+          2:1 Oversubscribed (8L/4S)
+        </button>
+        <button class="preset-btn" id="presetSmall" title="Small dev cluster: 4 leaf, 4 spine">
+          Small dev (4L/4S, HDR200)
+        </button>
+      </div>
+    </div>
+
+    <!-- Topology + metrics -->
+    <div>
+      <div class="topo-panel">
+        <div class="topo-header">
+          <span class="topo-title">Fabric Topology</span>
+          <span id="railTag" style="font-family:var(--font-mono);font-size:.65rem;color:var(--ncp-dark);margin-right:8px;"></span>
+          <span class="verdict-badge" id="verdictBadge">--</span>
+        </div>
+        <div class="svg-wrap" id="svgWrap">
+          <svg id="topoSvg" xmlns="http://www.w3.org/2000/svg"
+               aria-label="Fat-tree topology diagram"></svg>
+        </div>
+        <div class="topo-legend">
+          <span><span class="leg-dot" style="background:#76B900"></span>Leaf switch</span>
+          <span><span class="leg-dot" style="background:#4a90d9"></span>Spine switch</span>
+          <span><span class="leg-dot" style="background:#8b8b8b"></span>Uplink (leaf-to-spine)</span>
+          <span><span class="leg-dot" style="background:#f59e0b;opacity:.7"></span>Downlink (leaf-to-GPU/NIC)</span>
+          <span id="railLegendItem" style="display:none"><span class="leg-dot" style="background:#db2777"></span>Rail wires (same-rail NIC grouping)</span>
+        </div>
+        <div class="metrics-grid" role="region" aria-label="Live topology metrics">
+          <div class="metric-card">
+            <div class="metric-lbl">Bisection BW</div>
+            <div class="metric-val" id="mBisect">--</div>
+            <div class="metric-sub" id="mBisectSub"></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Oversubscription</div>
+            <div class="metric-val" id="mOversub">--</div>
+            <div class="metric-sub" id="mOversubSub"></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Total GPU / Endpoints</div>
+            <div class="metric-val" id="mGpu">--</div>
+            <div class="metric-sub" id="mGpuSub"></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Total Cable Count</div>
+            <div class="metric-val" id="mCables">--</div>
+            <div class="metric-sub" id="mCablesSub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Math reference -->
+  <div class="math-section" role="region" aria-label="Formula reference">
+    <h3>Formulas Used</h3>
+    <div class="math-row">
+      <code>Downlinks per leaf</code>
+      <span class="note">= switch radix minus uplinks per leaf. The remaining ports face the compute nodes (servers/GPUs).</span>
+    </div>
+    <div class="math-row">
+      <code>Oversubscription ratio</code>
+      <span class="note">= downlinks per leaf : uplinks per leaf. 1:1 is nonblocking. 2:1 means each host gets half bandwidth on average at the leaf.<span class="assume-tag">[assumption: uniform traffic, all ports active]</span></span>
+    </div>
+    <div class="math-row">
+      <code>Total GPU count</code>
+      <span class="note">= leaf switches x GPUs-per-leaf. Each leaf hosts a set of servers; each server NIC maps to one GPU rail.</span>
+    </div>
+    <div class="math-row">
+      <code>Uplink cable count</code>
+      <span class="note">= leaf switches x uplinks-per-leaf. These are the leaf-to-spine links.</span>
+    </div>
+    <div class="math-row">
+      <code>Downlink cable count</code>
+      <span class="note">= leaf switches x downlinks-per-leaf. These are the leaf-to-server/NIC links.<span class="assume-tag">[assumption: all downlink ports cabled]</span></span>
+    </div>
+    <div class="math-row">
+      <code>Total cable count</code>
+      <span class="note">= uplink cables + downlink cables.</span>
+    </div>
+    <div class="math-row">
+      <code>Bisection bandwidth</code>
+      <span class="note">= (spine switches x uplinks-per-leaf x link-speed) / 2. This is the bandwidth across the imaginary bisecting cut through the spine layer.<span class="assume-tag">[assumption: each spine port connected to one leaf uplink, all active]</span></span>
+    </div>
+    <div class="math-row">
+      <code>Nonblocking verdict</code>
+      <span class="note">= uplinks per leaf >= downlinks per leaf. True when every downlink host can simultaneously talk at full speed through the fabric.</span>
+    </div>
+  </div>
+
+</div><!-- container-wide -->
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── State ── */
+  var state = {
+    leaf:    8,
+    spine:   6,
+    ports:   64,
+    gpus:    8,
+    uplinks: 6,
+    speed:   400,
+    rail:    true
+  };
+
+  /* ── DOM refs ── */
+  var rLeaf    = document.getElementById('rLeaf');
+  var rSpine   = document.getElementById('rSpine');
+  var rPorts   = document.getElementById('rPorts');
+  var rGpus    = document.getElementById('rGpus');
+  var rUplinks = document.getElementById('rUplinks');
+  var rSpeed   = document.getElementById('rSpeed');
+  var toggleRail = document.getElementById('toggleRail');
+
+  var valLeaf    = document.getElementById('valLeaf');
+  var valSpine   = document.getElementById('valSpine');
+  var valPorts   = document.getElementById('valPorts');
+  var valGpus    = document.getElementById('valGpus');
+  var valUplinks = document.getElementById('valUplinks');
+  var valSpeed   = document.getElementById('valSpeed');
+
+  var svgEl       = document.getElementById('topoSvg');
+  var svgWrap     = document.getElementById('svgWrap');
+  var verdictBadge = document.getElementById('verdictBadge');
+  var railTag     = document.getElementById('railTag');
+  var railLegendItem = document.getElementById('railLegendItem');
+
+  var mBisect    = document.getElementById('mBisect');
+  var mBisectSub = document.getElementById('mBisectSub');
+  var mOversub   = document.getElementById('mOversub');
+  var mOversubSub= document.getElementById('mOversubSub');
+  var mGpu       = document.getElementById('mGpu');
+  var mGpuSub    = document.getElementById('mGpuSub');
+  var mCables    = document.getElementById('mCables');
+  var mCablesSub = document.getElementById('mCablesSub');
+
+  /* ── Wire up controls ── */
+  function bindRange(el, valEl, key) {
+    el.addEventListener('input', function () {
+      valEl.textContent = el.value;
+      state[key] = parseInt(el.value, 10);
+      render();
+    });
+  }
+  bindRange(rLeaf,    valLeaf,    'leaf');
+  bindRange(rSpine,   valSpine,   'spine');
+  bindRange(rPorts,   valPorts,   'ports');
+  bindRange(rGpus,    valGpus,    'gpus');
+  bindRange(rUplinks, valUplinks, 'uplinks');
+  bindRange(rSpeed,   valSpeed,   'speed');
+
+  toggleRail.addEventListener('change', function () {
+    state.rail = toggleRail.checked;
+    render();
+  });
+
+  /* ── Presets ── */
+  document.getElementById('presetSU').addEventListener('click', function () {
+    applyPreset({ leaf: 8, spine: 6, ports: 64, gpus: 8, uplinks: 6, speed: 400, rail: true });
+  });
+  document.getElementById('preset2to1').addEventListener('click', function () {
+    applyPreset({ leaf: 8, spine: 4, ports: 64, gpus: 8, uplinks: 4, speed: 400, rail: false });
+  });
+  document.getElementById('presetSmall').addEventListener('click', function () {
+    applyPreset({ leaf: 4, spine: 4, ports: 32, gpus: 4, uplinks: 4, speed: 200, rail: true });
+  });
+
+  function applyPreset(p) {
+    state = Object.assign({}, state, p);
+    rLeaf.value    = state.leaf;    valLeaf.textContent    = state.leaf;
+    rSpine.value   = state.spine;   valSpine.textContent   = state.spine;
+    rPorts.value   = state.ports;   valPorts.textContent   = state.ports;
+    rGpus.value    = state.gpus;    valGpus.textContent    = state.gpus;
+    rUplinks.value = state.uplinks; valUplinks.textContent = state.uplinks;
+    rSpeed.value   = state.speed;   valSpeed.textContent   = state.speed;
+    toggleRail.checked = state.rail;
+    render();
+  }
+
+  /* ── Compute metrics ── */
+  function computeMetrics(s) {
+    var downlinksPerLeaf = Math.max(0, s.ports - s.uplinks);
+    var oversubRatio = (s.uplinks > 0) ? (downlinksPerLeaf / s.uplinks) : Infinity;
+    var nonblocking = s.uplinks >= downlinksPerLeaf;
+    var totalGpu = s.leaf * s.gpus;
+    var uplinkCables = s.leaf * s.uplinks;
+    var downlinkCables = s.leaf * downlinksPerLeaf;
+    var totalCables = uplinkCables + downlinkCables;
+    /* Bisection BW: cut through the spine layer.
+       Each uplink from a leaf carries s.speed Gb/s.
+       Total BW across spine layer = leaf x uplinks x speed.
+       Bisection = half of that (traffic can flow either way).
+       Unit: Tb/s for readability if large. */
+    var bisectGbps = (s.spine * s.uplinks * s.speed) / 2;
+    /* Clamp bisection by actual spine capacity:
+       each spine has s.ports ports, each carrying s.speed Gb/s.
+       If fewer leaf uplinks than spine ports, use leaf count.
+       [assumption: one uplink from each leaf to each spine switch] */
+    var spineCapGbps = s.spine * Math.min(s.leaf, s.ports) * s.speed / 2;
+    bisectGbps = Math.min(bisectGbps, spineCapGbps);
+    return {
+      downlinksPerLeaf: downlinksPerLeaf,
+      oversubRatio: oversubRatio,
+      nonblocking: nonblocking,
+      totalGpu: totalGpu,
+      uplinkCables: uplinkCables,
+      downlinkCables: downlinkCables,
+      totalCables: totalCables,
+      bisectGbps: bisectGbps
+    };
+  }
+
+  /* ── Format helpers ── */
+  function fmtBw(gbps) {
+    if (gbps >= 1000) {
+      return (gbps / 1000).toFixed(1) + ' Tb/s';
+    }
+    return Math.round(gbps) + ' Gb/s';
+  }
+  function fmtRatio(r) {
+    if (!isFinite(r)) return 'INF:1';
+    var rounded = Math.round(r * 10) / 10;
+    /* Express as integer ratio when clean */
+    if (Math.abs(rounded - Math.round(rounded)) < 0.05) {
+      return Math.round(rounded) + ':1';
+    }
+    return rounded.toFixed(1) + ':1';
+  }
+
+  /* ── Update metrics display ── */
+  function updateMetrics(m) {
+    /* Bisection */
+    mBisect.textContent = fmtBw(m.bisectGbps);
+    mBisect.className = 'metric-val';
+    mBisectSub.textContent = 'Spine-layer cut, both dirs';
+
+    /* Oversubscription */
+    mOversub.textContent = fmtRatio(m.oversubRatio);
+    mOversub.className = 'metric-val' + (m.nonblocking ? ' green' : (m.oversubRatio <= 2 ? ' amber' : ' red'));
+    mOversubSub.textContent = m.downlinksPerLeaf + ' down : ' + state.uplinks + ' up per leaf';
+
+    /* GPUs */
+    mGpu.textContent = m.totalGpu.toLocaleString();
+    mGpu.className = 'metric-val';
+    mGpuSub.textContent = state.leaf + ' leaf x ' + state.gpus + ' GPUs';
+
+    /* Cables */
+    mCables.textContent = m.totalCables.toLocaleString();
+    mCables.className = 'metric-val';
+    mCablesSub.textContent = m.uplinkCables + ' up + ' + m.downlinkCables + ' down';
+
+    /* Verdict badge */
+    if (m.nonblocking) {
+      verdictBadge.textContent = '1:1 NONBLOCKING';
+      verdictBadge.className = 'verdict-badge ok';
+    } else if (m.oversubRatio <= 2) {
+      verdictBadge.textContent = fmtRatio(m.oversubRatio) + ' OVERSUBSCRIBED';
+      verdictBadge.className = 'verdict-badge partial';
+    } else {
+      verdictBadge.textContent = fmtRatio(m.oversubRatio) + ' OVERSUBSCRIBED';
+      verdictBadge.className = 'verdict-badge warn';
+    }
+
+    /* Rail tag + legend */
+    if (state.rail) {
+      railTag.textContent = 'Rail-Optimized';
+      railLegendItem.style.display = '';
+    } else {
+      railTag.textContent = 'Simple Wiring';
+      railLegendItem.style.display = 'none';
+    }
+  }
+
+  /* ── SVG topology renderer ── */
+  function renderSvg(s, m) {
+    var LEAF_COLOR  = '#76B900';
+    var SPINE_COLOR = '#4a90d9';
+    var GPU_COLOR   = '#f59e0b';
+    var UPLINK_COLOR= '#8b8b8b';
+    var DOWN_COLOR  = 'rgba(245,158,11,.45)';
+    var RAIL_COLOR  = '#db2777';
+
+    /* Layout constants */
+    var maxLeaf  = Math.min(s.leaf,  16);
+    var maxSpine = Math.min(s.spine, 12);
+    var maxGpu   = Math.min(s.gpus,  12);
+
+    var PAD    = 28;
+    var SW_W   = 36;
+    var SW_H   = 16;
+    var GPU_R  = 6;
+
+    /* Width: enough to fit leaf switches */
+    var W = Math.max(600, PAD * 2 + maxLeaf * (SW_W + 14));
+    var H = 300;
+
+    var spineY  = PAD + 10;
+    var leafY   = H / 2 + 10;
+    var gpuY    = H - PAD - GPU_R;
+
+    /* X centers for each tier */
+    function centersFor(count, w) {
+      var used = count * w + (count - 1) * 10;
+      var startX = (W - used) / 2;
+      var arr = [];
+      for (var i = 0; i < count; i++) {
+        arr.push(startX + i * (w + 10) + w / 2);
+      }
+      return arr;
+    }
+
+    var spineCX = centersFor(maxSpine, SW_W);
+    var leafCX  = centersFor(maxLeaf,  SW_W);
+
+    var parts = [];
+
+    /* SVG header */
+    parts.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="font-family:monospace">');
+
+    /* Tier labels */
+    parts.push('<text x="' + PAD + '" y="' + (spineY + SW_H / 2 + 4) + '" fill="#4a90d9" font-size="9" font-weight="700" opacity=".7">SPINE</text>');
+    parts.push('<text x="' + PAD + '" y="' + (leafY + SW_H / 2 + 4) + '" fill="#76B900" font-size="9" font-weight="700" opacity=".7">LEAF</text>');
+    parts.push('<text x="' + PAD + '" y="' + (gpuY + 3) + '" fill="#f59e0b" font-size="9" font-weight="700" opacity=".7">GPU/NIC</text>');
+
+    /* Uplinks: each leaf to each spine (capped visually) */
+    var visUplinks = Math.min(s.uplinks, maxSpine);
+    for (var li = 0; li < maxLeaf; li++) {
+      for (var si = 0; si < visUplinks && si < maxSpine; si++) {
+        var lx = leafCX[li];
+        var sx = spineCX[si];
+        parts.push('<line x1="' + lx + '" y1="' + leafY + '" x2="' + sx + '" y2="' + (spineY + SW_H) + '" stroke="' + UPLINK_COLOR + '" stroke-width="1.2" opacity=".55"/>');
+      }
+    }
+
+    /* GPU downlinks + optional rail highlights */
+    for (var li2 = 0; li2 < maxLeaf; li2++) {
+      var leafX = leafCX[li2];
+      var gpuCount = Math.min(maxGpu, s.gpus);
+      var gpuSpread = gpuCount * 16;
+      for (var gi = 0; gi < gpuCount; gi++) {
+        var gx = leafX - gpuSpread / 2 + gi * 16 + 8;
+        var lineColor = DOWN_COLOR;
+        /* In rail-optimized view, highlight GPU-i of leaf-i with rail color */
+        if (state.rail && gi === li2 % gpuCount) {
+          lineColor = RAIL_COLOR;
+        }
+        parts.push('<line x1="' + leafX + '" y1="' + (leafY + SW_H) + '" x2="' + gx + '" y2="' + (gpuY - GPU_R) + '" stroke="' + lineColor + '" stroke-width="1" opacity="' + (state.rail && gi === li2 % gpuCount ? '.7' : '.35') + '"/>');
+        /* GPU node */
+        var gpuFill = (state.rail && gi === li2 % gpuCount) ? '#f0a0c0' : GPU_COLOR;
+        parts.push('<circle cx="' + gx + '" cy="' + gpuY + '" r="' + GPU_R + '" fill="' + gpuFill + '" opacity=".85"/>');
+        /* Rail index label */
+        if (state.rail && maxLeaf <= 8 && gpuCount <= 8) {
+          parts.push('<text x="' + gx + '" y="' + (gpuY + 3) + '" fill="#1a1a1a" font-size="5" text-anchor="middle" font-weight="700">' + gi + '</text>');
+        }
+      }
+    }
+
+    /* Leaf switches */
+    for (var li3 = 0; li3 < maxLeaf; li3++) {
+      var lx3 = leafCX[li3] - SW_W / 2;
+      parts.push('<rect x="' + lx3 + '" y="' + leafY + '" width="' + SW_W + '" height="' + SW_H + '" rx="3" fill="' + LEAF_COLOR + '" opacity=".92"/>');
+      if (maxLeaf <= 10) {
+        parts.push('<text x="' + leafCX[li3] + '" y="' + (leafY + 11) + '" fill="#0a1a00" font-size="7" text-anchor="middle" font-weight="700">L' + (li3 + 1) + '</text>');
+      }
+    }
+
+    /* Spine switches */
+    for (var si2 = 0; si2 < maxSpine; si2++) {
+      var sx2 = spineCX[si2] - SW_W / 2;
+      parts.push('<rect x="' + sx2 + '" y="' + spineY + '" width="' + SW_W + '" height="' + SW_H + '" rx="3" fill="' + SPINE_COLOR + '" opacity=".92"/>');
+      if (maxSpine <= 10) {
+        parts.push('<text x="' + spineCX[si2] + '" y="' + (spineY + 11) + '" fill="#fff" font-size="7" text-anchor="middle" font-weight="700">S' + (si2 + 1) + '</text>');
+      }
+    }
+
+    /* Clipped count notes if capped */
+    if (s.leaf > 16 || s.spine > 12 || s.gpus > 12) {
+      parts.push('<text x="' + (W - PAD) + '" y="' + (H - 8) + '" fill="#888" font-size="8" text-anchor="end">Diagram capped for clarity; metrics use full values</text>');
+    }
+
+    parts.push('</svg>');
+
+    svgEl.outerHTML = parts.join('');
+    /* Re-bind svgEl after outerHTML replacement */
+    svgEl = document.getElementById('topoSvg');
+    if (!svgEl) {
+      /* outerHTML approach: wrap already inside svgWrap */
+      svgWrap.querySelector('svg').id = 'topoSvg';
+      svgEl = document.getElementById('topoSvg');
+    }
+    svgWrap.style.minHeight = H + 'px';
+  }
+
+  /* ── Main render ── */
+  function render() {
+    var s = state;
+    var m = computeMetrics(s);
+    updateMetrics(m);
+    renderSvg(s, m);
+  }
+
+  /* ── Initial render ── */
+  render();
+
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

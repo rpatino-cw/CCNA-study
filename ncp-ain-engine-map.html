@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NCP-AIN: AI Fabric Engine Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  :root{
+    --paper:#F7F3EB; --paper-2:#FBF8F2;
+    --ink:#21262C; --ink-soft:#525a62; --ink-faint:#8b9098;
+    --hair:#e2dccf; --hair-2:#d8d1c0;
+    --nv:#76B900;      /* NVIDIA green */
+    --nv-bg:#f0f8e0;
+    --la-compute:#76B900;   /* Lane A Compute */
+    --la-scaleup:#a3c520;   /* Lane B Scale-up */
+    --la-nic:#3aa0a0;       /* Lane C NIC/DPU */
+    --la-fabric:#2F6FB0;    /* Lane D Fabric */
+    --la-mgmt:#7A4FA3;      /* Lane E Management */
+    --data-edge:#76B900;    /* solid data-path */
+    --ctrl-edge:#8b9098;    /* dashed control */
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'Lexend',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;background:var(--paper);
+    color:var(--ink);font-family:var(--sans);line-height:1.55;letter-spacing:.004em;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  nav.top-nav{position:fixed!important;top:0;left:0;right:0;z-index:200;margin:0!important;
+    min-height:46px;background:rgba(251,248,242,.94)!important;backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--hair)!important;}
+
+  .topbar{
+    position:fixed;top:46px;left:0;right:0;z-index:30;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:10px 18px;background:rgba(247,243,235,.9);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--hair);
+  }
+  .brand{display:flex;flex-direction:column;line-height:1.1;}
+  .brand .kick{font-family:var(--mono);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);}
+  .brand .ttl{font-weight:800;font-size:1.1rem;letter-spacing:-.02em;}
+  .brand .ttl span{color:var(--nv);}
+
+  .legend{display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center;margin-left:4px;}
+  .lg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.62rem;color:var(--ink-soft);cursor:pointer;user-select:none;padding:2px 6px;border-radius:6px;transition:.12s;}
+  .lg:hover{background:rgba(33,38,44,.05);}
+  .lg.off{opacity:.28;}
+  .lg .sw{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
+
+  .world-toggle{display:flex;align-items:center;gap:4px;border:1px solid var(--hair-2);border-radius:8px;overflow:hidden;background:var(--paper-2);}
+  .world-toggle button{border:none;background:none;font-family:var(--mono);font-size:.65rem;font-weight:600;color:var(--ink-soft);padding:5px 9px;cursor:pointer;transition:.12s;white-space:nowrap;}
+  .world-toggle button.active{background:var(--nv);color:#fff;}
+  .world-toggle button:hover:not(.active){background:var(--nv-bg);}
+
+  .controls{margin-left:auto;display:flex;align-items:center;gap:6px;}
+  .btn{font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:.04em;
+    background:var(--paper-2);color:var(--ink);border:1px solid var(--hair-2);border-radius:8px;
+    padding:6px 10px;cursor:pointer;transition:.12s;}
+  .btn:hover{background:#fff;border-color:var(--ink-faint);}
+  .btn.dark{background:var(--ink);color:var(--paper-2);border-color:var(--ink);}
+  .zoomwrap{display:flex;align-items:center;gap:0;border:1px solid var(--hair-2);border-radius:8px;overflow:hidden;background:var(--paper-2);}
+  .zoomwrap button{border:none;background:none;font-family:var(--mono);font-size:.95rem;font-weight:600;color:var(--ink);width:28px;height:30px;cursor:pointer;}
+  .zoomwrap button:hover{background:#fff;}
+  .zoomwrap .zval{font-family:var(--mono);font-size:.67rem;color:var(--ink-soft);width:42px;text-align:center;border-left:1px solid var(--hair);border-right:1px solid var(--hair);height:30px;line-height:30px;}
+
+  /* viewport */
+  #viewport{position:fixed;inset:0;top:0;cursor:grab;overflow:hidden;}
+  #viewport.dragging{cursor:grabbing;}
+  #stage{position:absolute;top:0;left:0;width:1600px;height:900px;transform-origin:0 0;}
+  #stage.animed{transition:transform .5s cubic-bezier(.2,.7,.3,1);}
+  #edges{position:absolute;top:0;left:0;width:1600px;height:900px;pointer-events:none;overflow:visible;}
+
+  /* edges */
+  .edge{stroke-width:1.5;opacity:.5;transition:stroke .18s,opacity .18s,stroke-width .18s;fill:none;}
+  .edge.data-edge{stroke:var(--data-edge);stroke-dasharray:none;}
+  .edge.ctrl-edge{stroke:var(--ctrl-edge);stroke-dasharray:5 5;}
+  .edge.lit{stroke-width:2.8;opacity:1;}
+  .edge.lit.data-edge{stroke:var(--nv);}
+  .edge.lit.ctrl-edge{stroke:#888;}
+  .edge.dim{opacity:.07;}
+
+  /* animated flow dot on lit data edges */
+  @media (prefers-reduced-motion: no-preference){
+    .edge.lit.data-edge.flowing{
+      stroke-dasharray:8 20;
+      stroke-dashoffset:28;
+      animation:flow-anim 1.2s linear infinite;
+    }
+  }
+  @keyframes flow-anim{to{stroke-dashoffset:0;}}
+
+  /* lane bands */
+  .lane-band{position:absolute;top:0;bottom:0;border-radius:12px;pointer-events:none;opacity:.04;background:var(--lc);}
+  .lane-label{position:absolute;font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--lc);opacity:.7;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);pointer-events:none;}
+
+  /* nodes */
+  .node{position:absolute;transform:translate(-50%,-50%);min-width:110px;max-width:150px;
+    background:var(--paper-2);border:1px solid var(--hair);border-left:5px solid var(--nc,#999);
+    border-radius:10px;padding:9px 12px 10px;cursor:pointer;overflow-wrap:break-word;word-break:break-word;
+    box-shadow:0 1px 0 #fff inset, 0 6px 18px -14px rgba(33,38,44,.5);
+    transition:transform .16s cubic-bezier(.2,.7,.3,1),box-shadow .16s,opacity .16s;}
+  .node:hover{transform:translate(-50%,-50%) scale(1.07);box-shadow:0 10px 24px -12px rgba(33,38,44,.55);z-index:5;}
+  .node.dim{opacity:.13;}
+  .node.virtual{border-style:dashed;}
+  .node .tag{font-family:var(--mono);font-size:.56rem;letter-spacing:.05em;color:var(--nc,#777);font-weight:600;display:flex;justify-content:space-between;margin-bottom:3px;}
+  .node .lbl{font-weight:700;font-size:.88rem;line-height:1.25;letter-spacing:-.005em;}
+  .node .sub{font-size:.67rem;color:var(--ink-faint);margin-top:2px;line-height:1.2;}
+  .node .mc{position:absolute;top:7px;right:8px;width:9px;height:9px;border-radius:50%;border:1.5px solid var(--nc,#999);background:transparent;transition:.15s;}
+  .node.done .mc{background:var(--nc,#999);}
+  .node.done .lbl{color:var(--ink-faint);}
+  .node.ib-only.eth-world{opacity:.1;}
+  .node.eth-only.ib-world{opacity:.1;}
+
+  .hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:25;
+    font-family:var(--mono);font-size:.65rem;color:var(--ink-faint);background:rgba(251,248,242,.85);
+    border:1px solid var(--hair);border-radius:100px;padding:5px 14px;letter-spacing:.03em;}
+
+  /* overlay */
+  .overlay{position:fixed;inset:0;z-index:60;display:none;background:rgba(20,24,28,.52);backdrop-filter:blur(4px);}
+  .overlay.open{display:block;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .sheet{position:absolute;inset:3vh 3vw;background:var(--paper);border-radius:16px;overflow:hidden;
+    display:flex;flex-direction:column;box-shadow:0 40px 100px -30px rgba(0,0,0,.6);
+    animation:pop .26s cubic-bezier(.2,.7,.3,1);}
+  @keyframes pop{from{transform:scale(.97);opacity:0;}to{transform:none;opacity:1;}}
+
+  .sheethead{display:flex;align-items:flex-start;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--hair);background:var(--paper-2);}
+  .sheethead .ob{font-family:var(--mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--nv);font-weight:600;margin-bottom:3px;}
+  .sheethead h2{margin:0;font-weight:800;font-size:1.45rem;letter-spacing:-.02em;}
+  .sheethead .lanechip{font-family:var(--mono);font-size:.6rem;font-weight:700;color:#fff;background:var(--oc,#777);border-radius:100px;padding:3px 9px;align-self:center;white-space:nowrap;}
+  .closeb{margin-left:auto;font-family:var(--mono);font-size:.75rem;font-weight:600;background:var(--ink);color:var(--paper-2);border:none;border-radius:8px;padding:7px 12px;cursor:pointer;align-self:center;}
+  .closeb:hover{background:#000;}
+
+  .sheetbody{flex:1;display:flex;min-height:0;}
+  @media(max-width:780px){.sheetbody{flex-direction:column;}}
+
+  /* left: mini pipeline strip */
+  .pmap{flex:0 0 260px;border-right:1px solid var(--hair);overflow-y:auto;padding:16px;}
+  @media(max-width:780px){.pmap{flex:0 0 120px;border-right:none;border-bottom:1px solid var(--hair);}}
+  .pmap-title{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 10px;}
+  .pstrip{display:flex;flex-direction:column;gap:6px;}
+  .pstrip-node{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--hair);background:var(--paper-2);cursor:pointer;transition:.12s;font-size:.8rem;font-weight:600;}
+  .pstrip-node:hover{border-color:var(--oc,#777);background:#fff;}
+  .pstrip-node.active{background:var(--oc,#777);color:#fff;border-color:var(--oc,#777);}
+  .pstrip-node .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--oc,#999);}
+  .pstrip-node.active .dot{background:#fff;}
+  .pstrip-conn{display:flex;align-items:center;padding:0 14px;gap:6px;font-family:var(--mono);font-size:.6rem;color:var(--ink-faint);}
+  .pstrip-conn .arr{flex:1;height:1px;background:var(--hair-2);}
+  .pstrip-conn .medium{white-space:nowrap;}
+
+  /* right: 4-section detail */
+  .pdetail{flex:1;overflow-y:auto;padding:18px 22px 28px;}
+
+  .sec{margin:0 0 18px;border-radius:10px;border:1px solid var(--hair);overflow:hidden;}
+  .sec-head{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--paper-2);border-bottom:1px solid var(--hair);}
+  .sec-label{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-soft);}
+  .sec-letter{font-family:var(--mono);font-size:.64rem;font-weight:700;color:#fff;background:var(--nv);border-radius:4px;padding:1px 6px;}
+  .sec-body{padding:12px 14px;font-size:.9rem;line-height:1.6;}
+
+  /* section A what */
+  .sec-body p{margin:0;}
+
+  /* section B hardware chips */
+  .hw-cols{display:flex;gap:14px;flex-wrap:wrap;}
+  .hw-col{flex:1;min-width:100px;}
+  .hw-col-label{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 6px;}
+  .hw-chips{display:flex;flex-direction:column;gap:5px;}
+  .hw-chip{display:flex;align-items:center;gap:6px;padding:5px 9px;background:var(--nv-bg);border:1px solid #c5e080;border-radius:7px;font-size:.8rem;font-weight:600;line-height:1.2;}
+  .hw-chip .medium{font-family:var(--mono);font-size:.62rem;color:#4a7000;font-weight:500;}
+
+  /* section C commands */
+  .cmd-list{display:flex;flex-direction:column;gap:6px;}
+  .cmd-item{border-radius:8px;border:1px solid var(--hair);overflow:hidden;}
+  .cmd-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--paper-2);cursor:pointer;transition:.12s;}
+  .cmd-bar:hover{background:#fff;}
+  .cmd-name{font-family:var(--mono);font-size:.8rem;font-weight:600;color:var(--ink);}
+  .cmd-type{font-family:var(--mono);font-size:.58rem;padding:1px 6px;border-radius:4px;font-weight:600;}
+  .cmd-type.inspect{background:#e6f0fa;color:#2F6FB0;}
+  .cmd-type.configure{background:var(--nv-bg);color:#4a7000;}
+  .cmd-type.validate{background:#ede8f6;color:#7A4FA3;}
+  .cmd-chevron{margin-left:auto;font-size:.7rem;color:var(--ink-faint);transition:.18s;}
+  .cmd-item.open .cmd-chevron{transform:rotate(90deg);}
+  .cmd-output{display:none;background:#1a1f26;padding:11px 13px;font-family:var(--mono);font-size:.76rem;line-height:1.65;color:#c8d5dd;white-space:pre-wrap;overflow-x:auto;}
+  .cmd-item.open .cmd-output{display:block;}
+
+  /* section D pipeline */
+  .pipe-strip{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:6px 0;}
+  .pipe-block{flex:0 0 auto;text-align:center;}
+  .pipe-block .pb-label{font-family:var(--mono);font-size:.65rem;font-weight:600;padding:5px 9px;background:var(--nv-bg);border:1.5px solid var(--nv);border-radius:7px;display:inline-block;white-space:nowrap;}
+  .pipe-arrow{flex:0 0 auto;padding:0 5px;color:var(--ink-faint);font-size:.9rem;}
+  .pipe-block.active .pb-label{background:var(--nv);color:#fff;border-color:var(--nv);}
+  .trap{margin-top:12px;background:#fbe9e3;border:1px solid #eec3b6;border-radius:8px;padding:10px 13px;font-size:.88rem;color:#7c2d18;line-height:1.5;}
+  .trap .lbl{font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.12em;color:#fff;background:#BC4329;border-radius:4px;padding:1px 6px;margin-right:6px;}
+
+  /* legend edge type */
+  .edge-legend{display:flex;gap:12px;align-items:center;margin-left:4px;}
+  .el-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.6rem;color:var(--ink-faint);}
+  .el-line{width:24px;height:2px;}
+  .el-line.data{background:var(--nv);}
+  .el-line.ctrl{background:var(--ctrl-edge);mask:repeating-linear-gradient(to right,#000 0 4px,transparent 4px 8px);}
+</style>
+</head>
+<body>
+<nav class="top-nav" aria-label="Site navigation"></nav>
+<script defer src="js/nav.js"></script>
+
+<div class="topbar" role="toolbar">
+  <div class="brand">
+    <span class="kick">NCP-AIN · AI fabric pipeline</span>
+    <span class="ttl">The <span>AI Engine</span> Map</span>
+  </div>
+
+  <div class="edge-legend" aria-label="Edge type legend">
+    <div class="el-item"><div class="el-line data"></div>Data path</div>
+    <div class="el-item"><div class="el-line ctrl" style="background:var(--ctrl-edge);"></div>Control</div>
+  </div>
+
+  <div class="world-toggle" role="group" aria-label="Fabric world toggle">
+    <button id="btn-both" class="active" aria-pressed="true">Both</button>
+    <button id="btn-ib" aria-pressed="false">InfiniBand</button>
+    <button id="btn-eth" aria-pressed="false">Spectrum-X</button>
+  </div>
+
+  <div class="legend" id="legend" role="list"></div>
+
+  <div class="controls">
+    <div class="zoomwrap">
+      <button id="zout" aria-label="Zoom out">-</button>
+      <span class="zval" id="zval">100%</span>
+      <button id="zin" aria-label="Zoom in">+</button>
+    </div>
+    <button class="btn" id="fit">Fit</button>
+    <button class="btn dark" id="resetbtn">Reset</button>
+  </div>
+</div>
+
+<div id="viewport" role="main" aria-label="AI fabric pipeline map, drag to pan, scroll to zoom">
+  <div id="stage">
+    <svg id="edges" viewBox="0 0 1600 900" aria-hidden="true"></svg>
+  </div>
+</div>
+
+<div class="hint" aria-live="polite">drag to pan &middot; scroll to zoom &middot; click a node to open pipeline panel &middot; click circle to mark mastered</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="ovtitle">
+  <div class="sheet">
+    <div class="sheethead">
+      <div>
+        <div class="ob" id="ovob"></div>
+        <h2 id="ovtitle"></h2>
+      </div>
+      <span class="lanechip" id="ovlane"></span>
+      <button class="closeb" id="closeov" aria-label="Close panel">X close</button>
+    </div>
+    <div class="sheetbody">
+      <div class="pmap" id="pmap">
+        <div class="pmap-title">Pipeline neighbors</div>
+        <div class="pstrip" id="pstrip"></div>
+      </div>
+      <div class="pdetail" id="pdetail"></div>
+    </div>
+  </div>
+</div>
+
+<script defer src="js/ib-tools.js"></script>
+<script defer src="data/ncp-ain-pillars-data.js"></script>
+<script>
+/* ============================ DATA ============================ */
+
+/* Lanes: id, label, color variable */
+var LANES = [
+  { id:'A', label:'Compute',    color:'#76B900' },
+  { id:'B', label:'Scale-up',   color:'#a3c520' },
+  { id:'C', label:'NIC / DPU',  color:'#3aa0a0' },
+  { id:'D', label:'Fabric',     color:'#2F6FB0' },
+  { id:'E', label:'Management', color:'#7A4FA3' },
+];
+
+var LANE_COL = {};
+LANES.forEach(function(l){ LANE_COL[l.id] = l.color; });
+
+/*
+  NODE shape:
+  id, label, sub, lane, obj, world ('ib'|'eth'|'both'),
+  what: string,
+  up: [{label, medium}],    upstream hardware
+  dn: [{label, medium}],    downstream hardware
+  cmds: [{name, type, output}],  type: 'inspect'|'configure'|'validate'
+  pipeline: {in, does, out, trap}
+  virtual: bool (dashed border, not a physical box)
+*/
+var NODES = {
+  gpu:{
+    label:'GPU', sub:'H100/H200/GB200',
+    lane:'A', obj:'3.8', world:'both',
+    what:'The tensor-compute origin. CUDA kernels produce gradients and activations; during distributed training these must be reduced (all-reduce) across all GPUs in the job. The GPU holds the data in HBM (GPU VRAM), never in host DRAM during GPUDirect transfers.',
+    up:[], dn:[{label:'NVSwitch',medium:'NVLink 5th gen'},{label:'ConnectX SuperNIC',medium:'PCIe Gen5 / C2C'},{label:'NCCL',medium:'software call'}],
+    cmds:[
+      {name:'nvidia-smi',type:'inspect',output:'Thu Jun 18 12:00:00 2026\n+-----------------------------------------------------------------------------+\n| NVIDIA-SMI 570.00    Driver Version: 570.00    CUDA Version: 12.7    |\n|-----------+-----------+-----------+\n| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |\n|   0  NVIDIA H100 SXM   On    | 00000000:1B:00.0 Off |                    0 |\n| N/A   47C    P0    400W / 700W|  35284MiB / 81920MiB |      0%      Default |'},
+      {name:'nvidia-smi topo -m',type:'inspect',output:'      GPU0 GPU1 GPU2 GPU3 mlx5_0\nGPU0   X   NV18  NV18  NV18   PIX\nGPU1  NV18  X    NV18  NV18   PIX\nGPU2  NV18 NV18   X    NV18   SYS\nGPU3  NV18 NV18  NV18   X     SYS\nmlx5_0 PIX  PIX  SYS  SYS   X\n\nLegend: NV18=NVLink, PIX=PCIe same root complex, SYS=cross NUMA\n# PIX = best GPUDirect path (same root). SYS = two PCIe switches, degraded.'},
+      {name:'nvidia-smi nvlink -s',type:'inspect',output:'GPU 00000000:1B:00.0\n\t Link 0: 25 GB/s\n\t Link 1: 25 GB/s\n\t Link 2: 25 GB/s\n\t ...(18 links total, H100 SXM)\n# Each link = 25 GB/s bidirectional = 450 GB/s aggregate per GPU on H100 SXM'},
+    ],
+    pipeline:{
+      in:'Gradient tensor in GPU HBM',
+      does:'CUDA kernel computes; NCCL/SHARP decides path; GPUDirect DMA kicks off',
+      out:'Bytes injected into NIC FIFO or NVLink switch without touching CPU',
+      trap:'nvidia-smi topo -m SYS means two PCIe root complexes: GPUDirect RDMA bandwidth drops sharply. Design for PIX or NV topology per NIC.'
+    }
+  },
+
+  nccl:{
+    label:'NCCL', sub:'Collective comm library',
+    lane:'A', obj:'3.8', world:'both', virtual:true,
+    what:'NCCL (NVIDIA Collective Communications Library) is the software glue between GPU kernels and the network. It auto-detects topology (NVLink vs PCIe vs IB vs RoCE), chooses the optimal algorithm (ring, tree, or SHARP offload), and dispatches collective ops (AllReduce, AllGather, ReduceScatter). It is loaded as a shared library; the application never talks to the NIC directly.',
+    up:[{label:'GPU',medium:'CUDA API'}], dn:[{label:'GPUDirect RDMA',medium:'Verbs / RDMA'},{label:'SHARP',medium:'IB Verbs offload'},{label:'NVSwitch',medium:'NVLink domain (intra-node)'}],
+    cmds:[
+      {name:'NCCL_DEBUG=INFO',type:'configure',output:'# Set before launching training. Output example:\nNCCL INFO Topology detected: 8 GPUs on 1 node, 8 NICs\nNCCL INFO AllReduce: using SHARP offload tree (NCCL 2.27+)\nNCCL INFO Selected algorithm: RING\nNCCL INFO Net/IB : Using interface mlx5_0:1 (PCI 0000:1b:00.1)'},
+      {name:'all_reduce_perf -b 8 -e 4G',type:'validate',output:'# nccl-tests all_reduce_perf across 16 GPUs (2 nodes x 8 GPUs)\n#                                                  out-of-place                       in-place\n#       size         count    type   redop  root    time   algbw   busbw  #wrong   time   algbw   busbw\n   8388608          2097152   float     sum    -1   427.3   19.63   36.81      0   425.8   19.70   36.94\n 536870912        134217728   float     sum    -1  5812.4  116.02  217.54      0  5799.1  116.29  218.04\n# busbw = algbw * 2*(n-1)/n; at n=16 factor = 1.875. Target: busbw > 200 GB/s for NDR cluster.'},
+    ],
+    pipeline:{
+      in:'CUDA collective call (e.g. ncclAllReduce)',
+      does:'Selects algorithm (ring/tree/SHARP), opens RDMA QPs, posts work requests',
+      out:'DMA requests issued to NIC; data moves GPU-to-GPU via NVLink or wire',
+      trap:'busbw, not algbw, is the comparable metric. algbw is message_size/time; busbw corrects for ring topology (2*(n-1)/n factor). Citing algbw for bandwidth comparisons is a common trap.'
+    }
+  },
+
+  nvlink:{
+    label:'NVLink', sub:'5th gen, 1.8 TB/s/GPU',
+    lane:'B', obj:'3.8', world:'both',
+    what:'NVLink provides ultra-high-bandwidth GPU-to-GPU lanes inside a node or an NVL72 domain (GB200). 5th-gen NVLink on Blackwell delivers 1.8 TB/s aggregate per GPU. Data stays on NVLink and never touches the IB or Ethernet fabric for intra-domain collectives.',
+    up:[{label:'GPU',medium:'NVLink port'}], dn:[{label:'NVSwitch',medium:'NVLink crossbar'}],
+    cmds:[
+      {name:'nvidia-smi nvlink -s',type:'inspect',output:'GPU 00000000:1B:00.0\n\t Link 0: 25 GB/s\n\t Link 1: 25 GB/s\n\t ... (18 x 25 GB/s on H100 SXM = 450 GB/s/GPU bidirectional)'},
+      {name:'nvidia-smi nvlink -c',type:'inspect',output:'GPU 00000000:1B:00.0\n\t Link 0: Counter 0 = 0\n\t            Counter 1 = 0\n\t ... (NVLink error counters; 0 = healthy)'},
+    ],
+    pipeline:{
+      in:'Gradient chunk from source GPU HBM',
+      does:'Switch-fabric traversal via NVSwitch crossbar, zero PCIe hops',
+      out:'Chunk lands in destination GPU HBM at full bandwidth',
+      trap:'NVLink is GPU-to-GPU only; a compute NIC reaches the IB leaf over PCIe Gen5, not NVLink.'
+    }
+  },
+
+  nvswitch:{
+    label:'NVSwitch', sub:'NVL72 = 72 GPU domain',
+    lane:'B', obj:'3.8', world:'both',
+    what:'NVSwitch is an NVIDIA crossbar switch ASIC that interconnects all GPUs in a node or an NVL72 domain (GB200 NVL72 rack). In an NVL72 system, 72 GPUs share one NVLink domain and the NVSwitch makes any GPU reachable by any other at full bandwidth without going through the IB/Ethernet fabric.',
+    up:[{label:'GPU',medium:'NVLink'},{label:'NVLink',medium:'NVLink lanes'}], dn:[{label:'GPU',medium:'NVLink'},{label:'NVLink',medium:'NVLink lanes'}],
+    cmds:[
+      {name:'nvidia-smi (NVSwitch health)',type:'inspect',output:'# NVSwitch appears as a separate device class on DGX/HGX systems:\n$ nvidia-smi -L\nGPU 0: NVIDIA H100 SXM5 80GB (UUID: GPU-...)\n...\nNVSwitch 0 (UUID: NVSwitch-...)\nNVSwitch 1 (UUID: NVSwitch-...)'},
+      {name:'nvlsm (NVL72 systems)',type:'inspect',output:'# nvlsm: NVLink Subnet Manager for NVL72 domains (analogous to opensm for IB)\n# Lists NVLink endpoints and domain topology:\n$ nvlsm show topology\nDomain: 0  GPUs: 72  NVSwitches: 36  State: ACTIVE\nBandwidth per link: 25 GB/s  Total domain BW: 1.8 TB/s per GPU'},
+    ],
+    pipeline:{
+      in:'NVLink flit from source GPU',
+      does:'Non-blocking crossbar switching to destination NVLink port',
+      out:'Flit delivered to destination GPU without bandwidth penalty',
+      trap:'NVSwitch handles intra-domain traffic only; cross-node GPU-to-GPU traffic must exit via the NIC to the IB or Ethernet fabric.'
+    }
+  },
+
+  connectx:{
+    label:'ConnectX SuperNIC', sub:'CX-7/CX-8, 400/800G',
+    lane:'C', obj:'3.8', world:'both',
+    what:'ConnectX-7 (MT4129, 400G NDR) and ConnectX-8 (PCIe Gen6, 800G XDR) are the host channel adapters (HCA) that put GPU memory onto the wire. They implement RDMA (InfiniBand or RoCEv2), GPUDirect RDMA peer DMA, and hardware-accelerated transport. ConnectX-8 adds an integrated PCIe Gen6 switch, collapsing the NIC plus switch chip into one device.',
+    up:[{label:'GPU',medium:'PCIe Gen5 / GPUDirect'},{label:'GPUDirect RDMA',medium:'PCIe peer DMA'}], dn:[{label:'IB Leaf (QM9700)',medium:'NDR OSFP cable'},{label:'Spectrum-X Leaf',medium:'800G OSFP cable'}],
+    cmds:[
+      {name:'ibstat',type:'inspect',output:'CA \'mlx5_0\'\n\tCA type: MT4129\n\tNumber of ports: 1\n\tFirmware version: 28.39.1002\n\tHardware version: 0\n\tNode GUID: 0xe41d2d03007c0001\n\tPort 1:\n\t\tState: Active\n\t\tPhysical state: LinkUp\n\t\tRate: 400 Gb/sec\n\t\tBase lid: 2\n\t\tLink layer: InfiniBand'},
+      {name:'ibstatus mlx5_0',type:'inspect',output:'Infiniband device \'mlx5_0\' port 1 status:\n        default gid:     fe80::0000:0000:0000:0001\n        base lid:        0x2\n        SM lid:          0x1\n        state:           4: ACTIVE\n        phys state:      5: LinkUp\n        rate:            400 Gb/sec (4X NDR)\n        link_layer:      InfiniBand'},
+      {name:'mlxconfig -d /dev/mst/mt4129_pciconf0 query',type:'inspect',output:'Device #1:\n----------\nDevice type:    ConnectX7\nName:           MCX75310AAS-NEAT\nDescription:    ConnectX-7 IB HDR/NDR 1-port OSFP; PCIe5.0 x16\nDevice:         /dev/mst/mt4129_pciconf0\n\nConfigurations:                              Current\n         LINK_TYPE_P1                        IB(1)\n         SRIOV_EN                            False(0)\n         NUM_OF_VFS                          0\n# LINK_TYPE: 1=IB, 2=Eth, 3=VPI/auto'},
+      {name:'mlxlink -d mlx5_0 -p 1',type:'validate',output:'Operational Info\n----------------\nState                           : Active\nPhysical state                  : LinkUp\nSpeed                           : NDR\nWidth                           : 4x\nFEC                             : Standard_RS-FEC - (544,514)\nEffective Physical BER          : 0E0  (<1e-12, healthy)\nRaw Physical BER                : 5.25E-5\n# Effective BER 0 = no post-FEC errors. Raw ~5e-5 is normal for PAM4.'},
+    ],
+    pipeline:{
+      in:'RDMA work request posted by NCCL/Verbs (with GPU buffer pointer)',
+      does:'DMA directly from GPU VRAM over PCIe; adds IB/RoCE BTH header; sends on the wire',
+      out:'IB or RoCEv2 packet on NDR link to leaf switch',
+      trap:'GPU and NIC must share the same PCIe root complex (nvidia-smi topo shows PIX) for full GPUDirect throughput. A SYS hop halves effective bandwidth.'
+    }
+  },
+
+  bluefield:{
+    label:'BlueField-3 DPU', sub:'16-core Arm, DOCA',
+    lane:'C', obj:'3.8', world:'both',
+    what:'BlueField-3 DPU = ConnectX-7 networking plus 16 Armv8.2 Cortex-A78 (Hercules) cores plus SoC, device MT41692. It runs its own Arm OS (BFB image) and offloads networking, storage, and security from the host CPU via DOCA APIs. In DPU mode (ECPF), the host sees the BF3 as a NIC but the Arm cores control the data path.',
+    up:[{label:'GPU / host CPU',medium:'PCIe Gen5 (host side)'}], dn:[{label:'IB Leaf',medium:'NDR cable'},{label:'Spectrum-X Leaf',medium:'800G cable'}],
+    cmds:[
+      {name:'mst status -v',type:'inspect',output:'MST modules:\n------------\n    MST PCI module is not loaded\nMST devices:\n------------\n/dev/mst/mt41692_pciconf0         - MST meta device\n                                    domain:bus:dev.fn=0000:03:00.0\n                                    devid=41692\n# devid 41692 = BlueField-3; devid 4129 = ConnectX-7'},
+      {name:'mlxconfig -d /dev/mst/mt41692_pciconf0 query',type:'inspect',output:'Configurations:                              Current\n         INTERNAL_CPU_MODEL                  EMBEDDED_CPU(1)\n         INTERNAL_CPU_OFFLOAD_ENGINE         DISABLED(0)\n# INTERNAL_CPU_MODEL 1 = DPU mode (Arm active); 0 = NIC mode\n# NIC mode: BF3 acts as a plain ConnectX NIC, Arm cores idle'},
+    ],
+    pipeline:{
+      in:'Packet from host PCIe or wire',
+      does:'Arm cores run DOCA pipeline (OVS offload / crypto / storage), forwards to wire or host',
+      out:'Processed packet exiting to fabric or returning to host VRAM',
+      trap:'Separated-Host mode is obsolete as of BSP 4.8.0; only NIC mode and DPU (ECPF) mode are valid. A question offering Separated-Host as a current mode is a distractor.'
+    }
+  },
+
+  gpudirect:{
+    label:'GPUDirect RDMA', sub:'Zero-copy GPU-to-wire',
+    lane:'C', obj:'3.8', world:'both', virtual:true,
+    what:'GPUDirect RDMA is the PCIe peer-to-peer DMA path that lets the NIC access GPU VRAM directly, bypassing host CPU and system DRAM entirely. The GPU and NIC must share the same PCIe root complex for full performance. The CPU only posts the initial work request; it never touches payload bytes.',
+    up:[{label:'GPU HBM',medium:'PCIe peer DMA'}], dn:[{label:'ConnectX NIC',medium:'RDMA Verbs'},{label:'BlueField-3 DPU',medium:'RDMA Verbs'}],
+    cmds:[
+      {name:'nvidia-smi topo -m',type:'inspect',output:'      GPU0 GPU1 mlx5_0 mlx5_1\nGPU0   X    NV18   PIX    SYS\nGPU1  NV18   X     PIX    SYS\nmlx5_0 PIX  PIX    X      PIX\nmlx5_1 SYS  SYS   PIX     X\n# PIX = same root complex = best GPUDirect path\n# SYS = different NUMA / root complex = degraded GPUDirect'},
+      {name:'ib_write_bw GPU-to-GPU',type:'validate',output:'# GPU memory RDMA write benchmark (with --use_cuda flag)\n# SERVER: ib_write_bw -d mlx5_0 -i 1 --use_cuda=0 -q 4 --report_gbits\n# CLIENT: ib_write_bw -d mlx5_0 -i 1 --use_cuda=0 -q 4 --report_gbits <server>\n #bytes     #iterations    BW peak[Gb/sec]    BW average[Gb/sec]\n 1048576    50000          391.24             390.88\n 4194304    10000          393.87             393.44\n# 390+ Gb/s at large messages = healthy GPUDirect RDMA on NDR400.'},
+    ],
+    pipeline:{
+      in:'NCCL posts RDMA send WR with GPU buffer addr + length',
+      does:'NIC DMA engine reads from GPU VRAM via PCIe peer-to-peer, wraps in IB/RoCE BTH',
+      out:'Packet on the wire; CPU was never in the data path',
+      trap:'nvidia-smi topo SYS between GPU and NIC means two PCIe root complexes: GPUDirect still works but at significantly lower bandwidth. Place GPUs and NICs on the same root complex for full performance.'
+    }
+  },
+
+  'leaf-ib':{
+    label:'IB Leaf (QM9700)', sub:'64x NDR400, 25.6 Tbps',
+    lane:'D', obj:'3.2', world:'ib',
+    what:'The Quantum-2 QM9700 is the InfiniBand leaf switch in a rail-optimized fat-tree. 64 NDR400 ports from 32 OSFP cages (2 ports per cage). The QM9700 is MANAGED: it has an onboard CPU and can run the Subnet Manager (SM) locally via MLNX-OS. QM9790 is UNMANAGED and always requires an external SM.',
+    up:[{label:'ConnectX SuperNIC',medium:'NDR400 OSFP cable'}], dn:[{label:'IB Spine (QM9700)',medium:'NDR400 trunk'}],
+    cmds:[
+      {name:'ibswitches',type:'inspect',output:'Switch  : 0x002128183ea40050 ports 64 "NVIDIA Quantum-2 QM9700" base port 0 lid 4 lmc 0\nSwitch  : 0x002128183ea40051 ports 64 "NVIDIA Quantum-2 QM9700" base port 0 lid 6 lmc 0\n# lid = assigned LID by SM; ports 64 confirms NDR64 mode'},
+      {name:'iblinkinfo',type:'inspect',output:'CA: 0x0021283a8620b000 "dgx-h100-01 HCA-1"\n      8[  ] ==( 4X NDR  Active/  LinkUp)==>       5[  1] "QM9700 Leaf-0" ( 4X NDR Active/ LinkUp)\n      9[  ] ==( 4X NDR  Active/  LinkUp)==>       5[  2] "QM9700 Leaf-0" ( 4X NDR Active/ LinkUp)\n# Format: local_port ==( speed Active/PhysState)==> switch[remote_port] switch_name'},
+      {name:'perfquery <lid> <port>',type:'validate',output:'# PortCounters (basic) for leaf LID 4 port 1\nPortSelect:......................1\nSymbolErrors:....................0\nLinkRecovers:....................0\nLinkDowned:......................0\nXmtData:.........................8472649621\nRcvData:.........................7391204418\nPortXmitWait:....................0\n# PortXmitWait > 0 = congestion building; XmtDiscards > 0 = drops'},
+    ],
+    pipeline:{
+      in:'IB packet from ConnectX NIC at NDR400',
+      does:'LFT lookup on destination LID; switch ASIC forwards to output port; optional Adaptive Routing picks best equal-cost port',
+      out:'IB packet forwarded to spine or destination NIC at line rate',
+      trap:'QM9790 has no onboard SM: the fabric will not initialize without an external opensm or UFM managing it. QM9700 can run SM locally. The exam often reverses these.'
+    }
+  },
+
+  'spine-ib':{
+    label:'IB Spine (QM9700)', sub:'Fat-tree top tier, NDR',
+    lane:'D', obj:'3.2', world:'ib',
+    what:'The InfiniBand spine switches form the non-blocking fat-tree top tier. All leaf switches connect to every spine, and the fabric is 1:1 non-blocking when uplink count equals downlink count. Cross-rail GPU-to-GPU traffic traverses the spine. IB routing is table-driven: the SM programs Linear Forwarding Tables (LFTs) in every switch.',
+    up:[{label:'IB Leaf',medium:'NDR400 trunk'}], dn:[{label:'IB Leaf',medium:'NDR400 downlinks'}],
+    cmds:[
+      {name:'ibnetdiscover',type:'inspect',output:'# Dumps full fabric topology (nodes, GUIDs, LIDs, links)\nSwitch  64 "NVIDIA Quantum-2 QM9700 Spine-0" lid 10 guid 0x21283a8620b0a0\n   [1] -> "QM9700 Leaf-0"[33]  # port 1 of spine connected to port 33 of leaf\n   [2] -> "QM9700 Leaf-1"[33]\n...'},
+      {name:'ibdiagnet -r',type:'validate',output:'Credit Loops Report\n-------------------\n   no credit loops found\n\nPM Counters Report\n------------------\nAll ports: OK (SymbolErrors=0, LinkDowned=0)'},
+    ],
+    pipeline:{
+      in:'IB packet from leaf port (cross-rail hop)',
+      does:'LFT lookup; non-blocking crossbar; optional AR selects egress port by queue depth',
+      out:'Packet forwarded to correct leaf for destination NIC',
+      trap:'IB does NOT use ECMP. ECMP is an Ethernet/IP construct with static flow hashing. IB uses SM-programmed LFTs with hardware Adaptive Routing per packet.'
+    }
+  },
+
+  'leaf-eth':{
+    label:'Spectrum-X Leaf (SN5600)', sub:'64x800G, Spectrum-4',
+    lane:'D', obj:'2.1', world:'eth',
+    what:'The SN5600 is the Spectrum-X leaf switch built on the Spectrum-4 ASIC: 64 OSFP ports at 800GbE (51.2 Tbps aggregate). It runs Cumulus Linux via NVUE. Combined with a BlueField-3 or ConnectX-8 SuperNIC, it forms the Spectrum-X AI Ethernet fabric for RoCEv2 workloads.',
+    up:[{label:'ConnectX SuperNIC',medium:'800G OSFP / DAC'}], dn:[{label:'Spectrum-X Spine',medium:'800G uplinks'}],
+    cmds:[
+      {name:'nv show interface',type:'inspect',output:'cumulus@sn5600-leaf01:mgmt:~$ nv show interface --view=brief\nInterface  State  Speed  Vlan  Mtu   Type     Remote Host\n---------  -----  -----  ----  ----  -------  -----------\nswp1       up     800G   -     9216  swp      dgx-h100-01\nswp2       up     800G   -     9216  swp      dgx-h100-02\n...'},
+      {name:'nv show platform',type:'inspect',output:'cumulus@switch:mgmt:~$ nv show platform\n               operational\n-------------  -----------\nmanufacturer   NVIDIA\nsystem-type    MSN5600\nasic-model     Spectrum-4\nserial-number  MT2025XXXX\npart-number    MSN5600-VS2FO\nmemory         32768 MB'},
+      {name:'nv show qos roce',type:'validate',output:'cumulus@switch:mgmt:~$ nv show qos roce\n                    operational  applied\n------------------  -----------  --------\nmode                lossless     lossless\npfc\n  pfc-priority      3\n  rx-enabled        enabled\n  tx-enabled        enabled\ncongestion-control\n  congestion-mode   ECN\n  enabled-tc        0,3\n  min-threshold     146.48 KB\n  max-threshold     1.43 MB\n  probability       100'},
+    ],
+    pipeline:{
+      in:'RoCEv2 UDP/4791 packet from ConnectX SuperNIC',
+      does:'L3 route lookup; ECN marking if queue depth > 146 KB; PFC pause if congested on SP3; adaptive routing to best uplink',
+      out:'Packet forwarded to spine with ECN CE bit if congested',
+      trap:'nv set qos roce sets ALL of the following in one command: buffer pools, DSCP/PCP trust, PFC on SP3, ECN on TC0+TC3, CNP scheduling. You do NOT need separate per-parameter commands for baseline lossless.'
+    }
+  },
+
+  'spine-eth':{
+    label:'Spectrum-X Spine', sub:'Adaptive routing top tier',
+    lane:'D', obj:'2.1', world:'eth',
+    what:'The Spectrum-X spine provides the non-blocking Ethernet top tier for the AI fabric. Spectrum-4 Adaptive Routing (AR) operates per-packet on a 1-microsecond decision interval based on real-time egress queue occupancy. Toggling AR restarts switchd and resets all ports, requiring a maintenance window.',
+    up:[{label:'Spectrum-X Leaf',medium:'800G uplinks'}], dn:[{label:'Spectrum-X Leaf',medium:'800G downlinks'}],
+    cmds:[
+      {name:'nv show router adaptive-routing',type:'inspect',output:'cumulus@leaf01:mgmt:~$ nv show router adaptive-routing\n        applied\n------  -------\nstate   enabled\n\ncumulus@leaf01:mgmt:~$ nv show interface swp51 router adaptive-routing\n                            applied\n--------------------------  -------\nstate                       enabled\nlink-utilization-threshold  70'},
+      {name:'nv show evpn vni',type:'inspect',output:'cumulus@leaf01:~$ nv show evpn vni\nVNI  NumMacs  NumArps  NumRemVteps  TenantVrf  Bridge      Vlan\n---  -------  -------  -----------  ---------  ----------  ----\n10   7        4        1            RED        br_default  10\n20   7        4        1            RED        br_default  20'},
+    ],
+    pipeline:{
+      in:'RoCEv2 packet from leaf via 800G trunk',
+      does:'AR picks egress leaf port by live queue depth; no SM involved per packet',
+      out:'Packet forwarded to destination leaf at line rate',
+      trap:'AR is NOT ECMP. ECMP hashes an entire flow (5-tuple) to one path. AR can split packets of one flow across different paths. Out-of-order delivery is corrected by the SuperNIC receiver via Direct Data Placement (DDP), not by the switch.'
+    }
+  },
+
+  roce:{
+    label:'RoCEv2 Pipeline', sub:'PFC + ECN + DCQCN',
+    lane:'D', obj:'2.2/2.3', world:'eth', virtual:true,
+    what:'RoCEv2 encapsulates IB transport in UDP port 4791, making RDMA routable at L3. The lossless pipeline requires: PFC (link-level pause per priority), ECN (CE bit marking before overflow), and DCQCN (NIC-side rate control triggered by CNP packets). The switch only does PFC and ECN; DCQCN runs on the ConnectX NIC.',
+    up:[{label:'ConnectX SuperNIC',medium:'RoCEv2 UDP/4791'}], dn:[{label:'Spectrum-X Leaf',medium:'lossless queue SP3'},{label:'Spectrum-X Spine',medium:'ECN-marked packets'}],
+    cmds:[
+      {name:'nv show qos roce',type:'inspect',output:'cumulus@switch:mgmt:~$ nv show qos roce\n                    operational  applied\n------------------  -----------  --------\nmode                lossless     lossless\npfc\n  pfc-priority      3\n  rx-enabled        enabled\n  tx-enabled        enabled\ncongestion-control\n  congestion-mode   ECN\n  enabled-tc        0,3\n  min-threshold     146.48 KB\n  max-threshold     1.43 MB\n  probability       100\ntrust\n  trust-mode        pcp,dscp\nlldp-app-tlv\n  priority          3\n  protocol-id       4791\n  selector          UDP'},
+      {name:'mlnx_qos -i <dev>',type:'inspect',output:'# Host side (on compute node NIC)\n$ mlnx_qos -i mlx5_0\nPFC configuration:\n  priority:       0 1 2 3 4 5 6 7\n  enabled:        0 0 0 1 0 0 0 0   <- PFC on priority 3\nDSCP-to-priority mapping:\n  DSCP 26 -> priority 3 (RoCE data)\n  DSCP 48 -> priority 6 (CNP)'},
+      {name:'nv show interface <x> qos pfc',type:'validate',output:'cumulus@switch:~$ nv show interface swp1 qos pfc\n            operational  applied\n----------  -----------  -------\npfc-priority  3          3\nrx-enabled    enabled    enabled\ntx-enabled    enabled    enabled\ncable-length  100        100\n\n# Counters to watch: tx-pfc pause-packets (rising = real congestion)\n# rx-roce no-buffer-discard rising with PFC near 0 = DSCP trust mismatch'},
+    ],
+    pipeline:{
+      in:'RoCEv2 packet arrives at Spectrum-X port on SP3',
+      does:'If queue > 146 KB: mark CE bit (ECN). If queue near overflow: send PFC PAUSE upstream. NIC receives CNP, runs DCQCN rate reduction.',
+      out:'Packet forwarded losslessly; injection rate reduced at source NIC',
+      trap:'DCQCN runs on the NIC, not the switch. The switch only signals ECN; the ConnectX generates the CNP (Congestion Notification Packet) to cut the injection rate. One lossy hop (wrong PFC priority or no PFC) breaks the end-to-end lossless guarantee.'
+    }
+  },
+
+  sharp:{
+    label:'SHARP', sub:'In-network AllReduce',
+    lane:'D', obj:'3.7', world:'ib', virtual:true,
+    what:'SHARP (Scalable Hierarchical Aggregation and Reduction Protocol) offloads AllReduce, Reduce, Barrier, Broadcast, AllGather, and ReduceScatter collectives INTO the IB switch ASICs. Data is reduced on the way up the aggregation tree, so GPUs send less. SHARPv3 on Quantum-2/NDR supports multiple parallel aggregation trees (multi-tenant). sharpd was removed in SHARP 2.7.0.',
+    up:[{label:'NCCL (on GPU nodes)',medium:'libsharp / Verbs'}], dn:[{label:'IB Leaf',medium:'in-ASIC aggregation'},{label:'IB Spine',medium:'reduction tree'}],
+    cmds:[
+      {name:'sharp_hello -d mlx5_0:1',type:'validate',output:'$ sharp_hello -d mlx5_0:1 -v 3\nConnecting to sharp_am on localhost:6126...\nTree type: 3 (full aggregation tree)\nTree ID: 1\nQuota: 4096 bytes\nTest Passed\n# Test Passed = sharp_am running, aggregation trees configured'},
+      {name:'ibdiagnet --sharp',type:'validate',output:'$ ibdiagnet --sharp\n   IB Aggregation Nodes ........ 32\n   SHARP ....................... 0 0   (no errors)\n# IB Aggregation Nodes = number of switch ports with SHARP enabled\n# 0 0 = zero warnings, zero errors'},
+    ],
+    pipeline:{
+      in:'AllReduce call from NCCL via libsharp',
+      does:'switch ASIC receives partial sums from downstream ports, reduces them in hardware, sends result up the tree',
+      out:'Final reduced tensor returned to GPU at a fraction of the raw network bandwidth cost',
+      trap:'SHARP requires sharp_am (Aggregation Manager) on the UFM/management host. No AM = no aggregation trees. UFM manages the sharp_am lifecycle; starting ufmd starts both opensm and sharp_am together.'
+    }
+  },
+
+  opensm:{
+    label:'opensm', sub:'IB Subnet Manager',
+    lane:'E', obj:'3.3', world:'ib',
+    what:'opensm is the InfiniBand Subnet Manager (SM): it assigns LIDs to every HCA port and switch, programs Linear Forwarding Tables (LFTs) into every switch, and handles fabric events. Only the master SM actively programs the fabric; one or more standby SMs monitor via light sweep and promote on master failure.',
+    up:[{label:'UFM',medium:'REST / control'},{label:'Management host',medium:'TCP/IP mgmt'}], dn:[{label:'IB Leaf',medium:'IB management MADs'},{label:'IB Spine',medium:'IB management MADs'}],
+    cmds:[
+      {name:'sminfo',type:'inspect',output:'sminfo: sm lid 25 sm guid 0x21283a8620b0f0, activity count 25950 priority 15 state 3 SMINFO_MASTER\n# state 3 = master, priority 15; standby SM would show state 2 SMINFO_STANDBY\n# activity count increments on every sweep'},
+      {name:'systemctl status opensm',type:'inspect',output:'opensm.service - InfiniBand Subnet Manager\n   Loaded: loaded (/lib/systemd/system/opensm.service; enabled)\n   Active: active (running) since Thu 2026-06-18 08:15:00 UTC; 4h ago\n Main PID: 3421 (opensm)\n   CGroup: /system.slice/opensm.service\n           3421 /usr/sbin/opensm -p 15 -s 10'},
+      {name:'opensm -p 15',type:'configure',output:'# opensm.conf core parameters:\nsm_priority 15          # 0=lowest (default), 15=highest; highest numeric = master\nsweep_interval 10       # seconds between light sweeps (default 10)\nlmc 0                   # 2^lmc LIDs per port; lmc=2 gives 4 LIDs/port\nrouting_engine ftree    # minhop|updn|ftree|dor|torus-2QoS|lash|dfsssp|sssp|nue\n\n# sminfo state 3 = master; priority 15 in sminfo must match sm_priority 15 in config'},
+    ],
+    pipeline:{
+      in:'Fabric event (link up, new node, SM peer detected)',
+      does:'Light sweep detects event; triggers heavy sweep; assigns LIDs; programs LFTs in all switches',
+      out:'All switches have updated forwarding tables; new nodes are reachable',
+      trap:'Light sweep (default 10s) does NOT reprogram LFTs. Only a heavy sweep does full rediscovery and LFT reprogramming. Light sweep only monitors port states and SM peers, then triggers a heavy sweep on change.'
+    }
+  },
+
+  ufm:{
+    label:'UFM', sub:'Unified Fabric Manager',
+    lane:'E', obj:'3.11', world:'ib',
+    what:'UFM (Unified Fabric Manager) is the NVIDIA enterprise IB management platform. It starts and monitors opensm, manages the SHARP Aggregation Manager (sharp_am), provides telemetry (120+ counters per IB port), and exposes a REST API for automation. QM9790 (unmanaged) REQUIRES UFM or external opensm. UFM does NOT replace opensm; it runs opensm alongside itself.',
+    up:[{label:'Management host',medium:'TCP/IP / REST'}], dn:[{label:'opensm',medium:'SM management'},{label:'SHARP',medium:'sharp_am lifecycle'},{label:'IB Leaf/Spine',medium:'REST telemetry'}],
+    cmds:[
+      {name:'GET /ufmRest/resources/ports',type:'inspect',output:'GET /ufmRest/resources/ports\nAuthorization: Basic <base64-credentials>\nAccept: application/json\n\n{\n  "number": 33,\n  "physical_state": "Link Up",\n  "logical_state": "Active",\n  "active_speed": "NDR",\n  "active_width": "4x",\n  "lid": 8,\n  "peer_node_name": "r-dmz-ufm131",\n  "guid": "0002c903007b78b0"\n}'},
+      {name:'service ufmd start',type:'configure',output:'# Starting UFM starts opensm + SHARP AM together:\nservice ufmd start\n# Verify:\nservice ufmd status\n# UFM web console: https://<ufm-host>/ufm/web\n# SHARP AM config: /opt/ufm/files/conf/sharp/sharp_am.cfg'},
+    ],
+    pipeline:{
+      in:'Fabric event or REST API request',
+      does:'opensm programs LFTs; sharp_am configures aggregation trees; telemetry streams port counters; REST API exposes fabric state',
+      out:'Fabric fully managed: routing tables programmed, SHARP ready, telemetry streaming',
+      trap:'QM9790 trap: QM9790 is UNMANAGED with no onboard SM; it always needs UFM or standalone opensm. QM9700 is MANAGED with an onboard SM. The exam often reverses these.'
+    }
+  },
+
+  netq:{
+    label:'NetQ + WJH', sub:'Spectrum telemetry',
+    lane:'E', obj:'4.2', world:'eth',
+    what:'NetQ is the NVIDIA off-box telemetry and validation platform for Spectrum fabrics. WJH (What Just Happened) captures every dropped packet at line rate with a reason code. netq check roce validates fabric-wide RoCE configuration consistency. WJH has two access paths: on-box NVUE (nv show system wjh packet-buffer) and off-box NetQ CLI (netq show wjh-drop); they cannot run simultaneously on the same switch.',
+    up:[{label:'Management host',medium:'out-of-band mgmt'}], dn:[{label:'Spectrum-X Leaf',medium:'NetQ agent + WJH'},{label:'Spectrum-X Spine',medium:'NetQ agent'},{label:'RoCEv2 pipeline',medium:'drop analysis'}],
+    cmds:[
+      {name:'netq check roce',type:'validate',output:'cumulus@netq-ts:~$ netq check roce\n\nroce check result summary:\nTotal nodes                             : 8\nChecked nodes                           : 8\nFailed nodes                            : 3\n\nRoCE mode Test                 : 0 warnings, 1 errors\nRoCE Classification Test       : 0 warnings, 3 errors\nRoCE Flow Control Test         : 0 warnings, 2 errors\n\nNode Name     Attribute             Value\nleaf02        roce mode             lossy    <-- MODE MISMATCH\nleaf03        pfc-priority          2        <-- FLOW CONTROL MISMATCH'},
+      {name:'netq show wjh-drop',type:'inspect',output:'cumulus@netq-ts:~$ netq leaf01 show wjh-drop between now and 1h\nObservation Time         Hostname  Category  Reason                   Source IP  Dest IP\n------------------------ --------  --------  ----------------------   ---------  -------\n2026-06-18 10:15:32.001  leaf01    Buffer    Tail drop / TC3          10.0.1.5   10.0.2.8\n2026-06-18 10:15:30.007  leaf01    L3        Unresolved next-hop      10.0.1.3   10.0.3.1\n# WJH categories: L1, L2, L3 (Router), Tunnel, Buffer, ACL'},
+    ],
+    pipeline:{
+      in:'Packet dropped anywhere in Spectrum ASIC pipeline',
+      does:'ASIC captures drop metadata at line rate; WJH classifies to one of 6 categories; NetQ streams events to central server',
+      out:'Drop event visible in netq show wjh-drop with reason code and 5-tuple',
+      trap:'Buffer drops in WJH cover WRED and tail drop, NOT PFC holds. PFC backpressures the upstream sender rather than dropping, so it never appears as a WJH drop event.'
+    }
+  },
+
+  nvue:{
+    label:'NVUE', sub:'Cumulus Linux config plane',
+    lane:'E', obj:'5.1', world:'eth',
+    what:'NVUE (NVIDIA User Experience) is the declarative CLI for Cumulus Linux on Spectrum switches. It uses a three-stage config model: pending (staged), applied (running), startup (persisted). nv config apply is atomic. On Cumulus 5.9+, apply also saves; on 5.8 and earlier, nv config save is required separately or config is lost on reboot.',
+    up:[{label:'Network admin',medium:'SSH / console'}], dn:[{label:'Spectrum-X Leaf',medium:'NVUE config apply'},{label:'Spectrum-X Spine',medium:'NVUE config apply'}],
+    cmds:[
+      {name:'nv set / nv unset',type:'configure',output:'# Stage changes in the pending (candidate) config\ncumulus@switch:mgmt:~$ nv set interface swp1 ip address 10.1.1.1/31\ncumulus@switch:mgmt:~$ nv set interface swp1 link mtu 9216\ncumulus@switch:mgmt:~$ nv unset interface swp1 link state down'},
+      {name:'nv config apply',type:'configure',output:'# Review diff before applying:\ncumulus@switch:mgmt:~$ nv config diff applied pending\n  interface:\n    swp1:\n      ip:\n        address:\n+         10.1.1.1/31: {}\n      link:\n+       mtu: 9216\n# Apply atomically (arms 10-min auto-rollback with --confirm):\ncumulus@switch:mgmt:~$ nv config apply --confirm'},
+      {name:'nv config history',type:'inspect',output:'cumulus@switch:mgmt:~$ nv config history\nRev  Date                          User    Comment\n---  ----------------------------  ------  -------\n12   2026-06-18 09:12:35 +0000     admin   QoS RoCE lossless enable\n11   2026-06-18 08:40:10 +0000     admin   BGP neighbor add\n# Use nv config rollback <rev> to revert to a prior config'},
+    ],
+    pipeline:{
+      in:'Admin nv set commands build pending YAML config',
+      does:'nv config apply diffs pending vs applied, programs FRR + Linux kernel + ASIC atomically',
+      out:'Spectrum ASIC and routing daemons updated; config saved to /etc/nvue.d/startup.yaml on CL 5.9+',
+      trap:'On Cumulus 5.8 and earlier, nv config apply does NOT save to disk. You must run nv config save separately or the config is lost on reboot. CL 5.9+ enables auto-save by default.'
+    }
+  },
+};
+
+/* EDGES: [from, to, type('data'|'ctrl')] */
+var EDGES = [
+  /* compute <-> scale-up */
+  ['gpu','nvlink','data'],
+  ['nvlink','nvswitch','data'],
+  /* compute <-> NIC (software + PCIe) */
+  ['gpu','nccl','data'],
+  ['nccl','gpudirect','data'],
+  ['gpu','connectx','data'],
+  ['connectx','gpudirect','data'],
+  ['bluefield','gpudirect','data'],
+  /* NIC -> fabric */
+  ['connectx','leaf-ib','data'],
+  ['connectx','leaf-eth','data'],
+  ['bluefield','leaf-eth','data'],
+  /* fabric internal */
+  ['leaf-ib','spine-ib','data'],
+  ['leaf-eth','spine-eth','data'],
+  /* RoCE (behavior on eth fabric) */
+  ['roce','leaf-eth','data'],
+  ['roce','spine-eth','data'],
+  /* SHARP on IB fabric */
+  ['sharp','leaf-ib','data'],
+  ['sharp','spine-ib','data'],
+  ['nccl','sharp','data'],
+  /* control edges */
+  ['opensm','leaf-ib','ctrl'],
+  ['opensm','spine-ib','ctrl'],
+  ['ufm','opensm','ctrl'],
+  ['ufm','sharp','ctrl'],
+  ['netq','leaf-eth','ctrl'],
+  ['netq','spine-eth','ctrl'],
+  ['netq','roce','ctrl'],
+  ['nvue','leaf-eth','ctrl'],
+  ['nvue','spine-eth','ctrl'],
+];
+
+/* ============================ LAYOUT ============================ */
+// Stage is 1600 x 900 px
+// 5 lanes: A=Compute, B=Scale-up, C=NIC/DPU, D=Fabric, E=Management
+// Lane x centers (approximate)
+var LANE_X = { A:120, B:280, C:450, D:840, E:1380 };
+var LANE_WIDTH = { A:160, B:160, C:200, D:560, E:200 };
+
+// Manual positions for each node (x, y) within the 1600x900 stage
+// These are the absolute pixel positions for transform:translate(-50%,-50%)
+var POS = {
+  gpu:        { x:120, y:280 },
+  nccl:       { x:120, y:520 },
+  nvlink:     { x:280, y:280 },
+  nvswitch:   { x:280, y:160 },
+  connectx:   { x:450, y:230 },
+  bluefield:  { x:450, y:430 },
+  gpudirect:  { x:450, y:620 },
+  'leaf-ib':  { x:720, y:200 },
+  'spine-ib': { x:900, y:200 },
+  'leaf-eth': { x:720, y:480 },
+  'spine-eth':{ x:900, y:480 },
+  roce:       { x:720, y:680 },
+  sharp:      { x:900, y:360 },
+  opensm:     { x:1120, y:200 },
+  ufm:        { x:1300, y:320 },
+  netq:       { x:1120, y:520 },
+  nvue:       { x:1300, y:640 },
+};
+
+var stage = document.getElementById('stage');
+var edgesSvg = document.getElementById('edges');
+var pos = POS;
+var nodeEl = {};
+var neighbors = {};
+
+function buildNeighbors(){
+  EDGES.forEach(function(e){
+    (neighbors[e[0]] = neighbors[e[0]] || new Set()).add(e[1]);
+    (neighbors[e[1]] = neighbors[e[1]] || new Set()).add(e[0]);
+  });
+}
+
+function drawLaneBands(){
+  var laneData = [
+    { id:'A', x:30, w:160, label:'Compute', color:'#76B900' },
+    { id:'B', x:200, w:160, label:'Scale-up', color:'#a3c520' },
+    { id:'C', x:360, w:200, label:'NIC / DPU', color:'#3aa0a0' },
+    { id:'D', x:560, w:620, label:'Fabric', color:'#2F6FB0' },
+    { id:'E', x:1180, w:200, label:'Management', color:'#7A4FA3' },
+  ];
+  laneData.forEach(function(l){
+    var band = document.createElement('div');
+    band.className = 'lane-band';
+    band.style.left = l.x + 'px';
+    band.style.width = l.w + 'px';
+    band.style.setProperty('--lc', l.color);
+    band.style.background = l.color;
+    stage.appendChild(band);
+    var lbl = document.createElement('div');
+    lbl.className = 'lane-label';
+    lbl.style.left = (l.x + l.w/2 - 8) + 'px';
+    lbl.style.top = '18px';
+    lbl.style.setProperty('--lc', l.color);
+    lbl.style.color = l.color;
+    lbl.textContent = l.label;
+    stage.appendChild(lbl);
+  });
+}
+
+function drawEdges(){
+  EDGES.forEach(function(e, i){
+    var a = pos[e[0]], b = pos[e[1]];
+    if(!a || !b) return;
+    var ln = document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1', a.x); ln.setAttribute('y1', a.y);
+    ln.setAttribute('x2', b.x); ln.setAttribute('y2', b.y);
+    var cls = 'edge ' + (e[2] === 'ctrl' ? 'ctrl-edge' : 'data-edge');
+    ln.setAttribute('class', cls);
+    ln.dataset.a = e[0]; ln.dataset.b = e[1]; ln.dataset.etype = e[2];
+    edgesSvg.appendChild(ln);
+  });
+}
+
+function drawNodes(){
+  Object.keys(NODES).forEach(function(id){
+    var n = NODES[id];
+    var p = pos[id];
+    if(!p) return;
+    var c = LANE_COL[n.lane] || '#999';
+    var el = document.createElement('div');
+    el.className = 'node' + (n.virtual ? ' virtual' : '');
+    if(n.world === 'ib') el.classList.add('ib-only');
+    if(n.world === 'eth') el.classList.add('eth-only');
+    el.style.left = p.x + 'px';
+    el.style.top = p.y + 'px';
+    el.style.setProperty('--nc', c);
+    el.dataset.id = id;
+    el.setAttribute('role','button');
+    el.setAttribute('aria-label', n.label + ' node, Lane ' + n.lane);
+    el.setAttribute('tabindex','0');
+    el.innerHTML = '<span class="mc" title="mark mastered" aria-label="mark as mastered"></span>' +
+      '<div class="tag"><span>Lane ' + n.lane + '</span><span>' + n.obj + '</span></div>' +
+      '<div class="lbl">' + n.label + '</div>' +
+      '<div class="sub">' + n.sub + '</div>';
+    stage.appendChild(el);
+    nodeEl[id] = el;
+    if(localStorage.getItem('ncp-engine-' + id) === '1') el.classList.add('done');
+    el.addEventListener('mouseenter', function(){ onHoverEnter(id); });
+    el.addEventListener('mouseleave', onHoverLeave);
+    el.addEventListener('mousedown', function(ev){
+      if(ev.target.classList.contains('mc')){
+        el.classList.toggle('done');
+        localStorage.setItem('ncp-engine-' + id, el.classList.contains('done') ? '1' : '0');
+        ev.stopPropagation(); armed = null; return;
+      }
+      armed = id; armX = ev.clientX; armY = ev.clientY; ev.stopPropagation();
+    });
+    el.addEventListener('keydown', function(ev){
+      if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); openNode(id); }
+    });
+  });
+}
+
+function highlight(id){
+  var keep = new Set([id]);
+  (neighbors[id] || new Set()).forEach(function(n){ keep.add(n); });
+  Object.keys(nodeEl).forEach(function(nid){ nodeEl[nid].classList.toggle('dim', !keep.has(nid)); });
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  edgesSvg.querySelectorAll('.edge').forEach(function(ln){
+    var on = (ln.dataset.a === id || ln.dataset.b === id);
+    ln.classList.toggle('lit', on);
+    ln.classList.toggle('dim', !on);
+    if(on && ln.dataset.etype === 'data' && !prefersReduced){
+      ln.classList.add('flowing');
+    } else {
+      ln.classList.remove('flowing');
+    }
+  });
+}
+
+function clearHighlight(){
+  Object.keys(nodeEl).forEach(function(nid){ nodeEl[nid].classList.remove('dim'); });
+  edgesSvg.querySelectorAll('.edge').forEach(function(ln){
+    ln.classList.remove('lit','dim','flowing');
+  });
+}
+
+var leaveTimer = null;
+function onHoverEnter(id){ clearTimeout(leaveTimer); stage.classList.remove('animed'); highlight(id); }
+function onHoverLeave(){ clearTimeout(leaveTimer); leaveTimer = setTimeout(clearHighlight, 90); }
+
+/* ============================ PAN / ZOOM ============================ */
+var vp = document.getElementById('viewport');
+var scale = 1, tx = 0, ty = 0;
+function applyTransform(){ stage.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; document.getElementById('zval').textContent = Math.round(scale*100) + '%'; }
+var TOPBAR_H = 96;
+function fit(animate){
+  if(animate) stage.classList.add('animed'); else stage.classList.remove('animed');
+  var w = vp.clientWidth, h = vp.clientHeight, pad = 60;
+  var s = Math.min((w-pad*2)/1600, (h-TOPBAR_H-pad*2)/900);
+  scale = s; tx = (w-1600*s)/2; ty = TOPBAR_H + (h-TOPBAR_H-900*s)/2; applyTransform();
+}
+document.getElementById('zin').onclick = function(){ stage.classList.add('animed'); scale = Math.min(scale*1.2, 3); applyTransform(); };
+document.getElementById('zout').onclick = function(){ stage.classList.add('animed'); scale = Math.max(scale/1.2, .2); applyTransform(); };
+document.getElementById('fit').onclick = function(){ fit(true); };
+document.getElementById('resetbtn').onclick = function(){ clearHighlight(); fit(true); };
+vp.addEventListener('wheel', function(e){
+  e.preventDefault();
+  stage.classList.remove('animed');
+  var r = vp.getBoundingClientRect(), mx = e.clientX-r.left, my = e.clientY-r.top;
+  var ns = Math.min(Math.max(scale*(e.deltaY<0?1.1:0.9), .2), 3);
+  tx = mx-(mx-tx)*(ns/scale); ty = my-(my-ty)*(ns/scale); scale = ns; applyTransform();
+}, {passive:false});
+var drag = false, sx, sy, stx, sty, armed = null, armX = 0, armY = 0;
+vp.addEventListener('mousedown', function(e){
+  if(e.target.closest('.node')) return;
+  stage.classList.remove('animed'); drag = true; vp.classList.add('dragging');
+  sx = e.clientX; sy = e.clientY; stx = tx; sty = ty;
+});
+window.addEventListener('mousemove', function(e){
+  if(!drag) return; tx = stx+(e.clientX-sx); ty = sty+(e.clientY-sy); applyTransform();
+});
+window.addEventListener('mouseup', function(e){
+  drag = false; vp.classList.remove('dragging');
+  if(armed != null){
+    var moved = Math.hypot(e.clientX-armX, e.clientY-armY);
+    var id = armed; armed = null; if(moved < 7) openNode(id);
+  }
+});
+
+/* ============================ WORLD TOGGLE ============================ */
+var world = 'both';
+function setWorld(w){
+  world = w;
+  ['btn-both','btn-ib','btn-eth'].forEach(function(id){
+    var b = document.getElementById(id);
+    var active = (id === 'btn-' + w);
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  Object.keys(nodeEl).forEach(function(id){
+    var n = NODES[id];
+    var show = (w === 'both') || (n.world === w) || (n.world === 'both');
+    nodeEl[id].style.opacity = show ? '' : '0.08';
+    nodeEl[id].style.pointerEvents = show ? '' : 'none';
+  });
+  edgesSvg.querySelectorAll('.edge').forEach(function(ln){
+    var na = NODES[ln.dataset.a], nb = NODES[ln.dataset.b];
+    if(!na || !nb) return;
+    var aok = (w === 'both') || na.world === w || na.world === 'both';
+    var bok = (w === 'both') || nb.world === w || nb.world === 'both';
+    ln.style.opacity = (aok && bok) ? '' : '0.04';
+  });
+}
+document.getElementById('btn-both').addEventListener('click', function(){ setWorld('both'); });
+document.getElementById('btn-ib').addEventListener('click', function(){ setWorld('ib'); });
+document.getElementById('btn-eth').addEventListener('click', function(){ setWorld('eth'); });
+
+/* ============================ LEGEND ============================ */
+function buildLegend(){
+  var lg = document.getElementById('legend');
+  LANES.forEach(function(l){
+    var el = document.createElement('div');
+    el.className = 'lg'; el.dataset.lane = l.id;
+    el.setAttribute('role','listitem');
+    el.innerHTML = '<span class="sw" style="background:' + l.color + '"></span>' + l.label;
+    el.addEventListener('click', function(){
+      el.classList.toggle('off');
+      var on = !el.classList.contains('off');
+      Object.keys(nodeEl).forEach(function(id){
+        if(NODES[id].lane === l.id) nodeEl[id].style.display = on ? '' : 'none';
+      });
+    });
+    lg.appendChild(el);
+  });
+}
+
+/* ============================ OVERLAY / PANEL ============================ */
+var overlay = document.getElementById('overlay');
+var pstrip = document.getElementById('pstrip');
+var pdetail = document.getElementById('pdetail');
+
+function buildPipelineStrip(id){
+  var n = NODES[id];
+  var nb = Array.from(neighbors[id] || []);
+  pstrip.innerHTML = '';
+  // upstream neighbors first
+  var up = nb.filter(function(nid){ return NODES[nid]; });
+  var active_color = LANE_COL[n.lane];
+  // build simple linear strip: neighbors -> self -> neighbors
+  var upNbrs = [];
+  var dnNbrs = [];
+  EDGES.forEach(function(e){
+    if(e[1] === id && NODES[e[0]]) upNbrs.push(e[0]);
+    if(e[0] === id && NODES[e[1]]) dnNbrs.push(e[1]);
+  });
+  // De-dup
+  upNbrs = upNbrs.filter(function(x,i){ return upNbrs.indexOf(x) === i; });
+  dnNbrs = dnNbrs.filter(function(x,i){ return dnNbrs.indexOf(x) === i; });
+
+  function makeChip(nid, isActive){
+    var nn = NODES[nid];
+    var div = document.createElement('div');
+    div.className = 'pstrip-node' + (isActive ? ' active' : '');
+    div.style.setProperty('--oc', LANE_COL[nn.lane]);
+    div.innerHTML = '<span class="dot"></span>' + nn.label;
+    if(!isActive){
+      div.addEventListener('click', function(){ openNode(nid); });
+    }
+    return div;
+  }
+  function makeConn(medium){
+    var div = document.createElement('div');
+    div.className = 'pstrip-conn';
+    div.innerHTML = '<span class="medium">' + medium + '</span><span class="arr"></span>';
+    return div;
+  }
+  upNbrs.slice(0,3).forEach(function(nid){
+    pstrip.appendChild(makeChip(nid, false));
+    var med = '';
+    if(n.up && n.up.length){ var u = n.up.find(function(h){ return h.label && NODES[nid] && h.label.indexOf(NODES[nid].label.split(' ')[0]) !== -1; }); if(u) med = u.medium; }
+    pstrip.appendChild(makeConn(med));
+  });
+  pstrip.appendChild(makeChip(id, true));
+  dnNbrs.slice(0,3).forEach(function(nid){
+    var med = '';
+    if(n.dn && n.dn.length){ var d = n.dn.find(function(h){ return h.label && NODES[nid] && h.label.indexOf(NODES[nid].label.split(' ')[0]) !== -1; }); if(d) med = d.medium; }
+    pstrip.appendChild(makeConn(med));
+    pstrip.appendChild(makeChip(nid, false));
+  });
+}
+
+function renderPanel(id){
+  var n = NODES[id];
+  var c = LANE_COL[n.lane];
+  var html = '';
+
+  // Section A
+  html += '<div class="sec"><div class="sec-head"><span class="sec-letter">a</span><span class="sec-label">What it is</span></div>';
+  html += '<div class="sec-body"><p>' + escHtml(n.what) + '</p></div></div>';
+
+  // Section B hardware
+  html += '<div class="sec"><div class="sec-head"><span class="sec-letter">b</span><span class="sec-label">Hardware it connects to</span></div>';
+  html += '<div class="sec-body"><div class="hw-cols">';
+  html += '<div class="hw-col"><div class="hw-col-label">Upstream (data from)</div><div class="hw-chips">';
+  if(n.up && n.up.length){
+    n.up.forEach(function(h){ html += '<div class="hw-chip">' + escHtml(h.label) + '<span class="medium">' + escHtml(h.medium) + '</span></div>'; });
+  } else {
+    html += '<div class="hw-chip">Workload origin</div>';
+  }
+  html += '</div></div>';
+  html += '<div class="hw-col"><div class="hw-col-label">Downstream (data to)</div><div class="hw-chips">';
+  if(n.dn && n.dn.length){
+    n.dn.forEach(function(h){ html += '<div class="hw-chip">' + escHtml(h.label) + '<span class="medium">' + escHtml(h.medium) + '</span></div>'; });
+  } else {
+    html += '<div class="hw-chip">Destination reached</div>';
+  }
+  html += '</div></div></div></div></div>';
+
+  // Section C commands
+  html += '<div class="sec"><div class="sec-head"><span class="sec-letter">c</span><span class="sec-label">Commands that touch it</span></div>';
+  html += '<div class="sec-body"><div class="cmd-list">';
+  n.cmds.forEach(function(cmd, ci){
+    html += '<div class="cmd-item" id="cmd-' + id + '-' + ci + '">';
+    html += '<div class="cmd-bar" onclick="toggleCmd(\'' + id + '\',' + ci + ')">';
+    html += '<span class="cmd-name">' + escHtml(cmd.name) + '</span>';
+    html += '<span class="cmd-type ' + cmd.type + '">' + cmd.type + '</span>';
+    html += '<span class="cmd-chevron">&#9658;</span>';
+    html += '</div>';
+    html += '<div class="cmd-output">' + escHtml(cmd.output) + '</div>';
+    html += '</div>';
+  });
+  // Optionally surface IBTools.run for IB nodes
+  if((id === 'connectx' || id === 'leaf-ib' || id === 'spine-ib' || id === 'opensm') && window.IBTools){
+    var ibcmd = id === 'connectx' ? 'ibstat' : (id === 'opensm' ? 'sminfo' : 'ibswitches');
+    try{
+      var live = window.IBTools.run(ibcmd);
+      var liveIdx = n.cmds.length;
+      html += '<div class="cmd-item" id="cmd-' + id + '-live">';
+      html += '<div class="cmd-bar" onclick="toggleCmdRaw(\'cmd-' + id + '-live\')">';
+      html += '<span class="cmd-name">' + ibcmd + ' (live sim)</span>';
+      html += '<span class="cmd-type validate">live</span>';
+      html += '<span class="cmd-chevron">&#9658;</span>';
+      html += '</div>';
+      html += '<div class="cmd-output">' + escHtml(live) + '</div>';
+      html += '</div>';
+    } catch(ex){}
+  }
+  html += '</div></div></div>';
+
+  // Section D pipeline
+  html += '<div class="sec"><div class="sec-head"><span class="sec-letter">d</span><span class="sec-label">Data pipeline through it</span></div>';
+  html += '<div class="sec-body">';
+  if(n.pipeline){
+    html += '<div class="pipe-strip">';
+    html += '<div class="pipe-block"><span class="pb-label">IN: ' + escHtml(n.pipeline.in) + '</span></div>';
+    html += '<span class="pipe-arrow">&#8594;</span>';
+    html += '<div class="pipe-block active"><span class="pb-label">' + escHtml(n.pipeline.does) + '</span></div>';
+    html += '<span class="pipe-arrow">&#8594;</span>';
+    html += '<div class="pipe-block"><span class="pb-label">OUT: ' + escHtml(n.pipeline.out) + '</span></div>';
+    html += '</div>';
+    if(n.pipeline.trap){
+      html += '<div class="trap"><span class="lbl">TRAP</span>' + escHtml(n.pipeline.trap) + '</div>';
+    }
+  }
+  html += '</div></div>';
+
+  pdetail.innerHTML = html;
+}
+
+function escHtml(s){
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleCmd(id, ci){
+  var el = document.getElementById('cmd-' + id + '-' + ci);
+  if(el) el.classList.toggle('open');
+}
+function toggleCmdRaw(elId){
+  var el = document.getElementById(elId);
+  if(el) el.classList.toggle('open');
+}
+
+function openNode(id){
+  var n = NODES[id];
+  if(!n) return;
+  var c = LANE_COL[n.lane];
+  document.querySelectorAll('.sheet').forEach(function(s){ s.style.setProperty('--oc', c); });
+  document.getElementById('ovob').textContent = 'Obj ' + n.obj + ' · Lane ' + n.lane;
+  document.getElementById('ovtitle').textContent = n.label;
+  var laneName = (LANES.find(function(l){ return l.id === n.lane; }) || {}).label || '';
+  document.getElementById('ovlane').textContent = 'Lane ' + n.lane + ': ' + laneName;
+  document.getElementById('ovlane').style.background = c;
+  overlay.classList.add('open');
+  buildPipelineStrip(id);
+  renderPanel(id);
+  pdetail.scrollTop = 0;
+}
+
+document.getElementById('closeov').onclick = function(){ overlay.classList.remove('open'); };
+overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('open'); });
+window.addEventListener('keydown', function(e){ if(e.key === 'Escape') overlay.classList.remove('open'); });
+
+/* ============================ BOOT ============================ */
+document.addEventListener('DOMContentLoaded', function(){
+  drawLaneBands();
+  drawEdges();
+  drawNodes();
+  buildNeighbors();
+  buildLegend();
+  fit();
+  window.addEventListener('resize', function(){ if(!overlay.classList.contains('open')) fit(); });
+
+  /* node-syntax-check: verify all NODES have required fields */
+  var required = ['label','lane','what','cmds','pipeline'];
+  var errs = [];
+  Object.keys(NODES).forEach(function(id){
+    var n = NODES[id];
+    required.forEach(function(f){ if(!n[f]) errs.push(id + ' missing ' + f); });
+  });
+  if(errs.length){ console.error('[engine-map] node-syntax-check FAIL:', errs); }
+  else { console.log('[engine-map] node-syntax-check: 17 nodes OK'); }
+});
+
+/* back-link helper available globally */
+window.goHub = function(){ location.href = 'ncp-ain-hub.html'; };
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

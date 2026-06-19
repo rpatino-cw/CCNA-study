@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>WJH Drop Analysis and NetQ Console -- NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+.ib-back { margin-bottom: var(--s-md); }
+.ib-header { margin-bottom: var(--s-lg); }
+.ib-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.ib-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 62ch;
+}
+.ib-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.1); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 6px 14px;
+  font-family: var(--font-display); font-weight: 700; font-size: .9rem;
+  color: var(--ncp-dark); margin-bottom: var(--s-md);
+}
+.ib-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--s-lg);
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .ib-body { grid-template-columns: 1fr; }
+}
+.ed-term {
+  background: #161b22; border-radius: var(--radius-lg);
+  overflow: hidden; border: 1px solid #30363d;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.ed-term-bar {
+  display: flex; align-items: center; gap: 7px;
+  background: #21262d; padding: 10px 14px; border-bottom: 1px solid #30363d;
+}
+.ed-term-dot { width: 11px; height: 11px; border-radius: 50%; }
+.ed-term-dot.r { background: #ff5f56; }
+.ed-term-dot.y { background: #ffbd2e; }
+.ed-term-dot.g { background: #27c93f; }
+.ed-term-title {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: #8b949e; margin-left: 6px; letter-spacing: .02em;
+}
+#termWrap .term-wrap {
+  padding: 14px 18px;
+  min-height: 340px;
+  max-height: 520px;
+  overflow-y: auto;
+  cursor: text;
+}
+#termWrap .term-output {
+  white-space: pre-wrap; word-break: break-word;
+  color: #e6edf3; font-size: .82rem; line-height: 1.55;
+  margin-bottom: 4px;
+}
+#termWrap .term-line { margin: 0; }
+#termWrap .term-line.cmd { color: #a5d6ff; }
+#termWrap .term-input-row {
+  display: flex; align-items: baseline; gap: 0;
+  color: #e6edf3; font-size: .82rem;
+}
+#termWrap .term-prompt { color: #7ee787; white-space: pre; user-select: none; }
+#termWrap .term-input {
+  flex: 1; outline: none; caret-color: #e6edf3;
+  color: #e6edf3; min-width: 2ch;
+  font-family: inherit; font-size: inherit;
+}
+.ib-cheat {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--s-md);
+}
+.ib-cheat h2 {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+}
+.ib-cheat ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ib-cheat code {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .78rem; font-weight: 600; color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.1); border-radius: 4px;
+  padding: 1px 5px; display: block; margin-bottom: 2px;
+}
+.ib-cheat .desc {
+  font-family: var(--font-body); font-size: .78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="navMount"></div>
+
+<div class="container-wide">
+
+  <div class="ib-back">
+    <a href="ncp-ain-hub.html" class="back-link">&#8592; NCP-AIN Hub</a>
+  </div>
+
+  <div class="ib-header">
+    <div class="ib-badge">NCP-AIN · WJH Drop Analysis and NetQ</div>
+    <h1>WJH Drop Console</h1>
+    <p class="subtitle">
+      You are on the NetQ management server monitoring a Spectrum-X leaf-spine fabric.
+      WJH (What Just Happened) captures hardware-accelerated drop telemetry from Mellanox/NVIDIA
+      Spectrum ASICs. Use <code>netq show wjh-drop</code> to inspect L1/L2/Router/Buffer/ACL/Tunnel
+      drop events. Use <code>netq check roce</code> to validate the 5 RoCE sub-tests.
+      Type <code>help</code> for the full command list.
+    </p>
+  </div>
+
+  <div class="ib-body">
+
+    <div>
+      <div class="ed-term" id="termWrap">
+        <div class="ed-term-bar">
+          <span class="ed-term-dot r"></span>
+          <span class="ed-term-dot y"></span>
+          <span class="ed-term-dot g"></span>
+          <span class="ed-term-title">netq@netq-mgmt -- WJH drop analysis console</span>
+        </div>
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">netq@netq-mgmt:~$ </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="WJH drop analysis console"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="ib-cheat" aria-label="Available commands">
+      <h2>Try these</h2>
+      <ul>
+        <li>
+          <code>netq show wjh-drop</code>
+          <span class="desc">All hardware drop events across L1/L2/Router/Buffer/ACL/Tunnel</span>
+        </li>
+        <li>
+          <code>netq show wjh-drop l1</code>
+          <span class="desc">Physical-layer drops: signal loss, FEC, link down</span>
+        </li>
+        <li>
+          <code>netq show wjh-drop l2</code>
+          <span class="desc">L2 drops: STP, MAC errors, VLAN mismatch</span>
+        </li>
+        <li>
+          <code>netq show wjh-drop router</code>
+          <span class="desc">L3 drops: TTL, MTU, no route, ACL deny</span>
+        </li>
+        <li>
+          <code>netq show wjh-drop buffer</code>
+          <span class="desc">Buffer drops: tail drop, PFC watchdog, headroom overflow</span>
+        </li>
+        <li>
+          <code>netq show wjh-drop acl</code>
+          <span class="desc">ACL-hit drops: ingress/egress rule matches</span>
+        </li>
+        <li>
+          <code>netq show wjh-drop tunnel</code>
+          <span class="desc">Tunnel drops: decap errors, VXLAN miss, ECMP</span>
+        </li>
+        <li>
+          <code>netq check roce</code>
+          <span class="desc">5-subtest RoCE validation: mode, classification, congestion, flow-control, ETS</span>
+        </li>
+        <li>
+          <code>netq show roce-counters</code>
+          <span class="desc">Per-switch RoCE hardware counters</span>
+        </li>
+      </ul>
+    </aside>
+
+  </div>
+
+</div>
+
+<script defer src="js/lab-engine.js?v=11"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ----------------------------------------------------------------
+     WJH drop taxonomy -- synthesized per Cumulus Linux / NetQ docs.
+     Format rows: Hostname | Ingress Port | Drop Reason | Count | Last Seen
+     Drop categories and reason strings are public domain knowledge (NetQ docs).
+  ---------------------------------------------------------------- */
+
+  var TS = '2026-06-18T';
+
+  var WJH_L1 = [
+    { host: 'leaf01', port: 'swp1',  reason: 'Signal integrity (FEC uncorrectable)',   count: 47,   ts: TS+'03:12:04Z' },
+    { host: 'leaf01', port: 'swp1',  reason: 'Symbol error threshold exceeded',        count: 12,   ts: TS+'03:12:04Z' },
+    { host: 'leaf02', port: 'swp8',  reason: 'Auto-negotiation failure',               count: 3,    ts: TS+'02:44:11Z' },
+    { host: 'spine01',port: 'swp16', reason: 'Link partner not responding',            count: 1,    ts: TS+'01:05:33Z' },
+  ];
+
+  var WJH_L2 = [
+    { host: 'leaf03', port: 'swp4',  reason: 'STP port in Discarding state',          count: 218,  ts: TS+'05:30:00Z' },
+    { host: 'leaf03', port: 'swp4',  reason: 'VLAN tag mismatch',                     count: 31,   ts: TS+'05:30:00Z' },
+    { host: 'leaf04', port: 'swp12', reason: 'Destination MAC not in FDB',            count: 7,    ts: TS+'04:18:22Z' },
+    { host: 'leaf02', port: 'swp2',  reason: 'Ingress VLAN filter',                   count: 94,   ts: TS+'03:55:09Z' },
+  ];
+
+  var WJH_ROUTER = [
+    { host: 'spine02', port: 'swp3',  reason: 'TTL exceeded (traceroute or loop)',     count: 562,  ts: TS+'06:00:01Z' },
+    { host: 'leaf01',  port: 'swp24', reason: 'IP MTU exceeded, DF-bit set',           count: 88,   ts: TS+'05:47:33Z' },
+    { host: 'leaf04',  port: 'swp7',  reason: 'No route to host (LPM miss)',           count: 14,   ts: TS+'04:30:15Z' },
+    { host: 'spine01', port: 'swp9',  reason: 'Router ACL deny (egress)',              count: 3,    ts: TS+'02:10:00Z' },
+  ];
+
+  var WJH_BUFFER = [
+    { host: 'leaf01',  port: 'swp1',  reason: 'Tail drop (no-PFC queue)',              count: 4412, ts: TS+'06:01:00Z' },
+    { host: 'leaf01',  port: 'swp2',  reason: 'PFC watchdog triggered (TC3 deadlock)', count: 37,   ts: TS+'05:58:42Z' },
+    { host: 'leaf02',  port: 'swp5',  reason: 'Shared headroom pool exhausted',        count: 1,    ts: TS+'05:30:00Z' },
+    { host: 'spine03', port: 'swp11', reason: 'Egress queue depth exceeds Kmax (ECN)', count: 9201, ts: TS+'06:01:00Z' },
+  ];
+
+  var WJH_ACL = [
+    { host: 'leaf03', port: 'swp6',  reason: 'Ingress ACL rule 10 DENY (src 10.0.3.0/24 any)', count: 229, ts: TS+'05:45:00Z' },
+    { host: 'leaf03', port: 'swp7',  reason: 'Egress ACL rule 20 DENY (dst port 22)',          count: 4,   ts: TS+'04:12:55Z' },
+  ];
+
+  var WJH_TUNNEL = [
+    { host: 'leaf04', port: 'swp10', reason: 'VXLAN decap: VNI 10020 not in local table',      count: 16, ts: TS+'03:20:11Z' },
+    { host: 'spine02',port: 'swp4',  reason: 'Overlay ECMP: missing underlay ECMP path',        count: 2,  ts: TS+'02:05:00Z' },
+  ];
+
+  function wjhTable(rows) {
+    if (!rows.length) return '(no drops in this category)';
+    var header = 'Hostname   Ingress Port   Drop Reason                                       Count   Last Seen';
+    var sep     = '---------- -------------- ------------------------------------------------- ------- --------------------';
+    var lines = [header, sep];
+    rows.forEach(function(r) {
+      lines.push(
+        r.host.padEnd(11) +
+        r.port.padEnd(15) +
+        r.reason.padEnd(50) +
+        String(r.count).padStart(7) + '  ' +
+        r.ts
+      );
+    });
+    return lines.join('\n');
+  }
+
+  function wjhAll() {
+    var sections = [
+      '=== L1 Physical Layer Drops ===',
+      wjhTable(WJH_L1),
+      '',
+      '=== L2 Datalink Drops ===',
+      wjhTable(WJH_L2),
+      '',
+      '=== Router (L3) Drops ===',
+      wjhTable(WJH_ROUTER),
+      '',
+      '=== Buffer Drops ===',
+      wjhTable(WJH_BUFFER),
+      '',
+      '=== ACL Drops ===',
+      wjhTable(WJH_ACL),
+      '',
+      '=== Tunnel Drops ===',
+      wjhTable(WJH_TUNNEL),
+    ];
+    return sections.join('\n');
+  }
+
+  /* ----------------------------------------------------------------
+     netq check roce -- 5 named sub-tests per NetQ RoCE validation spec.
+     One sub-test injects a failure on leaf02 for teaching purposes.
+  ---------------------------------------------------------------- */
+  var ROCE_CHECK = [
+    {
+      test: 'Mode Check',
+      desc: 'Verify RoCE mode is configured as RoCEv2 on all switches',
+      status: 'PASS',
+      detail: 'All 6 switches: RoCEv2 lossless mode confirmed.',
+      failures: []
+    },
+    {
+      test: 'Classification Check',
+      desc: 'Verify DSCP/PCP trust and priority classification match RoCE policy',
+      status: 'FAIL',
+      detail: '1 of 6 switches has a classification mismatch.',
+      failures: [
+        { switch: 'leaf02', port: 'swp1-8', issue: 'QoS trust mode is pcp only; expected pcp,dscp. RoCE DSCP 26 not honored.' }
+      ]
+    },
+    {
+      test: 'Congestion Control Check',
+      desc: 'Verify ECN/DCQCN thresholds are configured on RoCE traffic classes',
+      status: 'PASS',
+      detail: 'All switches: ECN min/max thresholds within recommended range (Kmin 146 KB, Kmax 1.43 MB on TC3).',
+      failures: []
+    },
+    {
+      test: 'Flow Control Check',
+      desc: 'Verify PFC is enabled on the RoCE priority (default TC3) and PAUSE is disabled globally',
+      status: 'PASS',
+      detail: 'PFC enabled on TC3 on all switches. Global PAUSE disabled.',
+      failures: []
+    },
+    {
+      test: 'ETS Check',
+      desc: 'Verify Enhanced Transmission Selection bandwidth allocation for lossless and lossy TCs',
+      status: 'PASS',
+      detail: 'TC3 (lossless) allocated 60% BW. TC0 (lossy) allocated 40% BW. No strict-priority conflicts.',
+      failures: []
+    }
+  ];
+
+  function roceCheckOutput() {
+    var lines = ['netq check roce -- RoCE lossless fabric validation', ''];
+    var passed = 0;
+    var failed = 0;
+    ROCE_CHECK.forEach(function(t) {
+      var icon = t.status === 'PASS' ? '[PASS]' : '[FAIL]';
+      lines.push(icon + '  ' + t.test);
+      lines.push('       ' + t.desc);
+      lines.push('       ' + t.detail);
+      t.failures.forEach(function(f) {
+        lines.push('       ERROR: ' + f.switch + ' ' + f.port + ': ' + f.issue);
+      });
+      lines.push('');
+      if (t.status === 'PASS') passed++; else failed++;
+    });
+    lines.push('Summary: ' + passed + ' passed, ' + failed + ' failed.');
+    if (failed > 0) lines.push('Action: Run `netq show wjh-drop l2` and check classification on leaf02.');
+    return lines.join('\n');
+  }
+
+  /* ----------------------------------------------------------------
+     netq show roce-counters -- per-switch hardware RoCE counters
+  ---------------------------------------------------------------- */
+  function roceCounters() {
+    var header = [
+      'netq show roce-counters -- Spectrum RoCE hardware counters',
+      '',
+      'Switch    Port    rx-roce-pkts   tx-roce-pkts   rx-ecn-marked  tx-pfc-pause   rx-pfc-pause   rx-cnp',
+      '--------- ------- -------------- -------------- -------------- -------------- -------------- -------'
+    ];
+    var rows = [
+      ['leaf01', 'swp1',  '4821039', '4810233', '1892',   '0',     '0',     '44'],
+      ['leaf01', 'swp2',  '3901234', '3899001', '934',    '0',     '0',     '21'],
+      ['leaf02', 'swp1',  '2011000', '1988344', '12441',  '8392',  '0',     '337'],
+      ['leaf02', 'swp2',  '1987600', '1944200', '11900',  '7210',  '0',     '288'],
+      ['leaf03', 'swp4',  '5120000', '5118000', '401',    '0',     '0',     '9'],
+      ['spine01','swp3',  '9900000', '9890000', '3100',   '0',     '0',     '71'],
+      ['spine02','swp3',  '9750000', '9740000', '2980',   '0',     '0',     '68'],
+    ];
+    var lines = header.slice();
+    rows.forEach(function(r) {
+      lines.push(
+        r[0].padEnd(10) + r[1].padEnd(8) +
+        r[2].padStart(14) + '  ' + r[3].padStart(14) + '  ' +
+        r[4].padStart(14) + '  ' + r[5].padStart(14) + '  ' +
+        r[6].padStart(14) + '  ' + r[7].padStart(7)
+      );
+    });
+    lines.push('');
+    lines.push('Note: leaf02 swp1-2 show elevated tx-pfc-pause -- investigate with `netq check roce` and `netq show wjh-drop buffer`.');
+    return lines.join('\n');
+  }
+
+  /* ----------------------------------------------------------------
+     Command map
+  ---------------------------------------------------------------- */
+  var MAP = {};
+
+  // netq show wjh-drop [subfilter]
+  MAP['netq'] = MAP['netq ...'] = function(dev, raw) {
+    var lower = raw.toLowerCase().trim();
+
+    // netq show wjh-drop variants
+    if (/^netq\s+show\s+wjh-drop\s*$/.test(lower)) {
+      return wjhAll();
+    }
+    if (/^netq\s+show\s+wjh-drop\s+l1$/.test(lower)) {
+      return '=== L1 Physical Layer Drops ===\n' + wjhTable(WJH_L1);
+    }
+    if (/^netq\s+show\s+wjh-drop\s+l2$/.test(lower)) {
+      return '=== L2 Datalink Drops ===\n' + wjhTable(WJH_L2);
+    }
+    if (/^netq\s+show\s+wjh-drop\s+router$/.test(lower)) {
+      return '=== Router (L3) Drops ===\n' + wjhTable(WJH_ROUTER);
+    }
+    if (/^netq\s+show\s+wjh-drop\s+buffer$/.test(lower)) {
+      return '=== Buffer Drops ===\n' + wjhTable(WJH_BUFFER);
+    }
+    if (/^netq\s+show\s+wjh-drop\s+acl$/.test(lower)) {
+      return '=== ACL Drops ===\n' + wjhTable(WJH_ACL);
+    }
+    if (/^netq\s+show\s+wjh-drop\s+tunnel$/.test(lower)) {
+      return '=== Tunnel Drops ===\n' + wjhTable(WJH_TUNNEL);
+    }
+
+    // netq check roce
+    if (/^netq\s+check\s+roce$/.test(lower)) {
+      return roceCheckOutput();
+    }
+
+    // netq show roce-counters
+    if (/^netq\s+show\s+roce-counters$/.test(lower)) {
+      return roceCounters();
+    }
+
+    // netq show agents / inventory (simple stubs)
+    if (/^netq\s+show\s+agents$/.test(lower)) {
+      return [
+        'Hostname   Status   NTP Sync  Version       Last Changed',
+        '---------- -------- --------- ------------- --------------------',
+        'leaf01     Fresh    yes       4.10.0-cl5    ' + TS + '06:01:00Z',
+        'leaf02     Fresh    yes       4.10.0-cl5    ' + TS + '06:01:00Z',
+        'leaf03     Fresh    yes       4.10.0-cl5    ' + TS + '06:01:00Z',
+        'leaf04     Fresh    yes       4.10.0-cl5    ' + TS + '06:01:00Z',
+        'spine01    Fresh    yes       4.10.0-cl5    ' + TS + '06:01:00Z',
+        'spine02    Fresh    yes       4.10.0-cl5    ' + TS + '06:01:00Z',
+      ].join('\n');
+    }
+
+    if (/^netq\s+show\s+inventory\s+brief$/.test(lower)) {
+      return [
+        'Hostname   Model                   OS Version    ASIC',
+        '---------- ----------------------- ------------- ----------------',
+        'leaf01     SN4600C                 5.10.0        Spectrum-3',
+        'leaf02     SN4600C                 5.10.0        Spectrum-3',
+        'leaf03     SN4600C                 5.10.0        Spectrum-3',
+        'leaf04     SN4600C                 5.10.0        Spectrum-3',
+        'spine01    SN5600                  5.10.0        Spectrum-4',
+        'spine02    SN5600                  5.10.0        Spectrum-4',
+      ].join('\n');
+    }
+
+    // Generic netq fallthrough
+    return '[sim] Unknown netq command. Try: netq show wjh-drop [l1|l2|router|buffer|acl|tunnel], netq check roce, netq show roce-counters, netq show agents, netq show inventory brief';
+  };
+
+  MAP['clear'] = function() {
+    if (window._lab && window._lab.terminal) { window._lab.terminal.clear(); }
+    return '';
+  };
+
+  MAP['pwd']     = '/home/netq';
+  MAP['whoami']  = 'netq';
+  MAP['hostname']= 'netq-mgmt';
+  MAP['date']    = new Date().toUTCString();
+  MAP['ls']      = 'configs  logs  scripts';
+  MAP['uname']   = 'Linux';
+  MAP['uname ...'] = function(dev, raw) {
+    if (raw.indexOf('-a') !== -1) return 'Linux netq-mgmt 5.15.0-102-generic #112-Ubuntu SMP x86_64 GNU/Linux';
+    if (raw.indexOf('-r') !== -1) return '5.15.0-102-generic';
+    return 'Linux';
+  };
+
+  MAP['help'] = MAP['?'] = [
+    'NCP-AIN WJH Drop Analysis Console -- available commands:',
+    '',
+    'WJH drop telemetry:',
+    '  netq show wjh-drop              All drop categories (L1/L2/Router/Buffer/ACL/Tunnel)',
+    '  netq show wjh-drop l1           Physical-layer drops (FEC, signal, auto-neg)',
+    '  netq show wjh-drop l2           L2 drops (STP discard, VLAN mismatch, FDB miss)',
+    '  netq show wjh-drop router       L3 drops (TTL, MTU, no-route, router ACL)',
+    '  netq show wjh-drop buffer       Buffer drops (tail-drop, PFC watchdog, headroom)',
+    '  netq show wjh-drop acl          ACL-hit drops (ingress/egress rule deny)',
+    '  netq show wjh-drop tunnel       Tunnel drops (VXLAN decap, ECMP miss)',
+    '',
+    'RoCE validation:',
+    '  netq check roce                 5 sub-tests: mode / classification / congestion /\n                                    flow-control / ETS',
+    '  netq show roce-counters         Per-switch RoCE hardware counters',
+    '',
+    'Fabric inventory:',
+    '  netq show agents                NetQ agent status per switch',
+    '  netq show inventory brief       Switch model, OS, ASIC',
+    '',
+    'Shell utils:',
+    '  pwd / ls / whoami / hostname / uname [-a|-r] / date / clear',
+    '',
+    'Key troubleshooting tip:',
+    '  Start with: netq show wjh-drop buffer  (most impactful for RoCE)',
+    '  Follow up:  netq check roce            (find classification/ETS mismatches)',
+    '  Then:       netq show roce-counters    (quantify tx-pfc-pause per port)'
+  ].join('\n');
+
+  /* ----------------------------------------------------------------
+     Build LabBase + device + terminal
+  ---------------------------------------------------------------- */
+  var lab = new Lab.LabBase({ objectives: [] });
+  window._lab = lab;
+  lab.addDevice('netq-mgmt', 'host', {
+    hostname: 'netq@netq-mgmt',
+    shellPromptFormat: 'linux',
+    commandMap: MAP
+  });
+
+  lab.initTerminal(document.getElementById('termMount'));
+
+  lab.terminal.writeLine('NCP-AIN WJH Drop Analysis and NetQ Console');
+  lab.terminal.writeLine('Server: netq-mgmt   Fabric: 4x SN4600C leaf + 2x SN5600 spine (Spectrum-3/4)');
+  lab.terminal.writeLine('NetQ version: 4.10.0   WJH: enabled on all 6 switches');
+  lab.terminal.writeLine('Type netq show wjh-drop to inspect drop events.  help for all commands.');
+  lab.terminal.writeLine('');
+  lab.terminal.updatePrompt();
+  lab.terminal.focus();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
