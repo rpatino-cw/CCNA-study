@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>NCP-AIN Cram Driller : Atomized SRS, 6 Modes</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  :root {
+    --ncp: #76B900;
+    --ncp-rgb: 118,185,0;
+    --ncp-light: #A4D65E;
+    --ncp-dark: #5A8C00;
+    --accent: var(--ncp);
+    --accent-dim: rgba(118,185,0,0.10);
+    --accent-light: rgba(118,185,0,0.35);
+  }
+
+  .cd-wrap { max-width: 760px; margin: 0 auto; padding: 0 var(--s-md) var(--s-2xl); }
+
+  .cd-head { text-align: center; padding: var(--s-xl) 0 var(--s-sm); }
+  .cd-head h1 { font-family: var(--font-display); font-size: 1.55rem; font-weight: 700; color: var(--ink); margin: 0; letter-spacing: -0.02em; }
+  .cd-head .sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-muted); margin-top: 4px; }
+  .cd-back-link { display: inline-block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ncp); text-decoration: none; margin-bottom: var(--s-sm); }
+  .cd-back-link:hover { opacity: 0.8; }
+  .cd-ready { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); margin-top: 8px; letter-spacing: 0.02em; }
+  .cd-ready b { color: var(--ncp); font-weight: 700; }
+  .cd-ready .due { color: var(--ncp-dark); font-weight: 700; }
+  .cd-readybar { height: 4px; border-radius: 3px; background: var(--bg-recessed); overflow: hidden; max-width: 280px; margin: 8px auto 0; }
+  .cd-readybar > i { display: block; height: 100%; width: 0; background: var(--ncp); transition: width 0.4s var(--ease-out); }
+
+  .cd-scope { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: var(--s-md) 0 var(--s-lg); }
+  .cd-pill { padding: 5px 12px; border: 1px solid var(--border); border-radius: 18px; background: var(--bg-surface); cursor: pointer; font-family: var(--font-display); font-size: 0.74rem; font-weight: 600; color: var(--ink-secondary); transition: all var(--transition); }
+  .cd-pill:hover { border-color: var(--border-strong); }
+  .cd-pill.active { background: var(--ncp); color: #fff; border-color: var(--ncp); }
+
+  #cd-drill { min-height: 50vh; display: flex; flex-direction: column; align-items: center; }
+  .cd-card { width: 100%; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-xl) var(--s-lg); text-align: center; box-shadow: var(--shadow-md); }
+  .cd-chip { display: inline-block; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 3px 9px; border-radius: 4px; margin-bottom: var(--s-lg); }
+  .chip-num   { background: rgba(118,185,0,0.12); color: var(--ncp-dark); }
+  .chip-pair  { background: rgba(118,185,0,0.12); color: var(--ncp-dark); }
+  .chip-cmd   { background: var(--prof-strong-bg); color: var(--prof-strong); }
+  .chip-verify { background: var(--prof-weak-bg); color: #b45309; }
+  .chip-trap  { background: var(--purple-dim); color: var(--purple); }
+  .chip-concept { background: rgba(118,185,0,0.12); color: var(--ncp-dark); }
+  .chip-walk  { background: #f0fdf4; color: #166534; }
+  .chip-clisim { background: var(--prof-strong-bg); color: var(--prof-strong); }
+
+  .cd-cue { font-family: var(--font-body); font-size: 1.4rem; line-height: 1.45; color: var(--ink); margin: 0 auto var(--s-lg); max-width: 540px; }
+  .cd-cue code { font-family: var(--font-mono); font-size: 1.1rem; background: var(--bg-recessed); padding: 2px 8px; border-radius: 4px; }
+
+  .cd-answer { font-size: 1.15rem; line-height: 1.5; color: var(--ink); margin: var(--s-lg) auto 0; max-width: 560px; padding: var(--s-md); background: var(--accent-dim); border: 1px solid var(--accent-light); border-radius: var(--radius-lg); text-align: left; display: none; }
+  .cd-answer.show { display: block; animation: cdrise 0.25s var(--ease-out); }
+  .cd-answer.mono { font-family: var(--font-mono); font-size: 0.92rem; white-space: pre-wrap; }
+  @keyframes cdrise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .cd-actions { display: flex; gap: var(--s-sm); justify-content: center; margin-top: var(--s-xl); flex-wrap: wrap; }
+  .cd-btn { padding: 12px 26px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); color: var(--ink); cursor: pointer; font-family: var(--font-display); font-size: 0.92rem; font-weight: 600; transition: all var(--transition); }
+  .cd-btn:hover { background: var(--bg-hover); }
+  .cd-btn.primary { background: var(--ncp); color: #fff; border-color: var(--ncp); }
+  .cd-btn.primary:hover { opacity: 0.92; }
+  .cd-btn.miss { border-color: var(--prof-weak); color: var(--prof-weak); }
+  .cd-btn.miss:hover { background: var(--prof-weak); color: #fff; }
+  .cd-btn.got { border-color: var(--prof-strong); color: var(--prof-strong); }
+  .cd-btn.got:hover { background: var(--prof-strong); color: #fff; }
+  .cd-btn .k { font-family: var(--font-mono); font-size: 0.7rem; opacity: 0.6; margin-left: 6px; }
+
+  .cd-entry { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; color: var(--ncp); margin: var(--s-md) 0; min-height: 2.2rem; letter-spacing: 0.05em; }
+  .cd-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 280px; margin: var(--s-lg) auto 0; }
+  .cd-key { height: 56px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); font-family: var(--font-mono); font-size: 1.3rem; font-weight: 600; color: var(--ink); cursor: pointer; transition: all var(--transition); }
+  .cd-key:hover { background: var(--bg-hover); }
+  .cd-key:active { transform: scale(0.96); }
+  .cd-key.wide { font-size: 0.9rem; }
+  .cd-key.go { background: var(--ncp); color: #fff; border-color: var(--ncp); }
+  .cd-pad .cd-key[data-n='0'] { grid-column: 1; }
+
+  .cd-text-input-wrap { margin: var(--s-md) auto 0; max-width: 380px; }
+  .cd-text-input { width: 100%; font-family: var(--font-mono); font-size: 1.1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); color: var(--ink); outline: none; box-sizing: border-box; }
+  .cd-text-input:focus { border-color: var(--ncp); }
+
+  .cd-opts { display: flex; flex-direction: column; gap: 8px; margin: var(--s-lg) 0 0; }
+  .cd-opt { padding: 13px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); color: var(--ink); cursor: pointer; font-family: var(--font-mono); font-size: 0.88rem; text-align: left; transition: all var(--transition); }
+  .cd-opt:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+  .cd-opt.opt-ok { background: var(--prof-strong-bg); border-color: var(--prof-strong); color: var(--prof-strong); font-weight: 700; }
+  .cd-opt.opt-no { background: var(--prof-weak-bg); border-color: var(--prof-weak); color: var(--prof-weak); }
+
+  .cli-ctx { font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.55; background: var(--bg-recessed); color: var(--ink-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin: var(--s-md) 0; text-align: left; white-space: pre-wrap; overflow-x: auto; }
+  .cli-term { background: #1C1917; border-radius: var(--radius-lg); padding: 12px 14px; margin: var(--s-md) 0 0; text-align: left; }
+  .cli-scroll { font-family: var(--font-mono); font-size: 0.86rem; line-height: 1.7; color: #E7E5E4; max-height: 180px; overflow-y: auto; }
+  .cli-line { white-space: pre-wrap; word-break: break-word; }
+  .cli-input-row { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
+  .cli-input-row.solo { background: var(--bg-recessed); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 4px 10px; margin-top: var(--s-md); }
+  .cli-prompt { font-family: var(--font-mono); font-size: 0.86rem; color: #76B900; flex: none; }
+  .cli-input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--font-mono); font-size: 1rem; line-height: 1.7; color: var(--ink); }
+  .cli-term .cli-input { color: #FAFAF9; caret-color: var(--ncp); }
+  .cli-input:disabled { opacity: 0.6; }
+
+  .cd-foot { margin-top: var(--s-xl); text-align: center; }
+  .cd-link { font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink-muted); text-decoration: underline; cursor: pointer; background: none; border: none; }
+  .cd-link:hover { color: var(--ncp); }
+  .cd-tiphint { font-size: 0.78rem; color: var(--ink-muted); margin-top: var(--s-md); font-family: var(--font-mono); }
+  .vis-rule { font-size: 0.84rem; color: var(--ink-secondary); margin-top: var(--s-md); min-height: 1rem; line-height: 1.5; }
+
+  body.drill #cd-browse { display: none; }
+  body:not(.drill) #cd-drill, body:not(.drill) #cd-scope, body:not(.drill) .cd-ready, body:not(.drill) .cd-readybar { display: none; }
+  .cd-back { display: inline-block; margin: var(--s-md) 0; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ncp); cursor: pointer; text-decoration: none; }
+  .cd-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--s-lg); }
+  .cd-tab { padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; background: var(--bg-surface); cursor: pointer; font-family: var(--font-display); font-size: 0.8rem; font-weight: 600; color: var(--ink-secondary); transition: all var(--transition); }
+  .cd-tab.active { background: var(--ncp); color: #fff; border-color: var(--ncp); }
+  .cd-tab .n { font-family: var(--font-mono); opacity: 0.7; font-size: 0.72rem; margin-left: 5px; }
+
+  .cd-sec-head { display: flex; align-items: baseline; gap: 10px; margin: var(--s-lg) 0 var(--s-md); padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .cd-sec-head h2 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--ink); }
+  .cd-sec-head .desc { font-size: 0.8rem; color: var(--ink-muted); }
+
+  .cd-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: var(--s-sm); overflow: hidden; }
+  .cd-b-head { display: flex; align-items: center; gap: 10px; padding: 13px var(--s-md); cursor: pointer; }
+  .cd-b-head:hover { background: var(--bg-hover); }
+  .cd-b-title { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; color: var(--ink); flex: 1; }
+  .cd-b-toggle { color: var(--ink-muted); transition: transform var(--transition); font-size: 0.8rem; }
+  .cd-block.open .cd-b-toggle { transform: rotate(180deg); }
+  .cd-b-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s var(--ease-out); }
+  .cd-block.open .cd-b-body { grid-template-rows: 1fr; }
+  .cd-b-inner { overflow: hidden; }
+  .cd-b-pad { padding: 0 var(--s-md) var(--s-md); }
+  .cd-grp-label { font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin: 14px 0 7px; }
+  .cd-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+  @media (max-width: 600px){ .cd-nums { grid-template-columns: 1fr; } .cd-cue { font-size: 1.2rem; } }
+  .cd-num { display: flex; justify-content: space-between; gap: 12px; padding: 6px 9px; background: var(--bg-recessed); border-radius: var(--radius); font-size: 0.82rem; align-items: baseline; }
+  .cd-num .k { color: var(--ink-secondary); }
+  .cd-num .v { font-family: var(--font-mono); font-weight: 600; color: var(--ink); text-align: right; }
+  .cd-pair { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; font-size: 0.82rem; }
+  .cd-pair .vs { font-family: var(--font-display); font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+  .cd-pair .vs em { font-style: normal; color: var(--ncp-dark); }
+  .cd-pair .diff { color: var(--ink-secondary); }
+  .cd-cmd { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--border); align-items: baseline; }
+  .cd-cmd:last-child { border-bottom: none; }
+  .cd-cmd code { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink); background: var(--bg-recessed); padding: 2px 7px; border-radius: 4px; white-space: pre-wrap; flex: 1; }
+  .cd-cmd .note { font-size: 0.76rem; color: var(--ink-muted); flex: 1; }
+  .cd-trap { padding: 8px 10px; background: var(--accent-dim); border-left: 3px solid var(--ncp); border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 6px; font-size: 0.82rem; }
+  .cd-trap .trig b { color: var(--ncp-dark); font-weight: 600; }
+  .cd-trap .ans { color: var(--ink); margin-top: 3px; font-weight: 600; }
+  .cd-bullet { font-size: 0.82rem; color: var(--ink-secondary); padding: 4px 0 4px 12px; border-left: 2px solid var(--border); margin-bottom: 4px; line-height: 1.5; }
+
+  @media (prefers-reduced-motion: reduce) { .cd-answer, .cd-key { transition: none; } .cd-answer.show { animation: none; } }
+</style>
+</head>
+<body class="drill">
+
+<nav class="top-nav"></nav>
+
+<div class="cd-wrap">
+  <div class="cd-head">
+    <a class="cd-back-link" href="ncp-ain-hub.html">Back to NCP-AIN Hub</a>
+    <h1>NCP-AIN Cram Driller</h1>
+    <div class="sub">Atomized SRS, 6 modes. Hammer every fact until the bar fills.</div>
+    <div class="cd-ready" id="cd-ready">building deck...</div>
+    <div class="cd-readybar"><i id="cd-readybar"></i></div>
+  </div>
+
+  <div class="cd-scope" id="cd-mode"></div>
+  <div class="cd-scope" id="cd-scope"></div>
+
+  <div id="cd-drill"></div>
+
+  <div id="cd-browse">
+    <a class="cd-back" id="cd-back">Back to drill</a>
+    <div class="cd-tabs" id="cd-tabs"></div>
+    <div id="cd-content"></div>
+  </div>
+</div>
+
+<script defer src="data/ncp-ain-pillars-data.js"></script>
+<script defer src="data/ncp-ain-drill-data.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  var PILLARS = window.NCPAIN_PILLARS_DATA || [];
+  var DRILL   = window.NCPAIN_DRILL || {};
+  var PAIRS   = (DRILL.getPairs && DRILL.getPairs()) || [];
+
+  // ---- helpers ----
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function shuffle(arr){
+    var a=arr.slice();
+    for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
+    return a;
+  }
+  function pick(arr,n){ return shuffle(arr).slice(0,n); }
+  function normStr(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9.]/g,''); }
+  function gradeNum(entry, answer){
+    var e=normStr(entry), a=normStr(answer);
+    if(e===a) return true;
+    // strip trailing unit chars and compare
+    var en=e.replace(/[a-z%]+$/,''), an=a.replace(/[a-z%]+$/,'');
+    return en!=='' && en===an;
+  }
+  function gradeText(entry, answer){
+    return normStr(entry) === normStr(answer);
+  }
+
+  // ---- domain tagger for drill-pool items (no pillar dom) ----
+  function tagDom(text){
+    text = (text||'').toLowerCase();
+    if(/ipc_lock|k8s|kubernetes|niccluster|ipoib|macvlan|dpu mode|nic mode/.test(text)) return '6';
+    if(/ansible|nvue|ztp|nv set|nv config|nv show|cumulus-autoprov/.test(text)) return '5';
+    if(/ibping|perfquery|wjh|ibdiagnet|portxmit|iblinkinfo|ibdump|netq|ofed_info/.test(text)) return '4';
+    if(/roce|pfc|ecn|dcqcn|cnp|spectrum|evpn|vxlan|adaptive.rout|ar./.test(text)) return '2';
+    if(/ib|sm|pkey|vl|lid|gid|sharp|fat.tree|rail|qm97|opensm|subnet.manager/.test(text)) return '3';
+    if(/ai factory|design|allreduce|busbw|algbw|superpod|scalable.unit/.test(text)) return '1';
+    return '3'; // default IB
+  }
+
+  // ---- domain tag for NUMBERS group names ----
+  function groupDom(grpName){
+    if(grpName==='IB_SPEEDS' || grpName==='SM_AND_ROUTING') return '3';
+    if(grpName==='MTU_VALUES' || grpName==='ECN_THRESHOLDS' || grpName==='SPECTRUM_X') return '2';
+    if(grpName==='PORTS_AND_KEYS') return null; // per-row
+    return '3';
+  }
+  function portRowDom(row){
+    var t=(row.label+' '+(row.note||'')).toLowerCase();
+    if(/roce|vxlan|pfc|ecn|cnp|spec/.test(t)) return '2';
+    if(/pkey|lid|sm|vl|sharp/.test(t)) return '3';
+    return '3';
+  }
+
+  // ---- atomizer ----
+  var ATOMS = [];
+
+  // 1. NUM atoms from DRILL.NUMBERS
+  var NUMBERS = DRILL.NUMBERS || {};
+  Object.keys(NUMBERS).forEach(function(grpName){
+    var rows = NUMBERS[grpName];
+    var baseDom = groupDom(grpName);
+    rows.forEach(function(row, j){
+      var dom = baseDom || portRowDom(row);
+      ATOMS.push({
+        id: 'num:'+grpName+':'+j,
+        dom: dom,
+        type: 'num',
+        cue: row.label,
+        answer: row.value,
+        note: row.note || '',
+        raw: row.value
+      });
+    });
+  });
+
+  // 2. PAIR atoms
+  PAIRS.forEach(function(p, j){
+    var dom = tagDom(p.clue+' '+p.a+' '+p.b);
+    ATOMS.push({
+      id: 'pair:'+j,
+      dom: dom,
+      type: 'pair',
+      cue: p.clue,
+      answer: p.ans,
+      a: p.a,
+      b: p.b
+    });
+  });
+
+  // 3. TRAP atoms
+  (DRILL.TRAPS || []).forEach(function(t, j){
+    var dom = tagDom(t.q+' '+t.a);
+    ATOMS.push({
+      id: 'trap:'+j,
+      dom: dom,
+      type: 'trap',
+      cue: t.q,
+      answer: t.a
+    });
+  });
+
+  // 4. CONCEPT atoms
+  (DRILL.CONCEPTS || []).forEach(function(c, j){
+    var dom = tagDom(c.q+' '+c.a+' '+(c.how||''));
+    var ans = c.a + (c.how ? '\n\nHow you know: '+c.how : '');
+    ATOMS.push({
+      id: 'concept:'+j,
+      dom: dom,
+      type: 'concept',
+      cue: c.q,
+      answer: ans
+    });
+  });
+
+  // 5. WALK_AWAY atoms
+  (DRILL.WALK_AWAY || []).forEach(function(w, j){
+    var dom = tagDom(w.q+' '+w.a);
+    ATOMS.push({
+      id: 'walk:'+j,
+      dom: dom,
+      type: 'walk',
+      cue: w.q,
+      answer: w.a
+    });
+  });
+
+  // 6. VERIFY atoms from DRILL.SHOWS
+  (DRILL.SHOWS || []).forEach(function(s, j){
+    var dom = tagDom(s.q+' '+s.a);
+    ATOMS.push({
+      id: 'verify:show:'+j,
+      dom: dom,
+      type: 'verify',
+      cue: s.q,
+      answer: s.a
+    });
+  });
+
+  // 7. VERIFY atoms from pillar show blocks
+  PILLARS.forEach(function(p){
+    if(!p.show) return;
+    ATOMS.push({
+      id: 'verify:p'+p.n,
+      dom: String(p.dom||'3'),
+      type: 'verify',
+      cue: 'Which command proves: '+p.title+'? What field confirms it?',
+      answer: p.show
+    });
+  });
+
+  // 8. CMD atoms from pillar config blocks (one atom per meaningful logical group)
+  PILLARS.forEach(function(p){
+    if(!p.config) return;
+    var lines = p.config.split('\n');
+    var groups = [], cur = [];
+    lines.forEach(function(line){
+      var trimmed = line.trim();
+      if(!trimmed || trimmed.match(/^#\s*\d+\./)) {
+        // section break comment: flush cur group if nonempty
+        if(cur.length){
+          groups.push(cur);
+          cur = [];
+        }
+      } else {
+        cur.push(line);
+      }
+    });
+    if(cur.length) groups.push(cur);
+
+    groups.forEach(function(grp, gi){
+      var meaningful = grp.filter(function(l){ return l.trim() && !l.trim().match(/^#\s*$/); });
+      if(!meaningful.length) return;
+      // derive intent from leading comment or first real line
+      var intent = '';
+      for(var k=0;k<meaningful.length;k++){
+        var m = meaningful[k].trim().match(/^#\s*(.+)$/);
+        if(m){ intent = m[1]; break; }
+      }
+      if(!intent){
+        var firstReal = meaningful.filter(function(l){ return !l.trim().startsWith('#'); })[0] || '';
+        intent = firstReal.trim().split(/\s+/).slice(0,6).join(' ');
+      }
+      var cmds = meaningful.filter(function(l){ return !l.trim().startsWith('#'); });
+      if(!cmds.length) return;
+      var fullCmd = cmds.map(function(l){ return l.trim(); }).join('\n');
+      ATOMS.push({
+        id: 'cmd:p'+p.n+':'+gi,
+        dom: String(p.dom||'3'),
+        type: 'cmd',
+        cue: 'On ['+p.title+']: '+intent,
+        answer: fullCmd
+      });
+    });
+  });
+
+  // ---- Leitner SR engine ----
+  var SR_KEY  = 'ncpain_cram_sr_v1';
+  var SC_KEY  = 'ncpain_cram_scope';
+  var MD_KEY  = 'ncpain_cram_mode';
+  var INTERVALS = [10*60e3, 60*60e3, 4*60*60e3];
+  var sr = {};
+  try{ sr = JSON.parse(localStorage.getItem(SR_KEY)||'{}'); }catch(e){ sr = {}; }
+  function saveSr(){ try{ localStorage.setItem(SR_KEY, JSON.stringify(sr)); }catch(e){} }
+  function srGet(id){ return sr[id] || {box:1,due:0,seen:0,miss:0,last:0}; }
+  function grade(id, ok){
+    var r = srGet(id); r.seen++; r.last = Date.now();
+    if(ok){ r.box = Math.min(3, r.box+1); r.due = Date.now()+INTERVALS[r.box-1]; }
+    else  { r.box = 1; r.miss++; r.due = Date.now()+45e3; }
+    sr[id] = r; saveSr();
+  }
+  function gradeSlow(id){
+    var r = srGet(id); r.seen++; r.last = Date.now(); r.due = Date.now()+5*60e3;
+    sr[id] = r; saveSr();
+  }
+
+  // ---- scope + mode ----
+  var scope = 'all';
+  try{ scope = localStorage.getItem(SC_KEY)||'all'; }catch(e){}
+  var mode  = 'recall';
+  try{ mode  = localStorage.getItem(MD_KEY)||'recall'; }catch(e){}
+
+  function inScope(a){
+    if(scope==='all') return true;
+    if(scope==='trap') return a.type==='trap';
+    if(scope==='walk') return a.type==='walk';
+    return a.dom === scope;
+  }
+
+  // ---- weighted picker ----
+  var recent = [], recentDom = [];
+  var WEIGHT = { trap:3, num:3, pair:2, verify:2, cmd:1, concept:1, walk:1 };
+  var DOMW   = { '1':5, '2':30, '3':30, '4':20, '5':10, '6':5 };
+  var BOXF   = { 1:1.6, 2:0.8, 3:0.3 };
+
+  function pickFrom(pool){
+    if(!pool || !pool.length) return null;
+    var t = Date.now();
+    var due = pool.filter(function(a){ return srGet(a.id).due <= t; });
+    if(!due.length) due = pool.slice().sort(function(x,y){ return srGet(x.id).due - srGet(y.id).due; }).slice(0,12);
+    var elig = due.filter(function(a){ return a.id !== recent[0]; });
+    if(!elig.length) elig = due;
+    var sum = 0, cum = [];
+    elig.forEach(function(a){
+      var w = (WEIGHT[a.type]||1) * (BOXF[srGet(a.id).box]||1) * ((DOMW[a.dom]||10)/20);
+      sum += w; cum.push(sum);
+    });
+    var r = Math.random()*sum, idx = 0;
+    while(idx < cum.length && r > cum[idx]) idx++;
+    var chosen = elig[Math.min(idx, elig.length-1)];
+    recent.unshift(chosen.id); recent = recent.slice(0,3);
+    recentDom.unshift(chosen.dom); recentDom = recentDom.slice(0,2);
+    return chosen;
+  }
+
+  function nextAtom(){
+    var pool = ATOMS.filter(inScope);
+    return pickFrom(pool);
+  }
+
+  // ---- readiness ----
+  var drillEl = document.getElementById('cd-drill');
+  var phase = 'cue', cur = null;
+
+  function updateReady(){
+    var pool = (mode==='recall') ? ATOMS.filter(inScope) : modePool();
+    var t = Date.now(), b3 = 0, due = 0;
+    pool.forEach(function(a){ var r=srGet(a.id); if(r.seen>0 && r.box>=3) b3++; if(r.due<=t) due++; });
+    document.getElementById('cd-readybar').style.width = (pool.length ? Math.round(b3/pool.length*100) : 0)+'%';
+    document.getElementById('cd-ready').innerHTML =
+      pool.length+' facts  .  <b>'+b3+' solid</b>  .  <span class="due">'+due+' due</span>';
+  }
+
+  // ---- modes ----
+  var MODES = [
+    { key:'recall',  label:'Recall' },
+    { key:'num',     label:'Numbers' },
+    { key:'cli',     label:'CLI fill' },
+    { key:'trap',    label:'Trap quiz' },
+    { key:'verify',  label:'Verify pick' },
+    { key:'clisim',  label:'CLI sim' }
+  ];
+
+  function modePool(){
+    if(mode==='num')    return ATOMS.filter(function(a){ return a.type==='num'; });
+    if(mode==='cli')    return ATOMS.filter(function(a){ return a.type==='cmd'; });
+    if(mode==='trap')   return ATOMS.filter(function(a){ return a.type==='trap' || a.type==='pair'; });
+    if(mode==='verify') return ATOMS.filter(function(a){ return a.type==='verify'; });
+    if(mode==='clisim') return ATOMS.filter(function(a){ return a.type==='cmd'; });
+    return ATOMS.filter(inScope);
+  }
+
+  function advance(){ updateReady(); render(); }
+
+  function render(){
+    var it = (mode==='recall') ? nextAtom() : pickFrom(modePool());
+    if(mode==='num')    return renderNum(it);
+    if(mode==='cli')    return renderCli(it);
+    if(mode==='trap')   return renderTrap(it);
+    if(mode==='verify') return renderVerify(it);
+    if(mode==='clisim') return renderClisim(it);
+    return renderRecall(it);
+  }
+
+  function foot(tip){
+    return '<div class="cd-foot"><button class="cd-link" id="cd-browselink">Browse all '+ATOMS.length+' facts</button>'
+      +'<div class="cd-tiphint">'+(tip||'')+'</div></div>';
+  }
+  function wireFoot(){ var b=document.getElementById('cd-browselink'); if(b) b.addEventListener('click', toBrowse); }
+  function empty(msg){ drillEl.innerHTML='<div class="cd-card"><div class="cd-cue">'+msg+'</div></div>'+foot(''); wireFoot(); }
+
+  // ---- RECALL ----
+  function chipFor(a){
+    var names = { num:'Number', pair:'A vs B', cmd:'Config', verify:'Verify', trap:'Exam trap', concept:'Concept', walk:'Walk-away' };
+    return (names[a.type]||a.type)+'  .  D'+a.dom;
+  }
+  function renderRecall(a){
+    cur = a; phase = 'cue';
+    if(!a) return empty('No items in this scope.');
+    var isMono = (a.type==='verify'||a.type==='cmd');
+    drillEl.innerHTML = '<div class="cd-card">'
+      +'<span class="cd-chip chip-'+a.type+'">'+chipFor(a)+'</span>'
+      +'<div class="cd-cue">'+esc(a.cue)+'</div>'
+      +'<div class="cd-answer'+(isMono?' mono':'')+'" id="cd-ans">'+esc(a.answer)+'</div>'
+      +(a.note ? '<div class="cd-answer" id="cd-note" style="font-size:0.85rem;color:var(--ink-secondary)">'+esc(a.note)+'</div>' : '')
+      +'<div class="cd-actions" id="cd-acts"><button class="cd-btn primary" id="cd-show">Show answer<span class="k">space</span></button></div>'
+      +'</div>'+foot('space = reveal . 1 missed . 2 slow . 3 got it');
+    document.getElementById('cd-show').addEventListener('click', reveal);
+    drillEl.querySelector('.cd-cue').addEventListener('click', function(){ if(phase==='cue') reveal(); });
+    wireFoot();
+  }
+  function reveal(){
+    if(phase!=='cue' || !cur) return; phase = 'revealed';
+    document.getElementById('cd-ans').classList.add('show');
+    var note = document.getElementById('cd-note'); if(note) note.classList.add('show');
+    document.getElementById('cd-acts').innerHTML =
+        '<button class="cd-btn miss" id="cd-c0">Missed<span class="k">1</span></button>'
+      +'<button class="cd-btn" id="cd-c1">Slow<span class="k">2</span></button>'
+      +'<button class="cd-btn got" id="cd-c2">Got it<span class="k">3</span></button>';
+    document.getElementById('cd-c0').addEventListener('click', function(){ rateConf(0); });
+    document.getElementById('cd-c1').addEventListener('click', function(){ rateConf(1); });
+    document.getElementById('cd-c2').addEventListener('click', function(){ rateConf(2); });
+  }
+  function rateConf(c){ if(phase!=='revealed'||!cur) return; if(c===0) grade(cur.id,false); else if(c===2) grade(cur.id,true); else gradeSlow(cur.id); advance(); }
+
+  // ---- NUMBERS mode ----
+  // keypad-able: values that are pure digits/decimals/short port strings
+  // typed-fill: ranges and long strings
+  function isKeypadable(val){
+    return /^[\d.]+\s*(Gb\/s|GB\/s|Tbps|KB|MB|GB|ms|s|%)?$/i.test(val.trim()) ||
+           /^(UDP|TCP)\s*\d+$/i.test(val.trim()) ||
+           /^0x[0-9A-Fa-f]+$/.test(val.trim()) ||
+           /^\d+$/.test(val.trim());
+  }
+  function renderNum(a){
+    cur = a; phase = 'cue';
+    if(!a) return empty('No number items.');
+    var useKeypad = isKeypadable(a.answer);
+    if(useKeypad){
+      var keys = [1,2,3,4,5,6,7,8,9,0].map(function(n){ return '<button class="cd-key" data-n="'+n+'">'+n+'</button>'; }).join('');
+      var dotBtn = '<button class="cd-key" data-n=".">.</button>';
+      var pad = '<div class="cd-pad" id="cd-pad">'+keys+dotBtn
+        +'<button class="cd-key wide" data-act="back">del</button>'
+        +'<button class="cd-key wide go" data-act="go">enter</button></div>';
+      drillEl.innerHTML = '<div class="cd-card">'
+        +'<span class="cd-chip chip-num">Number  .  D'+a.dom+'</span>'
+        +'<div class="cd-cue">'+esc(a.cue)+'</div>'
+        +'<div class="cd-entry" id="cd-entry">_</div>'
+        +'<div class="cd-answer mono" id="cd-ans">'+esc(a.raw)+'</div>'
+        +pad+'</div>'+foot('tap digits, enter to check');
+      var entry = '', entryEl = document.getElementById('cd-entry');
+      function paint(){ entryEl.textContent = entry||'_'; }
+      Array.prototype.forEach.call(drillEl.querySelectorAll('.cd-key'), function(k){
+        k.addEventListener('click', function(){
+          if(phase!=='cue') return;
+          var act = k.getAttribute('data-act');
+          if(act==='back'){ entry = entry.slice(0,-1); paint(); }
+          else if(act==='go'){ submitNumKeypad(entry, a); }
+          else { entry += k.getAttribute('data-n'); paint(); }
+        });
+      });
+    } else {
+      drillEl.innerHTML = '<div class="cd-card">'
+        +'<span class="cd-chip chip-num">Number  .  D'+a.dom+'</span>'
+        +'<div class="cd-cue">'+esc(a.cue)+'</div>'
+        +'<div class="cd-text-input-wrap"><input class="cd-text-input" id="cd-textinput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="type value..." /></div>'
+        +'<div class="cd-answer mono" id="cd-ans">'+esc(a.raw)+'</div>'
+        +'<div class="cd-actions" id="cd-acts"><button class="cd-btn primary" id="cd-go">Check</button></div>'
+        +'</div>'+foot('type the value, Check to grade');
+      var inp = document.getElementById('cd-textinput');
+      setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 0);
+      document.getElementById('cd-go').addEventListener('click', function(){ submitNumTyped(inp.value, a, inp); });
+      inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); submitNumTyped(inp.value, a, inp); } });
+    }
+    wireFoot();
+  }
+  function submitNumKeypad(entry, a){
+    if(phase!=='cue') return; phase = 'revealed';
+    var ok = gradeNum(entry, a.answer);
+    var ans = document.getElementById('cd-ans'); ans.classList.add('show');
+    ans.textContent = (ok?'Correct: ':'Answer: ')+a.raw+(a.note?' -- '+a.note:'');
+    ans.style.borderColor = ok?'var(--prof-strong)':'var(--prof-weak)';
+    grade(a.id, ok);
+    document.getElementById('cd-pad').innerHTML = '<button class="cd-key wide go" id="cd-next" style="grid-column:1/4">next</button>';
+    document.getElementById('cd-next').addEventListener('click', advance);
+  }
+  function submitNumTyped(val, a, inp){
+    if(phase!=='cue') return; phase = 'revealed';
+    var ok = gradeNum(val, a.answer) || gradeText(val, a.answer);
+    var ans = document.getElementById('cd-ans'); ans.classList.add('show');
+    ans.textContent = (ok?'Correct: ':'Answer: ')+a.raw+(a.note?' -- '+a.note:'');
+    ans.style.borderColor = ok?'var(--prof-strong)':'var(--prof-weak)';
+    if(inp) inp.disabled = true;
+    grade(a.id, ok);
+    document.getElementById('cd-acts').innerHTML = '<button class="cd-btn primary" id="cd-next">next</button>';
+    document.getElementById('cd-next').addEventListener('click', advance);
+  }
+
+  // ---- CLI fill (cmd atoms, mask one token) ----
+  function buildCliFill(a){
+    // split command lines, pick a token to mask from a key line
+    var lines = a.answer.split('\n').filter(function(l){ return l.trim() && !l.trim().startsWith('#'); });
+    if(!lines.length) return null;
+    var targetLine = lines[Math.floor(Math.random()*lines.length)];
+    var tokens = targetLine.trim().split(/\s+/);
+    if(tokens.length < 2) return null;
+    // pick a token from index 1..end (not the command name itself)
+    var tIdx = 1 + Math.floor(Math.random()*(tokens.length-1));
+    var correct = tokens[tIdx];
+    // gather distractors from other cmd atoms
+    var distractors = [];
+    ATOMS.filter(function(x){ return x.type==='cmd' && x.id!==a.id; }).forEach(function(x){
+      x.answer.split('\n').forEach(function(l){
+        l.trim().split(/\s+/).forEach(function(tok){
+          if(tok && tok!==correct && tok.length>2 && !tok.startsWith('#') && distractors.indexOf(tok)<0) distractors.push(tok);
+        });
+      });
+    });
+    distractors = shuffle(distractors).slice(0,3);
+    var masked = tokens.slice(); masked[tIdx] = '____';
+    return {
+      prompt: masked.join(' ')+(lines.length>1 ? '\n(+more)' : ''),
+      hint: a.cue,
+      correct: correct,
+      options: shuffle([correct].concat(distractors)),
+      full: a.answer
+    };
+  }
+  function renderCli(a){
+    cur = a; phase = 'cue';
+    if(!a) return empty('No CLI items.');
+    var fill = buildCliFill(a);
+    if(!fill){ advance(); return; }
+    var opts = '<div class="cd-opts" id="cd-opts">'+fill.options.map(function(o){
+      return '<button class="cd-opt" data-o="'+esc(o)+'">'+esc(o)+'</button>';
+    }).join('')+'</div>';
+    drillEl.innerHTML = '<div class="cd-card">'
+      +'<span class="cd-chip chip-cmd">CLI fill  .  D'+a.dom+'</span>'
+      +'<div class="cd-cue" style="font-size:0.95rem;color:var(--ink-secondary)">'+esc(fill.hint)+'</div>'
+      +'<div class="cd-answer mono show" style="background:var(--bg-recessed);border-color:var(--border)">'+esc(fill.prompt)+'</div>'
+      +opts
+      +'<div class="cd-answer mono" id="cd-ans"></div>'
+      +'</div>'+foot('pick the missing token');
+    Array.prototype.forEach.call(drillEl.querySelectorAll('.cd-opt'), function(btn){
+      btn.addEventListener('click', function(){ if(phase!=='cue') return; submitCli(btn.getAttribute('data-o'), fill, a, btn); });
+    });
+    wireFoot();
+  }
+  function submitCli(choice, fill, a, btn){
+    if(phase!=='cue') return; phase = 'revealed';
+    var ok = gradeText(choice, fill.correct);
+    Array.prototype.forEach.call(drillEl.querySelectorAll('.cd-opt'), function(b){
+      b.style.pointerEvents = 'none';
+      if(gradeText(b.getAttribute('data-o'), fill.correct)) b.classList.add('opt-ok');
+      else if(b===btn) b.classList.add('opt-no');
+    });
+    var ans = document.getElementById('cd-ans'); ans.classList.add('show'); ans.textContent = fill.full;
+    ans.style.borderColor = ok?'var(--prof-strong)':'var(--prof-weak)';
+    grade(a.id, ok);
+    document.getElementById('cd-opts').insertAdjacentHTML('afterend','<div class="cd-actions"><button class="cd-btn primary" id="cd-next">next</button></div>');
+    document.getElementById('cd-next').addEventListener('click', advance);
+  }
+
+  // ---- TRAP quiz ----
+  function buildTrapOpts(a){
+    // For trap type: mine sibling answers as distractors
+    var sibs = ATOMS.filter(function(x){ return (x.type==='trap'||x.type==='pair') && x.id!==a.id; });
+    var distractors = shuffle(sibs).slice(0,3).map(function(s){
+      // compress to one-line distractor
+      return (s.answer||'').split(/\n/)[0].slice(0,120);
+    });
+    var correct = (a.answer||'').split(/\n/)[0].slice(0,120);
+    var opts = shuffle([correct].concat(distractors));
+    return { options: opts, correct: correct };
+  }
+  function buildPairOpts(a){
+    return { options: shuffle([a.a, a.b]), correct: a.answer };
+  }
+  function renderTrap(a){
+    cur = a; phase = 'cue';
+    if(!a) return empty('No trap items.');
+    var built = (a.type==='pair') ? buildPairOpts(a) : buildTrapOpts(a);
+    var opts = '<div class="cd-opts" id="cd-opts">'+built.options.map(function(o){
+      return '<button class="cd-opt" data-o="'+esc(o)+'">'+esc(o)+'</button>';
+    }).join('')+'</div>';
+    drillEl.innerHTML = '<div class="cd-card">'
+      +'<span class="cd-chip chip-trap">'+(a.type==='pair'?'A vs B':'Exam trap')+'  .  D'+a.dom+'</span>'
+      +'<div class="cd-cue">'+esc(a.cue)+'</div>'
+      +opts
+      +'<div class="vis-rule" id="cli-msg"></div>'
+      +'</div>'+foot('pick the answer');
+    Array.prototype.forEach.call(drillEl.querySelectorAll('.cd-opt'), function(btn){
+      btn.addEventListener('click', function(){
+        if(phase!=='cue') return;
+        var chosen = btn.getAttribute('data-o');
+        phase = 'revealed';
+        var ok = gradeText(chosen, built.correct);
+        Array.prototype.forEach.call(drillEl.querySelectorAll('.cd-opt'), function(b){
+          b.style.pointerEvents = 'none';
+          if(gradeText(b.getAttribute('data-o'), built.correct)) b.classList.add('opt-ok');
+          else if(b===btn) b.classList.add('opt-no');
+        });
+        var msg = document.getElementById('cli-msg'); msg.style.color = 'var(--ink-secondary)';
+        if(!ok) msg.textContent = 'Full answer: '+(a.answer||'').slice(0,200);
+        grade(a.id, ok);
+        document.getElementById('cd-opts').insertAdjacentHTML('afterend','<div class="cd-actions"><button class="cd-btn primary" id="cd-next">next</button></div>');
+        document.getElementById('cd-next').addEventListener('click', advance);
+      });
+    });
+    wireFoot();
+  }
+
+  // ---- VERIFY pick ----
+  function buildVerifyOpts(a){
+    var sibs = ATOMS.filter(function(x){ return x.type==='verify' && x.id!==a.id; });
+    var distractors = shuffle(sibs).slice(0,3).map(function(s){
+      return (s.answer||'').split(/\n/)[0].slice(0,100);
+    });
+    var correct = (a.answer||'').split(/\n/)[0].slice(0,100);
+    var opts = shuffle([correct].concat(distractors));
+    return { options: opts, correct: correct };
+  }
+  function renderVerify(a){
+    cur = a; phase = 'cue';
+    if(!a) return empty('No verify items.');
+    var built = buildVerifyOpts(a);
+    var opts = '<div class="cd-opts" id="cd-opts">'+built.options.map(function(o){
+      return '<button class="cd-opt" data-o="'+esc(o)+'">'+esc(o)+'</button>';
+    }).join('')+'</div>';
+    drillEl.innerHTML = '<div class="cd-card">'
+      +'<span class="cd-chip chip-verify">Verify pick  .  D'+a.dom+'</span>'
+      +'<div class="cd-cue">'+esc(a.cue)+'</div>'
+      +opts
+      +'<div class="cd-answer mono" id="cd-ans" style="display:none">'+esc(a.answer)+'</div>'
+      +'<div class="vis-rule" id="cli-msg"></div>'
+      +'</div>'+foot('pick the right show command');
+    Array.prototype.forEach.call(drillEl.querySelectorAll('.cd-opt'), function(btn){
+      btn.addEventListener('click', function(){
+        if(phase!=='cue') return;
+        var chosen = btn.getAttribute('data-o');
+        phase = 'revealed';
+        var ok = gradeText(chosen, built.correct);
+        Array.prototype.forEach.call(drillEl.querySelectorAll('.cd-opt'), function(b){
+          b.style.pointerEvents = 'none';
+          if(gradeText(b.getAttribute('data-o'), built.correct)) b.classList.add('opt-ok');
+          else if(b===btn) b.classList.add('opt-no');
+        });
+        var ans = document.getElementById('cd-ans'); ans.classList.add('show');
+        grade(a.id, ok);
+        document.getElementById('cd-opts').insertAdjacentHTML('afterend','<div class="cd-actions"><button class="cd-btn primary" id="cd-next">next</button></div>');
+        document.getElementById('cd-next').addEventListener('click', advance);
+      });
+    });
+    wireFoot();
+  }
+
+  // ---- CLI sim (typed terminal for multi-line config blocks) ----
+  function renderClisim(a){
+    cur = a; phase = 'cue';
+    if(!a) return empty('No CLI sim items.');
+    var lines = (a.answer||'').split('\n').filter(function(l){ return l.trim() && !l.trim().startsWith('#'); });
+    if(!lines.length){ advance(); return; }
+    var typed = [], hist = [], hi = -1;
+    drillEl.innerHTML = '<div class="cd-card">'
+      +'<span class="cd-chip chip-clisim">CLI sim  .  D'+a.dom+'</span>'
+      +'<div class="cd-cue" style="font-size:1.05rem">'+esc(a.cue)+'</div>'
+      +'<div class="cli-term"><div class="cli-scroll" id="cli-scroll"></div>'
+      +'<div class="cli-input-row"><span class="cli-prompt">cumulus#</span>'
+      +'<input class="cli-input" id="cli-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" /></div></div>'
+      +'<div class="cd-actions" id="cd-acts"><button class="cd-btn primary" id="cli-check">Check</button><button class="cd-btn" id="cli-reveal">Reveal</button></div>'
+      +'<div class="vis-rule" id="cli-msg"></div>'
+      +'</div>'+foot('type commands, Enter adds, Check grades');
+    var inp = document.getElementById('cli-input');
+    var scroll = document.getElementById('cli-scroll');
+    function echo(line){
+      var d = document.createElement('div'); d.className='cli-line'; d.textContent='cumulus# '+line; scroll.appendChild(d); scroll.scrollTop=scroll.scrollHeight;
+    }
+    inp.addEventListener('keydown', function(e){
+      if(e.key==='Enter'){ e.preventDefault(); var v=inp.value.trim(); if(!v) return; typed.push(v); hist.push(v); hi=hist.length; echo(v); inp.value=''; }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); if(hi>0){ hi--; inp.value=hist[hi]; } }
+      else if(e.key==='ArrowDown'){ e.preventDefault(); if(hi<hist.length-1){ hi++; inp.value=hist[hi]; } else{ hi=hist.length; inp.value=''; } }
+    });
+    setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 0);
+    document.getElementById('cli-check').addEventListener('click', function(){
+      if(phase!=='cue') return;
+      var submitted = typed.slice(); var pend=inp.value.trim(); if(pend) submitted.push(pend);
+      // grade: each required line present somewhere (order-insensitive token match)
+      var missing = lines.filter(function(reqLine){
+        var reqToks = normStr(reqLine).split(/\s*;\s*|\s+/);
+        return !submitted.some(function(sub){
+          var subToks = normStr(sub).split(/\s+/);
+          return reqToks.every(function(t){ return !t || subToks.indexOf(t)>=0; });
+        });
+      });
+      var msg = document.getElementById('cli-msg');
+      if(!missing.length){
+        phase = 'revealed'; msg.style.color='var(--prof-strong)'; msg.textContent='Correct.';
+        grade(a.id, true); finishCli(inp);
+      } else {
+        msg.style.color='var(--ncp-dark)'; msg.textContent='Missing '+missing.length+' line(s). Think about what each step does.';
+      }
+    });
+    document.getElementById('cli-reveal').addEventListener('click', function(){
+      if(phase!=='cue') return; phase = 'revealed';
+      var msg = document.getElementById('cli-msg'); msg.style.color='var(--ink-secondary)';
+      msg.innerHTML='Full config:<pre class="cli-ctx">'+esc(a.answer)+'</pre>';
+      grade(a.id, false); finishCli(inp);
+    });
+    wireFoot();
+  }
+  function finishCli(inp){
+    if(inp) inp.disabled = true;
+    var acts = document.getElementById('cd-acts');
+    acts.innerHTML = '<button class="cd-btn primary" id="cd-next">next</button>';
+    document.getElementById('cd-next').addEventListener('click', advance);
+  }
+
+  // ---- keyboard shortcuts (recall only) ----
+  document.addEventListener('keydown', function(e){
+    if(!document.body.classList.contains('drill')) return;
+    if(mode!=='recall') return;
+    if(e.key===' '){ if(phase==='cue'){ e.preventDefault(); reveal(); } }
+    else if(phase==='revealed'){
+      if(e.key==='1') rateConf(0);
+      else if(e.key==='2') rateConf(1);
+      else if(e.key==='3') rateConf(2);
+    }
+  });
+
+  // ---- mode pills ----
+  function renderMode(){
+    var el = document.getElementById('cd-mode');
+    el.innerHTML = MODES.map(function(m){ return '<button class="cd-pill'+(m.key===mode?' active':'')+'" data-m="'+m.key+'">'+m.label+'</button>'; }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('.cd-pill'), function(p){
+      p.addEventListener('click', function(){
+        mode = p.getAttribute('data-m');
+        try{ localStorage.setItem(MD_KEY, mode); }catch(e){}
+        recent = []; recentDom = [];
+        var sc = document.getElementById('cd-scope');
+        if(sc) sc.style.display = (mode==='recall')?'flex':'none';
+        renderMode(); updateReady(); render();
+      });
+    });
+    var sc = document.getElementById('cd-scope');
+    if(sc) sc.style.display = (mode==='recall')?'flex':'none';
+  }
+
+  // ---- scope pills ----
+  function renderScope(){
+    var defs = [
+      ['all','All'],['trap','Traps'],['walk','Walk-away'],
+      ['1','Design (D1)'],['2','Spectrum/RoCE (D2)'],['3','IB (D3)'],
+      ['4','Troubleshoot (D4)'],['5','Automation (D5)'],['6','K8s/DPU (D6)']
+    ];
+    var el = document.getElementById('cd-scope');
+    el.innerHTML = defs.map(function(d){ return '<button class="cd-pill'+(d[0]===scope?' active':'')+'" data-s="'+d[0]+'">'+d[1]+'</button>'; }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('.cd-pill'), function(p){
+      p.addEventListener('click', function(){
+        scope = p.getAttribute('data-s');
+        try{ localStorage.setItem(SC_KEY, scope); }catch(e){}
+        recent = []; recentDom = [];
+        renderScope(); updateReady(); render();
+      });
+    });
+  }
+
+  // ---- BROWSE reference surface ----
+  var BSECS = [
+    { key:'concepts', label:'Concepts', desc:'numbers, pairs, concepts, walk-away facts' },
+    { key:'configs',  label:'Configs',  desc:'pillar config blocks by domain' },
+    { key:'verify',   label:'Verify / Troubleshoot', desc:'show commands, traps, WJH' }
+  ];
+  var bActive = 'concepts', browseBuilt = false;
+  var contentEl = document.getElementById('cd-content'), tabsEl = document.getElementById('cd-tabs');
+
+  function renderTabs(){
+    tabsEl.innerHTML = BSECS.map(function(s){
+      return '<button class="cd-tab'+(s.key===bActive?' active':'')+'" data-k="'+s.key+'">'+s.label+'</button>';
+    }).join('');
+    Array.prototype.forEach.call(tabsEl.querySelectorAll('.cd-tab'), function(t){
+      t.addEventListener('click', function(){ bActive=t.getAttribute('data-k'); renderTabs(); renderBrowseSection(); });
+    });
+  }
+
+  function domLabel(d){ return {1:'D1 Design',2:'D2 Spectrum/RoCE',3:'D3 InfiniBand',4:'D4 Troubleshoot',5:'D5 Automation',6:'D6 K8s/DPU'}[d]||'D?'; }
+
+  function renderBrowseSection(){
+    var sec = BSECS.filter(function(s){ return s.key===bActive; })[0];
+    var html = '<div class="cd-sec-head"><h2>'+sec.label+'</h2><span class="desc">'+sec.desc+'</span></div>';
+
+    if(bActive==='concepts'){
+      // Numbers by group
+      html += '<div class="cd-grp-label">Numbers</div>';
+      var NUMBERS = DRILL.NUMBERS || {};
+      Object.keys(NUMBERS).forEach(function(g){
+        html += '<div class="cd-grp-label" style="font-size:0.7rem">'+g.replace(/_/g,' ')+'</div>';
+        html += '<div class="cd-nums">';
+        NUMBERS[g].forEach(function(r){
+          html += '<div class="cd-num"><span class="k">'+esc(r.label)+'</span><span class="v">'+esc(r.value)+'</span></div>';
+        });
+        html += '</div>';
+      });
+      // Pairs
+      html += '<div class="cd-grp-label">Confusable pairs</div>';
+      PAIRS.forEach(function(p){
+        html += '<div class="cd-pair"><div class="vs"><em>'+esc(p.a)+'</em> vs <em>'+esc(p.b)+'</em></div><div class="diff">'+esc(p.clue)+' = <b>'+esc(p.ans)+'</b></div></div>';
+      });
+      // Concepts
+      html += '<div class="cd-grp-label">Concepts</div>';
+      (DRILL.CONCEPTS||[]).forEach(function(c){
+        html += '<div class="cd-block"><div class="cd-b-head"><span class="cd-b-title">'+esc(c.q.slice(0,80))+'</span><span class="cd-b-toggle">v</span></div>'
+          +'<div class="cd-b-body"><div class="cd-b-inner"><div class="cd-b-pad"><div class="cd-bullet">'+esc(c.a)+'</div>'+(c.how?'<div class="cd-bullet" style="color:var(--ncp-dark)">How you know: '+esc(c.how)+'</div>':'')+'</div></div></div></div>';
+      });
+      // Walk-away
+      html += '<div class="cd-grp-label">Walk-away facts</div>';
+      (DRILL.WALK_AWAY||[]).forEach(function(w){
+        html += '<div class="cd-block"><div class="cd-b-head"><span class="cd-b-title">'+esc(w.q.slice(0,80))+'</span><span class="cd-b-toggle">v</span></div>'
+          +'<div class="cd-b-body"><div class="cd-b-inner"><div class="cd-b-pad"><div class="cd-bullet">'+esc(w.a)+'</div></div></div></div></div>';
+      });
+    }
+
+    if(bActive==='configs'){
+      // Group pillars by domain
+      var byDom = {};
+      PILLARS.forEach(function(p){
+        if(!p.config) return;
+        var d = String(p.dom||'3');
+        if(!byDom[d]) byDom[d] = [];
+        byDom[d].push(p);
+      });
+      [1,2,3,4,5,6].forEach(function(d){
+        var ps = byDom[String(d)] || [];
+        if(!ps.length) return;
+        html += '<div class="cd-grp-label">'+domLabel(d)+'</div>';
+        ps.forEach(function(p){
+          html += '<div class="cd-block"><div class="cd-b-head"><span class="cd-b-title">'+esc(p.title)+'</span><span class="cd-b-toggle">v</span></div>'
+            +'<div class="cd-b-body"><div class="cd-b-inner"><div class="cd-b-pad"><pre class="cli-ctx">'+esc(p.config)+'</pre></div></div></div></div>';
+        });
+      });
+    }
+
+    if(bActive==='verify'){
+      // SHOWS pool
+      html += '<div class="cd-grp-label">Verification commands</div>';
+      (DRILL.SHOWS||[]).forEach(function(s){
+        html += '<div class="cd-cmd"><code>'+esc(s.a)+'</code><span class="note">'+esc(s.q)+'</span></div>';
+      });
+      // Pillar shows
+      html += '<div class="cd-grp-label">Pillar show outputs</div>';
+      PILLARS.forEach(function(p){
+        if(!p.show) return;
+        html += '<div class="cd-block"><div class="cd-b-head"><span class="cd-b-title">'+esc(p.title)+'</span><span class="cd-b-toggle">v</span></div>'
+          +'<div class="cd-b-body"><div class="cd-b-inner"><div class="cd-b-pad"><pre class="cli-ctx">'+esc(p.show)+'</pre></div></div></div></div>';
+      });
+      // Traps
+      html += '<div class="cd-grp-label">Exam traps</div>';
+      (DRILL.TRAPS||[]).forEach(function(t){
+        html += '<div class="cd-trap"><div class="trig"><b>Trap:</b> '+esc(t.q)+'</div><div class="ans">'+esc(t.a)+'</div></div>';
+      });
+    }
+
+    contentEl.innerHTML = html;
+    Array.prototype.forEach.call(contentEl.querySelectorAll('.cd-block'), function(blk){
+      blk.querySelector('.cd-b-head').addEventListener('click', function(){ blk.classList.toggle('open'); });
+    });
+  }
+
+  function toBrowse(){
+    if(!browseBuilt){ renderTabs(); renderBrowseSection(); browseBuilt=true; }
+    document.body.classList.remove('drill');
+    window.scrollTo({top:0});
+  }
+  function toDrill(){ document.body.classList.add('drill'); window.scrollTo({top:0}); }
+  document.getElementById('cd-back').addEventListener('click', toDrill);
+
+  // ---- boot ----
+  if(!ATOMS.length){
+    drillEl.innerHTML='<div class="cd-card"><div class="cd-cue">No NCP-AIN data loaded. Check that data/ncp-ain-pillars-data.js and data/ncp-ain-drill-data.js are present.</div></div>';
+    document.getElementById('cd-ready').textContent = 'no data';
+  } else {
+    renderMode();
+    renderScope();
+    updateReady();
+    render();
+  }
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

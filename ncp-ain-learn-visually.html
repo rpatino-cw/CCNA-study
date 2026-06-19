@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Learn Visually -- NVIDIA NCP-AIN</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  /* ── NCP-AIN brand tokens ── */
+  :root{--ncp:#76B900;--ncp-rgb:118,185,0;--ncp-light:#A4D65E;--ncp-dark:#5A8C00}
+  .gc-bar,.gc-chat-panel,#guidePill{display:none!important}
+
+  /* ── Domain color palette (green family + muted) ── */
+  :root{
+    --d1:#5A8C00; /* Design */
+    --d2:#76B900; /* Spectrum -- primary NCP green */
+    --d3:#2E7D32; /* InfiniBand -- deeper green */
+    --d4:#607D8B; /* Troubleshoot -- slate */
+    --d5:#78909C; /* Automation -- lighter slate */
+    --d6:#90A4AE; /* K8s -- coolest */
+  }
+
+  /* ── Layout ── */
+  .page-header{padding:var(--s-md) 0 var(--s-sm);margin-bottom:var(--s-lg);border-bottom:3px solid var(--ncp)}
+  .page-header h1{font-size:2.4rem;font-weight:700;letter-spacing:-.04em;color:var(--ncp);margin-bottom:4px}
+  .page-header .back-link{font-family:var(--font-display);font-size:.78rem;color:var(--ncp);text-decoration:none;font-weight:600}
+  .page-header .back-link:hover{text-decoration:underline}
+  .page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.92rem;font-style:italic}
+
+  /* ── Search row ── */
+  .search-row{display:flex;gap:12px;align-items:center;margin-bottom:var(--s-md)}
+  .search-input{flex:1;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.85rem;background:var(--bg-surface);color:var(--ink);outline:none}
+  .search-input:focus{border-color:var(--ncp)}
+  .search-count{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted)}
+
+  /* ── Domain filter pills -- NCP green active state ── */
+  .domain-nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--s-xl)}
+  .domain-pill{font-family:var(--font-display);font-size:.75rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-secondary);cursor:pointer;transition:all var(--transition)}
+  .domain-pill:hover{border-color:var(--ncp);color:var(--ncp)}
+  .domain-pill.active{background:var(--ncp);color:#fff;border-color:var(--ncp)}
+
+  /* ── Section headers ── */
+  .domain-section{margin-bottom:var(--s-xl)}
+  .domain-header{display:flex;align-items:baseline;gap:8px;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+  .domain-header h2{font-family:var(--font-display);font-size:1.1rem;font-weight:700;margin:0}
+  .domain-header .weight-tag{font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted)}
+
+  /* ── Cards grid ── */
+  .visuals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:var(--s-lg);margin-bottom:var(--s-2xl)}
+  @media(max-width:480px){.visuals-grid{grid-template-columns:1fr}}
+
+  .visual-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:border-color var(--transition),box-shadow var(--transition)}
+  .visual-card:hover{border-color:var(--ncp);box-shadow:0 2px 12px rgba(118,185,0,.12)}
+  .visual-card.hidden{display:none}
+
+  /* domain bar -- top colored strip */
+  .card-domain-bar{height:3px}
+  .card-domain-bar[data-d="1"]{background:var(--d1)}
+  .card-domain-bar[data-d="2"]{background:var(--d2)}
+  .card-domain-bar[data-d="3"]{background:var(--d3)}
+  .card-domain-bar[data-d="4"]{background:var(--d4)}
+  .card-domain-bar[data-d="5"]{background:var(--d5)}
+  .card-domain-bar[data-d="6"]{background:var(--d6)}
+
+  .card-label{display:flex;align-items:center;gap:6px;padding:12px 16px 0}
+  .domain-tag{font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:rgba(118,185,0,.1);color:var(--ncp)}
+  .card-title{font-family:var(--font-display);font-size:.98rem;font-weight:700;padding:8px 16px 4px;color:var(--ink);letter-spacing:-.01em}
+  .card-desc{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);padding:0 16px 10px;line-height:1.5}
+
+  /* ── SVG stage ── */
+  .card-svg{padding:8px 12px 14px;display:flex;justify-content:center}
+  .card-svg svg{width:100%;height:auto}
+  svg text{font-family:'Space Grotesk',system-ui,sans-serif}
+  svg .lbl{font-size:9px;font-weight:700;fill:#fff}
+  svg .anno{font-size:8px;fill:#666}
+  svg .mono{font-size:8px;font-family:'JetBrains Mono',monospace;fill:#888}
+
+  /* ── Action row ── */
+  .card-actions{display:flex;gap:6px;padding:0 16px 12px}
+  .card-action{font-family:var(--font-display);font-size:.68rem;font-weight:600;padding:4px 10px;border-radius:4px;text-decoration:none;cursor:pointer;border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-muted);transition:all .15s}
+  .card-action:hover{border-color:var(--ncp);color:var(--ncp)}
+  .card-action.primary{color:var(--ncp);border-color:var(--ncp)}
+  .card-action.primary:hover{background:var(--ncp);color:#fff}
+
+  /* ── Check modal ── */
+  .check-overlay{position:fixed;inset:0;z-index:9500;background:rgba(28,25,23,.5);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+  .check-overlay.open{opacity:1;pointer-events:auto}
+  .check-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);width:440px;max-width:92vw;max-height:82vh;overflow-y:auto;padding:24px}
+  .check-box h3{font-family:var(--font-display);font-size:1rem;margin-bottom:4px}
+  .check-box .check-topic{font-family:var(--font-mono);font-size:.65rem;color:var(--ncp);margin-bottom:14px}
+  .check-box .check-q{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.55;margin-bottom:14px}
+  .check-opts{display:flex;flex-direction:column;gap:6px}
+  .check-opt{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.84rem;cursor:pointer;transition:all .15s;text-align:left;background:var(--bg-surface);color:var(--ink)}
+  .check-opt:hover:not(.locked){border-color:var(--ncp)}
+  .check-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.08);color:#16A34A}
+  .check-opt.wrong{border-color:#DC2626;background:rgba(220,38,38,.08);color:#DC2626}
+  .check-opt.locked{cursor:default;opacity:.6}
+  .check-explain{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);line-height:1.5;margin-top:12px;padding:10px;background:var(--bg-recessed);border-radius:var(--radius);display:none}
+  .check-close{font-family:var(--font-display);font-size:.78rem;padding:8px 20px;background:var(--ncp);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;margin-top:12px;display:none}
+
+  /* ══════════════════════════════════════════════════════════════
+     Animation keyframe library
+     All animations freeze to legible static frame under reduced-motion.
+  ══════════════════════════════════════════════════════════════ */
+
+  /* ── flow: stroke-dashoffset march (reusable on .flow-path) ── */
+  @keyframes flow{to{stroke-dashoffset:0}}
+
+  /* ── flowRev: reverse flow (PAUSE frame traveling upstream) ── */
+  @keyframes flowRev{from{stroke-dashoffset:-40}to{stroke-dashoffset:-120}}
+
+  /* ── pkt-translate: packet moving right along x-axis ── */
+  @keyframes pktRight{0%{transform:translateX(0)}100%{transform:translateX(110px)}}
+  @keyframes pktDown{0%{transform:translateY(0)}100%{transform:translateY(42px)}}
+
+  /* ── fadeInOut: basic opacity loop (fallback) ── */
+  @keyframes fadeInOut{0%,100%{opacity:.2}50%{opacity:1}}
+
+  /* ── pulse: scale+glow for "work being done" nodes ── */
+  @keyframes pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 #76B900)}50%{transform:scale(1.12);filter:drop-shadow(0 0 5px #76B900)}}
+
+  /* ── sonar: expanding radius for SM discovery wave ── */
+  @keyframes sonar{0%{r:6;opacity:.9}100%{r:42;opacity:0}}
+  @keyframes sonar2{0%{r:6;opacity:.9}100%{r:42;opacity:0}}
+
+  /* ── barFill: queue bar height, used for PFC card ── */
+  @keyframes barRise{0%,15%{height:6px;y:54px}60%,75%{height:48px;y:12px}90%,100%{height:6px;y:54px}}
+
+  /* ── colorFlip: mid-loop fill change for ECN card ── */
+  @keyframes colorFlip{0%,38%{fill:#76B900}42%,100%{fill:#F59E0B}}
+
+  /* ── fadeSteps: stepping opacity for counters / labels ── */
+  @keyframes fadeSteps{0%,20%{opacity:1}25%,100%{opacity:0}}
+
+  /* ── railSweep: sequential stagger base (used with delay offsets) ── */
+  @keyframes railOn{0%,90%,100%{opacity:.15}10%,80%{opacity:1}}
+
+  /* ── orbits: circular path via offset-path ── */
+  @keyframes orbit{from{offset-distance:0%}to{offset-distance:100%}}
+
+  /* ── widen: packet spacing widening (DCQCN rate cut) ── */
+  @keyframes widen{0%,40%{transform:translateX(0)}100%{transform:translateX(90px)}}
+
+  /* ── treeFade: sequential cascade for tree vs ring ── */
+  @keyframes nodeFade{0%,100%{fill:#ccc;stroke:#ccc}50%{fill:#76B900;stroke:#76B900}}
+
+  /* ══ prefers-reduced-motion: freeze ALL keyframes to static frame ══ */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+      animation-duration:.001s !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001s !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <a class="back-link" href="ncp-ain-hub.html">&#8592; NCP-AIN Hub</a>
+    <h1>Learn Visually</h1>
+    <p class="subtitle">15 animated concept cards covering RDMA, congestion control, IB fabric, and GPU collectives. Each loops every 3-8 s. Click Deep Dive to enter the full simulator.</p>
+  </header>
+
+  <!-- Search -->
+  <div class="search-row">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search cards..." autocomplete="off">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+
+  <!-- Domain filter pills (ordered by exam weight desc: D2 30%, D3 30%, D4 20%, D5 10%, D1 5%, D6 5%) -->
+  <div class="domain-nav" id="domainNav">
+    <button class="domain-pill active" data-domain="all">All</button>
+    <button class="domain-pill" data-domain="2">D2 Spectrum (30%)</button>
+    <button class="domain-pill" data-domain="3">D3 InfiniBand (30%)</button>
+    <button class="domain-pill" data-domain="4">D4 Troubleshoot (20%)</button>
+    <button class="domain-pill" data-domain="5">D5 Automation (10%)</button>
+    <button class="domain-pill" data-domain="1">D1 AI Design (5%)</button>
+    <button class="domain-pill" data-domain="6">D6 Kubernetes (5%)</button>
+  </div>
+
+  <div id="visualsGrid"></div>
+</div>
+
+<!-- Check Yourself modal -->
+<div class="check-overlay" id="checkOverlay">
+  <div class="check-box" id="checkBox"></div>
+</div>
+
+<script defer src="js/nav.js"></script>
+<script defer src="data/ncp-ain-pillars-data.js"></script>
+<script>
+/* ============================================================
+   NCP-AIN Learn Visually -- inline card config + logic
+   15 animated concept cards. No external question bank needed.
+   All quiz questions built from pillar bullets and NCPAIN_PAIRS.
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── Domain meta (data-file source of truth) ── */
+  var DOMAIN_ORDER = ['2','3','4','5','1','6']; // by exam weight desc
+  var DOMAIN_NAMES = {
+    '1':'AI DC Design','2':'Spectrum Networking','3':'InfiniBand',
+    '4':'Troubleshooting','5':'Automation','6':'Kubernetes'
+  };
+  var DOMAIN_WEIGHTS = {'1':'5','2':'30','3':'30','4':'20','5':'10','6':'5'};
+  var DOMAIN_COLORS = {
+    '1':'#5A8C00','2':'#76B900','3':'#2E7D32',
+    '4':'#607D8B','5':'#78909C','6':'#90A4AE'
+  };
+
+  /* ── Inline card configs ── */
+  /* Each: {id, title, desc, dom(string), pillars, deepDive, svg, check:{q,opts,correct,explain}} */
+  var CARDS = [
+
+    /* ────────── CARD 1: RDMA zero-copy path ────────── */
+    {
+      id:'rdma-zerocopy',
+      title:'RDMA Zero-Copy Path',
+      desc:'The NIC DMAs payload directly from GPU VRAM to wire. The CPU posts the work request but never touches payload bytes.',
+      dom:'3',
+      pillars:[14,10],
+      deepDive:'ncp-ain-ib-layers.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GPU box -->
+  <rect x="4" y="30" width="50" height="50" rx="4" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="29" y="52" class="lbl" text-anchor="middle">GPU</text>
+  <text x="29" y="63" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">VRAM</text>
+  <!-- NIC box -->
+  <rect x="112" y="38" width="44" height="34" rx="4" fill="#111" stroke="#76B900" stroke-width="1.5"/>
+  <text x="134" y="57" class="lbl" text-anchor="middle">NIC</text>
+  <!-- Wire / network -->
+  <rect x="210" y="43" width="56" height="24" rx="4" fill="#0a1a2a" stroke="#4DA6FF" stroke-width="1.2"/>
+  <text x="238" y="57" style="font-size:8px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif" text-anchor="middle">WIRE</text>
+  <!-- CPU box (dim = untouched) -->
+  <rect x="112" y="6" width="44" height="22" rx="4" fill="#1a1a1a" stroke="#444" stroke-width="1"/>
+  <text x="134" y="19" style="font-size:8px;fill:#666;font-family:Space Grotesk,sans-serif" text-anchor="middle">CPU</text>
+  <!-- Crossed-out kernel-copy path (grey) -->
+  <line x1="90" y1="55" x2="112" y2="17" stroke="#444" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="88" y="50" style="font-size:9px;fill:#DC2626;font-family:Space Grotesk,sans-serif">&#10006;</text>
+  <!-- GREEN fast path: GPU->NIC line -->
+  <path id="gpuNicPath" d="M54 55 Q83 55 112 55" stroke="#76B900" stroke-width="2.5" stroke-dasharray="6,3"/>
+  <!-- GREEN fast path: NIC->Wire line -->
+  <path id="nicWirePath" d="M156 55 Q183 55 210 55" stroke="#76B900" stroke-width="2.5" stroke-dasharray="6,3"/>
+  <!-- Animated packet on GPU->NIC -->
+  <rect width="10" height="6" rx="2" fill="#76B900">
+    <animateMotion dur="2.4s" repeatCount="indefinite" begin="0s">
+      <mpath href="#gpuNicPath"/>
+    </animateMotion>
+  </rect>
+  <!-- Animated packet on NIC->Wire -->
+  <rect width="10" height="6" rx="2" fill="#76B900">
+    <animateMotion dur="2.4s" repeatCount="indefinite" begin="0.8s">
+      <mpath href="#nicWirePath"/>
+    </animateMotion>
+  </rect>
+  <!-- Labels -->
+  <text x="75" y="72" class="anno" text-anchor="middle">PCIe DMA</text>
+  <text x="183" y="72" class="anno" text-anchor="middle">zero-copy</text>
+  <text x="134" y="36" style="font-size:7px;fill:#555;font-family:Space Grotesk,sans-serif" text-anchor="middle">bypassed</text>
+</svg>`,
+      check:{
+        q:'In GPUDirect RDMA, what role does the CPU play in moving the payload?',
+        opts:['The CPU copies data into a host memory buffer before the NIC can read it','The CPU posts the work request but never touches the payload bytes','The CPU reads each packet from the GPU and hands it to the NIC','The CPU manages DMA descriptors for every packet transfer'],
+        correct:1,
+        explain:'GPUDirect RDMA lets the NIC DMA directly from GPU VRAM to the wire. The CPU posts the work request (control plane) but never touches payload bytes. Source: pillar 14 bullets.'
+      }
+    },
+
+    /* ────────── CARD 2: Credit-based flow control ────────── */
+    {
+      id:'credit-flow',
+      title:'Credit-Based Flow Control',
+      desc:'Sender holds credit tokens (64-byte units). It transmits on a VL only when it holds credits. Receiver replenishes credits. When credits hit zero, sender stalls.',
+      dom:'3',
+      pillars:[5],
+      deepDive:'ncp-ain-ib-layers.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sender -->
+  <rect x="4" y="30" width="56" height="50" rx="4" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="32" y="52" class="lbl" text-anchor="middle">SENDER</text>
+  <!-- Credit counter text cycling 8->0->8 -->
+  <text x="32" y="68" style="font-size:10px;font-weight:700;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="textContent" values="8;7;6;5;4;3;2;1;0;1;2;3;4;5;6;7;8" dur="5.6s" repeatCount="indefinite" calcMode="discrete"/>
+  </text>
+  <text x="32" y="78" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">credits</text>
+  <!-- Receiver -->
+  <rect x="220" y="30" width="56" height="50" rx="4" fill="#0a1a2a" stroke="#4DA6FF" stroke-width="1.5"/>
+  <text x="248" y="52" class="lbl" text-anchor="middle">RECVR</text>
+  <text x="248" y="68" style="font-size:9px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif" text-anchor="middle">buffer</text>
+  <!-- Credit tokens traveling back (blue pills) -->
+  <path id="creditReturn" d="M220 48 Q160 35 60 48" stroke="#4DA6FF" stroke-width="1" stroke-dasharray="2,2"/>
+  <circle r="5" fill="#4DA6FF">
+    <animateMotion dur="3s" repeatCount="indefinite" begin="0s">
+      <mpath href="#creditReturn"/>
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="#4DA6FF">
+    <animateMotion dur="3s" repeatCount="indefinite" begin="1.5s">
+      <mpath href="#creditReturn"/>
+    </animateMotion>
+  </circle>
+  <!-- Packets going forward (green) -->
+  <path id="pktFwd" d="M60 62 Q140 62 220 62" stroke="#76B900" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect width="12" height="6" rx="2" fill="#76B900">
+    <animateMotion dur="2s" repeatCount="indefinite" begin="0s">
+      <mpath href="#pktFwd"/>
+    </animateMotion>
+  </rect>
+  <rect width="12" height="6" rx="2" fill="#76B900">
+    <animateMotion dur="2s" repeatCount="indefinite" begin="0.7s">
+      <mpath href="#pktFwd"/>
+    </animateMotion>
+  </rect>
+  <!-- Stall indicator (appears when credits ~0) -->
+  <text x="140" y="90" style="font-size:8px;fill:#F59E0B;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="0;0;0;0;1;1;0;0" dur="5.6s" repeatCount="indefinite" calcMode="discrete"/>
+    STALL -- awaiting credits
+  </text>
+  <text x="140" y="26" class="anno" text-anchor="middle">credits return (64-byte units)</text>
+</svg>`,
+      check:{
+        q:'What happens in IB credit-based flow control when a sender runs out of credits on a VL?',
+        opts:['The sender drops the packet and sends a NAK','The sender transmits anyway and the receiver discards the overflow','The sender stalls on that VL until the receiver grants more credits','The SM is notified and re-routes the packet to a different VL'],
+        correct:2,
+        explain:'Credit-based flow control: sender transmits on a VL only if it holds credits. When credits reach zero the sender stalls. Receiver replenishes credits as its buffer drains. Source: pillar 5 bullets.'
+      }
+    },
+
+    /* ────────── CARD 3: PFC PAUSE ────────── */
+    {
+      id:'pfc-pause',
+      title:'PFC PAUSE (Per-Priority)',
+      desc:'When a priority-3 queue fills to the high-water mark, a PAUSE frame travels upstream. Only the congested priority is frozen; other priorities keep flowing.',
+      dom:'2',
+      pillars:[11],
+      deepDive:'ncp-ain-congestion-pipeline.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Switch queue bar (rises and falls) -->
+  <rect x="120" y="10" width="40" height="60" rx="3" fill="#1a1a1a" stroke="#555" stroke-width="1"/>
+  <text x="140" y="82" class="anno" text-anchor="middle">queue P3</text>
+  <!-- Fill bar animating up/down -->
+  <rect x="123" y="12" width="34" height="2" rx="1" fill="#76B900">
+    <animate attributeName="height" values="2;54;54;2" dur="4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0 0 0 0;0.4 0 0.6 1"/>
+    <animate attributeName="y" values="64;12;12;64" dur="4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0 0 0 0;0.4 0 0.6 1"/>
+    <animate attributeName="fill" values="#76B900;#F59E0B;#DC2626;#76B900" dur="4s" repeatCount="indefinite" calcMode="discrete"/>
+  </rect>
+  <!-- HW mark line -->
+  <line x1="120" y1="20" x2="160" y2="20" stroke="#DC2626" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="165" y="23" style="font-size:7px;fill:#DC2626;font-family:Space Grotesk,sans-serif">HW mark</text>
+  <!-- Upstream sender (left) -->
+  <rect x="4" y="34" width="50" height="32" rx="4" fill="#1a2a00" stroke="#76B900" stroke-width="1.2"/>
+  <text x="29" y="53" class="lbl" text-anchor="middle">SENDER</text>
+  <!-- PAUSE frame traveling upstream (reverse direction) -->
+  <path id="pausePath" d="M120 45 Q90 45 54 50" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <rect width="14" height="8" rx="2" fill="#F59E0B">
+    <animateMotion dur="1.2s" repeatCount="indefinite" begin="2s">
+      <mpath href="#pausePath"/>
+    </animateMotion>
+  </rect>
+  <!-- P3 lane pause indicator on sender -->
+  <text x="29" y="65" style="font-size:7px;fill:#F59E0B;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="0;0;0;1;1;0" dur="4s" repeatCount="indefinite" calcMode="discrete"/>
+    PAUSED P3
+  </text>
+  <!-- Other priority lane still flowing (P0, right side) -->
+  <path id="p0Flow" d="M160 65 Q200 65 240 65" stroke="#4DA6FF" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <rect width="10" height="5" rx="2" fill="#4DA6FF">
+    <animateMotion dur="1.8s" repeatCount="indefinite">
+      <mpath href="#p0Flow"/>
+    </animateMotion>
+  </rect>
+  <text x="200" y="80" style="font-size:7px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif" text-anchor="middle">P0 still flowing</text>
+  <text x="140" y="100" class="anno" text-anchor="middle">802.1Qbb PFC -- only P3 paused</text>
+</svg>`,
+      check:{
+        q:'What is the key characteristic of PFC compared with legacy head-of-line blocking PAUSE?',
+        opts:['PFC pauses ALL traffic on the link simultaneously','PFC pauses only the specific priority whose buffer fills, leaving other priorities unaffected','PFC marks packets with a CE bit instead of pausing','PFC is a NIC-side algorithm, not a switch feature'],
+        correct:1,
+        explain:'PFC (IEEE 802.1Qbb) is per-priority: when a switch buffer fills for a priority it PAUSEs the upstream sender on that priority only, leaving other priorities flowing. Source: pillar 11 bullets.'
+      }
+    },
+
+    /* ────────── CARD 4: ECN marking ────────── */
+    {
+      id:'ecn-marking',
+      title:'ECN Marking (CE Bit)',
+      desc:'Queue depth crosses the ECN threshold. As packets pass the marker they flip the CE flag from white to amber and continue. Unlike PFC, packets are NOT dropped.',
+      dom:'2',
+      pillars:[11,10],
+      deepDive:'ncp-ain-congestion-pipeline.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Threshold line -->
+  <line x1="140" y1="10" x2="140" y2="90" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <text x="142" y="16" style="font-size:7px;fill:#F59E0B;font-family:Space Grotesk,sans-serif">ECN thresh</text>
+  <text x="142" y="24" style="font-size:6px;fill:#888;font-family:Space Grotesk,sans-serif">146 KB</text>
+  <!-- Pulsing threshold -->
+  <line x1="140" y1="10" x2="140" y2="90" stroke="#F59E0B" stroke-width="3" stroke-dasharray="3,2">
+    <animate attributeName="opacity" values="0.2;0.6;0.2" dur="1.6s" repeatCount="indefinite"/>
+  </line>
+  <!-- Packet 1: green before threshold (plain) -->
+  <path id="pktPathA" d="M4 40 L140 40" stroke="none"/>
+  <rect width="16" height="9" rx="2" fill="#76B900">
+    <animateMotion dur="3s" repeatCount="indefinite" begin="0s">
+      <mpath href="#pktPathA"/>
+    </animateMotion>
+  </rect>
+  <!-- Packet 2: flips to amber at threshold, continues right -->
+  <path id="pktPathB" d="M140 60 L276 60" stroke="none"/>
+  <rect width="16" height="9" rx="2">
+    <animate attributeName="fill" values="#76B900;#F59E0B" dur="0.01s" repeatCount="indefinite" begin="1.5s" calcMode="discrete"/>
+    <animateMotion dur="1.5s" repeatCount="indefinite" begin="1.5s">
+      <mpath href="#pktPathB"/>
+    </animateMotion>
+  </rect>
+  <!-- CE label -->
+  <text x="220" y="72" style="font-size:8px;fill:#F59E0B;font-weight:700;font-family:Space Grotesk,sans-serif" text-anchor="middle">CE marked</text>
+  <!-- Packet 3: another green one approaching -->
+  <path id="pktPathC" d="M4 75 L140 75" stroke="none"/>
+  <rect width="16" height="9" rx="2" fill="#76B900">
+    <animateMotion dur="3s" repeatCount="indefinite" begin="1s">
+      <mpath href="#pktPathC"/>
+    </animateMotion>
+  </rect>
+  <!-- NOT DROPPED label -->
+  <text x="70" y="100" class="anno" text-anchor="middle">not dropped -- CE bit set</text>
+  <text x="210" y="100" class="anno" text-anchor="middle">triggers DCQCN rate cut</text>
+  <!-- Sender / Receiver labels -->
+  <text x="10" y="26" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif">SENDER</text>
+  <text x="246" y="26" style="font-size:7px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif">RECVR</text>
+</svg>`,
+      check:{
+        q:'ECN default min-threshold on a Spectrum switch in lossless RoCE mode is:',
+        opts:['16 KB','64 KB','146.48 KB','1.43 MB'],
+        correct:2,
+        explain:'ECN defaults are exact: min 146.48 KB, max 1.43 MB (1,501,500 bytes on TC3), probability 100, on TC0 and TC3. Source: pillar 11 bullets.'
+      }
+    },
+
+    /* ────────── CARD 5: DCQCN rate-cut loop ────────── */
+    {
+      id:'dcqcn-rate-cut',
+      title:'DCQCN Rate-Cut Loop',
+      desc:'Receiver sees CE-marked packets and fires a CNP back to the sender NIC. The sender NIC halves its injection rate -- packet spacing widens.',
+      dom:'2',
+      pillars:[11],
+      deepDive:'ncp-ain-congestion-pipeline.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Phase label -->
+  <text x="140" y="10" style="font-size:8px;fill:#555;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="textContent" values="Phase 1: fast injection;Phase 1: fast injection;Phase 2: CNP feedback;Phase 2: CNP feedback;Phase 3: rate cut" dur="6s" repeatCount="indefinite" calcMode="discrete"/>
+  </text>
+  <!-- Dense packets (phase 1) -->
+  <path id="denseA" d="M4 40 L180 40" stroke="none"/>
+  <path id="denseB" d="M4 40 L180 40" stroke="none"/>
+  <path id="denseC" d="M4 40 L180 40" stroke="none"/>
+  <rect width="12" height="7" rx="2" fill="#76B900">
+    <animateMotion dur="2s" repeatCount="indefinite" begin="0s">
+      <mpath href="#denseA"/>
+    </animateMotion>
+  </rect>
+  <rect width="12" height="7" rx="2" fill="#76B900">
+    <animateMotion dur="2s" repeatCount="indefinite" begin="0.5s">
+      <mpath href="#denseB"/>
+    </animateMotion>
+  </rect>
+  <rect width="12" height="7" rx="2" fill="#76B900">
+    <animateMotion dur="2s" repeatCount="indefinite" begin="1s">
+      <mpath href="#denseC"/>
+    </animateMotion>
+  </rect>
+  <!-- CNP traveling back (cyan dot) -->
+  <path id="cnpPath" d="M240 60 Q160 50 40 60" stroke="#22D3EE" stroke-width="1" stroke-dasharray="2,2"/>
+  <circle r="7" fill="#22D3EE">
+    <animateMotion dur="1.2s" repeatCount="indefinite" begin="2s">
+      <mpath href="#cnpPath"/>
+    </animateMotion>
+  </circle>
+  <text x="140" y="56" style="font-size:7px;fill:#22D3EE;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="0;0;0;0;1;0" dur="6s" repeatCount="indefinite" calcMode="discrete"/>
+    CNP
+  </text>
+  <!-- Wide-spaced packets (phase 3) -->
+  <path id="wideA" d="M4 80 L240 80" stroke="none"/>
+  <path id="wideB" d="M4 80 L240 80" stroke="none"/>
+  <rect width="12" height="7" rx="2" fill="#A4D65E">
+    <animateMotion dur="4s" repeatCount="indefinite" begin="3s">
+      <mpath href="#wideA"/>
+    </animateMotion>
+  </rect>
+  <rect width="12" height="7" rx="2" fill="#A4D65E">
+    <animateMotion dur="4s" repeatCount="indefinite" begin="5s">
+      <mpath href="#wideB"/>
+    </animateMotion>
+  </rect>
+  <text x="200" y="95" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif">rate halved</text>
+  <text x="6" y="30" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif">NIC SENDER</text>
+  <text x="230" y="30" style="font-size:7px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif">RECVR NIC</text>
+</svg>`,
+      check:{
+        q:'In the DCQCN congestion control loop, what entity generates the CNP and what entity acts on it?',
+        opts:['The switch generates the CNP; the sender NIC acts on it','The receiver NIC generates the CNP; the sender NIC cuts injection rate','The sender NIC generates the CNP; the receiver NIC buffers packets','The switch marks ECN CE and also generates the CNP'],
+        correct:1,
+        explain:'DCQCN is a NIC-side algorithm: the switch only signals ECN (CE bit). The ConnectX NIC on the receiver generates the CNP (Congestion Notification Packet), which travels back to the sender NIC to cut the injection rate. Source: pillar 11 bullets.'
+      }
+    },
+
+    /* ────────── CARD 6: AllReduce ring ────────── */
+    {
+      id:'allreduce-ring',
+      title:'AllReduce Ring',
+      desc:'Ring-AllReduce: ReduceScatter phase (green) accumulates gradients clockwise. AllGather phase (blue) broadcasts the reduced result. Every link is active each step.',
+      dom:'1',
+      pillars:[29,8],
+      deepDive:'ncp-ain-pillars.html',
+      svg:`<svg viewBox="0 0 220 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 6 GPU nodes on a circle, center 110,55 r=40 -->
+  <circle cx="110" cy="15" r="9" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="110" y="19" class="lbl" text-anchor="middle">G0</text>
+  <circle cx="144" cy="32" r="9" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="144" y="36" class="lbl" text-anchor="middle">G1</text>
+  <circle cx="148" cy="70" r="9" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="148" y="74" class="lbl" text-anchor="middle">G2</text>
+  <circle cx="110" cy="95" r="9" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="110" y="99" class="lbl" text-anchor="middle">G3</text>
+  <circle cx="72" cy="70" r="9" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="72" y="74" class="lbl" text-anchor="middle">G4</text>
+  <circle cx="76" cy="32" r="9" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="76" y="36" class="lbl" text-anchor="middle">G5</text>
+  <!-- Ring path for animateMotion (clockwise) -->
+  <path id="ringPath" d="M110 24 Q144 41 148 61 Q148 86 110 86 Q72 86 72 61 Q72 41 110 24" stroke="#333" stroke-width="1" fill="none"/>
+  <!-- ReduceScatter token (green) -->
+  <rect width="10" height="6" rx="2" fill="#76B900">
+    <animateMotion dur="4s" repeatCount="indefinite" begin="0s">
+      <mpath href="#ringPath"/>
+    </animateMotion>
+  </rect>
+  <!-- AllGather token (blue) -->
+  <rect width="10" height="6" rx="2" fill="#4DA6FF">
+    <animateMotion dur="4s" repeatCount="indefinite" begin="2s">
+      <mpath href="#ringPath"/>
+    </animateMotion>
+  </rect>
+  <!-- Legend -->
+  <rect x="4" y="94" width="8" height="5" rx="1" fill="#76B900"/>
+  <text x="14" y="99" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif">ReduceScatter</text>
+  <rect x="4" y="103" width="8" height="5" rx="1" fill="#4DA6FF"/>
+  <text x="14" y="108" style="font-size:7px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif">AllGather</text>
+</svg>`,
+      check:{
+        q:'What is the total data moved in an AllReduce operation for large N?',
+        opts:['message_size (just send once)','(N-1)/N times message_size','2(N-1)/N times message_size, approaching 2x for large N','N times message_size'],
+        correct:2,
+        explain:'AllReduce: total data moved = 2(N-1)/N * message_size, approaching about 2x the tensor size for large N. This is the only collective with the 2x factor. Source: pillar 29 bullets.'
+      }
+    },
+
+    /* ────────── CARD 7: AllReduce tree vs ring ────────── */
+    {
+      id:'allreduce-tree-vs-ring',
+      title:'AllReduce: Tree vs Ring',
+      desc:'Same data, same 8 GPUs. Tree finishes in log2(N) steps; ring takes N-1 steps. Watch the tree complete its highlight sweep faster.',
+      dom:'1',
+      pillars:[29],
+      deepDive:'ncp-ain-pillars.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left: Ring (sequential) -->
+  <text x="70" y="10" style="font-size:8px;fill:#888;font-family:Space Grotesk,sans-serif" text-anchor="middle">Ring (N-1 steps)</text>
+  <!-- 4 nodes in ring arrangement -->
+  <circle cx="70" cy="28" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#76B900;#1a2a00;#1a2a00;#1a2a00;#1a2a00;#1a2a00;#1a2a00" dur="4s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <circle cx="94" cy="44" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#1a2a00;#76B900;#1a2a00;#1a2a00;#1a2a00;#1a2a00;#1a2a00" dur="4s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <circle cx="70" cy="62" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#1a2a00;#1a2a00;#76B900;#1a2a00;#1a2a00;#1a2a00;#1a2a00" dur="4s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <circle cx="46" cy="44" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#1a2a00;#1a2a00;#1a2a00;#76B900;#1a2a00;#1a2a00;#1a2a00" dur="4s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- Ring connections -->
+  <line x1="70" y1="35" x2="94" y2="37" stroke="#555" stroke-width="1"/>
+  <line x1="94" y1="51" x2="70" y2="55" stroke="#555" stroke-width="1"/>
+  <line x1="70" y1="55" x2="46" y2="51" stroke="#555" stroke-width="1"/>
+  <line x1="46" y1="37" x2="70" y2="35" stroke="#555" stroke-width="1"/>
+  <!-- Ring DONE label -->
+  <text x="70" y="82" style="font-size:8px;fill:#888;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="0;0;0;0;1;0;0;0" dur="4s" repeatCount="indefinite" calcMode="discrete"/>
+    DONE
+  </text>
+
+  <!-- Divider -->
+  <line x1="140" y1="5" x2="140" y2="95" stroke="#333" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- Right: Tree (log depth) -->
+  <text x="210" y="10" style="font-size:8px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">Tree (log N steps)</text>
+  <!-- 4 leaf nodes -->
+  <circle cx="168" cy="80" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#76B900;#1a2a00;#1a2a00" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <circle cx="192" cy="80" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#76B900;#1a2a00;#1a2a00" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <circle cx="228" cy="80" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#76B900;#1a2a00;#1a2a00" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <circle cx="252" cy="80" r="7" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#76B900;#1a2a00;#1a2a00" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- Mid-level nodes -->
+  <circle cx="180" cy="52" r="7" stroke="#A4D65E" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#1a2a00;#A4D65E;#1a2a00" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <circle cx="240" cy="52" r="7" stroke="#A4D65E" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#1a2a00;#A4D65E;#1a2a00" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- Root -->
+  <circle cx="210" cy="24" r="8" stroke="#fff" stroke-width="1.5">
+    <animate attributeName="fill" values="#1a2a00;#1a2a00;#1a2a00;#fff" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- Tree connections -->
+  <line x1="168" y1="73" x2="180" y2="59" stroke="#555" stroke-width="1"/>
+  <line x1="192" y1="73" x2="180" y2="59" stroke="#555" stroke-width="1"/>
+  <line x1="228" y1="73" x2="240" y2="59" stroke="#555" stroke-width="1"/>
+  <line x1="252" y1="73" x2="240" y2="59" stroke="#555" stroke-width="1"/>
+  <line x1="180" y1="45" x2="210" y2="32" stroke="#555" stroke-width="1"/>
+  <line x1="240" y1="45" x2="210" y2="32" stroke="#555" stroke-width="1"/>
+  <!-- Tree DONE label (appears at step 2, ring still on step 3) -->
+  <text x="210" y="98" style="font-size:8px;fill:#A4D65E;font-weight:700;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="0;0;0;1" dur="2s" repeatCount="indefinite" calcMode="discrete"/>
+    DONE FASTER
+  </text>
+</svg>`,
+      check:{
+        q:'Why does SHARP in-network aggregation outperform a pure ring-AllReduce at scale?',
+        opts:['SHARP uses more GPU memory to buffer results locally','SHARP reduces data inside switch ASICs so less data traverses the full ring','SHARP uses a dedicated management VL15 lane for gradient traffic','SHARP replaces the SM discovery sweep to speed up AllReduce setup'],
+        correct:1,
+        explain:'SHARP performs the reduction inside the IB switch ASICs (in-network computing) so data is reduced on the way up the tree. Less data traverses the fabric versus a ring AllReduce which moves 2x the tensor size. Source: pillar 8 bullets.'
+      }
+    },
+
+    /* ────────── CARD 8: SHARP in-network aggregation ────────── */
+    {
+      id:'sharp-aggregation',
+      title:'SHARP In-Network Aggregation',
+      desc:'Gradient chunks climb the tree. The IB switch absorbs multiple inputs, reduces them internally (pulse), and emits ONE result upward. Less traffic reaches the root.',
+      dom:'3',
+      pillars:[8],
+      deepDive:'ncp-ain-pillars.html',
+      svg:`<svg viewBox="0 0 220 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Leaf GPU nodes -->
+  <circle cx="30" cy="90" r="7" fill="#1a2a00" stroke="#76B900" stroke-width="1.3"/>
+  <text x="30" y="94" class="lbl" text-anchor="middle">G0</text>
+  <circle cx="80" cy="90" r="7" fill="#1a2a00" stroke="#76B900" stroke-width="1.3"/>
+  <text x="80" y="94" class="lbl" text-anchor="middle">G1</text>
+  <circle cx="140" cy="90" r="7" fill="#1a2a00" stroke="#76B900" stroke-width="1.3"/>
+  <text x="140" y="94" class="lbl" text-anchor="middle">G2</text>
+  <circle cx="190" cy="90" r="7" fill="#1a2a00" stroke="#76B900" stroke-width="1.3"/>
+  <text x="190" y="94" class="lbl" text-anchor="middle">G3</text>
+  <!-- Mid switches -->
+  <rect x="42" y="50" width="28" height="18" rx="3" fill="#0a1a1a" stroke="#A4D65E" stroke-width="1.5"/>
+  <text x="56" y="61" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">SW</text>
+  <!-- SW pulse animation -->
+  <rect x="42" y="50" width="28" height="18" rx="3" fill="none" stroke="#76B900" stroke-width="2">
+    <animate attributeName="opacity" values="0;0;1;0.5;0" dur="3s" repeatCount="indefinite" begin="1.2s"/>
+    <animate attributeName="stroke-width" values="2;5;2" dur="3s" repeatCount="indefinite" begin="1.2s"/>
+  </rect>
+  <rect x="152" y="50" width="28" height="18" rx="3" fill="#0a1a1a" stroke="#A4D65E" stroke-width="1.5"/>
+  <text x="166" y="61" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">SW</text>
+  <rect x="152" y="50" width="28" height="18" rx="3" fill="none" stroke="#76B900" stroke-width="2">
+    <animate attributeName="opacity" values="0;0;1;0.5;0" dur="3s" repeatCount="indefinite" begin="1.2s"/>
+    <animate attributeName="stroke-width" values="2;5;2" dur="3s" repeatCount="indefinite" begin="1.2s"/>
+  </rect>
+  <!-- Root switch -->
+  <rect x="88" y="14" width="44" height="22" rx="3" fill="#0a1a1a" stroke="#fff" stroke-width="1.5"/>
+  <text x="110" y="27" style="font-size:7px;fill:#fff;font-family:Space Grotesk,sans-serif" text-anchor="middle">ROOT SW</text>
+  <!-- Links -->
+  <line x1="30" y1="83" x2="56" y2="68" stroke="#555" stroke-width="1"/>
+  <line x1="80" y1="83" x2="56" y2="68" stroke="#555" stroke-width="1"/>
+  <line x1="140" y1="83" x2="166" y2="68" stroke="#555" stroke-width="1"/>
+  <line x1="190" y1="83" x2="166" y2="68" stroke="#555" stroke-width="1"/>
+  <line x1="56" y1="50" x2="110" y2="36" stroke="#555" stroke-width="1"/>
+  <line x1="166" y1="50" x2="110" y2="36" stroke="#555" stroke-width="1"/>
+  <!-- Upward gradient tokens (green) -->
+  <path id="g0Up" d="M30 83 Q43 66 55 66" stroke="none"/>
+  <path id="g1Up" d="M80 83 Q68 66 57 66" stroke="none"/>
+  <circle r="5" fill="#76B900">
+    <animateMotion dur="1.2s" repeatCount="indefinite" begin="0s">
+      <mpath href="#g0Up"/>
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="#76B900">
+    <animateMotion dur="1.2s" repeatCount="indefinite" begin="0.4s">
+      <mpath href="#g1Up"/>
+    </animateMotion>
+  </circle>
+  <!-- ONE reduced token continues up (white) -->
+  <path id="reducedUp" d="M56 50 Q83 36 110 36" stroke="none"/>
+  <circle r="6" fill="#fff">
+    <animateMotion dur="1.2s" repeatCount="indefinite" begin="1.4s">
+      <mpath href="#reducedUp"/>
+    </animateMotion>
+  </circle>
+  <text x="110" y="8" style="font-size:7px;fill:#fff;font-family:Space Grotesk,sans-serif" text-anchor="middle">1 reduced result</text>
+</svg>`,
+      check:{
+        q:'Which components are required for SHARP in-network aggregation to function? (current architecture)',
+        opts:['sharpd on every compute node and libsharp on switches','sharp_am on a management host and libsharp linked into compute apps','sharpd on compute nodes and UFM managing the switch ASICs','libsharp on switches and MPI running on the compute nodes'],
+        correct:1,
+        explain:'sharpd was removed in SHARP 2.7.0. Current pieces: sharp_am (Aggregation Manager) runs on the management/UFM host; libsharp links into MPI/NCCL applications on compute nodes. Source: pillar 8 bullets.'
+      }
+    },
+
+    /* ────────── CARD 9: Adaptive routing spray ────────── */
+    {
+      id:'adaptive-routing',
+      title:'Adaptive Routing Spray',
+      desc:'Packets from one flow spray across multiple equal-cost spine paths based on live queue depth. A congested path gets fewer packets automatically.',
+      dom:'2',
+      pillars:[7,13],
+      deepDive:'ncp-ain-spectrum-lab.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Leaf sender (left) -->
+  <rect x="4" y="42" width="36" height="26" rx="3" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="22" y="57" class="lbl" text-anchor="middle">LEAF</text>
+  <!-- Spine switches -->
+  <rect x="98" y="10" width="36" height="22" rx="3" fill="#111" stroke="#76B900" stroke-width="1.2"/>
+  <text x="116" y="23" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">SPINE1</text>
+  <rect x="98" y="43" width="36" height="22" rx="3" fill="#111" stroke="#76B900" stroke-width="1.2"/>
+  <text x="116" y="56" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">SPINE2</text>
+  <rect x="98" y="76" width="36" height="22" rx="3" fill="#111" stroke="#607D8B" stroke-width="1.2"/>
+  <text x="116" y="89" style="font-size:7px;fill:#607D8B;font-family:Space Grotesk,sans-serif" text-anchor="middle">SPINE3</text>
+  <!-- Congested queue bar on SPINE3 -->
+  <rect x="136" y="80" width="6" height="14" rx="1" fill="#DC2626" opacity=".7"/>
+  <text x="143" y="90" style="font-size:6px;fill:#DC2626;font-family:Space Grotesk,sans-serif">busy</text>
+  <!-- Destination leaf (right) -->
+  <rect x="240" y="42" width="36" height="26" rx="3" fill="#0a1a2a" stroke="#4DA6FF" stroke-width="1.5"/>
+  <text x="258" y="57" class="lbl" text-anchor="middle">LEAF</text>
+  <!-- Paths: top two get more traffic, bottom gets fewer -->
+  <path id="sprayTop" d="M40 52 Q69 22 98 21" stroke="none"/>
+  <path id="sprayMid" d="M40 55 Q69 55 98 54" stroke="none"/>
+  <path id="sprayBot" d="M40 58 Q69 84 98 85" stroke="none"/>
+  <path id="fromTop" d="M134 21 Q187 22 240 52" stroke="none"/>
+  <path id="fromMid" d="M134 54 Q187 54 240 55" stroke="none"/>
+  <path id="fromBot" d="M134 85 Q187 84 240 58" stroke="none"/>
+  <!-- Packets on top path (most) -->
+  <rect width="10" height="6" rx="2" fill="#76B900"><animateMotion dur="1.4s" repeatCount="indefinite" begin="0s"><mpath href="#sprayTop"/></animateMotion></rect>
+  <rect width="10" height="6" rx="2" fill="#76B900"><animateMotion dur="1.4s" repeatCount="indefinite" begin="0.7s"><mpath href="#sprayTop"/></animateMotion></rect>
+  <rect width="10" height="6" rx="2" fill="#76B900"><animateMotion dur="1.4s" repeatCount="indefinite" begin="0s"><mpath href="#fromTop"/></animateMotion></rect>
+  <rect width="10" height="6" rx="2" fill="#76B900"><animateMotion dur="1.4s" repeatCount="indefinite" begin="0.7s"><mpath href="#fromTop"/></animateMotion></rect>
+  <!-- Mid path -->
+  <rect width="10" height="6" rx="2" fill="#76B900"><animateMotion dur="1.6s" repeatCount="indefinite" begin="0.3s"><mpath href="#sprayMid"/></animateMotion></rect>
+  <rect width="10" height="6" rx="2" fill="#76B900"><animateMotion dur="1.6s" repeatCount="indefinite" begin="0.3s"><mpath href="#fromMid"/></animateMotion></rect>
+  <!-- Bottom path (fewer -- congested) -->
+  <rect width="10" height="6" rx="2" fill="#607D8B"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0.5s"><mpath href="#sprayBot"/></animateMotion></rect>
+  <rect width="10" height="6" rx="2" fill="#607D8B"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0.5s"><mpath href="#fromBot"/></animateMotion></rect>
+  <text x="140" y="108" class="anno" text-anchor="middle">per-packet decision at 1us interval -- no SM per packet</text>
+</svg>`,
+      check:{
+        q:'How does Spectrum-4 Adaptive Routing differ from ECMP for AI workloads?',
+        opts:['AR hashes a whole flow to one spine path permanently; ECMP switches per microsecond','ECMP hashes a whole 5-tuple flow to one path; AR can split packets of one flow across paths per-packet','AR uses the SM to reassign routes every 10 seconds; ECMP is static','AR only works on IB fabrics; ECMP only works on Ethernet'],
+        correct:1,
+        explain:'Spectrum-4 AR selects among equal-cost paths per packet on a one-microsecond decision interval based on real-time egress queue occupancy. ECMP hashes a whole flow (5-tuple) to one path. Source: pillar 13 bullets.'
+      }
+    },
+
+    /* ────────── CARD 10: Fat-tree non-blocking ────────── */
+    {
+      id:'fat-tree-nonblocking',
+      title:'Fat-Tree Non-Blocking',
+      desc:'Same-rail traffic stays leaf-local (1 hop, green). Cross-rail climbs spine and back (3 hops, blue). Uplinks equal downlinks so spine never saturates.',
+      dom:'1',
+      pillars:[1,15],
+      deepDive:'ncp-ain-fattree-builder.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Spine switches (top row) -->
+  <rect x="100" y="6" width="34" height="16" rx="3" fill="#111" stroke="#A4D65E" stroke-width="1.2"/>
+  <text x="117" y="16" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">SPINE0</text>
+  <rect x="146" y="6" width="34" height="16" rx="3" fill="#111" stroke="#A4D65E" stroke-width="1.2"/>
+  <text x="163" y="16" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">SPINE1</text>
+  <!-- Leaf switches (mid row) -->
+  <rect x="24" y="46" width="40" height="16" rx="3" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="44" y="57" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">LEAF0</text>
+  <rect x="120" y="46" width="40" height="16" rx="3" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="140" y="57" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">LEAF1</text>
+  <rect x="216" y="46" width="40" height="16" rx="3" fill="#1a2a00" stroke="#76B900" stroke-width="1.5"/>
+  <text x="236" y="57" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">LEAF2</text>
+  <!-- Compute nodes (bottom) -->
+  <circle cx="34" cy="84" r="6" fill="#1a2a00" stroke="#76B900" stroke-width="1"/>
+  <text x="34" y="87" class="lbl" text-anchor="middle">N0</text>
+  <circle cx="54" cy="84" r="6" fill="#1a2a00" stroke="#76B900" stroke-width="1"/>
+  <text x="54" y="87" class="lbl" text-anchor="middle">N1</text>
+  <circle cx="130" cy="84" r="6" fill="#1a2a00" stroke="#76B900" stroke-width="1"/>
+  <text x="130" y="87" class="lbl" text-anchor="middle">N2</text>
+  <circle cx="150" cy="84" r="6" fill="#1a2a00" stroke="#76B900" stroke-width="1"/>
+  <text x="150" y="87" class="lbl" text-anchor="middle">N3</text>
+  <circle cx="226" cy="84" r="6" fill="#1a2a00" stroke="#76B900" stroke-width="1"/>
+  <text x="226" y="87" class="lbl" text-anchor="middle">N4</text>
+  <circle cx="246" cy="84" r="6" fill="#1a2a00" stroke="#76B900" stroke-width="1"/>
+  <text x="246" y="87" class="lbl" text-anchor="middle">N5</text>
+  <!-- Spine-leaf links -->
+  <line x1="44" y1="46" x2="117" y2="22" stroke="#555" stroke-width="1"/>
+  <line x1="44" y1="46" x2="163" y2="22" stroke="#555" stroke-width="1"/>
+  <line x1="140" y1="46" x2="117" y2="22" stroke="#555" stroke-width="1"/>
+  <line x1="140" y1="46" x2="163" y2="22" stroke="#555" stroke-width="1"/>
+  <line x1="236" y1="46" x2="117" y2="22" stroke="#555" stroke-width="1"/>
+  <line x1="236" y1="46" x2="163" y2="22" stroke="#555" stroke-width="1"/>
+  <!-- Leaf-node links -->
+  <line x1="44" y1="62" x2="34" y2="78" stroke="#555" stroke-width="1"/>
+  <line x1="44" y1="62" x2="54" y2="78" stroke="#555" stroke-width="1"/>
+  <line x1="140" y1="62" x2="130" y2="78" stroke="#555" stroke-width="1"/>
+  <line x1="140" y1="62" x2="150" y2="78" stroke="#555" stroke-width="1"/>
+  <line x1="236" y1="62" x2="226" y2="78" stroke="#555" stroke-width="1"/>
+  <line x1="236" y1="62" x2="246" y2="78" stroke="#555" stroke-width="1"/>
+  <!-- Short local path: N0->N1 (green, 1 hop) -->
+  <path id="localPath" d="M34 78 Q44 72 54 78" stroke="none"/>
+  <rect width="8" height="5" rx="1" fill="#76B900">
+    <animateMotion dur="2s" repeatCount="indefinite" begin="0s">
+      <mpath href="#localPath"/>
+    </animateMotion>
+  </rect>
+  <!-- Long cross-rail path: N0->LEAF0->SPINE0->LEAF2->N4 (blue) -->
+  <path id="crossPath" d="M34 78 Q44 62 117 22 Q163 22 236 62 Q236 72 226 78" stroke="none"/>
+  <rect width="8" height="5" rx="1" fill="#4DA6FF">
+    <animateMotion dur="3.5s" repeatCount="indefinite" begin="0.5s">
+      <mpath href="#crossPath"/>
+    </animateMotion>
+  </rect>
+  <text x="140" y="105" class="anno" text-anchor="middle">uplinks = downlinks -- 1:1 non-blocking</text>
+</svg>`,
+      check:{
+        q:'What guarantees a fat-tree topology is non-blocking (1:1)?',
+        opts:['Every spine connects to every leaf','Uplinks equal downlinks so aggregate spine bandwidth matches aggregate host bandwidth','The SM programs equal-weight LFT entries for all paths','Adaptive Routing is enabled on every leaf port'],
+        correct:1,
+        explain:'Fat-tree non-blocking requires uplinks equal to downlinks (Pe/2 each, blocking factor 1). Oversubscription begins the moment uplinks are fewer than downlinks. Source: pillar 15 bullets.'
+      }
+    },
+
+    /* ────────── CARD 11: Rail-optimized GPU topology ────────── */
+    {
+      id:'rail-optimized',
+      title:'Rail-Optimized GPU Topology',
+      desc:'NIC-0 of every server connects to Leaf-0 (Rail 0). NIC-1 to Leaf-1 (Rail 1). Same-rank GPUs across servers share one rail leaf, enabling leaf-local collective traffic.',
+      dom:'1',
+      pillars:[1,15],
+      deepDive:'ncp-ain-pillars.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rail 0..3 leaf switches (top) -->
+  <rect x="8"   y="6" width="30" height="14" rx="2" fill="#1a2a00" stroke="#76B900" stroke-width="1.2"/>
+  <text x="23"  y="15" style="font-size:6.5px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">Rail0</text>
+  <rect x="80"  y="6" width="30" height="14" rx="2" fill="#1a2a00" stroke="#A4D65E" stroke-width="1.2"/>
+  <text x="95"  y="15" style="font-size:6.5px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">Rail1</text>
+  <rect x="152" y="6" width="30" height="14" rx="2" fill="#0a1a2a" stroke="#4DA6FF" stroke-width="1.2"/>
+  <text x="167" y="15" style="font-size:6.5px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif" text-anchor="middle">Rail2</text>
+  <rect x="224" y="6" width="30" height="14" rx="2" fill="#1a1a00" stroke="#F59E0B" stroke-width="1.2"/>
+  <text x="239" y="15" style="font-size:6.5px;fill:#F59E0B;font-family:Space Grotesk,sans-serif" text-anchor="middle">Rail3</text>
+  <!-- Server A NICs (row 1) -->
+  <text x="4" y="40" style="font-size:7px;fill:#888;font-family:Space Grotesk,sans-serif">Srv A</text>
+  <rect x="8"   y="44" width="30" height="12" rx="2" fill="#1a2a00" stroke="#76B900" stroke-width="1"><animate attributeName="opacity" values=".3;1;.3;.3;.3;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="23"  y="52" style="font-size:6px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-0</text>
+  <rect x="80"  y="44" width="30" height="12" rx="2" fill="#1a2a00" stroke="#A4D65E" stroke-width="1"><animate attributeName="opacity" values=".3;.3;1;.3;.3;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="95"  y="52" style="font-size:6px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-1</text>
+  <rect x="152" y="44" width="30" height="12" rx="2" fill="#0a1a2a" stroke="#4DA6FF" stroke-width="1"><animate attributeName="opacity" values=".3;.3;.3;1;.3;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="167" y="52" style="font-size:6px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-2</text>
+  <rect x="224" y="44" width="30" height="12" rx="2" fill="#1a1a00" stroke="#F59E0B" stroke-width="1"><animate attributeName="opacity" values=".3;.3;.3;.3;1;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="239" y="52" style="font-size:6px;fill:#F59E0B;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-3</text>
+  <!-- Server B NICs (row 2) -- same pattern, same delay offset per rail -->
+  <text x="4" y="78" style="font-size:7px;fill:#888;font-family:Space Grotesk,sans-serif">Srv B</text>
+  <rect x="8"   y="82" width="30" height="12" rx="2" fill="#1a2a00" stroke="#76B900" stroke-width="1"><animate attributeName="opacity" values=".3;1;.3;.3;.3;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="23"  y="90" style="font-size:6px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-0</text>
+  <rect x="80"  y="82" width="30" height="12" rx="2" fill="#1a2a00" stroke="#A4D65E" stroke-width="1"><animate attributeName="opacity" values=".3;.3;1;.3;.3;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="95"  y="90" style="font-size:6px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-1</text>
+  <rect x="152" y="82" width="30" height="12" rx="2" fill="#0a1a2a" stroke="#4DA6FF" stroke-width="1"><animate attributeName="opacity" values=".3;.3;.3;1;.3;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="167" y="90" style="font-size:6px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-2</text>
+  <rect x="224" y="82" width="30" height="12" rx="2" fill="#1a1a00" stroke="#F59E0B" stroke-width="1"><animate attributeName="opacity" values=".3;.3;.3;.3;1;.3;.3;.3" dur="3.2s" repeatCount="indefinite" calcMode="discrete"/></rect>
+  <text x="239" y="90" style="font-size:6px;fill:#F59E0B;font-family:Space Grotesk,sans-serif" text-anchor="middle">NIC-3</text>
+  <!-- Rail links: same-index flash together -->
+  <line x1="23" y1="20" x2="23" y2="44" stroke="#76B900" stroke-width="1.5"/>
+  <line x1="95" y1="20" x2="95" y2="44" stroke="#A4D65E" stroke-width="1.5"/>
+  <line x1="167" y1="20" x2="167" y2="44" stroke="#4DA6FF" stroke-width="1.5"/>
+  <line x1="239" y1="20" x2="239" y2="44" stroke="#F59E0B" stroke-width="1.5"/>
+  <line x1="23" y1="56" x2="23" y2="82" stroke="#76B900" stroke-width="1.5"/>
+  <line x1="95" y1="56" x2="95" y2="82" stroke="#A4D65E" stroke-width="1.5"/>
+  <line x1="167" y1="56" x2="167" y2="82" stroke="#4DA6FF" stroke-width="1.5"/>
+  <line x1="239" y1="56" x2="239" y2="82" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="140" y="106" class="anno" text-anchor="middle">same index = same leaf -- watch pairs flash together</text>
+</svg>`,
+      check:{
+        q:'In a DGX H100 rail-optimized design, how many compute NICs does each server have and how many rails do they map to?',
+        opts:['4 compute NICs mapping to 4 rails','8 compute NICs, each mapping to a different one of 8 rail leaf switches','10 compute NICs sharing 2 rails for redundancy','8 compute NICs all connecting to a single leaf switch'],
+        correct:1,
+        explain:'DGX H100 has 8 single-port ConnectX-7 NDR 400G compute NICs. Each compute NIC maps to one GPU and one rail. 8 GPUs, 8 rails, 8 leaf switches per Scalable Unit. Source: pillar 15 bullets.'
+      }
+    },
+
+    /* ────────── CARD 12: IB link generations ────────── */
+    {
+      id:'ib-link-generations',
+      title:'IB Link Generations (SDR to XDR)',
+      desc:'SDR..EDR use NRZ (2-level) signaling with 8b/10b or 64b/66b framing. HDR/NDR/XDR switch to PAM4 (4-level) and 256b/257b. Throughput bar grows with each generation.',
+      dom:'3',
+      pillars:[2],
+      deepDive:'ncp-ain-pillars.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Generation labels cycling -->
+  <text x="140" y="12" style="font-size:9px;font-weight:700;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="fill" values="#888;#888;#76B900;#76B900;#A4D65E;#A4D65E;#fff" dur="4.2s" repeatCount="indefinite" calcMode="discrete"/>
+    <animate attributeName="textContent" values="SDR  10G;DDR  20G;QDR  40G;FDR  56G;EDR 100G;HDR 200G;NDR 400G" dur="4.2s" repeatCount="indefinite" calcMode="discrete"/>
+  </text>
+  <!-- NRZ waveform (SDR-EDR): square wave -->
+  <polyline points="14,42 30,42 30,30 48,30 48,42 66,42 66,30 84,30 84,42 102,42 102,30" stroke="#888" stroke-width="1.5" fill="none">
+    <animate attributeName="opacity" values="1;1;1;1;1;0;0" dur="4.2s" repeatCount="indefinite" calcMode="discrete"/>
+  </polyline>
+  <text x="58" y="55" style="font-size:7px;fill:#888;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="1;1;1;1;1;0;0" dur="4.2s" repeatCount="indefinite" calcMode="discrete"/>
+    NRZ (2 levels) 8b/10b
+  </text>
+  <!-- PAM4 waveform (HDR+): 4-level stairs -->
+  <polyline points="14,28 30,28 30,35 48,35 48,20 66,20 66,42 84,42 84,28 102,28" stroke="#A4D65E" stroke-width="1.5" fill="none">
+    <animate attributeName="opacity" values="0;0;0;0;0;1;1" dur="4.2s" repeatCount="indefinite" calcMode="discrete"/>
+  </polyline>
+  <text x="58" y="55" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="0;0;0;0;0;1;1" dur="4.2s" repeatCount="indefinite" calcMode="discrete"/>
+    PAM4 (4 levels) 256b/257b
+  </text>
+  <!-- Throughput bar -->
+  <rect x="120" y="64" width="140" height="8" rx="2" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+  <rect x="120" y="64" height="8" rx="2" fill="#76B900">
+    <animate attributeName="width" values="10;18;28;40;56;96;140" dur="4.2s" repeatCount="indefinite" calcMode="discrete"/>
+  </rect>
+  <text x="120" y="82" style="font-size:7px;fill:#888;font-family:Space Grotesk,sans-serif">throughput</text>
+  <text x="260" y="82" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="end">400G NDR</text>
+  <!-- Encoding trap note -->
+  <text x="14" y="98" style="font-size:7px;fill:#607D8B;font-family:Space Grotesk,sans-serif">Quoted rates = signaling. Subtract encoding overhead for usable data.</text>
+</svg>`,
+      check:{
+        q:'Which IB generations use PAM4 modulation and approximately 256b/257b framing?',
+        opts:['SDR, DDR, QDR (all legacy NRZ generations)','FDR and EDR (the 14G/25G per-lane generation)','HDR, NDR, XDR (the 53/106/212 Gb/s per-lane generations)','QDR and FDR10 (the 40G aggregate overlap generations)'],
+        correct:2,
+        explain:'HDR/NDR/XDR use PAM4 modulation at 53.125/106.25/212.5 Gb/s per lane signaling and 256b/257b framing (about 0.4% overhead). SDR through EDR use NRZ. Source: pillar 2 bullets.'
+      }
+    },
+
+    /* ────────── CARD 13: Subnet Manager sweep and failover ────────── */
+    {
+      id:'sm-sweep-failover',
+      title:'Subnet Manager Sweep and Failover',
+      desc:'Master SM (priority 15) sends a sonar-like discovery pulse across the fabric. On master failure the standby (priority 13) takes over and re-emits the discovery wave.',
+      dom:'3',
+      pillars:[4,28],
+      deepDive:'ncp-ain-ib-lab.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Master SM node (left) -->
+  <circle id="masterNode" cx="60" cy="55" r="14" fill="#1a2a00" stroke="#76B900" stroke-width="2"/>
+  <text x="60" y="52" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">MASTER</text>
+  <text x="60" y="63" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif" text-anchor="middle">pri=15</text>
+  <!-- Master SM dims on failover -->
+  <circle cx="60" cy="55" r="14" fill="#1a2a00">
+    <animate attributeName="opacity" values="0;0;0;0;0;0;1;1;1" dur="7s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- Sonar waves from master (expand + fade) -->
+  <circle cx="60" cy="55" r="6" fill="none" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="r" values="14;50" dur="1.4s" repeatCount="indefinite" begin="0s"/>
+    <animate attributeName="opacity" values=".9;0" dur="1.4s" repeatCount="indefinite" begin="0s"/>
+  </circle>
+  <circle cx="60" cy="55" r="6" fill="none" stroke="#76B900" stroke-width="1">
+    <animate attributeName="r" values="14;50" dur="1.4s" repeatCount="indefinite" begin="0.5s"/>
+    <animate attributeName="opacity" values=".6;0" dur="1.4s" repeatCount="indefinite" begin="0.5s"/>
+  </circle>
+  <!-- These waves stop showing after 5s (master "dies") -->
+  <circle cx="60" cy="55" r="6" fill="none" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="r" values="14;50" dur="1.4s" repeatCount="indefinite" begin="0s"/>
+    <animate attributeName="opacity" values=".9;0;.9;0;.9;0;0;0;0" dur="7s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- Standby SM (right) -->
+  <circle cx="220" cy="55" r="14" fill="#0a1a2a" stroke="#607D8B" stroke-width="1.5"/>
+  <text x="220" y="52" style="font-size:7px;fill:#607D8B;font-family:Space Grotesk,sans-serif" text-anchor="middle">STANDBY</text>
+  <text x="220" y="63" style="font-size:7px;fill:#607D8B;font-family:Space Grotesk,sans-serif" text-anchor="middle">pri=13</text>
+  <!-- Standby glow on takeover -->
+  <circle cx="220" cy="55" r="14" fill="none" stroke="#76B900" stroke-width="2.5">
+    <animate attributeName="opacity" values="0;0;0;0;0;0;0;1;1" dur="7s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- Sonar from standby (starts after failover) -->
+  <circle cx="220" cy="55" r="14" fill="none" stroke="#76B900" stroke-width="1.5">
+    <animate attributeName="r" values="14;55" dur="1.4s" repeatCount="indefinite" begin="5s"/>
+    <animate attributeName="opacity" values="0;0;0;0;0;0;0;.9;0" dur="7s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>
+  <!-- FAILOVER label -->
+  <text x="140" y="30" style="font-size:8px;fill:#F59E0B;font-weight:700;font-family:Space Grotesk,sans-serif" text-anchor="middle">
+    <animate attributeName="opacity" values="0;0;0;0;0;0;1;1;0" dur="7s" repeatCount="indefinite" calcMode="discrete"/>
+    FAILOVER -- standby takes over
+  </text>
+  <!-- Switch nodes in fabric -->
+  <rect x="110" y="44" width="20" height="14" rx="2" fill="#111" stroke="#555" stroke-width="1"/>
+  <text x="120" y="53" style="font-size:6px;fill:#555;font-family:Space Grotesk,sans-serif" text-anchor="middle">SW</text>
+  <text x="140" y="100" class="anno" text-anchor="middle">lower GUID wins tie at equal priority -- tune asymmetrically</text>
+</svg>`,
+      check:{
+        q:'At equal SM priority, how does opensm determine which instance becomes master?',
+        opts:['The instance with the higher GUID wins','The instance that started first wins','The instance with the lower GUID wins','The instance at the lowest LID wins'],
+        correct:2,
+        explain:'At equal SM priority the numerically LOWER GUID wins (opensm source osm_sminfo_rcv.c and IB spec C14-60.2.1). Always configure asymmetric priorities (primary=15, standby=13) to control preferred master. Source: pillar 28 bullets.'
+      }
+    },
+
+    /* ────────── CARD 14: Virtual Lanes and VL15 ────────── */
+    {
+      id:'virtual-lanes',
+      title:'Virtual Lanes and VL15 Management',
+      desc:'One physical link carries up to 15 data VLs (credit-gated) plus VL15 (management, no credits, never paused). Each VL is an independent flow lane.',
+      dom:'3',
+      pillars:[5],
+      deepDive:'ncp-ain-ib-lab.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Physical link border -->
+  <rect x="4" y="6" width="272" height="98" rx="4" fill="none" stroke="#333" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="140" y="3" style="font-size:7px;fill:#555;font-family:Space Grotesk,sans-serif" text-anchor="middle">One Physical Link</text>
+  <!-- VL0 lane -->
+  <rect x="10" y="14" width="260" height="13" rx="2" fill="#0d1a00" stroke="#76B900" stroke-width="1"/>
+  <text x="14" y="23" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif">VL0</text>
+  <path id="vl0flow" d="M32 20 L260 20" stroke="none"/>
+  <rect width="16" height="7" rx="1" fill="#76B900"><animateMotion dur="2s" repeatCount="indefinite" begin="0s"><mpath href="#vl0flow"/></animateMotion></rect>
+  <rect width="16" height="7" rx="1" fill="#76B900"><animateMotion dur="2s" repeatCount="indefinite" begin="0.7s"><mpath href="#vl0flow"/></animateMotion></rect>
+  <!-- VL1 lane -->
+  <rect x="10" y="30" width="260" height="13" rx="2" fill="#0d1a00" stroke="#A4D65E" stroke-width="1"/>
+  <text x="14" y="39" style="font-size:7px;fill:#A4D65E;font-family:Space Grotesk,sans-serif">VL1</text>
+  <path id="vl1flow" d="M32 36 L260 36" stroke="none"/>
+  <rect width="16" height="7" rx="1" fill="#A4D65E"><animateMotion dur="2.4s" repeatCount="indefinite" begin="0.3s"><mpath href="#vl1flow"/></animateMotion></rect>
+  <!-- VL1 STALL indicator -->
+  <text x="120" y="42" style="font-size:6px;fill:#F59E0B;font-family:Space Grotesk,sans-serif">
+    <animate attributeName="opacity" values="0;0;1;1;0" dur="5s" repeatCount="indefinite" calcMode="discrete"/>
+    STALL -- credit wait
+  </text>
+  <!-- VL2 lane -->
+  <rect x="10" y="46" width="260" height="13" rx="2" fill="#0d1a00" stroke="#607D8B" stroke-width="1"/>
+  <text x="14" y="55" style="font-size:7px;fill:#607D8B;font-family:Space Grotesk,sans-serif">VL2</text>
+  <path id="vl2flow" d="M32 52 L260 52" stroke="none"/>
+  <rect width="16" height="7" rx="1" fill="#607D8B"><animateMotion dur="3s" repeatCount="indefinite" begin="0.6s"><mpath href="#vl2flow"/></animateMotion></rect>
+  <rect width="16" height="7" rx="1" fill="#607D8B"><animateMotion dur="3s" repeatCount="indefinite" begin="1.8s"><mpath href="#vl2flow"/></animateMotion></rect>
+  <!-- ... more VLs implied -->
+  <text x="140" y="72" style="font-size:7px;fill:#333;font-family:Space Grotesk,sans-serif" text-anchor="middle">... VL3 .. VL14 (data, all credit-gated) ...</text>
+  <!-- VL15 lane -- dashed, always flows, no stall, distinct color -->
+  <rect x="10" y="80" width="260" height="18" rx="2" fill="#1a0a2a" stroke="#C084FC" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="14" y="91" style="font-size:7px;fill:#C084FC;font-weight:700;font-family:Space Grotesk,sans-serif">VL15 MGMT</text>
+  <text x="70" y="91" style="font-size:6.5px;fill:#C084FC;font-family:Space Grotesk,sans-serif">no credits -- best-effort -- never paused -- SMP only</text>
+  <path id="vl15flow" d="M32 88 L260 88" stroke="none"/>
+  <rect width="16" height="8" rx="1" fill="#C084FC"><animateMotion dur="1.5s" repeatCount="indefinite" begin="0s"><mpath href="#vl15flow"/></animateMotion></rect>
+  <rect width="16" height="8" rx="1" fill="#C084FC"><animateMotion dur="1.5s" repeatCount="indefinite" begin="0.5s"><mpath href="#vl15flow"/></animateMotion></rect>
+</svg>`,
+      check:{
+        q:'Which statement about VL15 in InfiniBand is correct?',
+        opts:['VL15 uses credit-based flow control like all other VLs but has higher priority','VL15 carries General Management Packets (GMP on QP1) as well as SMP on QP0','VL15 is not credit-flow-controlled -- it is best-effort hardware priority for SMP (QP0) only','VL15 can be paused by PFC if it maps to SP3 in the SL2VL table'],
+        correct:2,
+        explain:'VL15 is NOT credit-flow-controlled -- no credits, best-effort, given hardware priority. Only VL0-VL14 use credit-based flow control. GMP (QP1: SA, CM) uses VL0, IS flow-controlled. Only SMP (QP0) uses VL15. Source: pillar 5 bullets.'
+      }
+    },
+
+    /* ────────── CARD 15: WJH drop classification ────────── */
+    {
+      id:'wjh-drops',
+      title:'WJH Drop Classification',
+      desc:'Packets stream into a Spectrum switch. Dropped packets are caught and sorted into 6 WJH buckets (L1/L2/L3/Tunnel/Buffer/ACL) with a reason tag. Good packets pass through.',
+      dom:'4',
+      pillars:[19],
+      deepDive:'ncp-ain-wjh-lab.html',
+      svg:`<svg viewBox="0 0 280 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ingress stream -->
+  <rect x="4" y="44" width="36" height="22" rx="3" fill="#1a1a1a" stroke="#555" stroke-width="1.2"/>
+  <text x="22" y="57" class="lbl" text-anchor="middle">INGRESS</text>
+  <!-- Switch box -->
+  <rect x="90" y="34" width="50" height="42" rx="3" fill="#0a1a0a" stroke="#76B900" stroke-width="1.5"/>
+  <text x="115" y="53" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">Spectrum</text>
+  <text x="115" y="63" style="font-size:7px;fill:#76B900;font-family:Space Grotesk,sans-serif" text-anchor="middle">WJH</text>
+  <!-- Egress (good packets) -->
+  <rect x="240" y="44" width="36" height="22" rx="3" fill="#0a1a2a" stroke="#4DA6FF" stroke-width="1.2"/>
+  <text x="258" y="57" style="font-size:7.5px;fill:#4DA6FF;font-family:Space Grotesk,sans-serif" text-anchor="middle">EGRESS</text>
+  <!-- Good packet flow -->
+  <path id="goodFlow" d="M40 55 Q65 55 90 55" stroke="none"/>
+  <rect width="12" height="6" rx="2" fill="#76B900"><animateMotion dur="2s" repeatCount="indefinite" begin="0s"><mpath href="#goodFlow"/></animateMotion></rect>
+  <rect width="12" height="6" rx="2" fill="#76B900"><animateMotion dur="2s" repeatCount="indefinite" begin="1s"><mpath href="#goodFlow"/></animateMotion></rect>
+  <path id="egressFlow" d="M140 55 Q190 55 240 55" stroke="none"/>
+  <rect width="12" height="6" rx="2" fill="#76B900"><animateMotion dur="2s" repeatCount="indefinite" begin="0.2s"><mpath href="#egressFlow"/></animateMotion></rect>
+  <!-- Drop bucket paths (diverting downward) -->
+  <path id="dropPath1" d="M115 76 Q115 85 70 90" stroke="none"/>
+  <path id="dropPath2" d="M115 76 Q115 85 115 90" stroke="none"/>
+  <path id="dropPath3" d="M115 76 Q115 85 160 90" stroke="none"/>
+  <!-- Bucket bins (L1, L2, L3) -->
+  <rect x="44" y="90" width="36" height="14" rx="2" fill="#1a0000" stroke="#DC2626" stroke-width="1"/>
+  <text x="62" y="99" style="font-size:6.5px;fill:#DC2626;font-family:Space Grotesk,sans-serif" text-anchor="middle">L1 drop</text>
+  <rect x="97" y="90" width="36" height="14" rx="2" fill="#1a0a00" stroke="#F59E0B" stroke-width="1"/>
+  <text x="115" y="99" style="font-size:6.5px;fill:#F59E0B;font-family:Space Grotesk,sans-serif" text-anchor="middle">Buffer</text>
+  <rect x="150" y="90" width="36" height="14" rx="2" fill="#0a001a" stroke="#C084FC" stroke-width="1"/>
+  <text x="168" y="99" style="font-size:6.5px;fill:#C084FC;font-family:Space Grotesk,sans-serif" text-anchor="middle">ACL drop</text>
+  <!-- Animated bad packets diverting -->
+  <rect width="10" height="5" rx="2" fill="#DC2626">
+    <animateMotion dur="1.5s" repeatCount="indefinite" begin="0.5s">
+      <mpath href="#dropPath1"/>
+    </animateMotion>
+  </rect>
+  <rect width="10" height="5" rx="2" fill="#F59E0B">
+    <animateMotion dur="1.5s" repeatCount="indefinite" begin="1.5s">
+      <mpath href="#dropPath2"/>
+    </animateMotion>
+  </rect>
+  <rect width="10" height="5" rx="2" fill="#C084FC">
+    <animateMotion dur="1.5s" repeatCount="indefinite" begin="2.5s">
+      <mpath href="#dropPath3"/>
+    </animateMotion>
+  </rect>
+  <text x="200" y="100" style="font-size:6.5px;fill:#555;font-family:Space Grotesk,sans-serif">+ L2, L3, Tunnel</text>
+</svg>`,
+      check:{
+        q:'WJH (What Just Happened) classifies drops into 6 buckets. Which command surfaces WJH drop events from a Spectrum switch?',
+        opts:['nv show qos roce','nv show wjh packet_type forwarded','nv show wjh packet_type drop channel all','ibdiagnet --wjh'],
+        correct:2,
+        explain:'WJH surfaces drop events classified by reason (L1, L2, L3, Tunnel, Buffer, ACL). The command is nv show wjh packet_type drop channel all to see all WJH drop buckets. WJH is a Spectrum/Cumulus feature, not an IB diagnostic tool. Source: ncp-ain-wjh-lab context.'
+      }
+    }
+
+  ]; /* end CARDS */
+
+  /* ── Filter / search state ── */
+  var activeFilter = 'all';
+  var searchQuery = '';
+
+  /* ── Render ── */
+  function render() {
+    var grid = document.getElementById('visualsGrid');
+    var filtered = CARDS.slice();
+
+    if (searchQuery) {
+      var q = searchQuery.toLowerCase();
+      filtered = filtered.filter(function (c) {
+        return c.title.toLowerCase().indexOf(q) >= 0 || c.desc.toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter(function (c) { return c.dom === activeFilter; });
+    }
+
+    document.getElementById('searchCount').textContent =
+      'Showing ' + filtered.length + ' of ' + CARDS.length + ' cards';
+
+    var byDomain = {};
+    filtered.forEach(function (c) {
+      if (!byDomain[c.dom]) byDomain[c.dom] = [];
+      byDomain[c.dom].push(c);
+    });
+
+    var html = '';
+    DOMAIN_ORDER.forEach(function (d) {
+      var cards = byDomain[d];
+      if (!cards || cards.length === 0) return;
+      html += '<div class="domain-section">';
+      html += '<div class="domain-header">';
+      html += '<h2 style="color:' + DOMAIN_COLORS[d] + '">D' + d + ' ' + DOMAIN_NAMES[d] + '</h2>';
+      html += '<span class="weight-tag">' + DOMAIN_WEIGHTS[d] + '% of exam</span>';
+      html += '</div>';
+      html += '<div class="visuals-grid">' + cards.map(cardHtml).join('') + '</div>';
+      html += '</div>';
+    });
+
+    if (filtered.length === 0) {
+      html = '<div style="text-align:center;padding:40px;font-family:var(--font-body);color:var(--ink-muted)">No cards match your filters.</div>';
+    }
+    grid.innerHTML = html;
+  }
+
+  function cardHtml(c) {
+    return '<div class="visual-card" data-id="' + c.id + '" data-domain="' + c.dom + '">' +
+      '<div class="card-domain-bar" data-d="' + c.dom + '"></div>' +
+      '<div class="card-label"><span class="domain-tag">D' + c.dom + '</span></div>' +
+      '<div class="card-title">' + c.title + '</div>' +
+      '<div class="card-desc">' + c.desc + '</div>' +
+      '<div class="card-svg">' + c.svg + '</div>' +
+      '<div class="card-actions">' +
+        (c.deepDive ? '<a class="card-action primary" href="' + c.deepDive + '">Deep Dive</a>' : '') +
+        '<button class="card-action" onclick="openCheck(\'' + c.id + '\')">Check Yourself</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ── Domain pills ── */
+  document.getElementById('domainNav').addEventListener('click', function (e) {
+    var pill = e.target.closest('.domain-pill');
+    if (!pill) return;
+    document.querySelectorAll('.domain-pill').forEach(function (p) { p.classList.remove('active'); });
+    pill.classList.add('active');
+    activeFilter = pill.dataset.domain;
+    render();
+  });
+
+  /* ── Search ── */
+  document.getElementById('searchInput').addEventListener('input', function (e) {
+    searchQuery = e.target.value;
+    render();
+  });
+
+  /* ── Check Yourself modal ── */
+  var CARD_MAP = {};
+  CARDS.forEach(function (c) { CARD_MAP[c.id] = c; });
+
+  window.openCheck = function (cardId) {
+    var c = CARD_MAP[cardId];
+    if (!c || !c.check) return;
+    var ch = c.check;
+    var html = '<h3>' + c.title + '</h3>';
+    html += '<div class="check-topic">Check Yourself</div>';
+    html += '<div class="check-q">' + ch.q + '</div>';
+    html += '<div class="check-opts">';
+    ch.opts.forEach(function (o, i) {
+      html += '<button class="check-opt" onclick="answerCheck(' + i + ',' + ch.correct + ',\'' + cardId + '\')">' + o + '</button>';
+    });
+    html += '</div>';
+    html += '<div class="check-explain" id="checkExplain">' + ch.explain + '</div>';
+    html += '<button class="check-close" id="checkClose" onclick="closeCheck()">Close</button>';
+    document.getElementById('checkBox').innerHTML = html;
+    document.getElementById('checkOverlay').classList.add('open');
+  };
+
+  window.answerCheck = function (chosen, correct, cardId) {
+    var opts = document.querySelectorAll('.check-opt');
+    opts.forEach(function (o, i) {
+      o.classList.add('locked');
+      if (i === correct) o.classList.add('correct');
+      else if (i === chosen) o.classList.add('wrong');
+    });
+    document.getElementById('checkExplain').style.display = 'block';
+    document.getElementById('checkClose').style.display = 'inline-block';
+  };
+
+  window.closeCheck = function () {
+    document.getElementById('checkOverlay').classList.remove('open');
+  };
+
+  document.getElementById('checkOverlay').addEventListener('click', function (e) {
+    if (e.target === this) closeCheck();
+  });
+
+  /* ── Initial render ── */
+  render();
+  document.getElementById('searchCount').textContent = 'Showing ' + CARDS.length + ' of ' + CARDS.length + ' cards';
+
+}); /* end DOMContentLoaded */
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

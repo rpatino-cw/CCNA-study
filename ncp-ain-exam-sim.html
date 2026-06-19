@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Exam Simulator -- NVIDIA NCP-AIN Study System</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  /* NCP-AIN palette */
+  :root{--ncp:#76B900;--ncp-rgb:118,185,0;--ncp-light:#A4D65E;--ncp-dark:#5A8C00}
+  .gc-bar,.gc-chat-panel,#guidePill{display:none!important}
+
+  /* ---- Start Screen -------------------------------------------- */
+  .exam-start{text-align:center;padding:var(--s-3xl) var(--s-lg);max-width:580px;margin:0 auto}
+  .exam-start h1{font-size:2rem;margin-bottom:var(--s-xs);color:var(--ncp)}
+  .exam-start .subtitle{color:var(--ink-secondary);font-style:italic;margin-bottom:var(--s-xl)}
+  .back-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ncp);text-decoration:none;text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--s-lg)}
+  .back-link:hover{text-decoration:underline}
+
+  .exam-meta{display:flex;justify-content:center;gap:var(--s-xl);margin-bottom:var(--s-xl)}
+  .exam-meta .meta-item{text-align:center}
+  .exam-meta .meta-value{font-family:var(--font-display);font-size:1.8rem;font-weight:700;color:var(--ink);line-height:1}
+  .exam-meta .meta-label{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-top:4px}
+
+  .domain-weights{text-align:left;margin:var(--s-md) 0 var(--s-xl);padding:var(--s-md) var(--s-lg);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .domain-weights h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);margin-bottom:var(--s-sm)}
+  .domain-row{display:flex;justify-content:space-between;padding:5px 0;font-size:.88rem;border-bottom:1px solid var(--bg-recessed)}
+  .domain-row:last-child{border-bottom:none}
+  .domain-row .dname{color:var(--ink-secondary)}
+  .domain-row .dcount{font-family:var(--font-mono);font-weight:600;font-size:.82rem;color:var(--ink)}
+
+  .mode-picker,.count-picker{text-align:left;margin:var(--s-md) 0;padding:var(--s-md) var(--s-lg);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .mode-picker h3,.count-picker h3{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);margin-bottom:var(--s-sm)}
+  .mode-options,.count-options{display:flex;gap:6px;flex-wrap:wrap}
+  .mode-btn,.count-btn{font-family:var(--font-display);font-size:.75rem;font-weight:500;padding:8px 14px;border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--bg);color:var(--ink-secondary);cursor:pointer;transition:all var(--transition)}
+  .mode-btn:hover,.count-btn:hover{border-color:var(--ink-muted);color:var(--ink)}
+  .mode-btn.selected,.count-btn.selected{border-color:var(--ncp);background:rgba(var(--ncp-rgb),.1);color:var(--ncp);font-weight:600}
+  .domain-select{font-family:var(--font-display);font-size:.82rem;padding:8px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:var(--ink);width:100%}
+
+  .exam-rules{text-align:left;font-size:.85rem;color:var(--ink-secondary);line-height:1.8;margin-bottom:var(--s-xl);padding-left:var(--s-md)}
+  .exam-rules li{margin-bottom:4px}
+
+  /* ---- Exam Screen --------------------------------------------- */
+  .exam-layout{display:grid;grid-template-columns:1fr 260px;gap:var(--s-lg);align-items:start}
+  @media(max-width:900px){.exam-layout{grid-template-columns:1fr}}
+
+  .exam-topbar{display:flex;align-items:center;justify-content:space-between;padding:var(--s-sm) var(--s-md);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:var(--s-lg)}
+  .exam-topbar .q-counter{font-family:var(--font-display);font-weight:600;font-size:.9rem}
+  .exam-topbar .timer{font-family:var(--font-mono);font-size:1.05rem;font-weight:600}
+  .exam-topbar .timer.warning{color:var(--prof-mid)}
+  .exam-topbar .timer.danger{color:var(--prof-weak)}
+
+  .question-area{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-lg)}
+  .question-domain{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:var(--s-sm)}
+  .question-domain .dom-badge{display:inline-block;padding:2px 8px;border-radius:var(--radius);background:rgba(var(--ncp-rgb),.12);color:var(--ncp-dark);font-weight:600;margin-right:6px}
+  .question-text{font-size:1.05rem;line-height:1.6;margin-bottom:var(--s-lg);max-width:none}
+
+  .options-list{display:flex;flex-direction:column;gap:var(--s-sm);margin-bottom:var(--s-lg)}
+  .exam-option{display:flex;align-items:flex-start;width:100%;text-align:left;padding:14px 18px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);color:var(--ink);font-family:var(--font-body);font-size:.93rem;cursor:pointer;transition:background var(--transition),border-color var(--transition);line-height:1.5}
+  .exam-option:hover:not(.selected){border-color:var(--ink-muted);background:var(--bg-recessed)}
+  .exam-option.selected{border-color:var(--ncp);background:rgba(var(--ncp-rgb),.1)}
+  .exam-option .opt-letter{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--bg-recessed);font-family:var(--font-display);font-weight:700;font-size:.75rem;margin-right:12px;flex-shrink:0;color:var(--ink-secondary)}
+  .exam-option.selected .opt-letter{background:var(--ncp);color:#fff}
+
+  /* Flag button */
+  .flag-btn{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:var(--ink-muted);cursor:pointer;transition:all var(--transition)}
+  .flag-btn.flagged{border-color:#D97706;background:rgba(217,119,6,.1);color:#B45309}
+  .flag-btn:hover{border-color:var(--ink-muted)}
+
+  .question-nav-btns{display:flex;gap:var(--s-sm);justify-content:space-between;align-items:center}
+
+  /* Sidebar navigator */
+  .q-navigator{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-md);position:sticky;top:var(--s-md)}
+  .q-navigator h3{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);margin-bottom:var(--s-sm)}
+  .q-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .q-box{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.72rem;font-weight:600;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--ink-muted);cursor:pointer;transition:all var(--transition)}
+  .q-box:hover{border-color:var(--ink-muted)}
+  .q-box.answered{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .q-box.flagged-box{background:rgba(217,119,6,.15);border-color:#D97706;color:#B45309}
+  .q-box.current{border-color:var(--ncp);box-shadow:0 0 0 2px rgba(var(--ncp-rgb),.3)}
+  .q-box.answered.flagged-box{background:rgba(217,119,6,.3);color:#92400E;border-color:#D97706}
+
+  .nav-legend{display:flex;flex-wrap:wrap;gap:var(--s-sm);margin-top:var(--s-sm);font-size:.68rem;color:var(--ink-muted);font-family:var(--font-display)}
+  .nav-legend span{display:flex;align-items:center;gap:4px}
+  .legend-dot{width:10px;height:10px;border-radius:2px;border:1px solid var(--border)}
+  .legend-dot.filled{background:var(--ink);border-color:var(--ink)}
+  .legend-dot.flagged-dot{background:rgba(217,119,6,.3);border-color:#D97706}
+  .nav-progress-text{margin-top:var(--s-sm);font-family:var(--font-mono);font-size:.75rem;color:var(--ink-secondary)}
+  .submit-section{margin-top:var(--s-md);padding-top:var(--s-md);border-top:1px solid var(--border)}
+
+  /* ---- Results Screen ------------------------------------------ */
+  .results-screen{max-width:720px;margin:0 auto}
+  .result-banner{text-align:center;padding:var(--s-xl) var(--s-lg);border-radius:var(--radius-lg);margin-bottom:var(--s-xl)}
+  .result-banner.pass{background:var(--prof-strong-bg);border:2px solid var(--prof-strong)}
+  .result-banner.fail{background:var(--prof-weak-bg);border:2px solid var(--prof-weak)}
+  .result-banner .result-label{font-family:var(--font-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:var(--s-sm)}
+  .result-banner.pass .result-label{color:var(--prof-strong)}
+  .result-banner.fail .result-label{color:var(--prof-weak)}
+  .result-banner .result-score{font-family:var(--font-display);font-size:3.2rem;font-weight:700;line-height:1;margin-bottom:var(--s-xs)}
+  .result-banner.pass .result-score{color:var(--prof-strong)}
+  .result-banner.fail .result-score{color:var(--prof-weak)}
+  .result-banner .result-detail{font-size:.9rem;color:var(--ink-secondary)}
+
+  .result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-md);margin-bottom:var(--s-xl)}
+  .result-stat{text-align:center;padding:var(--s-md);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .result-stat .rs-value{font-family:var(--font-display);font-size:1.6rem;font-weight:700}
+  .result-stat .rs-label{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);margin-top:2px}
+
+  .domain-breakdown{margin-bottom:var(--s-xl)}
+  .domain-breakdown h2{font-size:1.1rem;margin-top:0}
+  .db-row{display:grid;grid-template-columns:220px 1fr 60px;gap:var(--s-md);align-items:center;padding:10px 0;border-bottom:1px solid var(--bg-recessed)}
+  @media(max-width:600px){.db-row{grid-template-columns:1fr;gap:4px}}
+  .db-row .db-name{font-family:var(--font-display);font-size:.82rem;font-weight:500;color:var(--ink-secondary)}
+  .db-row .db-bar{height:8px;background:var(--bg-recessed);border-radius:4px;overflow:hidden}
+  .db-row .db-fill{height:100%;border-radius:4px;transition:width .6s var(--ease-out)}
+  .db-row .db-pct{font-family:var(--font-mono);font-size:.82rem;font-weight:600;text-align:right}
+
+  .result-actions{display:flex;gap:var(--s-sm);justify-content:center;flex-wrap:wrap;margin-bottom:var(--s-xl)}
+
+  /* ---- Review Mode --------------------------------------------- */
+  .review-section{margin-bottom:var(--s-xl)}
+  .review-item{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-md) var(--s-lg);margin-bottom:var(--s-md)}
+  .review-item .ri-header{display:flex;align-items:center;gap:var(--s-sm);margin-bottom:var(--s-sm);flex-wrap:wrap}
+  .review-item .ri-num{font-family:var(--font-mono);font-size:.75rem;font-weight:700;color:var(--ink-muted)}
+  .ri-badge{font-family:var(--font-display);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:var(--radius)}
+  .ri-badge.correct{background:var(--correct-bg);color:var(--correct)}
+  .ri-badge.wrong{background:var(--wrong-bg);color:var(--wrong)}
+  .ri-badge.skipped{background:var(--bg-recessed);color:var(--ink-muted)}
+  .review-item .ri-question{font-size:.95rem;line-height:1.6;margin-bottom:var(--s-sm);max-width:none}
+  .review-opt{padding:8px 14px;border-radius:var(--radius);font-size:.88rem;margin-bottom:4px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+  .review-opt .ro-letter{font-family:var(--font-display);font-weight:700;font-size:.75rem;flex-shrink:0;width:20px}
+  .review-opt.is-correct{background:var(--correct-bg);border-left:3px solid var(--correct)}
+  .review-opt.is-wrong{background:var(--wrong-bg);border-left:3px solid var(--wrong)}
+  .review-opt.neutral{color:var(--ink-secondary)}
+  .ri-explanation{margin-top:10px;padding:10px 14px;background:var(--bg-recessed);border-radius:var(--radius);font-size:.82rem;color:var(--ink-secondary);line-height:1.6}
+  .ri-pillar-link{display:inline-block;margin-top:6px;font-family:var(--font-display);font-size:.72rem;font-weight:600;color:var(--ncp-dark);text-decoration:none}
+  .ri-pillar-link:hover{text-decoration:underline}
+
+  /* ---- Instant Feedback Toast ---------------------------------- */
+  .feedback-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:14px 24px;border-radius:var(--radius-lg);font-family:var(--font-display);font-size:.88rem;font-weight:600;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;transition:opacity .3s,transform .3s var(--ease-out);max-width:640px;text-align:left;line-height:1.5}
+  .feedback-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .feedback-toast.correct{background:var(--correct-bg);border:2px solid var(--correct);color:var(--correct)}
+  .feedback-toast.wrong{background:var(--wrong-bg);border:2px solid var(--wrong);color:var(--wrong)}
+  .feedback-toast .fb-explain{font-weight:400;font-size:.8rem;color:var(--ink-secondary);margin-top:4px;display:block}
+
+  /* ---- Trend / Score History ----------------------------------- */
+  .trend-chart{text-align:left;margin:var(--s-md) 0;padding:var(--s-md) var(--s-lg);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .trend-bars{display:flex;align-items:flex-end;gap:4px;height:60px;position:relative}
+  .trend-bar{flex:1;border-radius:3px 3px 0 0;min-width:0;position:relative;transition:height .4s var(--ease-out)}
+  .trend-bar-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:.6rem;font-weight:600;white-space:nowrap}
+  .trend-avg{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);margin-top:4px}
+
+  /* ---- Utilities ----------------------------------------------- */
+  .screen{display:none}
+  .screen.active{display:block}
+  .hidden{display:none!important}
+  .btn-ncp{background:var(--ncp);color:#fff;border:none}
+  .btn-ncp:hover{background:var(--ncp-dark)}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <!-- ======= START SCREEN ======= -->
+  <div id="startScreen" class="screen active">
+    <div class="exam-start fade-in">
+      <a class="back-link" href="ncp-ain-hub.html">back to CORE</a>
+      <h1>NCP-AIN Exam Simulator</h1>
+      <p class="subtitle">Blueprint-weighted mock exam with per-question explanations</p>
+
+      <!-- Score trend -->
+      <div id="trendChart" class="trend-chart" style="display:none">
+        <h3 style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);margin-bottom:var(--s-sm)">Recent Scores</h3>
+        <div class="trend-bars" id="trendBars"></div>
+        <div class="trend-avg" id="trendAvg"></div>
+      </div>
+
+      <!-- Mode picker -->
+      <div class="mode-picker">
+        <h3>Session Mode</h3>
+        <div class="mode-options" id="modeOptions">
+          <button class="mode-btn selected" data-mode="full" onclick="pickMode(this)" title="70 questions, 120 minutes, blueprint-weighted">Full Exam</button>
+          <button class="mode-btn" data-mode="quick" onclick="pickMode(this)" title="25 questions, ~40 minutes, blueprint-weighted">Quick Drill</button>
+          <button class="mode-btn" data-mode="domain" onclick="pickMode(this)" title="15-20 questions from one domain">Domain Focus</button>
+          <button class="mode-btn" data-mode="practice" onclick="pickMode(this)" title="Untimed with instant explanation per question">Explain / Practice</button>
+        </div>
+        <div id="domainPicker" style="display:none;margin-top:var(--s-sm)">
+          <select id="domainSelect" class="domain-select">
+            <option value="3">3. InfiniBand Networking (30%)</option>
+            <option value="2">2. Spectrum Networking (30%)</option>
+            <option value="4">4. Troubleshooting Tools (20%)</option>
+            <option value="5">5. Automation and Config (10%)</option>
+            <option value="1">1. AI DC Design (5%)</option>
+            <option value="6">6. Kubernetes Integration (5%)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Question count (shown in non-practice modes) -->
+      <div class="count-picker" id="countPicker">
+        <h3>Questions</h3>
+        <div class="count-options" id="countOptions">
+          <button class="count-btn" data-count="25" onclick="pickCount(this)">25</button>
+          <button class="count-btn selected" data-count="70" onclick="pickCount(this)">70 (Full)</button>
+        </div>
+      </div>
+
+      <!-- Exam meta -->
+      <div class="exam-meta" id="examMeta">
+        <div class="meta-item">
+          <div class="meta-value" id="metaCount">70</div>
+          <div class="meta-label">Questions</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-value" id="metaTime">120</div>
+          <div class="meta-label">Minutes</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-value">80%</div>
+          <div class="meta-label">Practice Target</div>
+        </div>
+      </div>
+
+      <!-- Blueprint weights -->
+      <div class="domain-weights">
+        <h3>Blueprint Weights</h3>
+        <div class="domain-row"><span class="dname">InfiniBand Networking</span><span class="dcount">30%</span></div>
+        <div class="domain-row"><span class="dname">Spectrum Networking</span><span class="dcount">30%</span></div>
+        <div class="domain-row"><span class="dname">Troubleshooting Tools</span><span class="dcount">20%</span></div>
+        <div class="domain-row"><span class="dname">Automation and Config</span><span class="dcount">10%</span></div>
+        <div class="domain-row"><span class="dname">AI DC Design</span><span class="dcount">5%</span></div>
+        <div class="domain-row"><span class="dname">Kubernetes Integration</span><span class="dcount">5%</span></div>
+      </div>
+
+      <ul class="exam-rules" id="examRules">
+        <li>Free navigation: click any grid box to jump to that question.</li>
+        <li>Flag questions for review using the flag button.</li>
+        <li>The timer auto-submits at 00:00. Warning shown under 10 minutes, danger under 5.</li>
+        <li>80% is a practice target only. No official NVIDIA cut score is published.</li>
+      </ul>
+
+      <button class="btn btn-primary btn-lg btn-ncp" onclick="startExam()">Begin Exam</button>
+      <div style="margin-top:var(--s-sm);font-size:.75rem;color:var(--ink-muted)" id="bankSize"></div>
+    </div>
+  </div>
+
+  <!-- ======= EXAM SCREEN ======= -->
+  <div id="examScreen" class="screen">
+    <div class="exam-topbar">
+      <span class="q-counter" id="qCounter">Question 1 / 70</span>
+      <span class="timer" id="timer">120:00</span>
+    </div>
+
+    <div class="exam-layout">
+      <div class="question-area" id="questionArea">
+        <div class="question-domain" id="qDomain"></div>
+        <p class="question-text" id="qText"></p>
+        <div class="options-list" id="optionsList"></div>
+        <div class="question-nav-btns">
+          <button class="flag-btn" id="flagBtn" onclick="toggleFlag()">Flag for Review</button>
+          <div style="display:flex;gap:var(--s-sm)">
+            <button class="btn btn-secondary" id="prevBtn" onclick="prevQuestion()" disabled>Previous</button>
+            <button class="btn btn-primary btn-ncp" id="nextBtn" onclick="nextQuestion()">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="q-navigator">
+        <h3>Questions</h3>
+        <div class="q-grid" id="qGrid"></div>
+        <div class="nav-legend">
+          <span><div class="legend-dot filled"></div> Answered</span>
+          <span><div class="legend-dot flagged-dot"></div> Flagged</span>
+          <span><div class="legend-dot"></div> Unanswered</span>
+        </div>
+        <div class="nav-progress-text" id="navProgress">0 / 70 answered</div>
+        <div class="submit-section">
+          <button class="btn btn-secondary btn-sm" style="width:100%" onclick="confirmSubmit()">Submit Exam</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= RESULTS SCREEN ======= -->
+  <div id="resultsScreen" class="screen">
+    <div class="results-screen fade-in">
+      <div class="result-banner" id="resultBanner">
+        <div class="result-label" id="resultLabel"></div>
+        <div class="result-score" id="resultScore"></div>
+        <div class="result-detail" id="resultDetail"></div>
+      </div>
+
+      <div class="result-stats" id="resultStats"></div>
+
+      <div class="domain-breakdown" id="domainBreakdown">
+        <h2>Domain Breakdown</h2>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-secondary" onclick="showReview()">Review All Answers</button>
+        <button class="btn btn-primary btn-ncp" onclick="restartExam()">New Exam</button>
+      </div>
+
+      <div class="review-section hidden" id="reviewSection"></div>
+    </div>
+  </div>
+</div>
+
+<script defer src="data/ncp-ain-exam-data.js"></script>
+<script defer src="js/store.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ================================================================
+     NCP-AIN Exam Simulator
+     Data: window.NCPAIN_EXAM_DATA (ncp-ain-exam-data.js)
+     Modes: Full Exam (70Q/120min), Quick Drill (25Q/~40min),
+            Domain Focus, Explain/Practice (untimed, instant feedback)
+     Domain map (pillars-data numbering):
+       1=AI DC Design 5%, 2=Spectrum 30%, 3=InfiniBand 30%,
+       4=Troubleshooting 20%, 5=Automation 10%, 6=Kubernetes 5%
+  ================================================================ */
+
+  var DOMAIN_NAMES = {
+    '1': 'AI DC Design',
+    '2': 'Spectrum Networking',
+    '3': 'InfiniBand Networking',
+    '4': 'Troubleshooting Tools',
+    '5': 'Automation and Config',
+    '6': 'Kubernetes Integration'
+  };
+
+  var DOMAIN_WEIGHT = { '1': 5, '2': 30, '3': 30, '4': 20, '5': 10, '6': 5 };
+
+  var PASS_THRESHOLD = 0.80;
+  var TIME_LIMIT_FULL = 120 * 60;   // seconds
+  var TIME_LIMIT_QUICK = 40 * 60;
+
+  /* ---- Adapt bank -------------------------------------------- */
+  function adaptBank(bank) {
+    return bank.map(function (q) {
+      return {
+        id: q.id, q: q.question, opts: q.options, ans: q.correct,
+        domain: q.domain, pillar: q.pillar, obj: q.obj,
+        diff: q.difficulty || 1,
+        explanation: q.explanation || '',
+        sourcePillar: q.sourcePillar || ''
+      };
+    });
+  }
+
+  var QUESTIONS = [];
+  if (window.NCPAIN_EXAM_DATA && window.NCPAIN_EXAM_DATA.questions) {
+    QUESTIONS = adaptBank(window.NCPAIN_EXAM_DATA.questions);
+  }
+  document.getElementById('bankSize').textContent = QUESTIONS.length + ' questions in bank';
+
+  /* ---- State ------------------------------------------------- */
+  var selectedMode = 'full';
+  var selectedCount = 70;
+  var selectedDomain = '3';
+  var isPractice = false;
+  var TIME_LIMIT = TIME_LIMIT_FULL;
+
+  var examQuestions = [];
+  var currentIdx = 0;
+  var answers = [];
+  var flagged = [];
+  var timerInterval = null;
+  var timeRemaining = 0;
+  var startTime = null;
+  var feedbackTimeout = null;
+
+  /* ---- Pickers ----------------------------------------------- */
+  function pickMode(btn) {
+    document.querySelectorAll('.mode-btn').forEach(function (b) { b.classList.remove('selected'); });
+    btn.classList.add('selected');
+    selectedMode = btn.getAttribute('data-mode');
+    isPractice = (selectedMode === 'practice');
+
+    var domPicker = document.getElementById('domainPicker');
+    var countPicker = document.getElementById('countPicker');
+    var metaTime = document.getElementById('metaTime');
+
+    domPicker.style.display = (selectedMode === 'domain') ? 'block' : 'none';
+    countPicker.style.display = isPractice ? 'none' : 'block';
+
+    if (selectedMode === 'full') {
+      selectedCount = 70; TIME_LIMIT = TIME_LIMIT_FULL;
+      document.getElementById('metaCount').textContent = '70';
+      metaTime.textContent = '120';
+      setCountSelected(70);
+    } else if (selectedMode === 'quick') {
+      selectedCount = 25; TIME_LIMIT = TIME_LIMIT_QUICK;
+      document.getElementById('metaCount').textContent = '25';
+      metaTime.textContent = '40';
+      setCountSelected(25);
+    } else if (selectedMode === 'domain') {
+      selectedCount = 20; TIME_LIMIT = Math.ceil(20 * 100);
+      document.getElementById('metaCount').textContent = '20';
+      metaTime.textContent = Math.ceil(TIME_LIMIT / 60);
+    } else if (isPractice) {
+      document.getElementById('metaCount').textContent = 'All';
+      metaTime.textContent = 'None';
+    }
+
+    var rules = document.getElementById('examRules');
+    if (isPractice) {
+      rules.innerHTML = '<li>Untimed. Pick your answer and get an instant explanation.</li>' +
+        '<li>Covers all available questions in blueprint-weighted order.</li>';
+    } else {
+      rules.innerHTML = '<li>Free navigation: click any grid box to jump to a question.</li>' +
+        '<li>Flag questions for review using the flag button.</li>' +
+        '<li>The timer auto-submits at 00:00. Warning under 10 min, danger under 5.</li>' +
+        '<li>80% is a practice target only. No official NVIDIA cut score is published.</li>';
+    }
+  }
+
+  function setCountSelected(n) {
+    document.querySelectorAll('.count-btn').forEach(function (b) {
+      b.classList.toggle('selected', parseInt(b.getAttribute('data-count')) === n);
+    });
+  }
+
+  function pickCount(btn) {
+    document.querySelectorAll('.count-btn').forEach(function (b) { b.classList.remove('selected'); });
+    btn.classList.add('selected');
+    selectedCount = parseInt(btn.getAttribute('data-count'));
+    TIME_LIMIT = selectedCount === 70 ? TIME_LIMIT_FULL : TIME_LIMIT_QUICK;
+    document.getElementById('metaCount').textContent = selectedCount;
+    document.getElementById('metaTime').textContent = Math.ceil(TIME_LIMIT / 60);
+  }
+
+  /* Make pickers accessible globally (onclick in HTML) */
+  window.pickMode = pickMode;
+  window.pickCount = pickCount;
+
+  /* ---- Question Selection ------------------------------------ */
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function selectWeighted(count) {
+    var result = [];
+    var keys = Object.keys(DOMAIN_WEIGHT);
+    keys.forEach(function (d) {
+      var pool = shuffle(QUESTIONS.filter(function (q) { return q.domain === d; }));
+      var need = Math.round((DOMAIN_WEIGHT[d] / 100) * count);
+      result = result.concat(pool.slice(0, need));
+    });
+    result = shuffle(result);
+    // Fill or trim to exact count
+    if (result.length < count) {
+      var extra = shuffle(QUESTIONS.filter(function (q) {
+        return !result.some(function (r) { return r.id === q.id; });
+      }));
+      result = result.concat(extra.slice(0, count - result.length));
+    }
+    return result.slice(0, count);
+  }
+
+  function selectQuestions() {
+    if (selectedMode === 'domain') {
+      var d = document.getElementById('domainSelect').value;
+      var pool = shuffle(QUESTIONS.filter(function (q) { return q.domain === d; }));
+      return pool.slice(0, Math.min(20, pool.length));
+    }
+    if (isPractice) {
+      return selectWeighted(QUESTIONS.length);
+    }
+    return selectWeighted(selectedCount);
+  }
+
+  /* ---- Start Exam ------------------------------------------- */
+  window.startExam = function () {
+    examQuestions = selectQuestions();
+    var total = examQuestions.length;
+    answers = new Array(total).fill(-1);
+    flagged = new Array(total).fill(false);
+    currentIdx = 0;
+    startTime = Date.now();
+
+    if (isPractice) {
+      timeRemaining = 0;
+    } else {
+      timeRemaining = TIME_LIMIT;
+    }
+
+    document.getElementById('qCounter').textContent = 'Question 1 / ' + total;
+    document.getElementById('navProgress').textContent = '0 / ' + total + ' answered';
+
+    show('examScreen');
+    buildGrid();
+    renderQuestion();
+    if (!isPractice) startTimer();
+  };
+
+  /* ---- Timer ------------------------------------------------ */
+  function startTimer() {
+    updateTimerDisplay();
+    timerInterval = setInterval(function () {
+      timeRemaining--;
+      if (timeRemaining <= 0) {
+        timeRemaining = 0;
+        clearInterval(timerInterval);
+        submitExam();
+        return;
+      }
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    var m = Math.floor(timeRemaining / 60);
+    var s = timeRemaining % 60;
+    var el = document.getElementById('timer');
+    el.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    el.className = 'timer';
+    if (timeRemaining <= 300) el.classList.add('danger');
+    else if (timeRemaining <= 600) el.classList.add('warning');
+  }
+
+  /* ---- Render Question -------------------------------------- */
+  function renderQuestion() {
+    var total = examQuestions.length;
+    var q = examQuestions[currentIdx];
+    var letters = ['A', 'B', 'C', 'D', 'E'];
+
+    document.getElementById('qCounter').textContent = 'Question ' + (currentIdx + 1) + ' / ' + total;
+
+    var domEl = document.getElementById('qDomain');
+    domEl.innerHTML = '<span class="dom-badge">Domain ' + q.domain + '</span>' +
+      DOMAIN_NAMES[q.domain] + ' | Obj ' + q.obj + ' | Difficulty ' + ['', 'Easy', 'Medium', 'Hard'][q.diff];
+
+    document.getElementById('qText').textContent = q.q;
+
+    var ol = document.getElementById('optionsList');
+    ol.innerHTML = '';
+
+    q.opts.forEach(function (opt, i) {
+      var btn = document.createElement('button');
+      btn.className = 'exam-option';
+      if (answers[currentIdx] === i) btn.classList.add('selected');
+      btn.innerHTML = '<span class="opt-letter">' + letters[i] + '</span><span>' + opt + '</span>';
+      btn.onclick = function () { selectOption(i); };
+      ol.appendChild(btn);
+    });
+
+    // Flag button
+    var flagBtn = document.getElementById('flagBtn');
+    flagBtn.className = 'flag-btn' + (flagged[currentIdx] ? ' flagged' : '');
+    flagBtn.textContent = flagged[currentIdx] ? 'Flagged' : 'Flag for Review';
+
+    // Nav buttons
+    var prevBtn = document.getElementById('prevBtn');
+    var nextBtn = document.getElementById('nextBtn');
+    prevBtn.disabled = (currentIdx === 0);
+
+    if (currentIdx === total - 1) {
+      nextBtn.textContent = isPractice ? 'Finish Practice' : 'Submit Exam';
+      nextBtn.onclick = function () { confirmSubmit(); };
+    } else {
+      nextBtn.textContent = 'Next';
+      nextBtn.onclick = function () { nextQuestion(); };
+    }
+
+    // Practice mode: if already answered show explanation inline
+    if (isPractice && answers[currentIdx] !== -1) {
+      showInlineExplanation(currentIdx);
+    }
+
+    updateGrid();
+  }
+
+  function selectOption(idx) {
+    if (isPractice && answers[currentIdx] !== -1) return; // locked after first pick in practice
+    answers[currentIdx] = idx;
+    renderQuestion();
+    if (isPractice) {
+      showFeedbackToast(currentIdx);
+      showInlineExplanation(currentIdx);
+    }
+  }
+
+  function showInlineExplanation(idx) {
+    var q = examQuestions[idx];
+    var ol = document.getElementById('optionsList');
+    // Color options
+    ol.querySelectorAll('.exam-option').forEach(function (btn, i) {
+      if (i === q.ans) {
+        btn.style.borderColor = 'var(--correct)';
+        btn.style.background = 'var(--correct-bg)';
+      } else if (i === answers[idx] && i !== q.ans) {
+        btn.style.borderColor = 'var(--wrong)';
+        btn.style.background = 'var(--wrong-bg)';
+      }
+      btn.onclick = null; // lock
+    });
+    // Append explanation if not already there
+    var existing = document.getElementById('inline-explain-' + idx);
+    if (existing) return;
+    var div = document.createElement('div');
+    div.id = 'inline-explain-' + idx;
+    div.className = 'ri-explanation';
+    div.innerHTML = (q.explanation || '') +
+      (q.sourcePillar ? '<br><a class="ri-pillar-link" href="ncp-ain-pillars.html">Maps to: ' + q.sourcePillar + '</a>' : '');
+    ol.parentNode.insertBefore(div, ol.nextSibling);
+  }
+
+  /* ---- Flag ------------------------------------------------- */
+  window.toggleFlag = function () {
+    flagged[currentIdx] = !flagged[currentIdx];
+    renderQuestion();
+  };
+
+  /* ---- Navigation ------------------------------------------- */
+  window.nextQuestion = function () {
+    if (currentIdx < examQuestions.length - 1) {
+      currentIdx++;
+      renderQuestion();
+    }
+  };
+
+  window.prevQuestion = function () {
+    if (currentIdx > 0) {
+      currentIdx--;
+      renderQuestion();
+    }
+  };
+
+  function jumpTo(idx) {
+    currentIdx = idx;
+    renderQuestion();
+  }
+
+  /* ---- Grid ------------------------------------------------- */
+  function buildGrid() {
+    var grid = document.getElementById('qGrid');
+    grid.innerHTML = '';
+    examQuestions.forEach(function (_, i) {
+      var box = document.createElement('div');
+      box.className = 'q-box';
+      box.textContent = i + 1;
+      box.setAttribute('data-idx', i);
+      (function (idx) { box.onclick = function () { jumpTo(idx); }; })(i);
+      grid.appendChild(box);
+    });
+  }
+
+  function updateGrid() {
+    var boxes = document.querySelectorAll('.q-box');
+    var answeredCount = 0;
+    boxes.forEach(function (box) {
+      var idx = parseInt(box.getAttribute('data-idx'));
+      box.className = 'q-box';
+      if (answers[idx] !== -1) { box.classList.add('answered'); answeredCount++; }
+      if (flagged[idx]) box.classList.add('flagged-box');
+      if (idx === currentIdx) box.classList.add('current');
+    });
+    var total = examQuestions.length;
+    document.getElementById('navProgress').textContent = answeredCount + ' / ' + total + ' answered';
+  }
+
+  /* ---- Submit ----------------------------------------------- */
+  window.confirmSubmit = function () {
+    var unanswered = answers.filter(function (a) { return a === -1; }).length;
+    var msg = unanswered > 0
+      ? 'You have ' + unanswered + ' unanswered question(s). Submit anyway?'
+      : 'Submit your exam?';
+    if (confirm(msg)) submitExam();
+  };
+
+  function submitExam() {
+    clearInterval(timerInterval);
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+    var correct = 0;
+    var weightedCorrect = 0, weightedTotal = 0;
+    var domainCorrect = {}, domainTotal = {};
+    for (var d in DOMAIN_NAMES) { domainCorrect[d] = 0; domainTotal[d] = 0; }
+
+    examQuestions.forEach(function (q, i) {
+      var w = q.diff || 1;
+      domainTotal[q.domain] = (domainTotal[q.domain] || 0) + 1;
+      weightedTotal += w;
+      var isRight = (answers[i] === q.ans);
+      if (isRight) {
+        correct++;
+        weightedCorrect += w;
+        domainCorrect[q.domain] = (domainCorrect[q.domain] || 0) + 1;
+      }
+    });
+
+    var total = examQuestions.length;
+    var pct = Math.round((correct / total) * 100);
+    var weightedPct = total > 0 ? Math.round((weightedCorrect / weightedTotal) * 100) : 0;
+    var passed = pct >= (PASS_THRESHOLD * 100);
+
+    if (typeof store !== 'undefined' && store.addQuizSession) {
+      store.addQuizSession({
+        date: new Date().toISOString(),
+        type: 'ncp-ain-exam-sim',
+        total: total, correct: correct, score: pct, passed: passed, elapsed: elapsed
+      });
+    }
+    if (typeof store !== 'undefined' && store.updateStreak) store.updateStreak();
+    if (typeof store !== 'undefined' && store.logStudyTime) store.logStudyTime(Math.ceil(elapsed / 60));
+
+    renderResults(correct, pct, weightedPct, passed, elapsed, domainCorrect, domainTotal, total);
+  }
+
+  /* ---- Instant Feedback Toast ------------------------------- */
+  function showFeedbackToast(idx) {
+    var q = examQuestions[idx];
+    var wasCorrect = (answers[idx] === q.ans);
+    var letters = ['A', 'B', 'C', 'D', 'E'];
+
+    var existing = document.querySelector('.feedback-toast');
+    if (existing) existing.remove();
+    if (feedbackTimeout) clearTimeout(feedbackTimeout);
+
+    var toast = document.createElement('div');
+    toast.className = 'feedback-toast ' + (wasCorrect ? 'correct' : 'wrong');
+
+    var label = wasCorrect
+      ? 'Correct!'
+      : 'Incorrect. Correct answer: ' + letters[q.ans] + '. ' + q.opts[q.ans];
+    var html = '<span>' + label + '</span>';
+    toast.innerHTML = html;
+
+    document.body.appendChild(toast);
+    requestAnimationFrame(function () { toast.classList.add('show'); });
+
+    feedbackTimeout = setTimeout(function () {
+      toast.classList.remove('show');
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 4000);
+  }
+
+  /* ---- Render Results --------------------------------------- */
+  function renderResults(correct, pct, weightedPct, passed, elapsed, domainCorrect, domainTotal, total) {
+    show('resultsScreen');
+
+    var banner = document.getElementById('resultBanner');
+    banner.className = 'result-banner ' + (passed ? 'pass' : 'fail');
+    document.getElementById('resultLabel').textContent = passed
+      ? 'PASSED (Practice Target)'
+      : 'NOT YET PASSING (Practice Target)';
+    document.getElementById('resultScore').textContent = pct + '%';
+    document.getElementById('resultDetail').textContent =
+      correct + ' / ' + total + ' correct | Weighted: ' + weightedPct + '%';
+
+    var em = Math.floor(elapsed / 60);
+    var es = elapsed % 60;
+    var timeStr = em + 'm ' + String(es).padStart(2, '0') + 's';
+    var unused = isPractice ? 0 : (TIME_LIMIT - elapsed);
+    var timeLeft = isPractice ? 'Untimed' : (unused > 0 ? Math.floor(unused / 60) + 'm remaining' : 'Time expired');
+
+    document.getElementById('resultStats').innerHTML =
+      '<div class="result-stat"><div class="rs-value">' + pct + '%</div><div class="rs-label">Score</div></div>' +
+      '<div class="result-stat"><div class="rs-value">' + timeStr + '</div><div class="rs-label">Time Used</div></div>' +
+      '<div class="result-stat"><div class="rs-value">' + timeLeft + '</div><div class="rs-label">Time Remaining</div></div>';
+
+    // Domain breakdown
+    var dbContainer = document.getElementById('domainBreakdown');
+    dbContainer.innerHTML = '<h2>Domain Breakdown</h2>';
+    ['1', '2', '3', '4', '5', '6'].forEach(function (ds) {
+      var dc = domainCorrect[ds] || 0;
+      var dt = domainTotal[ds] || 0;
+      var dpct = dt > 0 ? Math.round((dc / dt) * 100) : 0;
+      var barColor = dpct >= 80 ? 'var(--prof-strong)' : dpct >= 60 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+      var row = document.createElement('div');
+      row.className = 'db-row';
+      row.innerHTML =
+        '<div class="db-name">' + DOMAIN_NAMES[ds] + '</div>' +
+        '<div class="db-bar"><div class="db-fill" style="width:' + dpct + '%;background:' + barColor + '"></div></div>' +
+        '<div class="db-pct" style="color:' + barColor + '">' + (dt > 0 ? dpct + '%' : 'n/a') + '</div>';
+      dbContainer.appendChild(row);
+    });
+
+    document.getElementById('reviewSection').classList.add('hidden');
+    document.getElementById('reviewSection').innerHTML = '';
+  }
+
+  /* ---- Review ----------------------------------------------- */
+  window.showReview = function () {
+    var section = document.getElementById('reviewSection');
+    section.classList.toggle('hidden');
+    if (section.innerHTML !== '') return;
+
+    var letters = ['A', 'B', 'C', 'D', 'E'];
+    var html = '';
+
+    examQuestions.forEach(function (q, i) {
+      var userAns = answers[i];
+      var isCorrect = (userAns === q.ans);
+      var wasSkipped = (userAns === -1);
+      var badgeClass = wasSkipped ? 'skipped' : (isCorrect ? 'correct' : 'wrong');
+      var badgeText = wasSkipped ? 'Skipped' : (isCorrect ? 'Correct' : 'Incorrect');
+
+      html += '<div class="review-item">';
+      html += '<div class="ri-header">';
+      html += '<span class="ri-num">Q' + (i + 1) + '</span>';
+      html += '<span class="ri-badge ' + badgeClass + '">' + badgeText + '</span>';
+      html += '<span style="font-size:.7rem;color:var(--ink-muted);margin-left:auto">' +
+        'Domain ' + q.domain + ' | ' + DOMAIN_NAMES[q.domain] + '</span>';
+      html += '</div>';
+      html += '<p class="ri-question">' + q.q + '</p>';
+
+      q.opts.forEach(function (opt, oi) {
+        var cls = 'review-opt neutral';
+        if (oi === q.ans) cls = 'review-opt is-correct';
+        else if (oi === userAns && !isCorrect) cls = 'review-opt is-wrong';
+
+        var indicator = '';
+        if (oi === q.ans && oi === userAns) indicator = ' (Your answer, Correct)';
+        else if (oi === q.ans) indicator = ' (Correct answer)';
+        else if (oi === userAns) indicator = ' (Your answer)';
+
+        html += '<div class="' + cls + '"><span class="ro-letter">' + letters[oi] + '.</span><span>' + opt + indicator + '</span></div>';
+      });
+
+      if (q.explanation) {
+        html += '<div class="ri-explanation">' + q.explanation;
+        if (q.sourcePillar) {
+          html += '<br><a class="ri-pillar-link" href="ncp-ain-pillars.html">Maps to: ' + q.sourcePillar + '</a>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+    });
+
+    section.innerHTML = html;
+  };
+
+  /* ---- Restart ---------------------------------------------- */
+  window.restartExam = function () {
+    var existing = document.querySelector('.feedback-toast');
+    if (existing) existing.remove();
+    document.getElementById('reviewSection').innerHTML = '';
+    show('startScreen');
+    renderTrend();
+  };
+
+  /* ---- Screen Toggle ---------------------------------------- */
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  /* ---- Trend Chart ------------------------------------------ */
+  function renderTrend() {
+    var history = (typeof store !== 'undefined' && store.getQuizHistory) ? store.getQuizHistory() : [];
+    var simHistory = history.filter(function (s) { return s.type === 'ncp-ain-exam-sim'; }).slice(-10);
+    if (simHistory.length < 2) return;
+
+    var chart = document.getElementById('trendChart');
+    chart.style.display = 'block';
+    var avg = Math.round(simHistory.reduce(function (sum, s) { return sum + s.score; }, 0) / simHistory.length);
+
+    document.getElementById('trendBars').innerHTML = simHistory.map(function (s) {
+      var color = s.score >= 80 ? 'var(--ncp)' : s.score >= 60 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+      return '<div class="trend-bar" style="height:' + Math.max(s.score, 5) + '%;background:' + color + '">' +
+        '<span class="trend-bar-label" style="color:' + color + '">' + s.score + '</span></div>';
+    }).join('');
+    document.getElementById('trendAvg').textContent = 'Avg: ' + avg + '% over ' + simHistory.length + ' sessions';
+  }
+
+  /* ---- Init ------------------------------------------------- */
+  renderTrend();
+
+}); // end DOMContentLoaded
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

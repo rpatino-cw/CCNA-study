@@ -185,19 +185,26 @@
   var NCPAIN_NAV = [
     { text: 'CORE', href: 'ncp-ain-hub.html' },
     { text: 'Pillars', href: 'ncp-ain-pillars.html' },
+    { text: 'Exam Simulator', href: 'ncp-ain-exam-sim.html' },
     { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
+    { text: 'Cram Driller', href: 'ncp-ain-cram-driller.html' },
     { text: 'RoCE Frogger 🎮', href: 'ncp-ain-roce-frogger.html' },
+    { text: 'Troubleshooting', href: 'ncp-ain-troubleshoot.html' },
     { text: 'Console Labs', children: [
       { text: 'InfiniBand Diagnostics', href: 'ncp-ain-ib-lab.html' },
       { text: 'Spectrum-X / NVUE', href: 'ncp-ain-spectrum-lab.html' },
       { text: 'Perf Validation', href: 'ncp-ain-perf-lab.html' },
       { text: 'WJH Drop Analysis', href: 'ncp-ain-wjh-lab.html' },
       { text: 'Fabric Bring-Up: SM + SHARP', href: 'ncp-ain-bringup-lab.html' },
+      { text: 'Rail-Optimized Bring-Up Lab', href: 'ncp-ain-fabric-lab.html' },
     ]},
     { text: 'Sims & Visuals', children: [
+      { text: 'Learn Visually (15 cards)', href: 'ncp-ain-learn-visually.html' },
       { text: 'IB Layer Stack', href: 'ncp-ain-ib-layers.html' },
       { text: 'Congestion Pipeline', href: 'ncp-ain-congestion-pipeline.html' },
       { text: 'Fat-Tree Builder', href: 'ncp-ain-fattree-builder.html' },
+      { text: 'Engine Map', href: 'ncp-ain-engine-map.html' },
+      { text: 'Devices & QoS', href: 'ncp-ain-devices.html' },
     ]},
     { text: 'Study Group', href: 'peers.html' },
   ];
