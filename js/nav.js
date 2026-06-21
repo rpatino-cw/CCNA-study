@@ -187,6 +187,7 @@
     { text: 'Pillars', href: 'ncp-ain-pillars.html' },
     { text: 'Exam Simulator', href: 'ncp-ain-exam-sim.html' },
     { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
+    { text: 'Mega Lab ★', href: 'ncp-ain-mega-lab.html' },
     { text: 'Cram Driller', href: 'ncp-ain-cram-driller.html' },
     { text: 'RoCE Frogger 🎮', href: 'ncp-ain-roce-frogger.html' },
     { text: 'Troubleshooting', href: 'ncp-ain-troubleshoot.html' },
