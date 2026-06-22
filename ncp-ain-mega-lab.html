@@ -363,10 +363,12 @@
     <div class="bottom-pane" id="bottomPane" style="display:none">
       <div class="device-tabs" id="deviceTabs"></div>
       <div class="term-container" id="termContainer">
-        <div class="term-wrap" id="termOutput"></div>
-        <div class="term-input-row">
-          <span class="term-prompt" id="termPrompt"></span>
-          <input type="text" class="term-input" id="termInput" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="terminal command input">
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt"></span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" autocapitalize="off" aria-label="terminal command input"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -1551,62 +1553,76 @@ var activeMission = null;
 var deviceHistory = {}; // deviceName -> array of {type, text}
 
 // ============================================================
-// TERMINAL WIRING (manual -- not using Terminal class, per spec)
+// TERMINAL WIRING (engine Terminal class -- matches ncp-ain-ib-lab.html:
+// command history, Tab completion, Ctrl-Z/C/L/U all come for free)
 // ============================================================
 
-var termOutput = document.getElementById('termOutput');
-var termInput = document.getElementById('termInput');
-var termPrompt = document.getElementById('termPrompt');
+// IB diagnostic commands route to the IBTools fabric simulator (not the shell
+// commandMap) and mark the matching "ran it" flag for objective predicates.
+var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate)\b/;
 
-function updatePrompt() {
-  var dev = lab.activeDevice;
-  if (!dev) { termPrompt.textContent = '$ '; return; }
-  termPrompt.textContent = dev.prompt() + ' ';
+function markIbDiag(raw, dev) {
+  if (!dev) return;
+  dev.custom = dev.custom || {};
+  var first = raw.split(/\s+/)[0];
+  if (first === 'ibdiagnet' && raw.indexOf('--sharp') !== -1) dev.custom.sharpDone = true;
+  else if (first === 'ibdiagnet') dev.custom.ibdiagnetDone = true;
+  else if (first === 'ibnetdiscover') dev.custom.ibnetdiscoverDone = true;
+  else if (first === 'iblinkinfo') dev.custom.iblinkinfoDone = true;
+  else if (first === 'ibhosts') dev.custom.ibhostsDone = true;
+  else if (first === 'sminfo') dev.custom.sminfoDone = true;
 }
 
-function addTermLine(text, cls) {
-  var lines = String(text).split('\n');
-  lines.forEach(function (line) {
-    var el = document.createElement('div');
-    el.className = 'term-line' + (cls ? ' ' + cls : '');
-    el.textContent = line;
-    termOutput.appendChild(el);
-  });
-  termOutput.scrollTop = termOutput.scrollHeight;
-}
+// Mount the engine terminal on the shared DOM node.
+lab.initTerminal(document.getElementById('termMount'));
 
-function clearTerm() {
-  termOutput.innerHTML = '';
-}
-
-// Save/restore per-device terminal history
-function saveDeviceHistory(name) {
-  deviceHistory[name] = termOutput.innerHTML;
-}
-
-function restoreDeviceHistory(name) {
-  termOutput.innerHTML = deviceHistory[name] || '';
-  termOutput.scrollTop = termOutput.scrollHeight;
-}
-
-// Command input
-termInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') {
-    var raw = termInput.value.trim();
-    termInput.value = '';
-    if (!raw) return;
-    if (!lab.activeDevice) return;
-    addTermLine(lab.activeDevice.prompt() + ' ' + raw, 'cmd');
-    var result = runFabricCommand(raw, lab.activeDevice);
-    var fixMsg = maybeApplyFix(raw, result);
-    if (fixMsg) result = fixMsg;
-    if (result) addTermLine(result);
-    updatePrompt();
-    checkObjectives();
+// Wrap processCommand so the engine Terminal's executeCommand path also does:
+// (1) IB-diag delegation to IBTools + objective flags, (2) mutable-counter fix
+// via applyFix, (3) the page objective check. The Terminal echoes the prompt
+// line and writes the returned output itself.
+var _origProcessCommand = window.Lab.LabBase.prototype.processCommand;
+lab.processCommand = function (raw) {
+  var trimmed = String(raw).trim();
+  var dev = this.activeDevice;
+  var out;
+  if (IB_DIAG_RE.test(trimmed)) {
+    out = (window.IBTools && window.IBTools.run) ? window.IBTools.run(trimmed) : 'IBTools unavailable';
+    markIbDiag(trimmed, dev);
+  } else {
+    out = _origProcessCommand.call(this, raw);
   }
-});
+  var fixMsg = maybeApplyFix(trimmed, out);
+  if (fixMsg) out = fixMsg;
+  checkObjectives();
+  return out;
+};
 
-termOutput.addEventListener('click', function () { termInput.focus(); });
+// Shims so the rest of the page (loadMission banners, tab switching) keeps
+// working against the engine Terminal instance.
+function updatePrompt() { if (lab.terminal) lab.terminal.updatePrompt(); }
+function clearTerm() { if (lab.terminal) lab.terminal.clear(); }
+function addTermLine(text, cls) {
+  if (!lab.terminal) return;
+  String(text).split('\n').forEach(function (line) { lab.terminal.writeLine(line, cls || ''); });
+  lab.terminal.scrollToBottom();
+}
+
+// Save/restore per-device scrollback + command history on tab switch.
+function saveDeviceHistory(name) {
+  if (!lab.terminal) return;
+  deviceHistory[name] = {
+    html: lab.terminal.outputEl.innerHTML,
+    history: lab.terminal.history.slice(),
+  };
+}
+function restoreDeviceHistory(name) {
+  if (!lab.terminal) return;
+  var s = deviceHistory[name];
+  lab.terminal.outputEl.innerHTML = s ? s.html : '';
+  lab.terminal.history = s ? s.history : [];
+  lab.terminal.historyIdx = -1;
+  lab.terminal.scrollToBottom();
+}
 
 // ============================================================
 // DEVICE TABS
@@ -1639,7 +1655,7 @@ function switchTab(name) {
   });
   restoreDeviceHistory(name);
   updatePrompt();
-  termInput.focus();
+  if (lab.terminal) lab.terminal.focus();
   updateTopoSelection(name);
 }
 
@@ -1758,7 +1774,7 @@ function loadMission(m) {
   addTermLine('Type commands below. Use hint buttons for guidance.', 'info');
   addTermLine('', '');
 
-  termInput.focus();
+  if (lab.terminal) lab.terminal.focus();
 }
 
 function exitMission() {
@@ -1860,27 +1876,6 @@ function evalStepPredicate(step, dev, idx, m) {
     return !!(window.IBTools && window.IBTools.portReads && window.IBTools.portReads(lid) >= 2);
   }
   return false;
-}
-
-// IB diagnostic commands route to the IBTools fabric simulator (not the shell
-// commandMap) and mark the matching "ran it" flag for objective predicates.
-var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate)\b/;
-function runFabricCommand(raw, dev) {
-  if (IB_DIAG_RE.test(raw)) {
-    var out = (window.IBTools && window.IBTools.run) ? window.IBTools.run(raw) : 'IBTools unavailable';
-    if (dev) {
-      dev.custom = dev.custom || {};
-      var first = raw.split(/\s+/)[0];
-      if (first === 'ibdiagnet' && raw.indexOf('--sharp') !== -1) dev.custom.sharpDone = true;
-      else if (first === 'ibdiagnet') dev.custom.ibdiagnetDone = true;
-      else if (first === 'ibnetdiscover') dev.custom.ibnetdiscoverDone = true;
-      else if (first === 'iblinkinfo') dev.custom.iblinkinfoDone = true;
-      else if (first === 'ibhosts') dev.custom.ibhostsDone = true;
-      else if (first === 'sminfo') dev.custom.sminfoDone = true;
-    }
-    return out;
-  }
-  return lab.processCommand(raw);
 }
 
 // Mega-lab fix wiring: if the active mission has a fix step whose cmd matches
