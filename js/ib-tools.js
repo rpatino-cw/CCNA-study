@@ -113,6 +113,25 @@
   var _activeFault = null;
 
   // ---------------------------------------------------------------------------
+  // Mutable per-port counter state for the read->fix->reverify loop.
+  // Keyed by LID (number). Each entry: { counter, base, delta, reads, frozen }
+  // Optional second counter: counter2, base2, delta2
+  // Seeded by setFault(); reset by clearFault().
+  // ---------------------------------------------------------------------------
+  var _portState = {};
+
+  // ---------------------------------------------------------------------------
+  // Remedy map: action string -> { fault, lid }
+  // Used by applyFix to decide if the correct remedy was applied.
+  // ---------------------------------------------------------------------------
+  var REMEDY_MAP = {
+    'replace-cable':  { fault: 'ber',        lid: 7 },
+    'resolve-sm':     { fault: 'dualmaster',  lid: null },
+    'fix-pkey':       { fault: 'pkey',        lid: 5 },
+    'fix-congestion': { fault: 'congestion',  lid: 2 }
+  };
+
+  // ---------------------------------------------------------------------------
   // Scenario fault definitions.
   // Each key matches a scenario ID used in the HTML picker.
   // Each entry provides overrides for one or more command handlers.
@@ -122,6 +141,11 @@
     // Scenario 1: Bad cable / high BER
     'ber': {
       ibdiagnet: function (parsed) {
+        // If lid 7 port state is frozen (cable replaced), report clean
+        var ps7 = _portState[7];
+        if (ps7 && ps7.frozen) {
+          return cmdIbdiagnet(parsed);
+        }
         var base = '\n';
         base += '-I- -------------------------\n';
         base += '-I- START: ibdiagnet (fabric diagnostics)\n';
@@ -157,6 +181,9 @@
         var lid = parseInt(parsed.args[0], 10) || 2;
         var port = parseInt(parsed.args[1], 10) || 1;
         var c = _perfCounters(lid, port);
+        var ps = _portState[lid];
+        // Compute value using current reads count, THEN increment for next call.
+        // First read returns base (reads=0 -> base + delta*0 = base).
         var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
         out += 'PortSelect:......................' + port + '\n';
         out += 'PortXmitData:....................' + c.xmitData + '\n';
@@ -167,8 +194,13 @@
         out += 'PortUnicastRcvPkts:..............' + c.rcvPkts + '\n';
         out += 'PortMulticastXmitPkts:...........0\n';
         out += 'PortMulticastRcvPkts:............0\n';
-        // BER fault: elevated SymbolErrorCounter on lid 7
-        var symErr = (lid === 7) ? 48712 : 0;
+        // BER fault: elevated SymbolErrorCounter on lid 7; driven by _portState when seeded
+        var symErr;
+        if (ps && ps.counter === 'SymbolErrorCounter') {
+          symErr = ps.base + ps.delta * ps.reads;
+        } else {
+          symErr = (lid === 7) ? 48712 : 0;
+        }
         out += 'SymbolErrorCounter:..............' + symErr + '\n';
         out += 'LinkErrorRecoveryCounter:........0\n';
         out += 'LinkDownedCounter:...............0\n';
@@ -182,6 +214,7 @@
         out += 'ExcessiveBufferOverrunErrors:....0\n';
         out += 'VL15Dropped:.....................0\n';
         out += 'PortXmitWait:....................0\n';
+        if (ps && !ps.frozen) { ps.reads++; }
         return out;
       }
     },
@@ -192,6 +225,9 @@
         var lid = parseInt(parsed.args[0], 10) || 2;
         var port = parseInt(parsed.args[1], 10) || 1;
         var c = _perfCounters(lid, port);
+        var ps = _portState[lid];
+        // Compute value using current reads count, THEN increment for next call.
+        // First read returns base (reads=0 -> base + delta*0 = base).
         var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
         out += 'PortSelect:......................' + port + '\n';
         out += 'PortXmitData:....................' + c.xmitData + '\n';
@@ -203,9 +239,15 @@
         out += 'PortMulticastXmitPkts:...........0\n';
         out += 'PortMulticastRcvPkts:............0\n';
         out += 'SymbolErrorCounter:..............0\n';
-        // Link flap: high LinkErrorRecovery + LinkDowned on lid 4
-        var ler = (lid === 4) ? 312 : 0;
-        var ldc = (lid === 4) ? 47 : 0;
+        // Link flap: high LinkErrorRecovery + LinkDowned on lid 4; driven by _portState when seeded
+        var ler, ldc;
+        if (ps && ps.counter === 'LinkErrorRecoveryCounter') {
+          ler = ps.base + ps.delta * ps.reads;
+          ldc = ps.counter2 ? (ps.base2 + ps.delta2 * ps.reads) : (lid === 4 ? 47 : 0);
+        } else {
+          ler = (lid === 4) ? 312 : 0;
+          ldc = (lid === 4) ? 47 : 0;
+        }
         out += 'LinkErrorRecoveryCounter:........' + ler + '\n';
         out += 'LinkDownedCounter:...............' + ldc + '\n';
         out += 'PortRcvErrors:...................0\n';
@@ -218,6 +260,7 @@
         out += 'ExcessiveBufferOverrunErrors:....0\n';
         out += 'VL15Dropped:.....................0\n';
         out += 'PortXmitWait:....................0\n';
+        if (ps && !ps.frozen) { ps.reads++; }
         return out;
       },
       iblinkinfo: function (parsed) {
@@ -278,6 +321,9 @@
         var lid = parseInt(parsed.args[0], 10) || 2;
         var port = parseInt(parsed.args[1], 10) || 1;
         var c = _perfCounters(lid, port);
+        var ps = _portState[lid];
+        // Compute value using current reads count, THEN increment for next call.
+        // First read returns base (reads=0 -> base + delta*0 = base).
         var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
         out += 'PortSelect:......................' + port + '\n';
         out += 'PortXmitData:....................' + c.xmitData + '\n';
@@ -294,9 +340,15 @@
         out += 'PortRcvErrors:...................0\n';
         out += 'PortRcvRemotePhysicalErrors:.....0\n';
         out += 'PortRcvSwitchRelayErrors:........0\n';
-        // Congestion: high PortXmitWait and PortXmitDiscards on lid 2 (local GPU port)
-        var xwait = (lid === 2) ? 8473291 : 0;
-        var xdisc = (lid === 2) ? 14823 : 0;
+        // Congestion: high PortXmitWait and PortXmitDiscards on lid 2; driven by _portState when seeded
+        var xwait, xdisc;
+        if (ps && ps.counter === 'PortXmitWait') {
+          xwait = ps.base + ps.delta * ps.reads;
+          xdisc = ps.counter2 ? (ps.base2 + ps.delta2 * ps.reads) : (lid === 2 ? 14823 : 0);
+        } else {
+          xwait = (lid === 2) ? 8473291 : 0;
+          xdisc = (lid === 2) ? 14823 : 0;
+        }
         out += 'PortXmitDiscards:................' + xdisc + '\n';
         out += 'PortXmitConstraintErrors:........0\n';
         out += 'PortRcvConstraintErrors:.........0\n';
@@ -304,6 +356,7 @@
         out += 'ExcessiveBufferOverrunErrors:....0\n';
         out += 'VL15Dropped:.....................0\n';
         out += 'PortXmitWait:....................' + xwait + '\n';
+        if (ps && !ps.frozen) { ps.reads++; }
         return out;
       }
     },
@@ -342,6 +395,9 @@
         var lid = parseInt(parsed.args[0], 10) || 2;
         var port = parseInt(parsed.args[1], 10) || 1;
         var c = _perfCounters(lid, port);
+        var ps = _portState[lid];
+        // Compute value using current reads count, THEN increment for next call.
+        // First read returns base (reads=0 -> base + delta*0 = base).
         var out = '# Port counters: Lid ' + lid + ' port ' + port + '\n';
         out += 'PortSelect:......................' + port + '\n';
         out += 'PortXmitData:....................' + c.xmitData + '\n';
@@ -360,16 +416,27 @@
         out += 'PortRcvSwitchRelayErrors:........0\n';
         out += 'PortXmitDiscards:................0\n';
         out += 'PortXmitConstraintErrors:........0\n';
-        // PKey fault: PortRcvConstraintErrors elevated on lid 5
-        var pkey = (lid === 5) ? 9341 : 0;
-        out += 'PortRcvConstraintErrors:.........' + pkey + '\n';
+        // PKey fault: PortRcvConstraintErrors elevated on lid 5; driven by _portState when seeded
+        var pkeyVal;
+        if (ps && ps.counter === 'PortRcvConstraintErrors') {
+          pkeyVal = ps.base + ps.delta * ps.reads;
+        } else {
+          pkeyVal = (lid === 5) ? 9341 : 0;
+        }
+        out += 'PortRcvConstraintErrors:.........' + pkeyVal + '\n';
         out += 'LocalLinkIntegrityErrors:........0\n';
         out += 'ExcessiveBufferOverrunErrors:....0\n';
         out += 'VL15Dropped:.....................0\n';
         out += 'PortXmitWait:....................0\n';
+        if (ps && !ps.frozen) { ps.reads++; }
         return out;
       },
       ibdiagnet: function (parsed) {
+        // If lid 5 port state is frozen (pkey fixed), report clean
+        var ps5 = _portState[5];
+        if (ps5 && ps5.frozen) {
+          return cmdIbdiagnet(parsed);
+        }
         var out = '\n';
         out += '-I- -------------------------\n';
         out += '-I- START: ibdiagnet (fabric diagnostics)\n';
@@ -746,6 +813,27 @@
     if (isNaN(lidNum)) lidNum = 2;
 
     var c = perfCounters(lidNum, parseInt(portArg, 10) || 1);
+
+    // Mutable-counter climb: check _portState for this lid.
+    // Compute value using current reads count, THEN increment for next call.
+    // First read returns base (reads=0 -> base + delta*0 = base).
+    var ps = _portState[lidNum];
+
+    // Compute driven counter values from _portState if seeded (using reads before increment)
+    var driven = {};
+    if (ps) {
+      driven[ps.counter] = ps.base + ps.delta * ps.reads;
+      if (ps.counter2) {
+        driven[ps.counter2] = ps.base2 + ps.delta2 * ps.reads;
+      }
+    }
+    // Increment AFTER computing so next call sees a higher value
+    if (ps && !ps.frozen) { ps.reads++; }
+
+    function dv(field, fallback) {
+      return (driven[field] !== undefined) ? driven[field] : fallback;
+    }
+
     var out = '';
     out += '# Port counters: Lid ' + lidNum + ' port ' + c.portNum + '\n';
     out += 'PortSelect:......................' + c.portNum + '\n';
@@ -757,19 +845,19 @@
     out += 'PortUnicastRcvPkts:..............' + c.rcvPkts + '\n';
     out += 'PortMulticastXmitPkts:...........0\n';
     out += 'PortMulticastRcvPkts:............0\n';
-    out += 'SymbolErrorCounter:..............0\n';
-    out += 'LinkErrorRecoveryCounter:........0\n';
-    out += 'LinkDownedCounter:...............0\n';
+    out += 'SymbolErrorCounter:..............' + dv('SymbolErrorCounter', 0) + '\n';
+    out += 'LinkErrorRecoveryCounter:........' + dv('LinkErrorRecoveryCounter', 0) + '\n';
+    out += 'LinkDownedCounter:...............' + dv('LinkDownedCounter', 0) + '\n';
     out += 'PortRcvErrors:...................0\n';
     out += 'PortRcvRemotePhysicalErrors:.....0\n';
     out += 'PortRcvSwitchRelayErrors:........0\n';
-    out += 'PortXmitDiscards:................0\n';
+    out += 'PortXmitDiscards:................' + dv('PortXmitDiscards', 0) + '\n';
     out += 'PortXmitConstraintErrors:........0\n';
-    out += 'PortRcvConstraintErrors:.........0\n';
+    out += 'PortRcvConstraintErrors:.........' + dv('PortRcvConstraintErrors', 0) + '\n';
     out += 'LocalLinkIntegrityErrors:........0\n';
     out += 'ExcessiveBufferOverrunErrors:....0\n';
     out += 'VL15Dropped:.....................0\n';
-    out += 'PortXmitWait:....................0\n';
+    out += 'PortXmitWait:....................' + dv('PortXmitWait', 0) + '\n';
     return out;
   }
 
@@ -898,17 +986,45 @@
 
     /**
      * setFault(id) -> activate a named fault scenario.
+     * Seeds _portState for faults that have a mutable climb loop.
      * Pass null or call clearFault() to return to free-play.
      */
     setFault: function (id) {
       _activeFault = id || null;
+      // Seed mutable port state for loop faults; reset first so re-seeding is clean.
+      _portState = {};
+      switch (id) {
+        case 'ber':
+          _portState[7] = { counter: 'SymbolErrorCounter', base: 48712, delta: 5200, reads: 0, frozen: false };
+          break;
+        case 'pkey':
+          _portState[5] = { counter: 'PortRcvConstraintErrors', base: 9341, delta: 880, reads: 0, frozen: false };
+          break;
+        case 'congestion':
+          _portState[2] = {
+            counter: 'PortXmitWait', base: 8473291, delta: 240000, reads: 0, frozen: false,
+            counter2: 'PortXmitDiscards', base2: 14823, delta2: 410
+          };
+          break;
+        case 'linkflap':
+          _portState[4] = {
+            counter: 'LinkErrorRecoveryCounter', base: 312, delta: 18, reads: 0, frozen: false,
+            counter2: 'LinkDownedCounter', base2: 47, delta2: 2
+          };
+          break;
+        default:
+          // dualmaster, creditloop, mtu, sharp: no port climb state needed
+          break;
+      }
     },
 
     /**
      * clearFault() -> deactivate any active fault; return to free-play mode.
+     * Resets _portState so next setFault starts fresh.
      */
     clearFault: function () {
       _activeFault = null;
+      _portState = {};
     },
 
     /**
@@ -923,6 +1039,57 @@
      */
     fabric: function () {
       return FABRIC;
+    },
+
+    /**
+     * applyFix(lid, action) -> { ok:boolean, msg:string }
+     * Freezes the climb on lid IFF action is the correct remedy for the active fault.
+     * Correct fix: sets _portState[lid].frozen = true (counter holds, ibdiagnet clean).
+     * Wrong action: returns ok:false, counter keeps climbing.
+     * Special case: 'resolve-sm' for dualmaster clears _activeFault (no climbing port).
+     */
+    applyFix: function (lid, action) {
+      var remedy = REMEDY_MAP[action];
+      if (!remedy) {
+        return { ok: false, msg: 'Unknown action: ' + action };
+      }
+      if (remedy.fault !== _activeFault) {
+        return { ok: false, msg: 'Action "' + action + '" does not address the active fault (' + _activeFault + ')' };
+      }
+      // Special case: dualmaster has no climbing port, just clear the fault
+      if (action === 'resolve-sm') {
+        _activeFault = null;
+        _portState = {};
+        return { ok: true, msg: 'SM priority resolved. Single SMINFO_MASTER confirmed.' };
+      }
+      // For climbing-port faults, check lid matches
+      if (remedy.lid !== lid) {
+        return { ok: false, msg: 'Action "' + action + '" targets lid ' + remedy.lid + ', not lid ' + lid };
+      }
+      var ps = _portState[lid];
+      if (!ps) {
+        return { ok: false, msg: 'No mutable port state found for lid ' + lid };
+      }
+      ps.frozen = true;
+      return { ok: true, msg: 'Fix applied. Counter climb frozen on lid ' + lid + '. Run ibdiagnet to verify clean.' };
+    },
+
+    /**
+     * portFrozen(lid) -> boolean
+     * True once applyFix has frozen the climb on this lid (correct fix was applied).
+     * Used by checkObjectives() for the REVERIFY step.
+     */
+    portFrozen: function (lid) {
+      return !!(_portState[lid] && _portState[lid].frozen);
+    },
+
+    /**
+     * portReads(lid) -> number
+     * Number of times this lid's perfquery has been read while broken.
+     * Objective check uses portReads(lid) >= 2 to confirm "queried twice."
+     */
+    portReads: function (lid) {
+      return _portState[lid] ? _portState[lid].reads : 0;
     }
   };
 

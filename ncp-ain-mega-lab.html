@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>NCP-AIN Mega Lab -- NVIDIA AI Networking Capstone</title>
+<style>
+:root { --ncp: #76B900; --ncp-rgb: 118,185,0; --ncp-light: #A4D65E; --ncp-dark: #5A8C00; }
+
+/* Hide shared chrome -- immersive page */
+.beta-badge,.beta-badge *,#guidePill,.gc-bar,.gc-chat-panel { display: none !important; }
+
+/* Layout */
+.lab-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.lab-page nav.top-nav { flex-shrink: 0; margin-bottom: 0; }
+.lab-workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.top-pane { display: flex; flex: 0 0 auto; min-height: 200px; max-height: 50vh; overflow: hidden; border-bottom: 2px solid var(--ink); }
+.bottom-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+/* Topology */
+.topology-panel { flex: 1; min-width: 0; padding: var(--s-md); display: flex; align-items: center; justify-content: center; background: var(--bg); }
+.topology-panel svg { width: 100%; height: 100%; max-height: 340px; }
+.topo-device { cursor: pointer; }
+.topo-device:hover rect, .topo-device:hover circle { filter: brightness(1.1); }
+.topo-device.selected rect, .topo-device.selected circle {
+  stroke: #F59E0B; stroke-width: 3; filter: drop-shadow(0 0 6px rgba(245,158,11,0.5));
+}
+.topo-link { stroke: var(--ink-muted); stroke-width: 2; fill: none; }
+.topo-link.rail0 { stroke: #76B900; stroke-width: 2; }
+.topo-link.rail1 { stroke: #2563EB; stroke-width: 2; }
+.topo-port-label { font-family: var(--font-mono); font-size: 9px; fill: var(--ink-muted); }
+.topo-device-label { font-family: var(--font-display); font-size: 12px; font-weight: 700; fill: #fff; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.topo-device-sublabel { font-family: var(--font-mono); font-size: 9px; fill: var(--ink-muted); text-anchor: middle; }
+
+/* Objectives panel */
+.objectives-panel {
+  width: 290px; flex-shrink: 0;
+  border-left: 1px solid var(--rule);
+  padding: var(--s-md);
+  overflow-y: auto;
+  background: var(--bg-surface);
+}
+.objectives-panel h3 {
+  font-size: 0.82rem; margin-bottom: var(--s-md);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ncp-dark);
+}
+.obj-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 0; font-family: var(--font-display); font-size: 0.78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+.obj-check {
+  width: 16px; height: 16px; border: 2px solid var(--border-strong);
+  border-radius: 3px; flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: transparent; transition: all 0.2s;
+}
+.obj-item.done .obj-check { border-color: var(--ncp); background: var(--ncp); color: #fff; }
+.obj-item.done .obj-text { color: var(--ink-muted); text-decoration: line-through; }
+.obj-hint-btn {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--ink-muted); background: none; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 2px 6px; cursor: pointer;
+  margin-left: auto; flex-shrink: 0; transition: all var(--transition);
+}
+.obj-hint-btn:hover { border-color: var(--ncp); color: var(--ncp); }
+.hint-toast {
+  margin-top: var(--s-sm); padding: 8px 10px;
+  background: rgba(var(--ncp-rgb),0.08); border-left: 3px solid var(--ncp);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--ncp-dark);
+}
+.obj-progress { margin-top: var(--s-md); padding-top: var(--s-md); border-top: 1px solid var(--border); }
+.obj-progress .progress-text {
+  font-family: var(--font-display); font-size: 0.72rem;
+  color: var(--ink-muted); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.obj-progress-bar { height: 4px; background: var(--bg-recessed); border-radius: 2px; overflow: hidden; }
+.obj-progress-fill { height: 100%; background: var(--ncp); border-radius: 2px; transition: width 0.3s; }
+.hints-remaining { font-family: var(--font-display); font-size: 0.72rem; color: var(--ink-muted); margin-top: var(--s-sm); }
+.lab-complete-banner {
+  margin-top: var(--s-md); padding: 12px;
+  background: rgba(var(--ncp-rgb),0.1); border: 1px solid var(--ncp);
+  border-radius: var(--radius-lg); text-align: center;
+  font-family: var(--font-display); font-size: 0.82rem;
+  font-weight: 600; color: var(--ncp-dark); display: none;
+}
+
+/* Device tabs */
+.device-tabs { flex-shrink: 0; display: flex; gap: 0; border-bottom: 1px solid #292524; background: #292524; }
+.device-tab {
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
+  padding: 8px 16px; cursor: pointer;
+  color: #a8a29e; background: #292524;
+  border: none; border-right: 1px solid #1c1917;
+  transition: all 0.1s;
+}
+.device-tab:hover { color: #76B900; background: #3a3633; }
+.device-tab.active { color: #76B900; background: #1c1917; }
+
+/* Terminal */
+.term-container { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.term-wrap { flex: 1; background: #1c1917; overflow-y: auto; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.5; cursor: text; }
+.term-line { color: #d6d3d1; white-space: pre-wrap; word-break: break-all; }
+.term-line.cmd { color: #fde68a; }
+.term-line.success { color: #4ade80; }
+.term-line.error { color: #f87171; }
+.term-line.info { color: #60a5fa; }
+.term-line.system { color: #76B900; font-style: italic; }
+.term-input-row { display: flex; align-items: center; padding: 0 16px 12px; background: #1c1917; flex-shrink: 0; }
+.term-prompt { color: #a8a29e; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; white-space: pre; flex-shrink: 0; }
+.term-input { flex: 1; background: transparent; border: none; outline: none; color: #fde68a; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; caret-color: #76B900; }
+
+/* Welcome / lab menu */
+.welcome-screen { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-recessed); overflow-y: auto; }
+.welcome-inner { text-align: left; max-width: 640px; padding: var(--s-xl); max-height: 100%; margin: auto; }
+.welcome-inner h2 { font-size: 1.5rem; margin-bottom: var(--s-sm); border: none; padding: 0; color: var(--ncp-dark); }
+.welcome-inner p { color: var(--ink-secondary); font-size: 0.9rem; margin: 0 0 var(--s-md); }
+.ncp-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(var(--ncp-rgb),0.1); border: 1px solid rgba(var(--ncp-rgb),0.3);
+  border-radius: var(--radius); padding: 4px 12px;
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 700;
+  color: var(--ncp-dark); margin-bottom: var(--s-md);
+}
+.ncp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ncp); }
+
+/* Lab menu */
+.lab-menu { max-width: 580px; margin: 0 auto; padding: var(--s-lg) var(--s-md); }
+.lab-menu-header { margin-bottom: var(--s-xl); }
+.lab-menu-header h2 { font-size: 1.8rem; margin-bottom: 6px; border: none; padding: 0; }
+.lab-menu-header p { font-family: var(--font-body); font-size: 0.9rem; color: var(--ink-secondary); line-height: 1.6; }
+.lab-menu-back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+  color: var(--ink-muted); text-decoration: none;
+  margin-bottom: var(--s-md);
+  transition: color var(--transition);
+}
+.lab-menu-back-link:hover { color: var(--ncp); }
+.lab-menu-labs { display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 280px); overflow-y: auto; }
+.lab-menu-lab {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; background: var(--bg-surface);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  cursor: pointer; transition: all 0.15s;
+}
+.lab-menu-lab:hover { border-color: var(--ncp); background: var(--bg-hover); }
+.lab-menu-lab.completed { border-color: rgba(var(--ncp-rgb),0.4); }
+.lml-diff { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.lml-diff.topology { background: #2563EB; }
+.lml-diff.config { background: var(--ncp); }
+.lml-diff.validate { background: #7C3AED; }
+.lml-diff.troubleshoot { background: #DC2626; }
+.lml-info { flex: 1; }
+.lml-name { font-family: var(--font-display); font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
+.lml-detail { font-family: var(--font-body); font-size: 0.78rem; color: var(--ink-secondary); }
+.lml-start { font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--ncp); flex-shrink: 0; }
+.lab-menu-lab.completed .lml-name::after { content: ' \2713'; color: var(--ncp); }
+
+/* Mode badge in minibar */
+.mode-badge {
+  font-family: var(--font-mono); font-size: 0.66rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.mode-badge.topology { background: rgba(37,99,235,0.12); color: #1D4ED8; }
+.mode-badge.config { background: rgba(var(--ncp-rgb),0.12); color: var(--ncp-dark); }
+.mode-badge.validate { background: rgba(124,58,237,0.12); color: #6D28D9; }
+.mode-badge.troubleshoot { background: rgba(220,38,38,0.12); color: #B91C1C; }
+
+/* Mini active-lab bar */
+.lab-minibar {
+  display: none; align-items: center; gap: 12px;
+  padding: 10px var(--s-lg); border-bottom: 1px solid var(--rule);
+  background: var(--bg); flex-shrink: 0;
+}
+.lab-minibar.visible { display: flex; }
+.lab-back-btn {
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 600;
+  color: var(--ink-muted); background: none; border: none; cursor: pointer; padding: 0;
+}
+.lab-back-btn:hover { color: var(--ncp); }
+.lab-name-span { font-family: var(--font-display); font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+
+/* Legend */
+.topo-legend { font-family: var(--font-mono); font-size: 0.68rem; fill: var(--ink-muted); }
+
+@media (max-width: 768px) {
+  .top-pane { flex-direction: column; max-height: 60vh; }
+  .objectives-panel { width: 100%; max-height: 150px; border-left: none; border-top: 1px solid var(--rule); }
+  .term-input { font-size: 16px; }
+  .topology-panel { max-height: 200px; overflow: hidden; }
+}
+</style>
+</head>
+<body>
+<div class="lab-page">
+  <nav class="top-nav"></nav>
+
+  <!-- Mini bar shown when a mission is active -->
+  <div class="lab-minibar" id="labMinibar">
+    <button class="lab-back-btn" id="labBackBtn">&#8592; Missions</button>
+    <span class="lab-name-span" id="miniLabName"></span>
+    <span class="mode-badge" id="miniModeBadge"></span>
+  </div>
+
+  <!-- Workspace -->
+  <div class="lab-workspace" id="labWorkspace">
+
+    <!-- Welcome / mission menu -->
+    <div class="welcome-screen" id="welcomeScreen">
+      <div class="welcome-inner">
+        <div class="lab-menu" id="labMenu">
+          <a class="lab-menu-back-link" href="ncp-ain-hub.html">&#8592; NCP-AIN Hub</a>
+          <div class="lab-menu-header">
+            <div class="ncp-badge"><span class="ncp-dot"></span>NCP-AIN Capstone</div>
+            <h2>Mega Lab</h2>
+            <p>9-mission rail-optimized fabric capstone. Build the fabric, bring up the SM, configure RoCE lossless, validate health, and troubleshoot four fault scenarios using the real IB/NVUE CLI.</p>
+          </div>
+          <div class="lab-menu-labs" id="missionList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active lab state -->
+    <div class="top-pane" id="topPane" style="display:none">
+      <div class="topology-panel" id="topologyPanel">
+        <!-- 8-device rail-optimized fat-tree SVG -->
+        <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" aria-label="8-device rail-optimized IB fabric topology">
+
+          <!-- Legend -->
+          <text x="10" y="14" class="topo-legend">Rail-0 links (mlx5_0)</text>
+          <line x1="130" y1="10" x2="155" y2="10" stroke="#76B900" stroke-width="2"/>
+          <text x="160" y="14" class="topo-legend">Rail-1 links (mlx5_1)</text>
+          <line x1="240" y1="10" x2="265" y2="10" stroke="#2563EB" stroke-width="2"/>
+
+          <!-- Rail-0 links: DGX mlx5_0 -> leaf-0 (green) -->
+          <!-- dgx-01 mlx5_0 -> leaf-0 -->
+          <line x1="95" y1="210" x2="190" y2="155" class="topo-link rail0"/>
+          <!-- dgx-02 mlx5_0 -> leaf-0 -->
+          <line x1="215" y1="210" x2="200" y2="155" class="topo-link rail0"/>
+          <!-- dgx-03 mlx5_0 -> leaf-0 -->
+          <line x1="335" y1="210" x2="210" y2="155" class="topo-link rail0"/>
+          <!-- dgx-04 mlx5_0 -> leaf-0 -->
+          <line x1="455" y1="210" x2="220" y2="155" class="topo-link rail0"/>
+
+          <!-- Rail-1 links: DGX mlx5_1 -> leaf-1 (blue) -->
+          <!-- dgx-01 mlx5_1 -> leaf-1 -->
+          <line x1="110" y1="210" x2="480" y2="155" class="topo-link rail1"/>
+          <!-- dgx-02 mlx5_1 -> leaf-1 -->
+          <line x1="230" y1="210" x2="490" y2="155" class="topo-link rail1"/>
+          <!-- dgx-03 mlx5_1 -> leaf-1 -->
+          <line x1="350" y1="210" x2="500" y2="155" class="topo-link rail1"/>
+          <!-- dgx-04 mlx5_1 -> leaf-1 -->
+          <line x1="470" y1="210" x2="510" y2="155" class="topo-link rail1"/>
+
+          <!-- Leaf to spine links -->
+          <line x1="205" y1="130" x2="285" y2="65" class="topo-link" stroke="#a8a29e" stroke-width="1.5"/>
+          <line x1="205" y1="130" x2="415" y2="65" class="topo-link" stroke="#a8a29e" stroke-width="1.5"/>
+          <line x1="495" y1="130" x2="285" y2="65" class="topo-link" stroke="#a8a29e" stroke-width="1.5"/>
+          <line x1="495" y1="130" x2="415" y2="65" class="topo-link" stroke="#a8a29e" stroke-width="1.5"/>
+
+          <!-- UFM/SM to spine-0 -->
+          <line x1="285" y1="65" x2="350" y2="30" class="topo-link" stroke="#a8a29e" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+          <!-- UFM/SM host (circle, blue, lid 1 SM) -->
+          <g class="topo-device" id="topo-ufm-sm" data-device="ufm-sm">
+            <circle cx="350" cy="22" r="18" fill="#2563EB" stroke="#1D4ED8" stroke-width="1.5"/>
+            <text x="350" y="22" class="topo-device-label" font-size="8">UFM/SM</text>
+          </g>
+
+          <!-- spine-0 (QM9700 NDR, green) -->
+          <g class="topo-device" id="topo-spine-0" data-device="spine-0">
+            <rect x="240" y="45" width="90" height="36" rx="4" fill="#16A34A" stroke="#15803D" stroke-width="1.5"/>
+            <text x="285" y="63" class="topo-device-label">spine-0</text>
+          </g>
+
+          <!-- spine-1 (drawn for fat-tree realism, not a clickable tab) -->
+          <g id="topo-spine-1-static">
+            <rect x="370" y="45" width="90" height="36" rx="4" fill="#15803D" stroke="#166534" stroke-width="1" stroke-dasharray="3,2"/>
+            <text x="415" y="63" class="topo-device-label" font-size="10" opacity="0.7">spine-1</text>
+          </g>
+
+          <!-- leaf-0 (QM9700, rail-0 leaf, green) -->
+          <g class="topo-device" id="topo-leaf-0" data-device="leaf-0">
+            <rect x="160" y="118" width="90" height="34" rx="4" fill="#16A34A" stroke="#15803D" stroke-width="1.5"/>
+            <text x="205" y="135" class="topo-device-label">leaf-0</text>
+          </g>
+
+          <!-- leaf-1 (QM9700, rail-1 leaf, blue-green) -->
+          <g class="topo-device" id="topo-leaf-1" data-device="leaf-1">
+            <rect x="450" y="118" width="90" height="34" rx="4" fill="#0D9488" stroke="#0F766E" stroke-width="1.5"/>
+            <text x="495" y="135" class="topo-device-label">leaf-1</text>
+          </g>
+
+          <!-- DGX nodes (compute, 92x50) -->
+          <!-- dgx-01 -->
+          <g class="topo-device" id="topo-dgx-01" data-device="dgx-01">
+            <rect x="48" y="196" width="92" height="50" rx="4" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+            <text x="94" y="218" class="topo-device-label" font-size="11">dgx-01</text>
+            <text x="94" y="233" class="topo-device-sublabel">DGX H100</text>
+          </g>
+
+          <!-- dgx-02 -->
+          <g class="topo-device" id="topo-dgx-02" data-device="dgx-02">
+            <rect x="168" y="196" width="92" height="50" rx="4" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+            <text x="214" y="218" class="topo-device-label" font-size="11">dgx-02</text>
+            <text x="214" y="233" class="topo-device-sublabel">DGX H100</text>
+          </g>
+
+          <!-- dgx-03 -->
+          <g class="topo-device" id="topo-dgx-03" data-device="dgx-03">
+            <rect x="288" y="196" width="92" height="50" rx="4" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+            <text x="334" y="218" class="topo-device-label" font-size="11">dgx-03</text>
+            <text x="334" y="233" class="topo-device-sublabel">DGX H100</text>
+          </g>
+
+          <!-- dgx-04 -->
+          <g class="topo-device" id="topo-dgx-04" data-device="dgx-04">
+            <rect x="408" y="196" width="92" height="50" rx="4" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+            <text x="454" y="218" class="topo-device-label" font-size="11">dgx-04</text>
+            <text x="454" y="233" class="topo-device-sublabel">DGX H100</text>
+          </g>
+
+          <!-- Port labels: rail-0 -->
+          <text x="80" y="200" class="topo-port-label">mlx5_0</text>
+          <text x="200" y="200" class="topo-port-label">mlx5_0</text>
+          <text x="320" y="200" class="topo-port-label">mlx5_0</text>
+          <text x="440" y="200" class="topo-port-label">mlx5_0</text>
+
+          <!-- Port labels: rail-1 -->
+          <text x="105" y="207" class="topo-port-label" fill="#60a5fa">mlx5_1</text>
+          <text x="225" y="207" class="topo-port-label" fill="#60a5fa">mlx5_1</text>
+          <text x="345" y="207" class="topo-port-label" fill="#60a5fa">mlx5_1</text>
+          <text x="465" y="207" class="topo-port-label" fill="#60a5fa">mlx5_1</text>
+
+          <!-- Port count label leaf-0 -->
+          <text x="163" y="160" class="topo-port-label">swp1-4</text>
+          <!-- Port count label leaf-1 -->
+          <text x="453" y="160" class="topo-port-label">swp1-4</text>
+        </svg>
+      </div>
+      <div class="objectives-panel" id="objectivesPanel">
+        <h3 id="objPanelTitle">Objectives</h3>
+        <div id="objList"></div>
+        <div class="obj-progress" id="objProgress" style="display:none">
+          <div class="progress-text" id="objProgressText"></div>
+          <div class="obj-progress-bar"><div class="obj-progress-fill" id="objProgressFill" style="width:0%"></div></div>
+          <div class="hints-remaining" id="hintsRemaining"></div>
+          <div class="lab-complete-banner" id="labCompleteBanner">Mission complete! Well done.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-pane" id="bottomPane" style="display:none">
+      <div class="device-tabs" id="deviceTabs"></div>
+      <div class="term-container" id="termContainer">
+        <div class="term-wrap" id="termOutput"></div>
+        <div class="term-input-row">
+          <span class="term-prompt" id="termPrompt"></span>
+          <input type="text" class="term-input" id="termInput" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="terminal command input">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/lab-engine.js"></script>
+<script defer src="js/ib-tools.js"></script>
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+'use strict';
+
+// ============================================================
+// FROZEN INTERFACE DOCUMENTATION (Agents B / C / D code to this)
+// ============================================================
+//
+// OBJECTIVE SCHEMA (one per step, rendered into #objectivesPanel):
+//   { index:Number, text:String, hint:String, done:Boolean }
+//
+// checkObjectives() calls lab.completeObjective(index) when the step predicate is true.
+// Predicates read:
+//   - dev.custom.<flag>           for shell steps
+//   - IBTools.portFrozen(lid)     for fix steps
+//   - IBTools.activeFault()       for SM-state steps
+//   - IBTools.portReads(lid) >= 2 for counter re-read steps
+//
+// MISSION SCHEMA (MEGA_LABS[] entry):
+//   {
+//     id:        String,        // 'm1-place-wire'
+//     name:      String,        // 'M1 - Place & Wire the Fabric'
+//     device:    String,        // default active device tab for this mission
+//     startMode: String,        // 'topology' | 'config' | 'validate' | 'troubleshoot'
+//     fault:     String|null,   // IBTools fault id for troubleshoot missions, else null
+//     steps: [
+//       { device:String, objective:String, hint:String, cmd:String, action:String|null }
+//       // action: non-null only on a FIX step; passed to IBTools.applyFix
+//     ]
+//   }
+//
+// DEVICE-ADD CONTRACT:
+//   lab.addDevice(name, type, { shellPromptFormat, commandMap, custom });
+//   commandMap entries are merged from LINUX_CMDMAP (Agent C) and NVUE_CMDMAP (Agent D).
+//
+// ============================================================
+
+// ===== REGION:MEGA_LABS (Agent B owns) =====
+/* === MEGA_LABS DATA (Agent B) ===
+   NCP-AIN Mega Lab. 9 missions matching the Mission schema exactly.
+   cmd strings and flags match the contract cmd->flag table.
+   No em dashes or en dashes anywhere in this file.
+   Hints point at concepts only; never print the exact command or value.
+*/
+
+var MEGA_LABS = [
+
+  /* ------------------------------------------------------------------ */
+  /* M1 -- Place and Wire the Fabric                                      */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm1-place-wire',
+    name: 'M1 - Place and Wire the Fabric',
+    device: 'ufm-sm',
+    startMode: 'topology',
+    fault: null,
+    steps: [
+      {
+        device: 'ufm-sm',
+        objective: 'Discover all 8 hosts in the fabric',
+        hint: 'Run the tool that maps the full subnet topology from the SM host.',
+        cmd: 'ibnetdiscover',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Confirm all rail links are Active/LinkUp',
+        hint: 'There is a command that lists every switch port along with its peer state and speed.',
+        cmd: 'iblinkinfo',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Verify both rails present (mlx5_0 to leaf-0, mlx5_1 to leaf-1)',
+        hint: 'A command lists every HCA (host channel adapter) on the fabric by GUID and name.',
+        cmd: 'ibhosts',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M2 -- Bring Up the Subnet Manager                                   */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm2-sm-bringup',
+    name: 'M2 - Bring Up the Subnet Manager',
+    device: 'ufm-sm',
+    startMode: 'config',
+    fault: null,
+    steps: [
+      {
+        device: 'ufm-sm',
+        objective: 'Start the OpenSM subnet manager service',
+        hint: 'OpenSM is managed as a systemd service; start it the standard way.',
+        cmd: 'systemctl start opensm',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Set SM priority to 15 so it wins master election',
+        hint: 'The SM binary accepts a priority flag; the maximum priority value is 15.',
+        cmd: 'opensm -p 15',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Confirm SMINFO_MASTER state',
+        hint: 'Query the SM state directly; the state field should read MASTER.',
+        cmd: 'sminfo',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M3 -- Set the PKey Partition                                        */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm3-pkey-partition',
+    name: 'M3 - Set the PKey Partition',
+    device: 'ufm-sm',
+    startMode: 'config',
+    fault: null,
+    steps: [
+      {
+        device: 'ufm-sm',
+        objective: 'Register compute partition 0x8001 with FULL membership',
+        hint: 'saquery can register a partition key; the partition value for compute is just above 0x8000.',
+        cmd: 'saquery -p 0x8001',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Confirm all 4 DGX nodes are FULL members on 0x8001',
+        hint: 'Re-run the partition query with the flag that shows per-port membership.',
+        cmd: 'saquery --pkey',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M4 -- Configure RoCE Lossless on leaf-0                            */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm4-roce-lossless',
+    name: 'M4 - Configure RoCE Lossless on leaf-0',
+    device: 'leaf-0',
+    startMode: 'config',
+    fault: null,
+    steps: [
+      {
+        device: 'leaf-0',
+        objective: 'Enable RoCE lossless mode on the leaf switch',
+        hint: 'The NVUE qos roce subtree has a mode setting; lossless is the value for a no-drop fabric.',
+        cmd: 'nv set qos roce mode lossless',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Set PFC pause on priority 3 (TX and RX)',
+        hint: 'RoCE traffic is mapped to a specific priority; PFC must be enabled on that priority in both directions.',
+        cmd: 'nv set qos roce pfc-priority 3',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Set ECN/DCQCN trust mode to pcp,dscp',
+        hint: 'Trusting both L2 and L3 markings requires a combined trust value, not just one.',
+        cmd: 'nv set qos roce trust pcp,dscp',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Apply the candidate RoCE configuration',
+        hint: 'NVUE uses a two-stage model; after setting values, a separate step commits them.',
+        cmd: 'nv config apply',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Verify the applied RoCE configuration block',
+        hint: 'Show the operational RoCE subtree to confirm all settings took effect.',
+        cmd: 'nv show qos roce',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M5 -- Validate Fabric Health                                        */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm5-validate',
+    name: 'M5 - Validate Fabric Health',
+    device: 'dgx-01',
+    startMode: 'validate',
+    fault: null,
+    steps: [
+      {
+        device: 'dgx-01',
+        objective: 'Run full fabric diagnostics and confirm 0 critical errors',
+        hint: 'The IB diagnostic tool sweeps the entire fabric and reports BER, routing, and link errors.',
+        cmd: 'ibdiagnet',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Validate per-link bandwidth at NDR line rate',
+        hint: 'A bandwidth benchmark tool can target a specific peer by hostname; NDR should reach near 400 Gb/s.',
+        cmd: 'ib_write_bw dgx-02',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Confirm SHARP aggregation tree is built',
+        hint: 'Run ibdiagnet with the flag that specifically validates the in-network aggregation tree.',
+        cmd: 'ibdiagnet --sharp',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Run NCCL all-reduce collective and check busbw',
+        hint: 'The NCCL performance test for collectives reports bus bandwidth; look for the all-reduce variant.',
+        cmd: 'nccl all_reduce_perf',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M6 -- Troubleshoot: Bad Cable / BER (mutable loop, fault ber)      */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm6-ber',
+    name: 'M6 - Troubleshoot: Bad Cable / BER',
+    device: 'dgx-03',
+    startMode: 'troubleshoot',
+    fault: 'ber',
+    steps: [
+      {
+        device: 'dgx-03',
+        objective: 'Spot the degraded link using full fabric diagnostics',
+        hint: 'Full diagnostics flags ports whose bit-error rate exceeds the threshold.',
+        cmd: 'ibdiagnet',
+        action: null
+      },
+      {
+        device: 'dgx-03',
+        objective: 'Confirm SymbolErrorCounter is climbing on lid 7 (read it twice)',
+        hint: 'A per-port counter query can target a specific lid; run it more than once and watch the value grow.',
+        cmd: 'perfquery 7 1',
+        action: null
+      },
+      {
+        device: 'dgx-03',
+        objective: 'Replace the faulty cable on lid 7',
+        hint: 'A physical link reset is the remedy for a hardware BER fault; target the specific lid.',
+        cmd: 'ibreset 7',
+        action: 'replace-cable'
+      },
+      {
+        device: 'dgx-03',
+        objective: 'Reverify: counter delta frozen and ibdiagnet clean',
+        hint: 'After the fix, re-read the same port counter and re-run diagnostics; the delta should stop climbing.',
+        cmd: 'perfquery 7 1',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M7 -- Troubleshoot: SM Dual-Master (mutable loop, fault dualmaster) */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm7-dualmaster',
+    name: 'M7 - Troubleshoot: SM Dual-Master',
+    device: 'ufm-sm',
+    startMode: 'troubleshoot',
+    fault: 'dualmaster',
+    steps: [
+      {
+        device: 'ufm-sm',
+        objective: 'Detect two MASTER SMs on the fabric',
+        hint: 'The SM info query will show the current master; a dual-master condition appears as conflicting entries.',
+        cmd: 'sminfo',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Lower the rogue SM priority so one master wins',
+        hint: 'Set the standby SM to a priority lower than the intended master; only one can hold the top value.',
+        cmd: 'opensm -p 5',
+        action: 'resolve-sm'
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Reverify: single SMINFO_MASTER',
+        hint: 'Re-query the SM state; there should now be exactly one master.',
+        cmd: 'sminfo',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M8 -- Troubleshoot: PKey Mismatch (mutable loop, fault pkey)       */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm8-pkey',
+    name: 'M8 - Troubleshoot: PKey Mismatch',
+    device: 'dgx-02',
+    startMode: 'troubleshoot',
+    fault: 'pkey',
+    steps: [
+      {
+        device: 'dgx-02',
+        objective: 'Spot PKey membership warning in fabric diagnostics',
+        hint: 'Full diagnostics reports partition membership conflicts; look for FULL vs LIMITED discrepancies.',
+        cmd: 'ibdiagnet',
+        action: null
+      },
+      {
+        device: 'dgx-02',
+        objective: 'Confirm PortRcvConstraintErrors climbing on lid 5 (read it twice)',
+        hint: 'Constraint errors on receive indicate dropped traffic due to partition mismatch; query that lid.',
+        cmd: 'perfquery 5 1',
+        action: null
+      },
+      {
+        device: 'dgx-02',
+        objective: 'Fix: re-register lid 5 as FULL member on partition 0x8001',
+        hint: 'Re-register the partition with the same tool used in M3; the membership type matters.',
+        cmd: 'saquery -p 0x8001',
+        action: 'fix-pkey'
+      },
+      {
+        device: 'dgx-02',
+        objective: 'Reverify: constraint-error delta frozen and ibdiagnet clean',
+        hint: 'Re-read the same counter on lid 5 and re-run diagnostics; the errors should stop accumulating.',
+        cmd: 'perfquery 5 1',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M9 -- Troubleshoot: Congestion / Incast (mutable loop, fault cong) */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm9-congestion',
+    name: 'M9 - Troubleshoot: Congestion / Incast',
+    device: 'dgx-01',
+    startMode: 'troubleshoot',
+    fault: 'congestion',
+    steps: [
+      {
+        device: 'dgx-01',
+        objective: 'Confirm PortXmitWait climbing on lid 2 (read it twice)',
+        hint: 'Transmit-wait counters indicate backpressure; query that specific lid and watch the value rise.',
+        cmd: 'perfquery 2 1',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Fix: lower the ECN min-threshold on leaf-0 RoCE config and apply',
+        hint: 'DCQCN reacts to congestion earlier when the ECN marking threshold is reduced; apply after setting.',
+        cmd: 'nv set qos roce congestion-control min-threshold 146',
+        action: 'fix-congestion'
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Reverify: XmitWait delta frozen on lid 2',
+        hint: 'Re-read the same wait counter on lid 2; once congestion clears the value should hold steady.',
+        cmd: 'perfquery 2 1',
+        action: null
+      }
+    ]
+  }
+
+]; /* === END MEGA_LABS DATA (Agent B) === */
+
+// ===== END REGION:MEGA_LABS =====
+
+// ===== REGION:LINUX_CMDMAP (Agent C owns) =====
+/* region-linux-cmdmap.js
+   Agent C output -- NCP-AIN Mega Lab
+   Devices: ufm-sm, dgx-01, dgx-02, dgx-03, dgx-04
+   IB diag commands (ibstat/ibstatus/iblinkinfo/ibhosts/ibnetdiscover/ibdiagnet/perfquery/sminfo/ibping/ibportstate)
+   are NOT here -- the engine delegates those to window.IBTools.run(raw).
+   No em/en dashes. Pure JS object literal.
+*/
+var LINUX_CMDMAP = {
+
+  /* ----------------------------------------------------------------
+     SM lifecycle -- ufm-sm
+  ---------------------------------------------------------------- */
+  'systemctl start opensm': function (dev, raw, lower) {
+    dev.custom.smStarted = true;
+    return [
+      'Starting opensm.service - OpenSM InfiniBand Subnet Manager...',
+      '[  OK  ] Started OpenSM InfiniBand Subnet Manager.',
+    ].join('\n');
+  },
+
+  'systemctl start opensm.service': function (dev, raw, lower) {
+    dev.custom.smStarted = true;
+    return [
+      'Starting opensm.service - OpenSM InfiniBand Subnet Manager...',
+      '[  OK  ] Started OpenSM InfiniBand Subnet Manager.',
+    ].join('\n');
+  },
+
+  'opensm -p 15': function (dev, raw, lower) {
+    dev.custom.smStarted = true;
+    dev.custom.smPriority15 = true;
+    return [
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: OpenSM 5.15.0.0',
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: Loading Subnet Manager (priority 15, guid 0xe41d2d03007c0010)',
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: SM port is 0xe41d2d03007c0010',
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: Entering DISCOVERY state',
+      'Jun 21 08:44:13 ufm-sm opensm[18334]: Entering ROUTING state',
+      'Jun 21 08:44:13 ufm-sm opensm[18334]: Entering MASTER state',
+      '                 (opensm running in foreground -- Ctrl-C to stop)',
+    ].join('\n');
+  },
+
+  'systemctl status opensm': function (dev, raw, lower) {
+    if (!dev.custom.smStarted) {
+      return [
+        'opensm.service - OpenSM InfiniBand Subnet Manager',
+        '   Loaded: loaded (/lib/systemd/system/opensm.service; enabled)',
+        '   Active: inactive (dead)',
+      ].join('\n');
+    }
+    var pri = dev.custom.smPriority15 ? '15' : '14';
+    return [
+      'opensm.service - OpenSM InfiniBand Subnet Manager',
+      '   Loaded: loaded (/lib/systemd/system/opensm.service; enabled)',
+      '   Active: active (running) since Sat 2026-06-21 08:44:13 UTC; 1min ago',
+      ' Main PID: 18334 (opensm)',
+      '   CGroup: /system.slice/opensm.service',
+      '           18334 /usr/sbin/opensm -p ' + pri + ' -f /var/log/opensm.log',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     saquery -- SA partition queries
+     saquery is NOT in the IB-diag delegation list, so it lives here.
+  ---------------------------------------------------------------- */
+  'saquery -p 0x8001': function (dev, raw, lower) {
+    if (!dev.custom.smStarted) {
+      return 'saquery: Cannot connect to SA. SM not running. Start opensm first.';
+    }
+    dev.custom.sakeySet = true;
+    return [
+      'PortRecord:',
+      '  GUID: 0xe41d2d03007c0001  PKey: 0x8001  MemberType: FULL',
+      '  GUID: 0xe41d2d03007c0011  PKey: 0x8001  MemberType: FULL',
+      '  GUID: 0xe41d2d03007c0021  PKey: 0x8001  MemberType: FULL',
+      '  GUID: 0xe41d2d03007c0031  PKey: 0x8001  MemberType: FULL',
+      'PKey 0x8001: all registered compute nodes set to FULL membership.',
+      'Total of 4 records returned.',
+    ].join('\n');
+  },
+
+  'saquery --pkey': function (dev, raw, lower) {
+    if (!dev.custom.smStarted) {
+      return 'saquery: Cannot connect to SA. SM not running. Start opensm first.';
+    }
+    dev.custom.pkeyConfirmed = true;
+    return [
+      'PartitionRecord dump:',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x7fff',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0001',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x7fff',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0011',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x8001',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0001',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x8001',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0011',
+      '',
+      '  (entries for dgx-03 and dgx-04 omitted for brevity -- all show 0x8001 full member)',
+      '',
+      'Total of 10 records returned.',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     ib_write_bw -- RDMA write bandwidth test (NDR, ~380 Gb/s)
+     Contract key: "ib_write_bw dgx-02" sets bwDone.
+     The engine also passes "ib_write_bw ..." variants; match both.
+  ---------------------------------------------------------------- */
+  'ib_write_bw dgx-02': function (dev, raw, lower) {
+    dev.custom.bwDone = true;
+    var peer = raw.replace(/^ib_write_bw\s*/i, '').trim() || '(server mode)';
+    return [
+      '',
+      ' ib_write_bw: InfiniBand Write Bandwidth Test',
+      ' Dual-port       : OFF          Device         : mlx5_0',
+      ' Number of qps   : 1            Transport type : IB',
+      ' Connection type : RC           Using SRQ      : OFF',
+      ' CQ Moderation   : 100',
+      ' Link type       : IB           Mtu            : 4096[B]',
+      ' Max inline data : 0[B]         QP timeout     : 14',
+      ' Peer            : ' + peer,
+      '',
+      '---------------------------------------------------------------------------------------',
+      ' #bytes     #iterations    BW peak[Gb/sec]    BW average[Gb/sec]   MsgRate[Mpps]',
+      ' 65536       5000             383.20              382.94              0.729781',
+      '---------------------------------------------------------------------------------------',
+      '',
+      ' Result: 382.94 Gb/sec  (NDR 400G expected range: 380-388 Gb/s)  PASS',
+    ].join('\n');
+  },
+
+  /* Alias so bare "ib_write_bw" or "ib_write_bw <any peer>" also sets bwDone */
+  'ib_write_bw': function (dev, raw, lower) {
+    dev.custom.bwDone = true;
+    var peer = raw.replace(/^ib_write_bw\s*/i, '').trim() || '(server mode)';
+    return [
+      '',
+      ' ib_write_bw: InfiniBand Write Bandwidth Test',
+      ' Dual-port       : OFF          Device         : mlx5_0',
+      ' Number of qps   : 1            Transport type : IB',
+      ' Connection type : RC           Using SRQ      : OFF',
+      ' CQ Moderation   : 100',
+      ' Link type       : IB           Mtu            : 4096[B]',
+      ' Max inline data : 0[B]         QP timeout     : 14',
+      ' Peer            : ' + peer,
+      '',
+      '---------------------------------------------------------------------------------------',
+      ' #bytes     #iterations    BW peak[Gb/sec]    BW average[Gb/sec]   MsgRate[Mpps]',
+      ' 65536       5000             383.20              382.94              0.729781',
+      '---------------------------------------------------------------------------------------',
+      '',
+      ' Result: 382.94 Gb/sec  (NDR 400G expected range: 380-388 Gb/s)  PASS',
+    ].join('\n');
+  },
+
+  /* Engine wildcard alias */
+  'ib_write_bw ...': function (dev, raw, lower) {
+    dev.custom.bwDone = true;
+    var peer = raw.replace(/^ib_write_bw\s*/i, '').trim() || '(server mode)';
+    return [
+      '',
+      ' ib_write_bw: InfiniBand Write Bandwidth Test',
+      ' Dual-port       : OFF          Device         : mlx5_0',
+      ' Number of qps   : 1            Transport type : IB',
+      ' Connection type : RC           Using SRQ      : OFF',
+      ' CQ Moderation   : 100',
+      ' Link type       : IB           Mtu            : 4096[B]',
+      ' Max inline data : 0[B]         QP timeout     : 14',
+      ' Peer            : ' + peer,
+      '',
+      '---------------------------------------------------------------------------------------',
+      ' #bytes     #iterations    BW peak[Gb/sec]    BW average[Gb/sec]   MsgRate[Mpps]',
+      ' 65536       5000             383.20              382.94              0.729781',
+      '---------------------------------------------------------------------------------------',
+      '',
+      ' Result: 382.94 Gb/sec  (NDR 400G expected range: 380-388 Gb/s)  PASS',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     nccl all_reduce_perf -- collective busbw test
+     Contract key: "nccl all_reduce_perf" sets ncclDone.
+     Pass threshold = busbw >= 92% of 400G line rate (368 Gb/s).
+     Realistic output: 371.94 Gb/s = 92.98% -- PASS.
+  ---------------------------------------------------------------- */
+  'nccl all_reduce_perf': function (dev, raw, lower) {
+    dev.custom.ncclDone = true;
+    return [
+      '',
+      'NCCL all_reduce_perf',
+      '#                                                              out-of-place                 in-place',
+      '#    size         count    type    redop   root   time   algbw   busbw #wrong time   algbw   busbw #wrong',
+      ' 1073741824    268435456   float     sum      -1   5.43  197.83  371.94  N/A   5.44  197.47  371.26  N/A',
+      '',
+      'busbw: 371.94 Gb/s   (92.98% of 400G line rate) -- PASS',
+    ].join('\n');
+  },
+
+  /* Engine wildcard alias */
+  'nccl all_reduce_perf ...': function (dev, raw, lower) {
+    dev.custom.ncclDone = true;
+    return [
+      '',
+      'NCCL all_reduce_perf',
+      '#                                                              out-of-place                 in-place',
+      '#    size         count    type    redop   root   time   algbw   busbw #wrong time   algbw   busbw #wrong',
+      ' 1073741824    268435456   float     sum      -1   5.43  197.83  371.94  N/A   5.44  197.47  371.26  N/A',
+      '',
+      'busbw: 371.94 Gb/s   (92.98% of 400G line rate) -- PASS',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     Shell utilities -- shared across ufm-sm and dgx-* nodes
+  ---------------------------------------------------------------- */
+  'pwd': '/root',
+
+  'ls': 'bin  etc  home  lib  proc  run  sys  tmp  usr  var',
+
+  'whoami': 'root',
+
+  'hostname': function (dev, raw, lower) {
+    return (dev && dev.name) ? dev.name : 'ufm-sm';
+  },
+
+  'uname': 'Linux',
+
+  'uname -a': function (dev, raw, lower) {
+    var h = (dev && dev.name) ? dev.name : 'ufm-sm';
+    return 'Linux ' + h + ' 5.15.0-102-generic #112-Ubuntu SMP x86_64 GNU/Linux';
+  },
+
+  'uname -r': '5.15.0-102-generic',
+
+  /* Wildcard alias catches "uname -a", "uname -r", etc. not listed above */
+  'uname ...': function (dev, raw, lower) {
+    var h = (dev && dev.name) ? dev.name : 'ufm-sm';
+    if (lower.indexOf('-a') !== -1) return 'Linux ' + h + ' 5.15.0-102-generic #112-Ubuntu SMP x86_64 GNU/Linux';
+    if (lower.indexOf('-r') !== -1) return '5.15.0-102-generic';
+    return 'Linux';
+  },
+
+  'date': function (dev, raw, lower) {
+    return new Date().toUTCString();
+  },
+
+  'clear': function (dev, raw, lower) {
+    /* The engine is expected to call terminal.clear() when it sees '' returned
+       from a function -- matching the pattern in bringup-lab and fabric-lab. */
+    if (dev && dev._terminal && typeof dev._terminal.clear === 'function') {
+      dev._terminal.clear();
+    }
+    return '';
+  },
+
+  'help': [
+    'NCP-AIN Mega Lab -- Linux shell commands (ufm-sm / dgx-01..04)',
+    '',
+    'SM lifecycle (ufm-sm):',
+    '  systemctl start opensm    Start the OpenSM Subnet Manager service',
+    '  opensm -p 15              Launch opensm in foreground, priority 15 (master election)',
+    '  systemctl status opensm   Check SM service state',
+    '',
+    'Partition management:',
+    '  saquery -p 0x8001         Register compute PKey (sets sakeySet)',
+    '  saquery --pkey            Dump partition table; confirm 0x8001 full member (sets pkeyConfirmed)',
+    '',
+    'Bandwidth / collectives (dgx-* nodes):',
+    '  ib_write_bw dgx-02        RDMA write BW test to dgx-02 (NDR: expect ~380 Gb/s)',
+    '  nccl all_reduce_perf      NCCL all-reduce busbw test (pass: 92%+ of 400G line rate)',
+    '',
+    'IB diagnostics (delegated to IBTools):',
+    '  ibstat / ibstatus         Local HCA state',
+    '  iblinkinfo                Per-port link table',
+    '  ibhosts                   Fabric CA list',
+    '  ibnetdiscover             Topology walk',
+    '  ibdiagnet                 Full fabric health scan',
+    '  sminfo                    SM GUID / priority / state',
+    '  perfquery                 Port performance counters',
+    '  ibping / ibportstate      IB path and port-state tools',
+    '',
+    'Utilities:',
+    '  pwd / ls / whoami / hostname / uname [-a|-r] / date / clear',
+  ].join('\n'),
+
+  '?': [
+    'NCP-AIN Mega Lab -- Linux shell commands (ufm-sm / dgx-01..04)',
+    '',
+    'SM lifecycle (ufm-sm):',
+    '  systemctl start opensm    Start the OpenSM Subnet Manager service',
+    '  opensm -p 15              Launch opensm in foreground, priority 15 (master election)',
+    '  systemctl status opensm   Check SM service state',
+    '',
+    'Partition management:',
+    '  saquery -p 0x8001         Register compute PKey (sets sakeySet)',
+    '  saquery --pkey            Dump partition table; confirm 0x8001 full member (sets pkeyConfirmed)',
+    '',
+    'Bandwidth / collectives (dgx-* nodes):',
+    '  ib_write_bw dgx-02        RDMA write BW test to dgx-02 (NDR: expect ~380 Gb/s)',
+    '  nccl all_reduce_perf      NCCL all-reduce busbw test (pass: 92%+ of 400G line rate)',
+    '',
+    'IB diagnostics (delegated to IBTools):',
+    '  ibstat / ibstatus / iblinkinfo / ibhosts / ibnetdiscover',
+    '  ibdiagnet / sminfo / perfquery / ibping / ibportstate',
+    '',
+    'Utilities:',
+    '  pwd / ls / whoami / hostname / uname [-a|-r] / date / clear',
+  ].join('\n'),
+
+};
+
+// ===== END REGION:LINUX_CMDMAP =====
+
+// ===== REGION:NVUE_CMDMAP (Agent D owns) =====
+/* region-nvue-cmdmap.js
+   NVUE_CMDMAP for leaf-0 and leaf-1 NVUE shell devices (NCP-AIN mega lab).
+   Contract: /tmp/claude/megalab-contract.md
+   cmd->flag pairs satisfied:
+     "nv set qos roce mode lossless" -> roceLossless
+     pfc priority cmd                -> rocePfc
+     "nv set ... trust pcp,dscp"     -> roceTrust
+     "nv config apply"               -> nvueApplied
+     "nv show qos roce"              -> roceShowDone
+   Outputs are verbatim/consistent with ncp-ain-spectrum-lab.html where noted.
+   NO em dashes or en dashes anywhere in this file.
+*/
+
+var NVUE_CMDMAP = {
+
+  /* ======================================================================
+     SET commands -- stage changes, set flags, return staging confirmation
+     ====================================================================== */
+
+  'nv set qos roce mode lossless': function (dev, raw, lower) {
+    dev.custom.roceLossless = true;
+    return [
+      'staged: nv set qos roce mode lossless',
+      '',
+      'Change is pending. Run "nv config diff" to review, then "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* Accept "nv set qos roce pfc priority 3" (spec-lab canonical form).
+     Also accept the longer "nv set qos roce pfc-priority 3" variant so
+     both spellings tick the objective. */
+  'nv set qos roce pfc priority 3': function (dev, raw, lower) {
+    dev.custom.rocePfc = true;
+    return [
+      'staged: nv set qos roce pfc priority 3',
+      '',
+      'PFC priority 3 staged for RoCEv2 lossless queue.',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  'nv set qos roce pfc-priority 3': function (dev, raw, lower) {
+    dev.custom.rocePfc = true;
+    return [
+      'staged: nv set qos roce pfc-priority 3',
+      '',
+      'PFC priority 3 staged for RoCEv2 lossless queue.',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* Trust command -- key contains "pcp,dscp" which matches contract flag. */
+  'nv set qos roce trust pcp,dscp': function (dev, raw, lower) {
+    dev.custom.roceTrust = true;
+    return [
+      'staged: nv set qos roce trust pcp,dscp',
+      '',
+      'Trust mode pcp,dscp staged. Both PCP (L2) and DSCP (L3) markings will',
+      'be honored for traffic classification.',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* General qos roce staging (no flag -- exploration only) */
+  'nv set qos roce': function (dev, raw, lower) {
+    return [
+      'staged: nv set qos roce',
+      '',
+      'Change is pending. Run "nv config diff" to review, then "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  'nv set qos roce mode lossy': function (dev, raw, lower) {
+    return [
+      'staged: nv set qos roce mode lossy',
+      '',
+      'WARNING: lossy mode disables PFC. RoCEv2 traffic will not be lossless.',
+      'Run "nv config apply" to activate, or "nv config detach" to discard.',
+    ].join('\n');
+  },
+
+  'nv set qos roce cable-length 100': function (dev, raw, lower) {
+    return [
+      'staged: nv set qos roce cable-length 100',
+      '',
+      'Cable length 100m staged for PFC headroom calculation.',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  'nv set qos roce congestion-control min-threshold 146': function (dev, raw, lower) {
+    return [
+      'staged: nv set qos roce congestion-control min-threshold 146',
+      '',
+      'ECN Kmin set to ~146 KB (146.48 KB effective after buffer alignment).',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  'nv set interface swp1 link speed 400g': function (dev, raw, lower) {
+    return [
+      'staged: nv set interface swp1 link speed 400G',
+      '',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  'nv set interface swp1 link mtu 9216': function (dev, raw, lower) {
+    return [
+      'staged: nv set interface swp1 link mtu 9216',
+      '',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  'nv set interface swp1 qos adaptive-routing enable on': function (dev, raw, lower) {
+    return [
+      'staged: nv set interface swp1 qos adaptive-routing enable on',
+      '',
+      'Adaptive routing enabled on swp1.',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* ======================================================================
+     CONFIG commands
+     ====================================================================== */
+
+  'nv config apply': function (dev, raw, lower) {
+    dev.custom.nvueApplied = true;
+    return [
+      'applying...',
+      '',
+      'Configuration applied successfully.',
+      'ASIC programmed. Verify with "nv show qos roce" or "nv show interface".',
+    ].join('\n');
+  },
+
+  'nv config diff': function (dev, raw, lower) {
+    return [
+      '--- running',
+      '+++ pending',
+      '',
+      '  qos:',
+      '    roce:',
+      '+     mode: lossless',
+      '+     pfc-priority: 3',
+      '+     trust: pcp,dscp',
+      '',
+      'Run "nv config apply" to activate, or "nv config detach" to discard.',
+    ].join('\n');
+  },
+
+  'nv config save': function (dev, raw, lower) {
+    return 'Configuration saved to /etc/nvue.d/startup.yaml';
+  },
+
+  'nv config detach': function (dev, raw, lower) {
+    return [
+      'Pending changes discarded.',
+      'Running configuration unchanged.',
+    ].join('\n');
+  },
+
+  'nv config show': function (dev, raw, lower) {
+    return [
+      '- set:',
+      '    system:',
+      '      hostname: leaf-0',
+      '      timezone: America/Chicago',
+      '    qos:',
+      '      roce:',
+      '        mode: lossless',
+      '        pfc-priority: 3',
+      '        trust: pcp,dscp',
+      '        cable-length: 100',
+      '      congestion-control:',
+      '        enabled-tc: 0,3',
+      '        mode: ecn',
+      '        min-threshold: 146',
+      '        max-threshold: 1467',
+    ].join('\n');
+  },
+
+  /* ======================================================================
+     SHOW commands -- realistic operational output
+     ====================================================================== */
+
+  /* nv show qos roce: verbatim from ncp-ain-spectrum-lab.html normal output,
+     plus sets roceShowDone flag per contract. */
+  'nv show qos roce': function (dev, raw, lower) {
+    dev.custom.roceShowDone = true;
+    return [
+      '                      operational            applied',
+      '------------------  ---------------------  ---------------------',
+      'state                                      enabled',
+      'mode                lossless-single-ipool  lossless-single-ipool',
+      'pfc',
+      '  pfc-priority      3',
+      '  rx-enabled        enabled',
+      '  tx-enabled        enabled',
+      '  cable-length      100',
+      'congestion-control',
+      '  congestion-mode   ECN',
+      '  enabled-tc        0,3',
+      '  min-threshold     146.48 KB',
+      '  max-threshold     1.43 MB',
+      '  probability       100',
+      'trust',
+      '  trust-mode        pcp,dscp',
+      'lldp-app-tlv',
+      '  priority          3',
+      '  protocol-id       4791',
+      '  selector          UDP',
+    ].join('\n');
+  },
+
+  /* nv show qos roce counters: verbatim from spectrum-lab normal output */
+  'nv show qos roce counters': function (dev, raw, lower) {
+    return [
+      'Port   Pri  PFC-PAUSE-RX  PFC-PAUSE-TX  ECN-Marked  Discards',
+      '-----  ---  ------------  ------------  ----------  --------',
+      'swp1   3    0             0             192847      0',
+      'swp2   3    0             0             184332      0',
+      'swp3   3    0             0             201093      0',
+      'swp4   3    0             0             176554      0',
+      'swp5   3    0             0             188901      0',
+      'swp6   3    0             0             193827      0',
+      'swp7   3    0             0             179402      0',
+      'swp8   3    0             0             185674      0',
+      '',
+      'PFC PAUSE counters at 0. ECN/DCQCN is doing the congestion work.',
+      'A non-zero PFC-PAUSE-TX indicates the queue hit the PFC threshold.',
+    ].join('\n');
+  },
+
+  /* nv show interface: verbatim from spectrum-lab (leaf-0 / leaf-1 topology) */
+  'nv show interface': function (dev, raw, lower) {
+    var hostname = (dev && dev.id) ? dev.id : 'leaf-0';
+    var uplink = (hostname === 'leaf-1') ? 'spine-02' : 'spine-01';
+    return [
+      'Interface  State  Speed   MTU    Type      Remote Host       Remote Port',
+      '---------  -----  -----   ----   ----      -----------       -----------',
+      'lo         up     N/A     65536  loopback',
+      'mgmt       up     1G      1500   eth       oob-mgmt-switch   swp1',
+      'swp1       up     400G    9216   swp       dgx-01            mlx5_0',
+      'swp2       up     400G    9216   swp       dgx-02            mlx5_0',
+      'swp3       up     400G    9216   swp       dgx-03            mlx5_0',
+      'swp4       up     400G    9216   swp       dgx-04            mlx5_0',
+      'swp49      up     400G    9216   swp       ' + uplink + '         swp1',
+      'swp50      up     400G    9216   swp       ' + uplink + '         swp2',
+    ].join('\n');
+  },
+
+  'nv show interface swp1': function (dev, raw, lower) {
+    return [
+      'operational  applied    description',
+      '-----------  -------    -----------',
+      '',
+      'link',
+      '  state      up         up',
+      '  speed      400G       400G',
+      '  duplex     full       full',
+      '  mtu        9216       9216',
+      '  fec        rs         rs',
+      '',
+      'ip',
+      '  address    10.1.1.1/31',
+      '',
+      'remote: dgx-01   mlx5_0',
+      '',
+      'counters',
+      '  rx-bytes   8195017211',
+      '  tx-bytes   8402918301',
+      '  rx-errors  0   tx-errors  0   rx-drops  0   tx-drops  0',
+    ].join('\n');
+  },
+
+  'nv show system': function (dev, raw, lower) {
+    var hostname = (dev && dev.id) ? dev.id : 'leaf-0';
+    return [
+      'operational              applied',
+      '-----------              -------',
+      'hostname                 ' + hostname,
+      'build                    Cumulus Linux 5.12.0',
+      'uptime                   14 days, 03:27:51',
+      'timezone                 America/Chicago',
+      'platform-name            SN5600',
+      'platform-asic            Spectrum-4',
+      'platform-port-config     64x400G',
+    ].join('\n');
+  },
+
+  'nv show service': function (dev, raw, lower) {
+    return [
+      'Service    Status   Description',
+      '-------    ------   -----------',
+      'ntp        active   Network Time Protocol (4 servers synced)',
+      'syslog     active   System logging to 10.0.0.50:514',
+      'snmp       active   v2c, v3 enabled',
+      'lldp       active   Topology discovery',
+      'ssh        active   OpenSSH 9.2p1',
+      'frr        active   FRRouting (BGP/EVPN)',
+      'ptmd       active   Prescriptive Topology Manager',
+    ].join('\n');
+  },
+
+  'nv show router bgp summary': function (dev, raw, lower) {
+    return [
+      'BGP router identifier 10.0.0.1, local AS number 65001 vrf-id 0',
+      'BGP table version 42',
+      '',
+      'Neighbor        V    AS    MsgRcvd  MsgSent  TblVer  InQ OutQ  Up/Down     State/PfxRcd',
+      '10.0.0.101      4    65100  12804    12794    42      0   0     14d01h03m   8',
+      '10.0.0.102      4    65100  12801    12791    42      0   0     14d01h01m   8',
+      '10.0.0.103      4    65100  12798    12788    42      0   0     14d00h58m   8',
+      '10.0.0.104      4    65100  12795    12785    42      0   0     14d00h54m   8',
+      '',
+      'Total number of neighbors 4',
+      'EVPN address-family: 4 peers up, 32 VNIs advertised',
+    ].join('\n');
+  },
+
+  'nv show evpn vni': function (dev, raw, lower) {
+    return [
+      'VNI    Type  RD             Import RT       Export RT       State',
+      '-----  ----  -------------  --------------  --------------  -----',
+      '10010  L2    10.0.0.1:10010 65001:10010     65001:10010     up',
+      '10020  L2    10.0.0.1:10020 65001:10020     65001:10020     up',
+      '10030  L5    10.0.0.1:10030 65001:10030     65001:10030     up',
+      '',
+      'All VNIs healthy. Type-2/3/5 routes exchanged with all peers.',
+    ].join('\n');
+  },
+
+  'nv show interface swp3 qos pfc-watchdog': function (dev, raw, lower) {
+    return [
+      'Interface  swp3',
+      '',
+      'pfc-watchdog',
+      '  state            OK',
+      '  deadlock-count   0',
+      '  action           alert',
+      '',
+      'No deadlock detected.',
+    ].join('\n');
+  },
+
+  'nv show interface swp1 qos adaptive-routing': function (dev, raw, lower) {
+    return [
+      'Interface  swp1',
+      '',
+      'adaptive-routing',
+      '  enabled            true',
+      '  link-util-thresh   70%',
+      '',
+      'Adaptive routing active. Traffic load-balancing across uplinks.',
+    ].join('\n');
+  },
+
+  /* ======================================================================
+     UTILITY commands
+     ====================================================================== */
+
+  'pwd': function (dev, raw, lower) {
+    return '/home/cumulus';
+  },
+
+  'clear': function (dev, raw, lower) {
+    return '';
+  },
+
+  'help': function (dev, raw, lower) {
+    return [
+      'NVUE shell -- leaf switch (Cumulus Linux 5.12 / Spectrum-4)',
+      '',
+      'Common commands:',
+      '  nv show qos roce             Show RoCE QoS operational state',
+      '  nv show qos roce counters    Show PFC pause and ECN counters',
+      '  nv show interface            List all interfaces and link state',
+      '  nv show interface <swp>      Show per-port detail',
+      '  nv show system               Show platform and version info',
+      '  nv show service              Show running system services',
+      '  nv show router bgp summary   Show BGP peer summary',
+      '  nv show evpn vni             Show EVPN VNI table',
+      '',
+      '  nv set qos roce mode lossless           Stage lossless RoCE mode',
+      '  nv set qos roce pfc priority 3          Stage PFC on priority 3',
+      '  nv set qos roce trust pcp,dscp          Stage dual trust mode',
+      '  nv config diff                          Preview staged changes',
+      '  nv config apply                         Commit staged changes to ASIC',
+      '  nv config save                          Persist config across reboot',
+      '  nv config detach                        Discard staged changes',
+      '',
+      '  pwd    Print working directory',
+      '  clear  Clear terminal',
+      '  help   Show this help',
+      '  ?      Alias for help',
+    ].join('\n');
+  },
+
+  '?': function (dev, raw, lower) {
+    return NVUE_CMDMAP['help'](dev, raw, lower);
+  },
+
+};
+
+// ===== END REGION:NVUE_CMDMAP =====
+
+// ============================================================
+// LAB INSTANCE
+// ============================================================
+
+var lab = new window.Lab.LabBase({
+  objectives: [],
+  hintsAvailable: 5,
+  onObjectiveComplete: function (idx) { renderObjectives(); },
+  onTopologyUpdate: function () {}
+});
+
+// ============================================================
+// BUILD DEVICES
+// Agents C & D fill the commandMaps; this function wires them.
+// ============================================================
+
+function buildDevices() {
+  // UFM/SM host -- linux shell, lid 1 SM
+  lab.addDevice('ufm-sm', 'linux', {
+    shellPromptFormat: 'linux',
+    commandMap: LINUX_CMDMAP,
+    custom: { smStarted: false, ibnetdiscoverDone: false, iblinkinfoDone: false, ibhostsDone: false }
+  });
+
+  // DGX compute hosts -- linux shell
+  ['dgx-01', 'dgx-02', 'dgx-03', 'dgx-04'].forEach(function (name) {
+    lab.addDevice(name, 'linux', {
+      shellPromptFormat: 'linux',
+      commandMap: LINUX_CMDMAP,
+      custom: {}
+    });
+  });
+
+  // Leaf switches -- NVUE shell
+  ['leaf-0', 'leaf-1'].forEach(function (name) {
+    lab.addDevice(name, 'switch', {
+      shellPromptFormat: 'nvue',
+      commandMap: NVUE_CMDMAP,
+      custom: {}
+    });
+  });
+}
+
+buildDevices();
+
+// ============================================================
+// STATE: active mission
+// ============================================================
+
+var activeMission = null;
+var deviceHistory = {}; // deviceName -> array of {type, text}
+
+// ============================================================
+// TERMINAL WIRING (manual -- not using Terminal class, per spec)
+// ============================================================
+
+var termOutput = document.getElementById('termOutput');
+var termInput = document.getElementById('termInput');
+var termPrompt = document.getElementById('termPrompt');
+
+function updatePrompt() {
+  var dev = lab.activeDevice;
+  if (!dev) { termPrompt.textContent = '$ '; return; }
+  termPrompt.textContent = dev.prompt() + ' ';
+}
+
+function addTermLine(text, cls) {
+  var lines = String(text).split('\n');
+  lines.forEach(function (line) {
+    var el = document.createElement('div');
+    el.className = 'term-line' + (cls ? ' ' + cls : '');
+    el.textContent = line;
+    termOutput.appendChild(el);
+  });
+  termOutput.scrollTop = termOutput.scrollHeight;
+}
+
+function clearTerm() {
+  termOutput.innerHTML = '';
+}
+
+// Save/restore per-device terminal history
+function saveDeviceHistory(name) {
+  deviceHistory[name] = termOutput.innerHTML;
+}
+
+function restoreDeviceHistory(name) {
+  termOutput.innerHTML = deviceHistory[name] || '';
+  termOutput.scrollTop = termOutput.scrollHeight;
+}
+
+// Command input
+termInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') {
+    var raw = termInput.value.trim();
+    termInput.value = '';
+    if (!raw) return;
+    if (!lab.activeDevice) return;
+    addTermLine(lab.activeDevice.prompt() + ' ' + raw, 'cmd');
+    var result = runFabricCommand(raw, lab.activeDevice);
+    var fixMsg = maybeApplyFix(raw, result);
+    if (fixMsg) result = fixMsg;
+    if (result) addTermLine(result);
+    updatePrompt();
+    checkObjectives();
+  }
+});
+
+termOutput.addEventListener('click', function () { termInput.focus(); });
+
+// ============================================================
+// DEVICE TABS
+// ============================================================
+
+var TAB_ORDER = ['ufm-sm', 'dgx-01', 'dgx-02', 'dgx-03', 'dgx-04', 'leaf-0', 'leaf-1'];
+
+function buildTabs() {
+  var container = document.getElementById('deviceTabs');
+  container.innerHTML = '';
+  TAB_ORDER.forEach(function (name) {
+    var btn = document.createElement('button');
+    btn.className = 'device-tab' + (name === lab.activeDeviceName ? ' active' : '');
+    btn.textContent = name;
+    btn.dataset.device = name;
+    btn.addEventListener('click', function () {
+      switchTab(name);
+    });
+    container.appendChild(btn);
+  });
+}
+
+function switchTab(name) {
+  if (!lab.devices[name]) return;
+  var prev = lab.activeDeviceName;
+  if (prev) saveDeviceHistory(prev);
+  lab.activeDeviceName = name;
+  document.querySelectorAll('.device-tab').forEach(function (btn) {
+    btn.classList.toggle('active', btn.dataset.device === name);
+  });
+  restoreDeviceHistory(name);
+  updatePrompt();
+  termInput.focus();
+  updateTopoSelection(name);
+}
+
+// ============================================================
+// TOPOLOGY SELECTION SYNC
+// ============================================================
+
+function updateTopoSelection(deviceName) {
+  document.querySelectorAll('.topo-device').forEach(function (el) {
+    el.classList.toggle('selected', el.dataset.device === deviceName);
+  });
+}
+
+document.querySelectorAll('.topo-device').forEach(function (el) {
+  el.addEventListener('click', function () {
+    var name = el.dataset.device;
+    if (TAB_ORDER.indexOf(name) !== -1) switchTab(name);
+  });
+});
+
+// ============================================================
+// MISSION MENU
+// ============================================================
+
+function renderMissionMenu() {
+  var list = document.getElementById('missionList');
+  list.innerHTML = '';
+  MEGA_LABS.forEach(function (m) {
+    var done = isMissionComplete(m);
+    var row = document.createElement('div');
+    row.className = 'lab-menu-lab' + (done ? ' completed' : '');
+    row.innerHTML =
+      '<span class="lml-diff ' + m.startMode + '"></span>' +
+      '<span class="lml-info">' +
+        '<div class="lml-name">' + esc(m.name) + '</div>' +
+        '<div class="lml-detail">' + esc(stepLabel(m)) + '</div>' +
+      '</span>' +
+      '<span class="lml-start">Start</span>';
+    row.addEventListener('click', function () { loadMission(m); });
+    list.appendChild(row);
+  });
+}
+
+function stepLabel(m) {
+  return m.steps.length + ' step' + (m.steps.length !== 1 ? 's' : '') + ' \xb7 ' + m.startMode;
+}
+
+function isMissionComplete(m) {
+  if (!m._completedSet) return false;
+  return m.steps.every(function (_, i) { return m._completedSet.has(i); });
+}
+
+// ============================================================
+// LOAD MISSION (state machine)
+// ============================================================
+
+function loadMission(m) {
+  activeMission = m;
+
+  // Reset per-mission state
+  m._completedSet = new Set();
+  deviceHistory = {};
+
+  // If troubleshoot: set the fault
+  if (m.fault && window.IBTools) {
+    window.IBTools.setFault(m.fault);
+  } else if (window.IBTools) {
+    window.IBTools.clearFault();
+  }
+
+  // Reset device custom state
+  TAB_ORDER.forEach(function (name) {
+    if (lab.devices[name]) {
+      lab.devices[name].custom = {};
+    }
+  });
+
+  // Seed prerequisite fabric state: every mission after SM bring-up assumes a
+  // running subnet manager, so its commands (saquery, PKey, validation) work
+  // when the mission is entered standalone.
+  if (m.id !== 'm1-place-wire' && m.id !== 'm2-sm-bringup' && lab.devices['ufm-sm']) {
+    lab.devices['ufm-sm'].custom.smStarted = true;
+    lab.devices['ufm-sm'].custom.smPriority15 = true;
+  }
+
+  // Set starting device
+  lab.activeDeviceName = m.device || TAB_ORDER[0];
+
+  // Build objectives for this mission
+  lab.objectives = m.steps.map(function (step, i) {
+    return { index: i, text: step.objective, hint: step.hint, done: false };
+  });
+  lab.completedObjectives = new Set();
+
+  // Show lab UI
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('topPane').style.display = '';
+  document.getElementById('bottomPane').style.display = '';
+  document.getElementById('labMinibar').classList.add('visible');
+  document.getElementById('miniLabName').textContent = m.name;
+
+  var badge = document.getElementById('miniModeBadge');
+  badge.className = 'mode-badge ' + m.startMode;
+  badge.textContent = m.startMode;
+
+  buildTabs();
+  clearTerm();
+  updatePrompt();
+  renderObjectives();
+  updateTopoSelection(lab.activeDeviceName);
+
+  // Welcome message
+  addTermLine('=== ' + m.name + ' ===', 'system');
+  addTermLine('Device: ' + lab.activeDeviceName + '  |  Mode: ' + m.startMode, 'info');
+  if (m.fault) addTermLine('[FAULT ACTIVE: ' + m.fault + '] Use diagnostics to identify the issue.', 'error');
+  addTermLine('Type commands below. Use hint buttons for guidance.', 'info');
+  addTermLine('', '');
+
+  termInput.focus();
+}
+
+function exitMission() {
+  activeMission = null;
+  if (window.IBTools) window.IBTools.clearFault();
+  document.getElementById('welcomeScreen').style.display = '';
+  document.getElementById('topPane').style.display = 'none';
+  document.getElementById('bottomPane').style.display = 'none';
+  document.getElementById('labMinibar').classList.remove('visible');
+  renderMissionMenu();
+}
+
+document.getElementById('labBackBtn').addEventListener('click', exitMission);
+
+// ============================================================
+// OBJECTIVE STATE MACHINE
+// checkObjectives() -- called after every command
+// Predicates read dev.custom.* and IBTools state readers.
+// ============================================================
+
+function checkObjectives() {
+  if (!activeMission) return;
+  var m = activeMission;
+
+  // Sequential gating: a step can complete only after all earlier steps are done.
+  // This orders the read -> fix -> reverify flow correctly (the read and reverify
+  // steps share the same perfquery command).
+  for (var i = 0; i < m.steps.length; i++) {
+    if (m._completedSet.has(i)) continue; // already done, move on
+
+    var step = m.steps[i];
+    var dev = lab.devices[step.device] || lab.activeDevice;
+    var predicate = false;
+
+    // FIX steps (action != null) -- check IBTools.portFrozen or fault cleared
+    if (step.action) {
+      if (step.action === 'resolve-sm') {
+        predicate = !!(window.IBTools && !window.IBTools.activeFault());
+      } else {
+        var lidForAction = lidFromAction(step.action);
+        predicate = !!(window.IBTools && lidForAction !== null && window.IBTools.portFrozen(lidForAction));
+      }
+    } else {
+      // READ/BUILD/VERIFY steps -- check custom flags set by commandMap handlers
+      predicate = evalStepPredicate(step, dev, i, m);
+    }
+
+    if (predicate) {
+      m._completedSet.add(i);
+      lab.completedObjectives.add(i);
+      lab.objectives[i].done = true;
+      renderObjectives();
+    } else {
+      break; // do not evaluate later steps until this one is satisfied
+    }
+  }
+}
+
+function lidFromAction(action) {
+  if (action === 'replace-cable') return 7;
+  if (action === 'fix-pkey') return 5;
+  if (action === 'fix-congestion') return 2;
+  return null;
+}
+
+function evalStepPredicate(step, dev, idx, m) {
+  var cmd = step.cmd || '';
+  // Discovery / read steps: check custom flags that commandMap handlers set
+  if (cmd === 'ibnetdiscover') return !!(dev && dev.custom.ibnetdiscoverDone);
+  if (cmd === 'iblinkinfo') return !!(dev && dev.custom.iblinkinfoDone);
+  if (cmd === 'ibhosts') return !!(dev && dev.custom.ibhostsDone);
+  if (cmd === 'systemctl start opensm') return !!(dev && dev.custom.smStarted);
+  if (cmd === 'opensm -p 15') return !!(dev && dev.custom.smPriority15);
+  if (cmd === 'sminfo') return !!(dev && dev.custom.sminfoDone);
+  if (cmd === 'saquery -p 0x8001') return !!(dev && dev.custom.sakeySet);
+  if (cmd === 'saquery --pkey') return !!(dev && dev.custom.pkeyConfirmed);
+  if (cmd === 'nv set qos roce mode lossless') return !!(dev && dev.custom.roceLossless);
+  if (cmd.indexOf('pfc-priority') !== -1) return !!(dev && dev.custom.rocePfc);
+  if (cmd.indexOf('pcp,dscp') !== -1) return !!(dev && dev.custom.roceTrust);
+  if (cmd === 'nv config apply') return !!(dev && dev.custom.nvueApplied);
+  if (cmd === 'nv show qos roce') return !!(dev && dev.custom.roceShowDone);
+  if (cmd === 'ibdiagnet') return !!(dev && dev.custom.ibdiagnetDone);
+  if (cmd === 'ib_write_bw dgx-02') return !!(dev && dev.custom.bwDone);
+  if (cmd === 'ibdiagnet --sharp') return !!(dev && dev.custom.sharpDone);
+  if (cmd === 'nccl all_reduce_perf') return !!(dev && dev.custom.ncclDone);
+  // perfquery steps: a "read" (no prior fix on this lid) completes after 2 reads
+  // show the counter climbing; a "reverify" (a fix step earlier in the mission
+  // targets this lid) completes once that fix has frozen the counter.
+  if (/^perfquery\s+(\d+)/.test(cmd)) {
+    var lid = parseInt(cmd.match(/^perfquery\s+(\d+)/)[1], 10);
+    var priorFix = false;
+    for (var k = 0; k < idx; k++) {
+      var ps = m.steps[k];
+      if (ps.action && lidFromAction(ps.action) === lid) { priorFix = true; break; }
+    }
+    if (priorFix) {
+      return !!(window.IBTools && window.IBTools.portFrozen && window.IBTools.portFrozen(lid));
+    }
+    return !!(window.IBTools && window.IBTools.portReads && window.IBTools.portReads(lid) >= 2);
+  }
+  return false;
+}
+
+// IB diagnostic commands route to the IBTools fabric simulator (not the shell
+// commandMap) and mark the matching "ran it" flag for objective predicates.
+var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate)\b/;
+function runFabricCommand(raw, dev) {
+  if (IB_DIAG_RE.test(raw)) {
+    var out = (window.IBTools && window.IBTools.run) ? window.IBTools.run(raw) : 'IBTools unavailable';
+    if (dev) {
+      dev.custom = dev.custom || {};
+      var first = raw.split(/\s+/)[0];
+      if (first === 'ibdiagnet' && raw.indexOf('--sharp') !== -1) dev.custom.sharpDone = true;
+      else if (first === 'ibdiagnet') dev.custom.ibdiagnetDone = true;
+      else if (first === 'ibnetdiscover') dev.custom.ibnetdiscoverDone = true;
+      else if (first === 'iblinkinfo') dev.custom.iblinkinfoDone = true;
+      else if (first === 'ibhosts') dev.custom.ibhostsDone = true;
+      else if (first === 'sminfo') dev.custom.sminfoDone = true;
+    }
+    return out;
+  }
+  return lab.processCommand(raw);
+}
+
+// Mega-lab fix wiring: if the active mission has a fix step whose cmd matches
+// this command, apply the remedy to the live fabric state via IBTools.applyFix.
+function maybeApplyFix(raw, result) {
+  if (!activeMission || !window.IBTools || !window.IBTools.applyFix) return null;
+  var step = null;
+  for (var i = 0; i < activeMission.steps.length; i++) {
+    var s = activeMission.steps[i];
+    if (s.action && raw === s.cmd) { step = s; break; }
+  }
+  if (!step) return null;
+  var lid = lidFromAction(step.action);
+  var res = window.IBTools.applyFix(lid, step.action);
+  var notFound = !result || /command not found|Invalid input|Unrecognized|not found/i.test(result);
+  if (notFound) {
+    return (res && res.msg) ? res.msg : ('[fix] ' + step.cmd + ' applied (' + step.action + ').');
+  }
+  return null;
+}
+
+// ============================================================
+// RENDER OBJECTIVES
+// ============================================================
+
+function renderObjectives() {
+  var m = activeMission;
+  var list = document.getElementById('objList');
+  var progress = document.getElementById('objProgress');
+  var progressText = document.getElementById('objProgressText');
+  var progressFill = document.getElementById('objProgressFill');
+  var completeBanner = document.getElementById('labCompleteBanner');
+
+  if (!m) { list.innerHTML = ''; progress.style.display = 'none'; return; }
+
+  var doneCount = m._completedSet ? m._completedSet.size : 0;
+  var total = m.steps.length;
+
+  list.innerHTML = '';
+  m.steps.forEach(function (step, i) {
+    var done = m._completedSet && m._completedSet.has(i);
+    var item = document.createElement('div');
+    item.className = 'obj-item' + (done ? ' done' : '');
+    item.dataset.idx = i;
+
+    var check = document.createElement('div');
+    check.className = 'obj-check';
+    check.textContent = done ? '✓' : '';
+
+    var textEl = document.createElement('div');
+    textEl.className = 'obj-text';
+    textEl.textContent = step.objective;
+
+    var hintBtn = document.createElement('button');
+    hintBtn.className = 'obj-hint-btn';
+    hintBtn.textContent = 'hint';
+    hintBtn.setAttribute('aria-label', 'Show hint for step ' + (i + 1));
+    hintBtn.addEventListener('click', function () { toggleHint(item, step.hint, i); });
+
+    item.appendChild(check);
+    item.appendChild(textEl);
+    item.appendChild(hintBtn);
+    list.appendChild(item);
+  });
+
+  progress.style.display = '';
+  progressText.textContent = doneCount + ' / ' + total + ' complete';
+  progressFill.style.width = (total ? Math.round(doneCount / total * 100) : 0) + '%';
+  completeBanner.style.display = (doneCount === total && total > 0) ? '' : 'none';
+}
+
+function toggleHint(itemEl, hintText, idx) {
+  var existing = itemEl.querySelector('.hint-toast');
+  if (existing) { existing.remove(); return; }
+  var toast = document.createElement('div');
+  toast.className = 'hint-toast';
+  toast.textContent = hintText;
+  itemEl.appendChild(toast);
+}
+
+// ============================================================
+// UTILITY
+// ============================================================
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+renderMissionMenu();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

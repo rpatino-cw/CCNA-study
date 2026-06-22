@@ -187,6 +187,7 @@
     { text: 'Pillars', href: 'ncp-ain-pillars.html' },
     { text: 'Exam Simulator', href: 'ncp-ain-exam-sim.html' },
     { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
+    { text: 'Mega Lab ★', href: 'ncp-ain-mega-lab.html' },
     { text: 'Cram Driller', href: 'ncp-ain-cram-driller.html' },
     { text: 'RoCE Frogger 🎮', href: 'ncp-ain-roce-frogger.html' },
     { text: 'Troubleshooting', href: 'ncp-ain-troubleshoot.html' },
@@ -342,7 +343,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.13.3</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.13.4</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
