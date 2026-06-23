@@ -95,10 +95,10 @@
 }
 
 /* Device tabs */
-.device-tabs { flex-shrink: 0; display: flex; gap: 0; border-bottom: 1px solid #292524; background: #292524; }
+.device-tabs { flex-shrink: 0; display: flex; flex-wrap: nowrap; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #292524; background: #292524; }
 .device-tab {
   font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
-  padding: 8px 16px; cursor: pointer;
+  padding: 8px 16px; cursor: pointer; flex-shrink: 0; white-space: nowrap;
   color: #a8a29e; background: #292524;
   border: none; border-right: 1px solid #1c1917;
   transition: all 0.1s;
@@ -110,14 +110,14 @@
 .term-container { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .term-wrap { flex: 1; background: #1c1917; overflow-y: auto; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.5; cursor: text; }
 .term-line { color: #d6d3d1; white-space: pre-wrap; word-break: break-all; }
-.term-line.cmd { color: #fde68a; }
+.term-line.cmd { color: #a5d6ff; }
 .term-line.success { color: #4ade80; }
 .term-line.error { color: #f87171; }
 .term-line.info { color: #60a5fa; }
 .term-line.system { color: #76B900; font-style: italic; }
 .term-input-row { display: flex; align-items: center; padding: 0 16px 12px; background: #1c1917; flex-shrink: 0; }
 .term-prompt { color: #a8a29e; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; white-space: pre; flex-shrink: 0; }
-.term-input { flex: 1; background: transparent; border: none; outline: none; color: #fde68a; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; caret-color: #76B900; }
+.term-input { flex: 1; background: transparent; border: none; outline: none; color: #a5d6ff; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; caret-color: #76B900; }
 
 /* Welcome / lab menu */
 .welcome-screen { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-recessed); overflow-y: auto; }
@@ -136,7 +136,7 @@
 /* Lab menu */
 .lab-menu { max-width: 580px; margin: 0 auto; padding: var(--s-lg) var(--s-md); }
 .lab-menu-header { margin-bottom: var(--s-xl); }
-.lab-menu-header h2 { font-size: 1.8rem; margin-bottom: 6px; border: none; padding: 0; }
+.lab-menu-header h1 { font-size: 1.8rem; margin-bottom: 6px; border: none; padding: 0; }
 .lab-menu-header p { font-family: var(--font-body); font-size: 0.9rem; color: var(--ink-secondary); line-height: 1.6; }
 .lab-menu-back-link {
   display: inline-flex; align-items: center; gap: 6px;
@@ -163,7 +163,7 @@
 .lml-info { flex: 1; }
 .lml-name { font-family: var(--font-display); font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
 .lml-detail { font-family: var(--font-body); font-size: 0.78rem; color: var(--ink-secondary); }
-.lml-start { font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--ncp); flex-shrink: 0; }
+.lml-start { font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--ncp-dark); flex-shrink: 0; }
 .lab-menu-lab.completed .lml-name::after { content: ' \2713'; color: var(--ncp); }
 
 /* Mode badge in minibar */
@@ -195,9 +195,20 @@
 
 @media (max-width: 768px) {
   .top-pane { flex-direction: column; max-height: 60vh; }
-  .objectives-panel { width: 100%; max-height: 150px; border-left: none; border-top: 1px solid var(--rule); }
+  .objectives-panel { width: 100%; max-height: 240px; border-left: none; border-top: 1px solid var(--rule); }
   .term-input { font-size: 16px; }
   .topology-panel { max-height: 200px; overflow: hidden; }
+  .device-tab { min-height: 44px; }
+}
+/* Visible keyboard focus on all interactive controls */
+.device-tab:focus-visible,
+.lab-menu-lab:focus-visible,
+.obj-hint-btn:focus-visible,
+.lab-back-btn:focus-visible,
+.topo-device:focus-visible { outline: 2px solid var(--ncp); outline-offset: 2px; }
+.topo-device:focus-visible { outline-offset: 0; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 </style>
 </head>
@@ -222,7 +233,7 @@
           <a class="lab-menu-back-link" href="ncp-ain-hub.html">&#8592; NCP-AIN Hub</a>
           <div class="lab-menu-header">
             <div class="ncp-badge"><span class="ncp-dot"></span>NCP-AIN Capstone</div>
-            <h2>Mega Lab</h2>
+            <h1>Mega Lab</h1>
             <p>9-mission rail-optimized fabric capstone. Build the fabric, bring up the SM, configure RoCE lossless, validate health, and troubleshoot four fault scenarios using the real IB/NVUE CLI.</p>
           </div>
           <div class="lab-menu-labs" id="missionList"></div>
@@ -1670,9 +1681,18 @@ function updateTopoSelection(deviceName) {
 }
 
 document.querySelectorAll('.topo-device').forEach(function (el) {
+  var name = el.dataset.device;
+  var selectable = TAB_ORDER.indexOf(name) !== -1;
+  if (selectable) {
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', 'Select device ' + name);
+  }
   el.addEventListener('click', function () {
-    var name = el.dataset.device;
-    if (TAB_ORDER.indexOf(name) !== -1) switchTab(name);
+    if (selectable) switchTab(name);
+  });
+  el.addEventListener('keydown', function (e) {
+    if (selectable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); switchTab(name); }
   });
 });
 
@@ -1687,6 +1707,9 @@ function renderMissionMenu() {
     var done = isMissionComplete(m);
     var row = document.createElement('div');
     row.className = 'lab-menu-lab' + (done ? ' completed' : '');
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+    row.setAttribute('aria-label', 'Start mission ' + m.name);
     row.innerHTML =
       '<span class="lml-diff ' + m.startMode + '"></span>' +
       '<span class="lml-info">' +
@@ -1695,6 +1718,7 @@ function renderMissionMenu() {
       '</span>' +
       '<span class="lml-start">Start</span>';
     row.addEventListener('click', function () { loadMission(m); });
+    row.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadMission(m); } });
     list.appendChild(row);
   });
 }
@@ -1944,7 +1968,7 @@ function renderObjectives() {
   progress.style.display = '';
   progressText.textContent = doneCount + ' / ' + total + ' complete';
   progressFill.style.width = (total ? Math.round(doneCount / total * 100) : 0) + '%';
-  completeBanner.style.display = (doneCount === total && total > 0) ? '' : 'none';
+  completeBanner.style.display = (doneCount === total && total > 0) ? 'block' : 'none';
 }
 
 function toggleHint(itemEl, hintText, idx) {
