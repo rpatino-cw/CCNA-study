@@ -72,30 +72,53 @@ lab.initTerminal(mount);
 // ---- page command-routing replica (must mirror ncp-ain-mega-lab.html) ----
 var activeMission = null;
 var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate)\b/;
-function lidFromAction(a) { return a === 'replace-cable' ? 7 : a === 'fix-pkey' ? 5 : a === 'fix-congestion' ? 2 : null; }
+function lidFromAction(a) {
+  if (a === 'replace-cable') return 7;
+  if (a === 'fix-pkey') return 5;
+  if (a === 'fix-congestion') return 2;
+  if (a === 'reseat-link') return 4;
+  return null;
+}
 function markIbDiag(raw, dev) {
   if (!dev) return; dev.custom = dev.custom || {}; var f = raw.split(/\s+/)[0];
   if (f === 'ibdiagnet' && raw.indexOf('--sharp') !== -1) dev.custom.sharpDone = true;
+  else if (f === 'ibdiagnet' && raw.indexOf('-r') !== -1) dev.custom.ibdiagnetRDone = true;
   else if (f === 'ibdiagnet') dev.custom.ibdiagnetDone = true;
   else if (f === 'ibnetdiscover') dev.custom.ibnetdiscoverDone = true;
   else if (f === 'iblinkinfo') dev.custom.iblinkinfoDone = true;
   else if (f === 'ibhosts') dev.custom.ibhostsDone = true;
   else if (f === 'sminfo') dev.custom.sminfoDone = true;
+  else if (f === 'ibportstate') dev.custom.ibportstateDone = true;
 }
 function maybeApplyFix(raw, result) {
   if (!activeMission || !window.IBTools.applyFix) return null;
   var step = null; for (var i = 0; i < activeMission.steps.length; i++) { var s = activeMission.steps[i]; if (s.action && raw === s.cmd) { step = s; break; } }
   if (!step) return null;
   var r = window.IBTools.applyFix(lidFromAction(step.action), step.action);
-  var nf = !result || /command not found|Invalid input|Unrecognized|not found/i.test(result);
-  return nf ? ((r && r.msg) || '[fix]') : null;
+  return (r && r.msg) ? r.msg : ('[fix] ' + step.cmd + ' applied (' + step.action + ').');
 }
 function evalStep(step, dev, idx, m) {
   var c = step.cmd || '';
-  var flag = { 'ibnetdiscover': 'ibnetdiscoverDone', 'iblinkinfo': 'iblinkinfoDone', 'ibhosts': 'ibhostsDone', 'systemctl start opensm': 'smStarted', 'opensm -p 15': 'smPriority15', 'sminfo': 'sminfoDone', 'saquery -p 0x8001': 'sakeySet', 'saquery --pkey': 'pkeyConfirmed', 'nv set qos roce mode lossless': 'roceLossless', 'nv config apply': 'nvueApplied', 'nv show qos roce': 'roceShowDone', 'ibdiagnet': 'ibdiagnetDone', 'ib_write_bw dgx-02': 'bwDone', 'ibdiagnet --sharp': 'sharpDone', 'nccl all_reduce_perf': 'ncclDone' }[c];
+  var flag = {
+    'ibnetdiscover': 'ibnetdiscoverDone', 'iblinkinfo': 'iblinkinfoDone', 'ibhosts': 'ibhostsDone',
+    'systemctl start opensm': 'smStarted', 'opensm -p 15': 'smPriority15', 'sminfo': 'sminfoDone',
+    'saquery -p 0x8001': 'sakeySet', 'saquery --pkey': 'pkeyConfirmed',
+    'nv set qos roce mode lossless': 'roceLossless', 'nv config apply': 'nvueApplied',
+    'nv show qos roce': 'roceShowDone', 'ibdiagnet': 'ibdiagnetDone',
+    'ib_write_bw dgx-02': 'bwDone', 'ibdiagnet --sharp': 'sharpDone',
+    'nccl all_reduce_perf': 'ncclDone',
+    'ibdiagnet -r': 'ibdiagnetRDone', 'ibportstate 4 1': 'ibportstateDone',
+    'sharp_hello': 'sharpHelloDone'
+  }[c];
   if (flag) return !!(dev && dev.custom[flag]);
   if (c.indexOf('pfc-priority') !== -1) return !!(dev && dev.custom.rocePfc);
   if (c.indexOf('pcp,dscp') !== -1) return !!(dev && dev.custom.roceTrust);
+  // Reverify steps after a clears-fault action: check no active fault
+  var priorClearsFix = false;
+  for (var j = 0; j < idx; j++) {
+    if (m.steps[j].action && lidFromAction(m.steps[j].action) === null) { priorClearsFix = true; break; }
+  }
+  if (priorClearsFix) return !window.IBTools.activeFault();
   if (/^perfquery\s+(\d+)/.test(c)) {
     var lid = parseInt(c.match(/^perfquery\s+(\d+)/)[1], 10);
     var pf = false; for (var k = 0; k < idx; k++) { var ps = m.steps[k]; if (ps.action && lidFromAction(ps.action) === lid) { pf = true; break; } }
@@ -109,8 +132,11 @@ function checkObjectives() {
   for (var i = 0; i < m.steps.length; i++) {
     if (m._completedSet.has(i)) continue;
     var step = m.steps[i], dev = lab.devices[step.device] || lab.activeDevice, p = false;
-    if (step.action) { p = (step.action === 'resolve-sm') ? !window.IBTools.activeFault() : !!window.IBTools.portFrozen(lidFromAction(step.action)); }
-    else p = evalStep(step, dev, i, m);
+    if (step.action) {
+      var lid = lidFromAction(step.action);
+      if (lid !== null) { p = !!window.IBTools.portFrozen(lid); }
+      else { p = !window.IBTools.activeFault(); }
+    } else { p = evalStep(step, dev, i, m); }
     if (p) m._completedSet.add(i); else break;
   }
 }

@@ -125,10 +125,14 @@
   // Used by applyFix to decide if the correct remedy was applied.
   // ---------------------------------------------------------------------------
   var REMEDY_MAP = {
-    'replace-cable':  { fault: 'ber',        lid: 7 },
-    'resolve-sm':     { fault: 'dualmaster',  lid: null },
-    'fix-pkey':       { fault: 'pkey',        lid: 5 },
-    'fix-congestion': { fault: 'congestion',  lid: 2 }
+    'replace-cable':     { fault: 'ber',        lid: 7 },
+    'resolve-sm':        { fault: 'dualmaster',  lid: null, clears: true },
+    'fix-pkey':          { fault: 'pkey',        lid: 5 },
+    'fix-congestion':    { fault: 'congestion',  lid: 2 },
+    'reseat-link':       { fault: 'linkflap',    lid: 4 },
+    'set-updn-routing':  { fault: 'creditloop',  lid: null, clears: true },
+    'set-mtu-4096':      { fault: 'mtu',         lid: null, clears: true },
+    'restart-sharp-am':  { fault: 'sharp',       lid: null, clears: true }
   };
 
   // ---------------------------------------------------------------------------
@@ -1056,11 +1060,23 @@
       if (remedy.fault !== _activeFault) {
         return { ok: false, msg: 'Action "' + action + '" does not address the active fault (' + _activeFault + ')' };
       }
-      // Special case: dualmaster has no climbing port, just clear the fault
-      if (action === 'resolve-sm') {
+      // Clear-fault remedies: no climbing port, just wipe the fault state
+      if (action === 'resolve-sm' || remedy.clears) {
         _activeFault = null;
         _portState = {};
-        return { ok: true, msg: 'SM priority resolved. Single SMINFO_MASTER confirmed.' };
+        if (action === 'resolve-sm') {
+          return { ok: true, msg: 'SM priority resolved. Single SMINFO_MASTER confirmed.' };
+        }
+        if (action === 'set-updn-routing') {
+          return { ok: true, msg: 'Routing corrected, credit loop cleared.' };
+        }
+        if (action === 'set-mtu-4096') {
+          return { ok: true, msg: 'MTU aligned to 4096, fabric consistent.' };
+        }
+        if (action === 'restart-sharp-am') {
+          return { ok: true, msg: 'sharp_am restarted, aggregation trees rebuilt.' };
+        }
+        return { ok: true, msg: 'Fault cleared.' };
       }
       // For climbing-port faults, check lid matches
       if (remedy.lid !== lid) {
