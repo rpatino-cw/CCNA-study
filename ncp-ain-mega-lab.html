@@ -812,6 +812,170 @@ var MEGA_LABS = [
         action: null
       }
     ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M10 -- Troubleshoot: Link Flap                                      */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm10-linkflap',
+    name: 'M10 - Troubleshoot: Link Flap',
+    device: 'dgx-04',
+    startMode: 'troubleshoot',
+    fault: 'linkflap',
+    steps: [
+      {
+        device: 'dgx-04',
+        objective: 'Spot the flapping link in the fabric link map',
+        hint: 'Map every link\'s state; a port bouncing up/down stands out.',
+        cmd: 'iblinkinfo',
+        action: null
+      },
+      {
+        device: 'dgx-04',
+        objective: 'Confirm LinkErrorRecoveryCounter climbing on lid 4 (read it twice)',
+        hint: 'Read the same port\'s error counters twice; a healthy link holds steady.',
+        cmd: 'perfquery 4 1',
+        action: null
+      },
+      {
+        device: 'dgx-04',
+        objective: 'Reseat or reset the flapping link on lid 4',
+        hint: 'Bring the bad port down and back to force clean renegotiation.',
+        cmd: 'ibportstate 4 reset',
+        action: 'reseat-link'
+      },
+      {
+        device: 'dgx-04',
+        objective: 'Reverify: recovery counter frozen',
+        hint: 'Re-read the counter; a real fix stops the climb.',
+        cmd: 'perfquery 4 1',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M11 -- Troubleshoot: Credit Loop                                    */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm11-creditloop',
+    name: 'M11 - Troubleshoot: Credit Loop',
+    device: 'leaf-0',
+    startMode: 'troubleshoot',
+    fault: 'creditloop',
+    steps: [
+      {
+        device: 'leaf-0',
+        objective: 'Run full fabric diagnostics to find the routing deadlock',
+        hint: 'A credit loop shows up in routing validation, not a single counter.',
+        cmd: 'ibdiagnet',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Confirm the credit loop in routing validation',
+        hint: 'Validate the routing tables specifically.',
+        cmd: 'ibdiagnet -r',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Switch to a deadlock-free routing engine',
+        hint: 'An Up/Down style routing engine forbids the turn that creates the loop.',
+        cmd: 'opensm --routing_engine updn',
+        action: 'set-updn-routing'
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Reverify: routing clean, no credit loop',
+        hint: 'Re-run routing validation after the change.',
+        cmd: 'ibdiagnet -r',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M12 -- Troubleshoot: MTU Mismatch                                   */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm12-mtu',
+    name: 'M12 - Troubleshoot: MTU Mismatch',
+    device: 'dgx-04',
+    startMode: 'troubleshoot',
+    fault: 'mtu',
+    steps: [
+      {
+        device: 'dgx-04',
+        objective: 'Find the MTU inconsistency across the fabric',
+        hint: 'ibdiagnet flags links whose MTU does not match.',
+        cmd: 'ibdiagnet',
+        action: null
+      },
+      {
+        device: 'dgx-04',
+        objective: 'Confirm the mismatched MTU on the affected port',
+        hint: 'Inspect the port to see its active MTU.',
+        cmd: 'ibportstate 4 1',
+        action: null
+      },
+      {
+        device: 'dgx-04',
+        objective: 'Align the port MTU to the fabric standard',
+        hint: 'Set the low port up to the fabric-wide MTU value.',
+        cmd: 'ibportstate 4 mtu 4096',
+        action: 'set-mtu-4096'
+      },
+      {
+        device: 'dgx-04',
+        objective: 'Reverify: MTU consistent fabric-wide',
+        hint: 'Re-scan; the mismatch warning should be gone.',
+        cmd: 'ibdiagnet',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M13 -- Troubleshoot: SHARP Aggregation Down                         */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm13-sharp',
+    name: 'M13 - Troubleshoot: SHARP Aggregation Down',
+    device: 'ufm-sm',
+    startMode: 'troubleshoot',
+    fault: 'sharp',
+    steps: [
+      {
+        device: 'ufm-sm',
+        objective: 'Scan SHARP aggregation state',
+        hint: 'There is a dedicated SHARP scan in ibdiagnet.',
+        cmd: 'ibdiagnet --sharp',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Confirm the aggregation manager is unreachable',
+        hint: 'A quick SHARP reachability probe tells you if the AM is alive.',
+        cmd: 'sharp_hello',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Restart the SHARP aggregation manager',
+        hint: 'The aggregation manager service needs to come back up.',
+        cmd: 'systemctl restart sharp_am',
+        action: 'restart-sharp-am'
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Reverify: SHARP trees rebuilt',
+        hint: 'Re-scan SHARP; trees should be present.',
+        cmd: 'ibdiagnet --sharp',
+        action: null
+      }
+    ]
   }
 
 ]; /* === END MEGA_LABS DATA (Agent B) === */
@@ -1139,6 +1303,58 @@ var LINUX_CMDMAP = {
     'Utilities:',
     '  pwd / ls / whoami / hostname / uname [-a|-r] / date / clear',
   ].join('\n'),
+
+  /* ----------------------------------------------------------------
+     M11 credit-loop fix: switch OpenSM routing engine
+  ---------------------------------------------------------------- */
+  'opensm --routing_engine updn': function (dev, raw, lower) {
+    return [
+      'OpenSM: switching routing engine to Up/Down...',
+      'OpenSM: routing re-computed with updn engine.',
+      'OpenSM: MASTER state maintained.',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     M12 MTU fix: set port MTU via ibportstate (fix cmd intercepted
+     by maybeApplyFix before this output is used)
+  ---------------------------------------------------------------- */
+  'ibportstate 4 reset': function (dev, raw, lower) {
+    return [
+      '# ibportstate: setting port 4 to Down/Init...',
+      '# Port reset issued. Link will renegotiate.',
+    ].join('\n');
+  },
+
+  'ibportstate 4 mtu 4096': function (dev, raw, lower) {
+    return [
+      '# ibportstate: setting port 4 ActiveMTU to 4096...',
+      '# MTU updated.',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     M13 SHARP probe -- sets sharpHelloDone for step predicate
+  ---------------------------------------------------------------- */
+  'sharp_hello': function (dev, raw, lower) {
+    dev.custom.sharpHelloDone = true;
+    return [
+      'SHARP hello probe: connecting to AM on port 15500...',
+      'Error: connection refused (ECONNREFUSED)',
+      '  sharp_am is not running or port 15500 is in use.',
+      '  Check: systemctl status sharp_am',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     M13 SHARP restart -- fix cmd intercepted by maybeApplyFix
+  ---------------------------------------------------------------- */
+  'systemctl restart sharp_am': function (dev, raw, lower) {
+    return [
+      'Restarting sharp_am.service - SHARP Aggregation Manager...',
+      '[  OK  ] Restarted SHARP Aggregation Manager.',
+    ].join('\n');
+  },
 
 };
 
@@ -1620,11 +1836,13 @@ function markIbDiag(raw, dev) {
   dev.custom = dev.custom || {};
   var first = raw.split(/\s+/)[0];
   if (first === 'ibdiagnet' && raw.indexOf('--sharp') !== -1) dev.custom.sharpDone = true;
+  else if (first === 'ibdiagnet' && raw.indexOf('-r') !== -1) dev.custom.ibdiagnetRDone = true;
   else if (first === 'ibdiagnet') dev.custom.ibdiagnetDone = true;
   else if (first === 'ibnetdiscover') dev.custom.ibnetdiscoverDone = true;
   else if (first === 'iblinkinfo') dev.custom.iblinkinfoDone = true;
   else if (first === 'ibhosts') dev.custom.ibhostsDone = true;
   else if (first === 'sminfo') dev.custom.sminfoDone = true;
+  else if (first === 'ibportstate') dev.custom.ibportstateDone = true;
 }
 
 // Mount the engine terminal on the shared DOM node.
@@ -1732,7 +1950,7 @@ function updateFaultVisual() {
   if (!activeMission || !activeMission.fault || !window.IBTools || !window.IBTools.activeFault()) return;
   // A climbing-port fault (ber/pkey/congestion) is repaired when its lid is frozen
   // by applyFix; dualmaster clears activeFault outright. Only pulse while unrepaired.
-  var lidByFault = { ber: 7, pkey: 5, congestion: 2 };
+  var lidByFault = { ber: 7, pkey: 5, congestion: 2, linkflap: 4 };
   var lid = lidByFault[activeMission.fault];
   var repaired = (lid && window.IBTools.portFrozen) ? window.IBTools.portFrozen(lid) : false;
   if (repaired) return;
@@ -1901,11 +2119,11 @@ function checkObjectives() {
 
     // FIX steps (action != null) -- check IBTools.portFrozen or fault cleared
     if (step.action) {
-      if (step.action === 'resolve-sm') {
-        predicate = !!(window.IBTools && !window.IBTools.activeFault());
+      var lidForAction = lidFromAction(step.action);
+      if (lidForAction !== null) {
+        predicate = !!(window.IBTools && window.IBTools.portFrozen && window.IBTools.portFrozen(lidForAction));
       } else {
-        var lidForAction = lidFromAction(step.action);
-        predicate = !!(window.IBTools && lidForAction !== null && window.IBTools.portFrozen(lidForAction));
+        predicate = !!(window.IBTools && !window.IBTools.activeFault());
       }
     } else {
       // READ/BUILD/VERIFY steps -- check custom flags set by commandMap handlers
@@ -1931,6 +2149,7 @@ function lidFromAction(action) {
   if (action === 'replace-cable') return 7;
   if (action === 'fix-pkey') return 5;
   if (action === 'fix-congestion') return 2;
+  if (action === 'reseat-link') return 4;
   return null;
 }
 
@@ -1954,6 +2173,19 @@ function evalStepPredicate(step, dev, idx, m) {
   if (cmd === 'ib_write_bw dgx-02') return !!(dev && dev.custom.bwDone);
   if (cmd === 'ibdiagnet --sharp') return !!(dev && dev.custom.sharpDone);
   if (cmd === 'nccl all_reduce_perf') return !!(dev && dev.custom.ncclDone);
+  // M11/M12/M13 diagnostic step commands
+  if (cmd === 'ibdiagnet -r') return !!(dev && dev.custom.ibdiagnetRDone);
+  if (cmd === 'ibportstate 4 1') return !!(dev && dev.custom.ibportstateDone);
+  if (cmd === 'sharp_hello') return !!(dev && dev.custom.sharpHelloDone);
+  // Reverify steps after a clears-fault action: check that no active fault remains.
+  // Detect by looking for a prior fix step whose lid is null (clears-fault type).
+  var priorClearsFix = false;
+  for (var j = 0; j < idx; j++) {
+    if (m.steps[j].action && lidFromAction(m.steps[j].action) === null) { priorClearsFix = true; break; }
+  }
+  if (priorClearsFix) {
+    return !!(window.IBTools && !window.IBTools.activeFault());
+  }
   // perfquery steps: a "read" (no prior fix on this lid) completes after 2 reads
   // show the counter climbing; a "reverify" (a fix step earlier in the mission
   // targets this lid) completes once that fix has frozen the counter.
@@ -1974,6 +2206,8 @@ function evalStepPredicate(step, dev, idx, m) {
 
 // Mega-lab fix wiring: if the active mission has a fix step whose cmd matches
 // this command, apply the remedy to the live fabric state via IBTools.applyFix.
+// Always fires when a matching fix step is found (not gated on notFound) so that
+// fix commands returning valid IBTools output still register the fix.
 function maybeApplyFix(raw, result) {
   if (!activeMission || !window.IBTools || !window.IBTools.applyFix) return null;
   var step = null;
@@ -1984,11 +2218,7 @@ function maybeApplyFix(raw, result) {
   if (!step) return null;
   var lid = lidFromAction(step.action);
   var res = window.IBTools.applyFix(lid, step.action);
-  var notFound = !result || /command not found|Invalid input|Unrecognized|not found/i.test(result);
-  if (notFound) {
-    return (res && res.msg) ? res.msg : ('[fix] ' + step.cmd + ' applied (' + step.action + ').');
-  }
-  return null;
+  return (res && res.msg) ? res.msg : ('[fix] ' + step.cmd + ' applied (' + step.action + ').');
 }
 
 // ============================================================
@@ -2041,6 +2271,10 @@ function renderObjectives() {
   completeBanner.style.display = (doneCount === total && total > 0) ? 'block' : 'none';
   // AN5: shimmer the bar when fully complete
   progressFill.classList.toggle('complete', doneCount === total && total > 0);
+  // Persist solved missions to localStorage
+  if (doneCount === total && total > 0 && m) {
+    saveSolvedMission(m.id);
+  }
 }
 
 function toggleHint(itemEl, hintText, idx) {
@@ -2065,9 +2299,54 @@ function esc(s) {
 }
 
 // ============================================================
+// SAVE/RESUME -- localStorage key 'ncpain_megalab_v1'
+// Shape: { solved: ['m6-ber', 'm7-dualmaster', ...] }
+// ============================================================
+
+var STORAGE_KEY = 'ncpain_megalab_v1';
+
+function loadSolvedIds() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    var parsed = JSON.parse(raw);
+    return (parsed && Array.isArray(parsed.solved)) ? parsed.solved : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSolvedMission(id) {
+  try {
+    var solved = loadSolvedIds();
+    if (solved.indexOf(id) === -1) {
+      solved.push(id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ solved: solved }));
+    }
+  } catch (e) {
+    // storage unavailable, ignore
+  }
+}
+
+function seedSolvedMissions() {
+  var solved = loadSolvedIds();
+  if (!solved.length) return;
+  MEGA_LABS.forEach(function (m) {
+    if (solved.indexOf(m.id) !== -1) {
+      // Seed _completedSet with all step indices so isMissionComplete returns true
+      m._completedSet = new Set();
+      for (var i = 0; i < m.steps.length; i++) {
+        m._completedSet.add(i);
+      }
+    }
+  });
+}
+
+// ============================================================
 // INIT
 // ============================================================
 
+seedSolvedMissions();
 renderMissionMenu();
 });
 </script>
