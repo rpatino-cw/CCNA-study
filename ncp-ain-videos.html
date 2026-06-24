@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Trending Study Videos -- NCP-AIN + CCNA Core</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  /* NCP-AIN brand tokens */
+  :root{--ncp:#76B900;--ncp-rgb:118,185,0;--ncp-light:#A4D65E;--ncp-dark:#5A8C00}
+  .gc-bar,.gc-chat-panel,#guidePill{display:none!important}
+
+  /* Page header */
+  .page-header{padding:var(--s-md) 0 var(--s-sm);margin-bottom:var(--s-lg);border-bottom:3px solid var(--ncp)}
+  .page-header h1{font-size:2.4rem;font-weight:700;letter-spacing:-.04em;color:var(--ncp);margin-bottom:4px}
+  .page-header .back-link{font-family:var(--font-display);font-size:.78rem;color:var(--ncp);text-decoration:none;font-weight:600}
+  .page-header .back-link:hover{text-decoration:underline}
+  .page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.92rem;font-style:italic;margin-top:4px}
+  .page-header .ext-note{font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);margin-top:6px}
+
+  /* Search row */
+  .search-row{display:flex;gap:12px;align-items:center;margin-bottom:var(--s-md)}
+  .search-input{flex:1;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.85rem;background:var(--bg-surface);color:var(--ink);outline:none}
+  .search-input:focus{border-color:var(--ncp)}
+  .search-count{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);white-space:nowrap}
+
+  /* Category filter chips */
+  .filter-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--s-xl)}
+  .filter-chip{font-family:var(--font-display);font-size:.75rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-secondary);cursor:pointer;transition:all var(--transition)}
+  .filter-chip:hover{border-color:var(--ncp);color:var(--ncp)}
+  .filter-chip.active{background:var(--ncp);color:#fff;border-color:var(--ncp)}
+
+  /* Video card grid */
+  .videos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:var(--s-lg);margin-bottom:var(--s-2xl)}
+  @media(max-width:480px){.videos-grid{grid-template-columns:1fr}}
+
+  .video-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:border-color var(--transition),box-shadow var(--transition)}
+  .video-card:hover{border-color:var(--ncp);box-shadow:0 2px 12px rgba(118,185,0,.12)}
+  .video-card.hidden{display:none}
+
+  /* Thumbnail facade (click-to-load embed) */
+  .thumb-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#111;cursor:pointer;overflow:hidden}
+  .thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s}
+  .thumb-wrap:hover img{opacity:.85}
+  .play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .play-btn svg{width:56px;height:56px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));transition:transform .18s}
+  .thumb-wrap:hover .play-btn svg{transform:scale(1.1)}
+  .thumb-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+
+  /* Card body */
+  .card-body{padding:12px 16px 14px}
+  .card-cat{display:inline-block;font-family:var(--font-display);font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:rgba(118,185,0,.12);color:var(--ncp);margin-bottom:6px}
+  .card-title{font-family:var(--font-display);font-size:.9rem;font-weight:700;color:var(--ink);letter-spacing:-.01em;line-height:1.35;margin-bottom:4px}
+  .card-channel{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-muted);margin-bottom:6px}
+  .card-why{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.5}
+
+  /* Empty state */
+  .empty-state{padding:var(--s-2xl);text-align:center;font-family:var(--font-body);font-size:.9rem;color:var(--ink-muted);display:none}
+
+  @media(prefers-reduced-motion:reduce){
+    .thumb-wrap img,.play-btn svg,.video-card{transition:none}
+  }
+  @media print{nav.top-nav{display:none!important}}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <a class="back-link" href="ncp-ain-hub.html">&#8592; NCP-AIN Hub</a>
+    <h1>Trending Study Videos</h1>
+    <p class="subtitle">Curated YouTube picks for NVIDIA AI-networking (NCP-AIN) and CCNA core. Click any thumbnail to load the embed in-page.</p>
+    <p class="ext-note">Videos are hosted on YouTube (external). They open inside this page on click. No tracking beyond what YouTube sets on play.</p>
+  </header>
+
+  <!-- Search -->
+  <div class="search-row">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search videos..." autocomplete="off">
+    <span class="search-count" id="searchCount"></span>
+  </div>
+
+  <!-- Category filter chips -->
+  <div class="filter-row" id="filterRow"></div>
+
+  <!-- Grid -->
+  <div class="videos-grid" id="videosGrid"></div>
+  <div class="empty-state" id="emptyState">No videos match. Try a different filter or search term.</div>
+</div>
+
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js"></script>
+<script>document.addEventListener('DOMContentLoaded', function () {
+
+/* ================================================================
+   Trending Study Videos -- NCP-AIN + CCNA Core
+   Lazy embed: thumbnail facade -> iframe swap on click.
+   Sort: AI-networking categories first, CCNA after.
+================================================================ */
+
+var CATEGORIES = [
+  'All',
+  'AI-Networking/InfiniBand',
+  'RoCE/Spectrum-X',
+  'GPU/NCCL',
+  'NVUE/Cumulus',
+  'CCNA-Core',
+  'Subnetting',
+  'Routing',
+  'Switching'
+];
+
+/* id = 11-char YouTube video ID */
+var VIDEOS = [
+  /* ---- RoCE / Spectrum-X ---- */
+  {
+    id: 'nKqfi3q4S5I',
+    title: 'NVIDIA Spectrum-X Platform | World\'s first Ethernet fabric built for AI',
+    channel: 'NVIDIA',
+    cat: 'RoCE/Spectrum-X',
+    why: 'Official Spectrum-X (Spectrum-4 + BlueField-3) overview.'
+  },
+  {
+    id: 'GssE_bWDXAM',
+    title: 'NVIDIA Spectrum-X Network Platform Architecture',
+    channel: 'Open Compute Project',
+    cat: 'RoCE/Spectrum-X',
+    why: 'OCP technical deep-dive past the marketing.'
+  },
+  {
+    id: 'nKz92Yr09q8',
+    title: 'RDMA and RoCEv2 EXPLAINED: The Secret High-Speed Network Behind AI and HPC',
+    channel: '(channel unconfirmed)',
+    cat: 'RoCE/Spectrum-X',
+    why: 'DMA to RDMA to lossless Ethernet, end to end.'
+  },
+  {
+    id: 'mp-q_WMqu8g',
+    title: 'RoCEv2 and AI Data Centers (Very Simple Analogy)',
+    channel: 'Architecting an AI-Enabled Data Center',
+    cat: 'RoCE/Spectrum-X',
+    why: 'Analogy-driven RoCEv2 explanation.'
+  },
+  {
+    id: '6-RS4U7UZP8',
+    title: 'AI Networking - RDMA and RoCE',
+    channel: '(channel unconfirmed)',
+    cat: 'RoCE/Spectrum-X',
+    why: 'Recent plain-language RDMA/RoCE primer.'
+  },
+  /* ---- AI-Networking / InfiniBand ---- */
+  {
+    id: 'aWoa1em8Q3c',
+    title: 'Ethernet Won\'t Replace InfiniBand for AI Networking in 2024',
+    channel: 'Tech Field Day',
+    cat: 'AI-Networking/InfiniBand',
+    why: 'Practitioner panel: IB vs Ethernet for AI clusters.'
+  },
+  {
+    id: 'trZzkZJA-kA',
+    title: 'Ethernet or InfiniBand for AI Networking?',
+    channel: '(channel unconfirmed)',
+    cat: 'AI-Networking/InfiniBand',
+    why: 'Neutral explainer weighing both fabrics.'
+  },
+  /* ---- GPU / NCCL ---- */
+  {
+    id: 'kyQtbyR536I',
+    title: 'Multi-GPU Communication Libraries for Scaling HPC and AI Workloads | GTC 2025',
+    channel: 'NVIDIA Developer',
+    cat: 'GPU/NCCL',
+    why: 'CUDA-aware MPI, NVSHMEM, NCCL scaling guidance.'
+  },
+  {
+    id: 'Jz9E1_pNBS8',
+    title: 'NCCL Explained: How NVIDIA\'s GPU Communication Library Powers Distributed Deep Learning',
+    channel: '(channel unconfirmed)',
+    cat: 'GPU/NCCL',
+    why: 'What NCCL is and why it matters for multi-GPU.'
+  },
+  /* ---- NVUE / Cumulus ---- */
+  {
+    id: 'ID8TUpqwGHw',
+    title: 'FREE Network Automation Lab -- EVPN-VXLAN with BGP Unnumbered',
+    channel: '(network automation)',
+    cat: 'NVUE/Cumulus',
+    why: 'Hands-on EVPN-VXLAN on Cumulus (2020, NCLU; pair with the NVUE overview).'
+  },
+  /* ---- CCNA Core ---- */
+  {
+    id: 'H8W9oMNSuwo',
+    title: 'Free CCNA | Network Devices | Day 1',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'CCNA-Core',
+    why: 'Day 1 of the most-recommended free CCNA course.'
+  },
+  {
+    id: 't-ai8JzhHuY',
+    title: 'Free CCNA | OSI Model and TCP/IP Suite | Day 3',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'CCNA-Core',
+    why: 'Canonical OSI + TCP/IP lesson.'
+  },
+  {
+    id: 'apr63p7K_3A',
+    title: 'The OSI Model is a lie! | Free CCNA 200-301 | Video 8',
+    channel: 'David Bombal',
+    cat: 'CCNA-Core',
+    why: 'Provocative OSI-vs-reality framing.'
+  },
+  {
+    id: '2TZCfTgopeg',
+    title: 'Free CCNA | NAT (Part 1) | Day 44',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'CCNA-Core',
+    why: 'Static/Dynamic NAT + PAT with IOS config.'
+  },
+  /* ---- Subnetting ---- */
+  {
+    id: 'bQ8sdpGQu8c',
+    title: 'Free CCNA | Subnetting (Part 1) | Day 13',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'Subnetting',
+    why: 'Community-favorite subnetting method.'
+  },
+  {
+    id: 'z-JqCedc9EI',
+    title: 'Free CCNA | Subnetting (Part 3 - VLSM) | Day 15',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'Subnetting',
+    why: 'VLSM, the hardest subnetting variant.'
+  },
+  /* ---- Routing ---- */
+  {
+    id: 'pvuaoJ9YzoI',
+    title: 'Free CCNA | OSPF Part 1 | Day 26',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'Routing',
+    why: 'Link-state fundamentals, neighbors, cost.'
+  },
+  /* ---- Switching ---- */
+  {
+    id: 'Jl9OOzNaBDU',
+    title: 'Free CCNA | VLANs (Part 2) | Day 17',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'Switching',
+    why: 'Trunks, 802.1Q, native VLAN, router-on-a-stick.'
+  },
+  {
+    id: 'j-bK-EFt9cY',
+    title: 'Free CCNA | Spanning Tree Protocol (Part 1) | Day 20',
+    channel: 'Jeremy\'s IT Lab',
+    cat: 'Switching',
+    why: 'Why STP, root election, port roles, PVST.'
+  }
+];
+
+/* ── helpers ── */
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/* ── state ── */
+var activeFilter = 'All';
+var searchTerm = '';
+
+/* ── render filter chips ── */
+function renderFilters() {
+  var row = document.getElementById('filterRow');
+  var html = '';
+  CATEGORIES.forEach(function (cat) {
+    var active = cat === activeFilter ? ' active' : '';
+    html += '<button class="filter-chip' + active + '" data-cat="' + esc(cat) + '">' + esc(cat) + '</button>';
+  });
+  row.innerHTML = html;
+  row.querySelectorAll('.filter-chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      activeFilter = btn.dataset.cat;
+      renderFilters();
+      renderGrid();
+    });
+  });
+}
+
+/* ── thumbnail facade -> iframe swap ── */
+function makeCard(v) {
+  var thumbUrl = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
+  var embedUrl = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1';
+
+  var card = document.createElement('div');
+  card.className = 'video-card';
+  card.dataset.cat = v.cat;
+  card.dataset.title = v.title.toLowerCase();
+  card.dataset.channel = v.channel.toLowerCase();
+  card.dataset.why = v.why.toLowerCase();
+
+  card.innerHTML =
+    '<div class="thumb-wrap" data-embed="' + esc(embedUrl) + '">' +
+      '<img src="' + esc(thumbUrl) + '" alt="' + esc(v.title) + '" loading="lazy" decoding="async" ' +
+        'onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.src.replace(\'/hqdefault.jpg\',\'/mqdefault.jpg\');}">' +
+      '<div class="play-btn">' +
+        '<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+          '<circle cx="40" cy="40" r="38" fill="rgba(0,0,0,0.65)"/>' +
+          '<polygon points="32,25 60,40 32,55" fill="#fff"/>' +
+        '</svg>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card-body">' +
+      '<span class="card-cat">' + esc(v.cat) + '</span>' +
+      '<div class="card-title">' + esc(v.title) + '</div>' +
+      '<div class="card-channel">' + esc(v.channel) + '</div>' +
+      '<div class="card-why">' + esc(v.why) + '</div>' +
+    '</div>';
+
+  /* click-to-embed */
+  card.querySelector('.thumb-wrap').addEventListener('click', function () {
+    var wrap = this;
+    if (wrap.querySelector('iframe')) return; /* already loaded */
+    var iframe = document.createElement('iframe');
+    iframe.src = wrap.dataset.embed;
+    iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+    iframe.allowFullscreen = true;
+    iframe.loading = 'lazy';
+    iframe.title = v.title;
+    wrap.innerHTML = '';
+    wrap.appendChild(iframe);
+  });
+
+  return card;
+}
+
+/* ── render grid ── */
+function renderGrid() {
+  var grid = document.getElementById('videosGrid');
+  var empty = document.getElementById('emptyState');
+  var count = document.getElementById('searchCount');
+  grid.innerHTML = '';
+
+  var filtered = VIDEOS.filter(function (v) {
+    var catMatch = activeFilter === 'All' || v.cat === activeFilter;
+    var q = searchTerm.trim().toLowerCase();
+    var textMatch = !q || (
+      v.title.toLowerCase().indexOf(q) !== -1 ||
+      v.channel.toLowerCase().indexOf(q) !== -1 ||
+      v.why.toLowerCase().indexOf(q) !== -1 ||
+      v.cat.toLowerCase().indexOf(q) !== -1
+    );
+    return catMatch && textMatch;
+  });
+
+  count.textContent = filtered.length + ' of ' + VIDEOS.length + ' videos';
+
+  if (filtered.length === 0) {
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    filtered.forEach(function (v) {
+      grid.appendChild(makeCard(v));
+    });
+  }
+}
+
+/* ── search ── */
+document.getElementById('searchInput').addEventListener('input', function () {
+  searchTerm = this.value;
+  renderGrid();
+});
+
+/* ── init ── */
+renderFilters();
+renderGrid();
+
+}); /* end DOMContentLoaded */
+</script>
+</body>
+</html>

@@ -185,6 +185,7 @@
   var NCPAIN_NAV = [
     { text: 'CORE', href: 'ncp-ain-hub.html' },
     { text: 'Pillars', href: 'ncp-ain-pillars.html' },
+    { text: 'Study Videos 📺', href: 'ncp-ain-videos.html' },
     { text: 'Exam Simulator', href: 'ncp-ain-exam-sim.html' },
     { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
     { text: 'Mega Lab ★', href: 'ncp-ain-mega-lab.html' },
