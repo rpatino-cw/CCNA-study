@@ -200,6 +200,7 @@
 .lml-name { font-family: var(--font-display); font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
 .lml-detail { font-family: var(--font-body); font-size: 0.78rem; color: var(--ink-secondary); }
 .lml-start { font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--ncp-dark); flex-shrink: 0; }
+.lml-best-score { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-muted); flex-shrink: 0; margin-right: 6px; }
 .lab-menu-lab.completed .lml-name::after { content: ' \2713'; color: var(--ncp); }
 
 /* Mode badge in minibar */
@@ -1981,6 +1982,7 @@ document.querySelectorAll('.topo-device').forEach(function (el) {
 function renderMissionMenu() {
   var list = document.getElementById('missionList');
   list.innerHTML = '';
+  var bestScores = loadBestScores();
   MEGA_LABS.forEach(function (m) {
     var done = isMissionComplete(m);
     var row = document.createElement('div');
@@ -1988,12 +1990,17 @@ function renderMissionMenu() {
     row.setAttribute('role', 'button');
     row.setAttribute('tabindex', '0');
     row.setAttribute('aria-label', 'Start mission ' + m.name);
+    var bestScore = (typeof bestScores[m.id] === 'number') ? bestScores[m.id] : null;
+    var badgeHtml = (bestScore !== null)
+      ? '<span class="lml-best-score">Best: ' + scoreGrade(bestScore) + ' (' + bestScore + ')</span>'
+      : '';
     row.innerHTML =
       '<span class="lml-diff ' + m.startMode + '"></span>' +
       '<span class="lml-info">' +
         '<div class="lml-name">' + esc(m.name) + '</div>' +
         '<div class="lml-detail">' + esc(stepLabel(m)) + '</div>' +
       '</span>' +
+      badgeHtml +
       '<span class="lml-start">Start</span>';
     row.addEventListener('click', function () { loadMission(m); });
     row.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadMission(m); } });
@@ -2016,6 +2023,12 @@ function isMissionComplete(m) {
 
 function loadMission(m) {
   activeMission = m;
+
+  // Reset per-mission run tracking
+  m._runStart = Date.now();
+  m._hintsUsed = 0;
+  m._wrongFix = 0;
+  m._hintRevealedSet = new Set();
 
   // Reset per-mission state
   m._completedSet = new Set();
@@ -2218,6 +2231,10 @@ function maybeApplyFix(raw, result) {
   if (!step) return null;
   var lid = lidFromAction(step.action);
   var res = window.IBTools.applyFix(lid, step.action);
+  // Track wrong fixes: applyFix returns ok:false when the action does not address the active fault
+  if (res && res.ok === false) {
+    activeMission._wrongFix = (activeMission._wrongFix || 0) + 1;
+  }
   return (res && res.msg) ? res.msg : ('[fix] ' + step.cmd + ' applied (' + step.action + ').');
 }
 
@@ -2271,15 +2288,65 @@ function renderObjectives() {
   completeBanner.style.display = (doneCount === total && total > 0) ? 'block' : 'none';
   // AN5: shimmer the bar when fully complete
   progressFill.classList.toggle('complete', doneCount === total && total > 0);
-  // Persist solved missions to localStorage
+  // Persist solved missions and compute score on completion
   if (doneCount === total && total > 0 && m) {
     saveSolvedMission(m.id);
+    var score = computeScore(m);
+    saveBestScore(m.id, score);
+    completeBanner.textContent = formatBanner(m, score, doneCount);
   }
+}
+
+// ============================================================
+// SCORING
+// ============================================================
+
+function computeScore(m) {
+  var hintsUsed = m._hintsUsed || 0;
+  var wrongFix = m._wrongFix || 0;
+  var elapsedMs = (m._runStart) ? (Date.now() - m._runStart) : 0;
+  var elapsedSec = Math.floor(elapsedMs / 1000);
+  var PAR_SEC = 90;
+  var over = Math.max(0, elapsedSec - PAR_SEC);
+  var timePenalty = Math.min(20, Math.floor(over / 30));
+  var raw = 100 - (8 * hintsUsed) - (10 * wrongFix) - timePenalty;
+  return Math.max(0, Math.min(100, raw));
+}
+
+function scoreGrade(score) {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
+function formatElapsed(m) {
+  var elapsedMs = (m._runStart) ? (Date.now() - m._runStart) : 0;
+  var totalSec = Math.floor(elapsedMs / 1000);
+  var min = Math.floor(totalSec / 60);
+  var sec = totalSec % 60;
+  return min + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function formatBanner(m, score, doneCount) {
+  var grade = scoreGrade(score);
+  var time = formatElapsed(m);
+  var hints = m._hintsUsed || 0;
+  return 'Mission complete! Grade ' + grade + ' (' + score + ') ' +
+    String.fromCharCode(183) + ' ' + doneCount + '/' + m.steps.length + ' objectives ' +
+    String.fromCharCode(183) + ' ' + hints + ' hint' + (hints !== 1 ? 's' : '') + ' ' +
+    String.fromCharCode(183) + ' ' + time;
 }
 
 function toggleHint(itemEl, hintText, idx) {
   var existing = itemEl.querySelector('.hint-toast');
   if (existing) { existing.remove(); return; }
+  // Count first reveal only (re-toggling the same hint does not double-count)
+  if (activeMission && !activeMission._hintRevealedSet.has(idx)) {
+    activeMission._hintRevealedSet.add(idx);
+    activeMission._hintsUsed = (activeMission._hintsUsed || 0) + 1;
+  }
   var toast = document.createElement('div');
   toast.className = 'hint-toast';
   toast.textContent = hintText;
@@ -2300,28 +2367,54 @@ function esc(s) {
 
 // ============================================================
 // SAVE/RESUME -- localStorage key 'ncpain_megalab_v1'
-// Shape: { solved: ['m6-ber', 'm7-dualmaster', ...] }
+// Shape: { solved: ['m6-ber', ...], scores: { 'm6-ber': 92, ... } }
+// Back-compat: if stored object lacks scores, treat as {}.
 // ============================================================
 
 var STORAGE_KEY = 'ncpain_megalab_v1';
 
-function loadSolvedIds() {
+function loadStoredData() {
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) return { solved: [], scores: {} };
     var parsed = JSON.parse(raw);
-    return (parsed && Array.isArray(parsed.solved)) ? parsed.solved : [];
+    if (!parsed || typeof parsed !== 'object') return { solved: [], scores: {} };
+    return {
+      solved: Array.isArray(parsed.solved) ? parsed.solved : [],
+      scores: (parsed.scores && typeof parsed.scores === 'object') ? parsed.scores : {}
+    };
   } catch (e) {
-    return [];
+    return { solved: [], scores: {} };
   }
+}
+
+function loadSolvedIds() {
+  return loadStoredData().solved;
+}
+
+function loadBestScores() {
+  return loadStoredData().scores;
 }
 
 function saveSolvedMission(id) {
   try {
-    var solved = loadSolvedIds();
-    if (solved.indexOf(id) === -1) {
-      solved.push(id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ solved: solved }));
+    var data = loadStoredData();
+    if (data.solved.indexOf(id) === -1) {
+      data.solved.push(id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+  } catch (e) {
+    // storage unavailable, ignore
+  }
+}
+
+function saveBestScore(id, score) {
+  try {
+    var data = loadStoredData();
+    var existing = (typeof data.scores[id] === 'number') ? data.scores[id] : -1;
+    if (score > existing) {
+      data.scores[id] = score;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
   } catch (e) {
     // storage unavailable, ignore
@@ -2329,7 +2422,8 @@ function saveSolvedMission(id) {
 }
 
 function seedSolvedMissions() {
-  var solved = loadSolvedIds();
+  var data = loadStoredData();
+  var solved = data.solved;
   if (!solved.length) return;
   MEGA_LABS.forEach(function (m) {
     if (solved.indexOf(m.id) !== -1) {
