@@ -1,12 +1,93 @@
 /**
- * CCNA AI Tutor — floating chat bubble
+ * AI Tutor: floating chat bubble, track-aware (CCNA / CCNP / NCP-AIN)
  * Include on any page: <script src="js/tutor.js"></script>
  * (or ../js/tutor.js from subdirectories)
  */
 (function () {
   const WORKER_URL = 'https://ccna-tutor.rpatino-cw.workers.dev';
   const STORAGE_KEY = 'ccna_tutor_history';
+  const TRACK_STORAGE_KEY = 'tutor_track';
   const MAX_HISTORY = 20;
+
+  // ── Track config ────────────────────────────────────────────
+  var TRACKS = {
+    'ccna': {
+      label: 'CCNA',
+      title: 'CCNA Tutor',
+      sub: 'Ask anything CCNA 200-301',
+      placeholder: 'Ask a CCNA question...',
+      empty: 'Ask me anything about CCNA 200-301. I can explain concepts, quiz you, or unpack wrong answers.',
+      suggestions: ['Explain subnetting', 'What is OSPF?', 'TCP vs UDP', 'How does STP work?', 'What is NAT/PAT?'],
+      directive: 'You are a CCNA 200-301 tutor. Answer strictly in the scope of Cisco CCNA (routing, switching, IP, security, automation). Keep it exam-relevant.'
+    },
+    'ccnp': {
+      label: 'CCNP',
+      title: 'CCNP ENCOR Tutor',
+      sub: 'Ask anything CCNP ENCOR 350-401',
+      placeholder: 'Ask a CCNP ENCOR question...',
+      empty: 'Ask me anything about CCNP ENCOR 350-401: advanced routing, BGP, EVPN/VXLAN, QoS, wireless, security, automation.',
+      suggestions: ['OSPF LSA types', 'BGP path selection', 'What is EVPN/VXLAN?', 'Explain QoS shaping vs policing', 'DNA Center / automation'],
+      directive: 'You are a CCNP ENCOR 350-401 tutor. Answer strictly in the scope of Cisco CCNP enterprise core (advanced OSPF/BGP, EVPN/VXLAN, QoS, wireless, security, automation).'
+    },
+    'ncp-ain': {
+      label: 'NCP-AIN',
+      title: 'NCP-AIN Tutor',
+      sub: 'Ask anything AI networking',
+      placeholder: 'Ask an AI-networking question...',
+      empty: 'Ask me anything about NVIDIA NCP-AIN AI networking: InfiniBand, RoCE/Spectrum-X, RDMA, NVUE/Cumulus, UFM, NCCL, SHARP, GPU fabrics.',
+      suggestions: ['InfiniBand vs RoCE', 'What is RDMA?', 'Explain PFC + ECN + DCQCN', 'How does SHARP work?', 'nv set qos roce basics'],
+      directive: 'You are an NVIDIA NCP-AIN (AI Networking) tutor. Answer strictly in the scope of NVIDIA AI networking: InfiniBand, Spectrum-X/RoCEv2, RDMA, NVUE/Cumulus Linux, UFM, NCCL, SHARP, GPU cluster fabrics. If asked about generic Cisco/CCNA, relate it to the AI-networking context.'
+    }
+  };
+
+  // ── Determine default track from page filename ───────────────
+  function pageDefaultTrack() {
+    var filename = location.pathname.split('/').pop() || '';
+    if (filename.indexOf('ncp-ain-') === 0) return 'ncp-ain';
+    if (filename.indexOf('encor-') === 0) return 'ccnp';
+    return 'ccna';
+  }
+
+  // ── Track state: stored in localStorage, fallback to page default ──
+  var track = (function () {
+    var stored = null;
+    try { stored = localStorage.getItem(TRACK_STORAGE_KEY); } catch (e) {}
+    if (stored && TRACKS[stored]) return stored;
+    return pageDefaultTrack();
+  }());
+
+  // ── Per-track sessionStorage key ────────────────────────────
+  function trackKey(t) {
+    return STORAGE_KEY + ':' + t;
+  }
+
+  function loadHistory(t) {
+    try {
+      return JSON.parse(sessionStorage.getItem(trackKey(t)) || '[]');
+    } catch (e) { return []; }
+  }
+
+  function saveHistory(t, h) {
+    try { sessionStorage.setItem(trackKey(t), JSON.stringify(h)); } catch (e) {}
+  }
+
+  // Migrate old single-key history to per-track key (backward compat, no crash)
+  (function migrateLegacy() {
+    try {
+      var legacy = sessionStorage.getItem(STORAGE_KEY);
+      if (legacy) {
+        var parsed = JSON.parse(legacy);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Only migrate if the ccna per-track key does not yet exist
+          var ccnaKey = trackKey('ccna');
+          if (!sessionStorage.getItem(ccnaKey)) {
+            sessionStorage.setItem(ccnaKey, legacy);
+          }
+          sessionStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    } catch (e) {}
+  }());
 
   // ── Inject styles ──────────────────────────────────────────
   const css = document.createElement('style');
@@ -42,8 +123,8 @@
     }
 
     .tutor-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px; border-bottom: 1px solid #E2DFD9;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 10px 14px 8px; border-bottom: 1px solid #E2DFD9;
       background: #FFFFFF;
     }
     .tutor-header-title {
@@ -59,6 +140,22 @@
       color: #A8A29E; font-size: 18px; line-height: 1; border-radius: 4px;
     }
     .tutor-close:hover { background: #F3F0EB; color: #1C1917; }
+
+    .tutor-switcher {
+      display: flex; gap: 3px; margin-top: 6px;
+    }
+    .tutor-track-btn {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.62rem; font-weight: 600;
+      padding: 3px 7px; border-radius: 10px; border: 1px solid #D6D3CE;
+      background: #F3F0EB; color: #78716C; cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .tutor-track-btn:hover { border-color: #76B900; color: #76B900; }
+    .tutor-track-btn.active {
+      background: #76B900; color: #FFFFFF; border-color: #76B900;
+    }
 
     .tutor-messages {
       flex: 1; overflow-y: auto; padding: 12px 16px;
@@ -162,7 +259,7 @@
   // ── Build DOM ──────────────────────────────────────────────
   const fab = document.createElement('button');
   fab.className = 'tutor-fab';
-  fab.setAttribute('aria-label', 'Open CCNA Tutor');
+  fab.setAttribute('aria-label', 'Open AI Tutor');
   fab.innerHTML = '?';
   document.body.appendChild(fab);
 
@@ -170,11 +267,12 @@
   panel.className = 'tutor-panel';
   panel.innerHTML = `
     <div class="tutor-header">
-      <div>
-        <div class="tutor-header-title">CCNA Tutor</div>
-        <div class="tutor-header-sub">Powered by Gemini &middot; Ask anything CCNA</div>
+      <div style="flex:1;min-width:0;">
+        <div class="tutor-header-title" id="tutor-title"></div>
+        <div class="tutor-header-sub" id="tutor-sub"></div>
+        <div class="tutor-switcher" id="tutor-switcher"></div>
       </div>
-      <div style="display:flex;align-items:center;gap:4px;">
+      <div style="display:flex;align-items:center;gap:4px;margin-left:8px;">
         <button class="tutor-clear" id="tutor-clear">Clear</button>
         <button class="tutor-close" id="tutor-close">&times;</button>
       </div>
@@ -182,14 +280,14 @@
     <div class="tutor-messages" id="tutor-messages"></div>
     <div class="tutor-suggestions" id="tutor-suggestions"></div>
     <div class="tutor-input-row">
-      <textarea class="tutor-input" id="tutor-input" placeholder="Ask a CCNA question..." rows="1"></textarea>
+      <textarea class="tutor-input" id="tutor-input" rows="1"></textarea>
       <button class="tutor-send" id="tutor-send">Send</button>
     </div>
   `;
   document.body.appendChild(panel);
 
   // ── State ──────────────────────────────────────────────────
-  let history = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]');
+  let history = loadHistory(track);
   let isOpen = false;
   let isSending = false;
 
@@ -197,21 +295,52 @@
   const inputEl = document.getElementById('tutor-input');
   const sendBtn = document.getElementById('tutor-send');
   const suggestionsEl = document.getElementById('tutor-suggestions');
+  const titleEl = document.getElementById('tutor-title');
+  const subEl = document.getElementById('tutor-sub');
+  const switcherEl = document.getElementById('tutor-switcher');
 
-  const SUGGESTIONS = [
-    'Explain subnetting',
-    'What is OSPF?',
-    'TCP vs UDP',
-    'How does STP work?',
-    'What is NAT/PAT?',
-    'Build me a VLAN topology in PT',
-  ];
+  // ── Switcher UI ────────────────────────────────────────────
+  function buildSwitcher() {
+    switcherEl.innerHTML = '';
+    Object.keys(TRACKS).forEach(function (t) {
+      var btn = document.createElement('button');
+      btn.className = 'tutor-track-btn' + (t === track ? ' active' : '');
+      btn.textContent = TRACKS[t].label;
+      btn.setAttribute('data-track', t);
+      btn.addEventListener('click', function () {
+        if (t === track) return;
+        // Save current history before switching
+        saveHistory(track, history);
+        // Switch track
+        track = t;
+        try { localStorage.setItem(TRACK_STORAGE_KEY, track); } catch (e) {}
+        // Load new track history
+        history = loadHistory(track);
+        // Update UI
+        applyTrackUI();
+        renderMessages();
+        inputEl.focus();
+      });
+      switcherEl.appendChild(btn);
+    });
+  }
+
+  function applyTrackUI() {
+    var cfg = TRACKS[track];
+    titleEl.textContent = cfg.title;
+    subEl.textContent = 'Powered by Gemini · ' + cfg.sub;
+    inputEl.placeholder = cfg.placeholder;
+    // Update switcher button active states
+    switcherEl.querySelectorAll('.tutor-track-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-track') === track);
+    });
+  }
 
   // ── Render ─────────────────────────────────────────────────
   function renderMessages() {
     messagesEl.innerHTML = '';
     if (history.length === 0) {
-      messagesEl.innerHTML = '<div class="tutor-msg bot">Ask me anything about CCNA 200-301. I can explain concepts, quiz you, or help you understand wrong answers.</div>';
+      messagesEl.innerHTML = '<div class="tutor-msg bot">' + escapeHtml(TRACKS[track].empty) + '</div>';
       showSuggestions();
     } else {
       hideSuggestions();
@@ -244,8 +373,9 @@
   }
 
   function showSuggestions() {
-    suggestionsEl.innerHTML = SUGGESTIONS.map(s =>
-      `<button class="tutor-suggestion">${s}</button>`
+    var suggestions = TRACKS[track].suggestions;
+    suggestionsEl.innerHTML = suggestions.map(s =>
+      `<button class="tutor-suggestion">${escapeHtml(s)}</button>`
     ).join('');
     suggestionsEl.querySelectorAll('.tutor-suggestion').forEach(btn => {
       btn.addEventListener('click', () => { inputEl.value = btn.textContent; sendMessage(); });
@@ -298,7 +428,7 @@
     'dashboard': 'core.html',
   };
 
-  // Detect navigation intent in user prompt → returns matched URL or null
+  // Detect navigation intent in user prompt -> returns matched URL or null
   function matchNavIntent(text) {
     const t = text.toLowerCase();
     const intent = /\b(take me to|go to|open|navigate to|show me the|bring me to|let me see the|jump to|learn|study|practice)\b/.test(t)
@@ -324,7 +454,7 @@
     const links = [];
     text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
       const i = links.push({ label, href }) - 1;
-      return ` LINK${i} `;
+      return ` LINK${i} `;
     });
     let html = escapeHtml(text)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -333,7 +463,7 @@
       .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
       .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
       .replace(/\n/g, '<br>');
-    html = html.replace(/ LINK(\d+) /g, (_, i) => {
+    html = html.replace(/ LINK(\d+) /g, (_, i) => {
       const { label, href } = links[+i];
       const safeHref = escapeAttr(href);
       const isLocal = !/^https?:/i.test(href);
@@ -376,7 +506,7 @@
       const pageTitle = document.title || '';
       const pageUrl = location.pathname.split('/').pop() || '';
       const lines = [];
-      lines.push('page: ' + pageUrl + (pageTitle ? ' — ' + pageTitle : ''));
+      lines.push('page: ' + pageUrl + (pageTitle ? ' | ' + pageTitle : ''));
       if (typeof window.tutorContext === 'function') {
         const ctx = window.tutorContext();
         if (ctx && typeof ctx === 'object') {
@@ -388,11 +518,13 @@
         }
       }
       if (lines.length) {
-        contextBlock = '[PAGE CONTEXT — use to give relevant, in-place hints about the student\'s current screen, but do not quote this block back]\n' + lines.join('\n') + '\n---\n';
+        contextBlock = '[PAGE CONTEXT: use to give relevant, in-place hints about the student\'s current screen, but do not quote this block back]\n' + lines.join('\n') + '\n---\n';
       }
     } catch (e) { /* never block send on context failure */ }
 
-    const messageWithContext = contextBlock + text;
+    // Build track preface to scope answers to the selected track
+    var trackPreface = '[TRACK: ' + track + '] ' + TRACKS[track].directive + '\n---\n';
+    const messageWithContext = trackPreface + contextBlock + text;
 
     try {
       const res = await fetch(WORKER_URL, {
@@ -400,7 +532,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageWithContext,
-          history: history.slice(-MAX_HISTORY)
+          history: history.slice(-MAX_HISTORY),
+          track: track
         })
       });
 
@@ -414,7 +547,7 @@
       history.push({ role: 'model', text: reply });
       appendMessage('bot', reply);
 
-      // Client-side navigation fallback — if user asked to navigate but reply has no link,
+      // Client-side navigation fallback: if user asked to navigate but reply has no link,
       // inject a quick "Open <page>" button based on intent + topic match.
       const navUrl = matchNavIntent(text);
       const replyHasLink = /\]\([^)\s]+\)/.test(reply);
@@ -436,13 +569,13 @@
 
     } catch (err) {
       hideTyping();
-      const errMsg = 'Connection error — the tutor is unavailable right now. Try again in a moment.';
+      const errMsg = 'Connection error. The tutor is unavailable right now. Try again in a moment.';
       appendMessage('bot', errMsg);
     }
 
-    // Trim and save history
+    // Trim and save history (per-track)
     if (history.length > MAX_HISTORY * 2) history = history.slice(-MAX_HISTORY);
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    saveHistory(track, history);
 
     isSending = false;
     sendBtn.disabled = false;
@@ -470,7 +603,7 @@
         btn.style.opacity = '.6';
         window.ptBridge.check(function(ok) {
           if (!ok) {
-            btn.textContent = 'PT not running — open Packet Tracer first';
+            btn.textContent = 'PT not running. Open Packet Tracer first.';
             btn.style.background = '#DC2626';
             setTimeout(function(){ btn.textContent = 'Build in Packet Tracer'; btn.style.background = '#0891B2'; btn.style.opacity = '1'; }, 3000);
             return;
@@ -479,19 +612,39 @@
             btn.textContent = 'Built! Check Packet Tracer';
             btn.style.background = '#16A34A';
           }).catch(function() {
-            btn.textContent = 'Error — check PT console';
+            btn.textContent = 'Error. Check PT console.';
             btn.style.background = '#DC2626';
           });
         });
       });
       lastMsg.appendChild(btn);
-    } catch (e) { /* invalid JSON — ignore */ }
+    } catch (e) { /* invalid JSON: ignore */ }
   }
 
   // ── Events ─────────────────────────────────────────────────
-  fab.addEventListener('click', () => { isOpen = true; fab.classList.add('open'); panel.classList.add('open'); inputEl.focus(); renderMessages(); });
-  document.getElementById('tutor-close').addEventListener('click', () => { isOpen = false; panel.classList.remove('open'); fab.classList.remove('open'); });
-  document.getElementById('tutor-clear').addEventListener('click', () => { history = []; sessionStorage.removeItem(STORAGE_KEY); renderMessages(); });
+  fab.addEventListener('click', () => {
+    isOpen = true;
+    fab.classList.add('open');
+    panel.classList.add('open');
+    // Initialize track UI and switcher on first open (or on re-open)
+    applyTrackUI();
+    buildSwitcher();
+    inputEl.focus();
+    renderMessages();
+  });
+
+  document.getElementById('tutor-close').addEventListener('click', () => {
+    isOpen = false;
+    panel.classList.remove('open');
+    fab.classList.remove('open');
+  });
+
+  document.getElementById('tutor-clear').addEventListener('click', () => {
+    history = [];
+    saveHistory(track, history);
+    renderMessages();
+  });
+
   sendBtn.addEventListener('click', sendMessage);
   inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
