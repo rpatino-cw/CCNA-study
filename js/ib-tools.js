@@ -91,6 +91,13 @@
           { caType: 'mlx5_0', portGuid: '0xe41d2d03007c0021', numPorts: 1, lid: 6 },
           { caType: 'mlx5_1', portGuid: '0xe41d2d03007c0022', numPorts: 1, lid: 7 }
         ]
+      },
+      {
+        hostname: 'dgx-h100-04',
+        hcas: [
+          { caType: 'mlx5_0', portGuid: '0xe41d2d03007c0031', numPorts: 1, lid: 8 },
+          { caType: 'mlx5_1', portGuid: '0xe41d2d03007c0032', numPorts: 1, lid: 9 }
+        ]
       }
     ],
 
@@ -156,8 +163,8 @@
         base += '-I- -------------------------\n\n';
         base += '-I- Using port 1 as the local port\n';
         base += '-I- Discovering ...\n';
-        base += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
-        base += '-I- 6 links discovered\n\n';
+        base += '-I- Discovering done. 9 nodes found (1 switch, 8 CAs)\n';
+        base += '-I- 8 links discovered\n\n';
         base += '-I- Link-width check (all links):\n';
         base += '-I-   QM9700[1] -- dgx-h100-01/mlx5_0[1]   4X NDR   HEALTHY\n';
         base += '-I-   QM9700[2] -- dgx-h100-01/mlx5_1[1]   4X NDR   HEALTHY\n';
@@ -165,6 +172,8 @@
         base += '-I-   QM9700[4] -- dgx-h100-02/mlx5_1[1]   4X NDR   HEALTHY\n';
         base += '-I-   QM9700[5] -- dgx-h100-03/mlx5_0[1]   4X NDR   HEALTHY\n';
         base += '-I-   QM9700[6] -- dgx-h100-03/mlx5_1[1]   4X NDR   DEGRADED\n';
+        base += '-I-   QM9700[7] -- dgx-h100-04/mlx5_0[1]   4X NDR   HEALTHY\n';
+        base += '-I-   QM9700[8] -- dgx-h100-04/mlx5_1[1]   4X NDR   HEALTHY\n';
         base += '\n';
         base += '-E- BER (Bit Error Rate) check:\n';
         base += '-E-   dgx-h100-03/mlx5_1 [lid 7] port 1: BER exceeds threshold\n';
@@ -275,6 +284,8 @@
         out += '      ' + FABRIC.switchGuid + '         \t   4    5    dgx-h100-02/mlx5_1         [4] ==>   0xe41d2d03007c0012    [1](  4X NDR  Active/ LinkUp)\n';
         out += '      ' + FABRIC.switchGuid + '         \t   5    6    dgx-h100-03/mlx5_0         [5] ==>   0xe41d2d03007c0021    [1](  4X NDR  Active/ LinkUp)\n';
         out += '      ' + FABRIC.switchGuid + '         \t   6    7    dgx-h100-03/mlx5_1         [6] ==>   0xe41d2d03007c0022    [1](  4X NDR  Active/ LinkUp)\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   7    8    dgx-h100-04/mlx5_0         [7] ==>   0xe41d2d03007c0031    [1](  4X NDR  Active/ LinkUp)\n';
+        out += '      ' + FABRIC.switchGuid + '         \t   8    9    dgx-h100-04/mlx5_1         [8] ==>   0xe41d2d03007c0032    [1](  4X NDR  Active/ LinkUp)\n';
         return out;
       }
     },
@@ -300,8 +311,8 @@
         out += '-I- -------------------------\n\n';
         out += '-I- Using port 1 as the local port\n';
         out += '-I- Discovering ...\n';
-        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
-        out += '-I- 6 links discovered\n\n';
+        out += '-I- Discovering done. 9 nodes found (1 switch, 8 CAs)\n';
+        out += '-I- 8 links discovered\n\n';
         out += '-E- SM state check:\n';
         out += '-E-   Multiple Subnet Managers detected in MASTER state\n';
         out += '-E-   LID 1  GUID 0xe41d2d0300100001  priority 15  MASTER\n';
@@ -374,8 +385,8 @@
         out += '-I- -------------------------\n\n';
         out += '-I- Using port 1 as the local port\n';
         out += '-I- Discovering ...\n';
-        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
-        out += '-I- 6 links discovered\n\n';
+        out += '-I- Discovering done. 9 nodes found (1 switch, 8 CAs)\n';
+        out += '-I- 8 links discovered\n\n';
         out += '-I- Link-width check (all links): PASS\n\n';
         out += '-I- Credit-loop check (ibdiagnet -r):\n';
         out += '-E-   Credit loop detected in virtual lane routing\n';
@@ -447,8 +458,8 @@
         out += '-I- -------------------------\n\n';
         out += '-I- Using port 1 as the local port\n';
         out += '-I- Discovering ...\n';
-        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
-        out += '-I- 6 links discovered\n\n';
+        out += '-I- Discovering done. 9 nodes found (1 switch, 8 CAs)\n';
+        out += '-I- 8 links discovered\n\n';
         out += '-I- Link-width check (all links): PASS\n';
         out += '-I- Credit-loop check: PASS\n';
         out += '-I- Routing check: PASS\n\n';
@@ -519,8 +530,8 @@
         out += '-I- -------------------------\n\n';
         out += '-I- Using port 1 as the local port\n';
         out += '-I- Discovering ...\n';
-        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
-        out += '-I- 6 links discovered\n\n';
+        out += '-I- Discovering done. 9 nodes found (1 switch, 8 CAs)\n';
+        out += '-I- 8 links discovered\n\n';
         out += '-I- Link-width check (all links): PASS\n\n';
         out += '-W- MTU check:\n';
         out += '-W-   Fabric MTU: 4096 bytes\n';
@@ -547,8 +558,8 @@
         out += '-I- -------------------------\n\n';
         out += '-I- Using port 1 as the local port\n';
         out += '-I- Discovering ...\n';
-        out += '-I- Discovering done. 7 nodes found (1 switch, 6 CAs)\n';
-        out += '-I- 6 links discovered\n\n';
+        out += '-I- Discovering done. 9 nodes found (1 switch, 8 CAs)\n';
+        out += '-I- 8 links discovered\n\n';
         out += '-I- Link-width check (all links): PASS\n';
         out += '-I- Credit-loop check: PASS\n';
         out += '-I- Routing check: PASS\n\n';
@@ -737,7 +748,8 @@
         out += 'Ca\t: ' + hca.portGuid + ' ports ' + hca.numPorts + ' "' + node.hostname + ' ' + hca.caType + '"\n';
       });
     });
-    out += '\n' + FABRIC.nodes.length + ' host(s) discovered\n';
+    var totalCAs = FABRIC.nodes.reduce(function (s, n) { return s + n.hcas.length; }, 0);
+    out += '\n' + totalCAs + ' host(s) discovered\n';
     return out;
   }
 
