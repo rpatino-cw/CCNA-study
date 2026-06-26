@@ -260,7 +260,9 @@
   const fab = document.createElement('button');
   fab.className = 'tutor-fab';
   fab.setAttribute('aria-label', 'Open AI Tutor');
-  fab.innerHTML = '?';
+  fab.setAttribute('title', 'AI Tutor');
+  // Chat-bubble glyph so the tutor reads clearly as the chat, distinct from the settings gear.
+  fab.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.6-.8L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/></svg>';
   document.body.appendChild(fab);
 
   const panel = document.createElement('div');
