@@ -187,6 +187,19 @@ rm -f "$BLOCKFILE"
 # ── Update version in nav.js ───────────────────────────────────────
 sed -i '' "s/ALPHA v${CURRENT_VERSION}/ALPHA v${NEW_VERSION}/g" "$NAVJS"
 
+# ── Cache-bust shared JS if it changed this push ───────────────────
+# tutor.js / lab-engine.js / ib-tools.js are loaded without a version query,
+# so browsers serve a stale cached copy after a deploy. When one of them
+# changes, re-stamp ?v=<version> on every page so the new code reaches users
+# immediately. Gated on a real change to avoid re-stamping every push.
+if [ -n "${LAST_CHANGELOG_COMMIT:-}" ]; then
+  ASSET_CHANGED=$(git diff --name-only "$LAST_CHANGELOG_COMMIT"..HEAD -- js/tutor.js js/lab-engine.js js/ib-tools.js 2>/dev/null || true)
+  if [ -n "$ASSET_CHANGED" ] && [ -f "$ROOT/scripts/stamp-assets.sh" ]; then
+    bash "$ROOT/scripts/stamp-assets.sh" "$NEW_VERSION" || true
+    git add -- '*.html' || true
+  fi
+fi
+
 # ── Auto-commit ────────────────────────────────────────────────────
 cd "$ROOT"
 git add "$CHANGELOG" "$NAVJS"
