@@ -234,6 +234,59 @@
 }
 .try-btn:focus-visible { outline: 2px solid var(--ncp); outline-offset: 2px; }
 
+/* ---- Find-it challenge ---- */
+.lesson-quiz {
+  margin-top: 12px; padding: 11px 13px;
+  background: rgba(var(--ncp-rgb),.05);
+  border: 1px dashed rgba(var(--ncp-rgb),.35);
+  border-radius: var(--radius-lg);
+}
+.lesson-quiz.solved {
+  background: rgba(var(--ncp-rgb),.12);
+  border-style: solid; border-color: var(--ncp);
+}
+.quiz-q {
+  font-family: var(--font-body); font-size: .82rem; line-height: 1.5;
+  color: var(--ink-secondary); margin: 0 0 8px;
+}
+.quiz-q::before { content: '\1F50D  '; }
+.quiz-row { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.quiz-input {
+  font-family: var(--font-mono); font-size: .82rem;
+  padding: 5px 10px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); width: 150px; max-width: 60%;
+}
+.quiz-input:focus-visible { outline: 2px solid var(--ncp); outline-offset: 1px; }
+.quiz-check {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  background: var(--ncp); color: #fff; border: none;
+  border-radius: var(--radius); padding: 6px 14px; cursor: pointer;
+}
+.quiz-check:hover { filter: brightness(1.08); }
+.quiz-hint-btn {
+  font-family: var(--font-body); font-size: .76rem;
+  background: none; border: none; color: var(--ink-muted);
+  text-decoration: underline; cursor: pointer; padding: 4px;
+}
+.quiz-feedback {
+  font-family: var(--font-body); font-size: .8rem; font-weight: 600;
+  margin: 8px 0 0; min-height: 1em;
+}
+.quiz-feedback.ok { color: var(--ncp-dark); }
+.quiz-feedback.no { color: #c0392b; }
+.quiz-hint {
+  font-family: var(--font-body); font-size: .78rem; font-style: italic;
+  color: var(--ink-muted); margin: 6px 0 0;
+}
+.lesson-quiz.solved .quiz-row, .lesson-quiz.solved .quiz-hint { display: none; }
+.quiz-shake { animation: quizShake 320ms; }
+@keyframes quizShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
 /* ---- Terminal chrome ---------------------------------------------- */
 .cb-term-shell {
   position: sticky; top: 16px;
@@ -335,6 +388,7 @@
     <div class="cb-progress-bar-wrap">
       <div class="cb-progress-bar" id="progressBar"></div>
     </div>
+    <span class="cb-progress-count" id="quizScore" style="margin-left:14px">&#128269; 0 / 13 found</span>
   </div>
 
   <!-- CTA (revealed when all done) -->
@@ -527,6 +581,29 @@ var LESSONS = [
 ];
 
 /* ====================================================================
+   FIND-IT CHALLENGES
+   One per lesson. Run the command, then read the value out of YOUR output.
+   accept[] is matched case-insensitive after trim; literal strings only.
+   ==================================================================== */
+var CHALLENGES = {
+  A1: { q: 'In the help list, which two letters do the InfiniBand commands start with?', accept: ['ib'], hint: 'Look at ibstat, ibhosts, ibnetdiscover.' },
+  A2: { q: 'Run ibstat. What is the name of the first HCA (card) listed?', accept: ['mlx5_0','mlx50'], hint: 'Top of the output: CA \'mlx5_0\'.' },
+  A3: { q: 'Run ibstatus. What link rate does the port show, in Gb/sec?', accept: ['400','400 gb/sec','400gb/sec','400g'], hint: 'Find the rate field.' },
+  A4: { q: 'Type ibst then press Tab. What command does it complete to?', accept: ['ibstat'], hint: 'Only one command starts with ibst.' },
+  A5: { q: 'Run whoami. What user are you logged in as?', accept: ['admin'], hint: 'One word, the host login.' },
+  B1: { q: 'Run ibnetdiscover. What switch model sits at the top of the map?', accept: ['qm9700'], hint: 'Starts with QM.' },
+  B2: { q: 'Run ibhosts. How many host cards were discovered?', accept: ['8'], hint: 'Read the last line: N host(s) discovered.' },
+  B3: { q: 'Run iblinkinfo. Each active link ends "4X ___". Fill the blank.', accept: ['ndr','4x ndr'], hint: 'Three letters, the NDR generation.' },
+  B4: { q: 'Run sminfo. What state word is the Subnet Manager in?', accept: ['master','sminfo_master'], hint: 'state 3 SMINFO_____.' },
+  B5: { q: 'Run ibstat again. What rate (Gb/sec) is your local card?', accept: ['400'], hint: 'Same 400G NDR link.' },
+  C1: { q: 'Run nv show interface. What MTU are the swp ports set to?', accept: ['9216'], hint: 'Jumbo size in the MTU column.' },
+  C2: { q: 'Run nv show qos roce. Which PFC priority carries the lossless traffic?', accept: ['3'], hint: 'The pfc-priority line.' },
+  C3: { q: 'Which command makes staged changes go live?', accept: ['nv config apply','config apply','apply'], hint: 'nv config ____' },
+};
+
+var PRAISE = ['Nice. You read it right.', 'Got it.', 'That is the one.', 'Sharp eyes.', 'Correct, well spotted.', 'Yep, that matches the output.'];
+
+/* ====================================================================
    CMDMAP
    IB diag commands (ibstat/ibstatus/iblinkinfo/ibhosts/ibnetdiscover/
    ibdiagnet/perfquery/sminfo/ibping/ibportstate) are NOT here; they
@@ -673,6 +750,7 @@ CMDMAP['?'] = CMDMAP['help'];
    ==================================================================== */
 var LS_KEY = 'ncpain_console_basics';
 var _done = {};
+var _solved = {};
 
 function loadDone() {
   try {
@@ -682,12 +760,18 @@ function loadDone() {
     if (Array.isArray(obj.done)) {
       obj.done.forEach(function (id) { _done[id] = true; });
     }
+    if (Array.isArray(obj.solved)) {
+      obj.solved.forEach(function (id) { _solved[id] = true; });
+    }
   } catch (e) { /* ignore */ }
 }
 
 function saveDone() {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ done: Object.keys(_done) }));
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      done: Object.keys(_done),
+      solved: Object.keys(_solved)
+    }));
   } catch (e) { /* ignore */ }
 }
 
@@ -707,6 +791,10 @@ function updateProgress() {
     if (count >= TOTAL) cta.classList.add('visible');
     else cta.classList.remove('visible');
   }
+  var solved = Object.keys(_solved).length;
+  var qs = document.getElementById('quizScore');
+  if (qs) qs.innerHTML = '&#128269; ' + solved + ' / ' + TOTAL + ' found' +
+    (solved >= TOTAL ? ' &#127881;' : '');
 }
 
 /* ====================================================================
@@ -808,14 +896,93 @@ function renderLessons() {
       '<p class="lesson-sample">Sample output: ' + esc(lesson.sampleNote) + '</p>' +
       '<button class="try-btn" data-cmd="' + esc(lesson.tryCmd) + '">' +
         'Try: <code>' + esc(lesson.tryCmd) + '</code>' +
-      '</button>';
+      '</button>' +
+      buildQuizHTML(lesson.id);
 
     /* "Try" button fires the command into the terminal */
     card.querySelector('.try-btn').addEventListener('click', function () {
       fireCommand(lesson.tryCmd);
     });
 
+    wireQuiz(card, lesson.id);
+
     rail.appendChild(card);
+  });
+}
+
+/* ====================================================================
+   FIND-IT QUIZ  (per lesson)
+   ==================================================================== */
+function buildQuizHTML(id) {
+  var ch = CHALLENGES[id];
+  if (!ch) return '';
+  var solved = !!_solved[id];
+  return '<div class="lesson-quiz' + (solved ? ' solved' : '') + '" data-quiz="' + esc(id) + '">' +
+      '<p class="quiz-q">' + esc(ch.q) + '</p>' +
+      '<div class="quiz-row">' +
+        '<input class="quiz-input" type="text" autocomplete="off" autocorrect="off" ' +
+          'spellcheck="false" aria-label="your answer" placeholder="type the answer">' +
+        '<button class="quiz-check" type="button">Check</button>' +
+        '<button class="quiz-hint-btn" type="button">Hint</button>' +
+      '</div>' +
+      '<p class="quiz-hint" hidden>' + esc(ch.hint) + '</p>' +
+      '<p class="quiz-feedback" aria-live="polite">' +
+        (solved ? '&#10003; Solved.' : '') +
+      '</p>' +
+    '</div>';
+}
+
+function normAns(s) {
+  return String(s).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function wireQuiz(card, id) {
+  var ch = CHALLENGES[id];
+  if (!ch) return;
+  var box = card.querySelector('.lesson-quiz');
+  if (!box) return;
+  var input = box.querySelector('.quiz-input');
+  var checkBtn = box.querySelector('.quiz-check');
+  var hintBtn = box.querySelector('.quiz-hint-btn');
+  var hintEl = box.querySelector('.quiz-hint');
+  var fb = box.querySelector('.quiz-feedback');
+  var misses = 0;
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function check() {
+    if (_solved[id]) return;
+    var val = normAns(input.value);
+    if (!val) { input.focus(); return; }
+    var hit = ch.accept.some(function (a) { return normAns(a) === val; });
+    if (hit) {
+      _solved[id] = true;
+      saveDone();
+      box.classList.add('solved');
+      fb.className = 'quiz-feedback ok';
+      fb.innerHTML = '&#10003; ' + esc(pick(PRAISE));
+      updateProgress();
+    } else {
+      misses++;
+      fb.className = 'quiz-feedback no';
+      fb.textContent = misses >= 2
+        ? 'Not yet. Check the hint, then read the output again.'
+        : 'Not that one. Run the command and look at the output.';
+      box.classList.remove('quiz-shake');
+      /* reflow to restart animation */
+      void box.offsetWidth;
+      box.classList.add('quiz-shake');
+      if (misses >= 2 && hintEl) hintEl.hidden = false;
+      input.focus(); input.select();
+    }
+  }
+
+  checkBtn.addEventListener('click', check);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); check(); }
+  });
+  hintBtn.addEventListener('click', function () {
+    if (hintEl) hintEl.hidden = !hintEl.hidden;
   });
 }
 
