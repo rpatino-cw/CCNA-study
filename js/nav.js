@@ -185,6 +185,7 @@
   var NCPAIN_NAV = [
     { text: 'CORE', href: 'ncp-ain-hub.html' },
     { text: 'Pillars', href: 'ncp-ain-pillars.html' },
+    { text: 'Console Basics ✦', href: 'ncp-ain-console-basics.html' },
     { text: 'Study Videos 📺', href: 'ncp-ain-videos.html' },
     { text: 'Exam Simulator', href: 'ncp-ain-exam-sim.html' },
     { text: 'Daily Drill 🔥', href: 'ncp-ain-daily.html' },
@@ -344,7 +345,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.15.9</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v7.16.0</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
