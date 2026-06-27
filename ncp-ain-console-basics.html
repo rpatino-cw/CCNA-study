@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Console Basics -- NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* ---- Page shell --------------------------------------------------- */
+.cb-page { padding: var(--s-lg) 0 var(--s-xl); }
+
+/* ---- Header -------------------------------------------------------- */
+.cb-back { margin-bottom: var(--s-md); }
+.cb-header { margin-bottom: var(--s-md); }
+.cb-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.cb-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 66ch;
+}
+.ncp-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.10); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 5px 14px;
+  font-family: var(--font-display); font-weight: 700; font-size: .85rem;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+}
+.ncp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ncp); }
+
+/* ---- Cheat-sheet collapsible -------------------------------------- */
+.cheat-toggle {
+  width: 100%; text-align: left; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(var(--ncp-rgb),.07); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 10px 16px;
+  font-family: var(--font-display); font-size: .88rem; font-weight: 600;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+  transition: background 160ms;
+}
+.cheat-toggle:hover { background: rgba(var(--ncp-rgb),.13); }
+.cheat-toggle .arrow { transition: transform 240ms cubic-bezier(.16,1,.3,1); }
+.cheat-toggle.open .arrow { transform: rotate(180deg); }
+.cheat-panel {
+  display: none; overflow: hidden;
+  border: 1px solid rgba(var(--ncp-rgb),.18); border-radius: var(--radius-lg);
+  margin-bottom: var(--s-md);
+  background: var(--bg-surface);
+}
+.cheat-panel.open { display: block; }
+.cheat-table {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--font-mono); font-size: .78rem;
+}
+.cheat-table th {
+  font-family: var(--font-display); font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--ink-muted);
+  padding: 8px 14px; text-align: left; border-bottom: 1px solid var(--border);
+  background: var(--bg-recessed);
+}
+.cheat-table td {
+  padding: 7px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top; line-height: 1.4;
+}
+.cheat-table tr:last-child td { border-bottom: none; }
+.cheat-table td:first-child {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  color: var(--ink-secondary); white-space: nowrap; width: 22%;
+}
+.cheat-table td.cisco { color: #2563EB; }
+.cheat-table td.arrow-col { color: var(--ink-muted); text-align: center; width: 30px; }
+.cheat-table td.nvidia { color: var(--ncp-dark); font-weight: 600; }
+.cheat-table td.note { font-family: var(--font-body); font-size: .75rem; color: var(--ink-muted); }
+
+/* ---- Two-column workspace ----------------------------------------- */
+.cb-workspace {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: var(--s-lg);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .cb-workspace { grid-template-columns: 1fr; }
+}
+
+/* ---- Progress strip ----------------------------------------------- */
+.cb-progress {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: var(--s-md); flex-wrap: wrap;
+}
+.cb-progress-label {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  color: var(--ink-secondary);
+}
+.cb-progress-count {
+  font-family: var(--font-mono); font-size: .82rem; font-weight: 700;
+  color: var(--ncp-dark);
+}
+.cb-progress-bar-wrap {
+  flex: 1; min-width: 120px; height: 5px;
+  background: var(--bg-recessed); border-radius: 3px; overflow: hidden;
+}
+.cb-progress-bar {
+  height: 100%; border-radius: 3px; background: var(--ncp);
+  transition: width 320ms cubic-bezier(.16,1,.3,1);
+  width: 0%;
+}
+
+/* ---- CTA button (hidden until all done) --------------------------- */
+.cb-cta {
+  display: none; margin-bottom: var(--s-md);
+  padding: 13px 20px;
+  background: rgba(var(--ncp-rgb),.12); border: 1.5px solid var(--ncp);
+  border-radius: var(--radius-lg); text-align: center;
+  animation: cta-in .45s cubic-bezier(.16,1,.3,1);
+}
+.cb-cta.visible { display: block; }
+@keyframes cta-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cb-cta p {
+  font-family: var(--font-display); font-size: .9rem; font-weight: 600;
+  color: var(--ncp-dark); margin: 0 0 10px;
+}
+.cb-cta-link {
+  display: inline-block;
+  background: var(--ncp); color: #fff;
+  font-family: var(--font-display); font-size: .9rem; font-weight: 700;
+  padding: 9px 22px; border-radius: var(--radius-lg);
+  text-decoration: none; transition: background 160ms;
+}
+.cb-cta-link:hover { background: var(--ncp-dark); }
+
+/* ---- Lessons rail ------------------------------------------------- */
+.lessons-rail { display: flex; flex-direction: column; gap: 0; }
+.part-heading {
+  font-family: var(--font-display); font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--ncp-dark);
+  padding: 16px 0 8px; border-bottom: 2px solid rgba(var(--ncp-rgb),.2);
+  margin-bottom: 0;
+}
+.part-heading:first-child { padding-top: 0; }
+
+/* ---- Lesson card -------------------------------------------------- */
+.lesson-card {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 2px;
+  transition: background 160ms;
+}
+.lesson-card:last-child { border-bottom: none; }
+.lesson-card-top {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 8px;
+}
+.lesson-num {
+  font-family: var(--font-mono); font-size: .72rem; font-weight: 700;
+  color: var(--ink-muted); flex-shrink: 0; padding-top: 2px; width: 24px;
+}
+.lesson-title {
+  font-family: var(--font-display); font-size: .92rem; font-weight: 700;
+  color: var(--ink); flex: 1; line-height: 1.3;
+}
+.lesson-m1-badge {
+  font-family: var(--font-mono); font-size: .65rem; font-weight: 700;
+  background: rgba(37,99,235,.1); color: #1D4ED8;
+  border: 1px solid rgba(37,99,235,.2);
+  border-radius: 4px; padding: 2px 7px; flex-shrink: 0; white-space: nowrap;
+}
+.lesson-check {
+  font-size: .95rem; flex-shrink: 0; opacity: 0;
+  transition: opacity 200ms; margin-left: auto;
+}
+.lesson-card.done .lesson-check { opacity: 1; }
+.lesson-card.done .lesson-title { color: var(--ink-muted); }
+
+.lesson-concept {
+  font-family: var(--font-body); font-size: .85rem; color: var(--ink);
+  line-height: 1.6; max-width: 58ch; margin-bottom: 10px;
+}
+
+/* ---- Cisco vs NVIDIA row ----------------------------------------- */
+.lesson-compare {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 8px; flex-wrap: wrap;
+}
+.compare-label {
+  font-family: var(--font-mono); font-size: .65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 2px 6px; border-radius: 3px;
+}
+.compare-label.cisco { background: rgba(37,99,235,.1); color: #1D4ED8; }
+.compare-label.nvidia { background: rgba(var(--ncp-rgb),.12); color: var(--ncp-dark); }
+.compare-cmd {
+  font-family: var(--font-mono); font-size: .8rem; font-weight: 600; color: var(--ink);
+  background: var(--bg-recessed); border-radius: 4px; padding: 2px 8px;
+}
+.compare-arrow {
+  font-size: .75rem; color: var(--ink-muted);
+}
+
+.lesson-why {
+  font-family: var(--font-body); font-size: .78rem; color: var(--ink-secondary);
+  font-style: italic; margin-bottom: 7px; line-height: 1.5; max-width: 58ch;
+}
+.lesson-sample {
+  font-family: var(--font-body); font-size: .75rem; color: var(--ink-muted);
+  line-height: 1.5; margin-bottom: 10px; max-width: 58ch;
+}
+.try-btn {
+  font-family: var(--font-mono); font-size: .78rem; font-weight: 600;
+  background: rgba(var(--ncp-rgb),.08); border: 1px solid rgba(var(--ncp-rgb),.3);
+  color: var(--ncp-dark); border-radius: var(--radius-lg);
+  padding: 5px 14px; cursor: pointer;
+  transition: background 160ms, border-color 160ms;
+}
+.try-btn:hover {
+  background: rgba(var(--ncp-rgb),.18); border-color: var(--ncp);
+}
+.try-btn:focus-visible { outline: 2px solid var(--ncp); outline-offset: 2px; }
+
+/* ---- Terminal chrome ---------------------------------------------- */
+.cb-term-shell {
+  position: sticky; top: 16px;
+}
+.ed-term {
+  background: #161b22; border-radius: var(--radius-lg);
+  overflow: hidden; border: 1px solid #30363d;
+  font-family: 'JetBrains Mono', monospace;
+}
+.ed-term-bar {
+  display: flex; align-items: center; gap: 7px;
+  background: #21262d; padding: 9px 14px; border-bottom: 1px solid #30363d;
+}
+.ed-term-dot { width: 11px; height: 11px; border-radius: 50%; }
+.ed-term-dot.r { background: #ff5f56; }
+.ed-term-dot.y { background: #ffbd2e; }
+.ed-term-dot.g { background: #27c93f; }
+.ed-term-title {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: #8b949e; margin-left: 6px; letter-spacing: .02em;
+}
+.term-wrap {
+  padding: 14px 18px; min-height: 300px; max-height: 560px;
+  overflow-y: auto; cursor: text; background: #161b22;
+}
+.term-output {
+  white-space: pre-wrap; word-break: break-word;
+  color: #e6edf3; font-size: .82rem; line-height: 1.55; margin-bottom: 4px;
+}
+.term-line { margin: 0; }
+.term-line.cmd { color: #a5d6ff; }
+.term-line.success { color: #4ade80; }
+.term-line.error   { color: #f87171; }
+.term-line.info    { color: #60a5fa; }
+.term-line.system  { color: #76B900; font-style: italic; }
+.term-input-row {
+  display: flex; align-items: baseline; gap: 0;
+  color: #e6edf3; font-size: .82rem;
+  padding: 0 0 2px;
+}
+.term-prompt { color: #7ee787; white-space: pre; user-select: none; flex-shrink: 0; }
+.term-input {
+  flex: 1; outline: none; caret-color: #e6edf3;
+  color: #e6edf3; min-width: 2ch;
+  font-family: inherit; font-size: inherit; background: transparent;
+  border: none;
+}
+
+/* ---- Motion safety ------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div id="navMount"></div>
+
+<div class="container-wide cb-page">
+
+  <!-- Back link -->
+  <div class="cb-back">
+    <a href="ncp-ain-hub.html" class="back-link">&#8592; NCP-AIN Hub</a>
+  </div>
+
+  <!-- Header -->
+  <div class="cb-header">
+    <div class="ncp-badge"><span class="ncp-dot"></span>NCP-AIN Onboarding</div>
+    <h1>Console Basics</h1>
+    <p class="subtitle">Learn the NVIDIA fabric CLI before the Mega Lab. You know Cisco. This maps it across.</p>
+  </div>
+
+  <!-- Cisco to NVIDIA cheat sheet (collapsible) -->
+  <button class="cheat-toggle" id="cheatToggle" aria-expanded="false" aria-controls="cheatPanel">
+    <span>Cisco to NVIDIA cheat sheet (quick reference)</span>
+    <span class="arrow" aria-hidden="true">&#9660;</span>
+  </button>
+  <div class="cheat-panel" id="cheatPanel" role="region" aria-labelledby="cheatToggle">
+    <table class="cheat-table" aria-label="Cisco to NVIDIA command mapping">
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Cisco</th>
+          <th></th>
+          <th>NVIDIA</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="cheatBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Progress strip -->
+  <div class="cb-progress">
+    <span class="cb-progress-label">Progress:</span>
+    <span class="cb-progress-count" id="progressCount">0 / 13 done</span>
+    <div class="cb-progress-bar-wrap">
+      <div class="cb-progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- CTA (revealed when all done) -->
+  <div class="cb-cta" id="ctaBanner" aria-live="polite">
+    <p>You have run every lesson command. You are ready for the Mega Lab.</p>
+    <a class="cb-cta-link" href="ncp-ain-mega-lab.html">Open the Mega Lab</a>
+  </div>
+
+  <!-- Two-column workspace -->
+  <div class="cb-workspace">
+
+    <!-- LEFT: lessons rail -->
+    <div class="lessons-rail" id="lessonsRail">
+      <!-- injected by JS -->
+    </div>
+
+    <!-- RIGHT: live terminal -->
+    <div class="cb-term-shell">
+      <div class="ed-term">
+        <div class="ed-term-bar">
+          <span class="ed-term-dot r"></span>
+          <span class="ed-term-dot y"></span>
+          <span class="ed-term-dot g"></span>
+          <span class="ed-term-title">admin@dgx-h100-01 -- Console Basics</span>
+        </div>
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">admin@dgx-h100-01:~$ </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="console"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.cb-workspace -->
+
+</div><!-- /.container-wide -->
+
+<script defer src="js/lab-engine.js?v=7.15.8"></script>
+<script defer src="js/ib-tools.js?v=7.15.8"></script>
+<script defer src="js/nav.js"></script>
+<script>
+/* ====================================================================
+   CHEAT DATA
+   ==================================================================== */
+var CHEAT = [
+  { task: 'help / list',         cisco: '?',                                nvidia: '?  or  help',            note: 'same key' },
+  { task: 'local port status',   cisco: 'show ip interface brief',          nvidia: 'ibstat',                 note: 'your host HCAs' },
+  { task: 'healthy reads',       cisco: 'up / up',                          nvidia: 'Active / LinkUp',        note: '' },
+  { task: 'one-line summary',    cisco: 'show ip int brief',                nvidia: 'ibstatus',               note: 'adds rate + LID' },
+  { task: 'fabric map',          cisco: 'show cdp neighbors',               nvidia: 'ibnetdiscover',          note: 'M1 step 1' },
+  { task: 'list hosts',          cisco: 'show cdp neighbors detail',        nvidia: 'ibhosts',                note: '' },
+  { task: 'link map',            cisco: 'show ip int brief (all)',          nvidia: 'iblinkinfo',             note: '' },
+  { task: 'who controls fabric', cisco: '(no direct match)',                nvidia: 'sminfo',                 note: 'want one MASTER' },
+  { task: 'switch port list',    cisco: 'show ip interface brief',          nvidia: 'nv show interface',      note: '' },
+  { task: 'view config',         cisco: 'show running-config',              nvidia: 'nv config show',         note: '' },
+  { task: 'make change live',    cisco: '(immediate on Enter)',             nvidia: 'nv set ... then nv config apply', note: '' },
+];
+
+/* ====================================================================
+   LESSON DATA
+   ==================================================================== */
+var LESSONS = [
+  /* Part A */
+  {
+    id: 'A1', part: 'A', partLabel: 'Part A: Host Toolkit',
+    title: 'The help key',
+    cisco: 'Router> ?', nvidia: 'help',
+    concept: 'When stuck, the tool lists what it knows. Type help (or ?) for the command list. Same instinct as IOS.',
+    why: 'You never memorize the full list. Ask the tool.',
+    tryCmd: 'help',
+    sampleNote: 'A printed menu of commands. Look for the ones starting with ib and nv.'
+  },
+  {
+    id: 'A2', part: 'A',
+    title: 'Show me the status',
+    cisco: 'show ip interface brief', nvidia: 'ibstat',
+    concept: 'On an InfiniBand host the first status command is ibstat. It shows your local network cards (HCAs) and their ports.',
+    why: 'ibstat is your show ip int brief: one glance shows if ports are alive.',
+    tryCmd: 'ibstat',
+    sampleNote: 'Two cards (mlx5_0, mlx5_1). Each Port 1 reads State: Active and Physical state: LinkUp. That is healthy.'
+  },
+  {
+    id: 'A3', part: 'A',
+    title: 'Reading the output',
+    cisco: 'up / up', nvidia: 'State: Active / Physical state: LinkUp',
+    concept: 'IOS healthy port is up/up. InfiniBand healthy port is State: Active (data layer) and Physical state: LinkUp (physical layer). Same idea, two new words.',
+    why: 'Know the two healthy words and you spot a sick port in a second.',
+    tryCmd: 'ibstatus',
+    sampleNote: 'Short per-port summary: state 4: ACTIVE, phys state 5: LinkUp, rate 400 Gb/sec, plus base lid (the port\'s fabric address).'
+  },
+  {
+    id: 'A4', part: 'A',
+    title: 'Tab and up-arrow',
+    cisco: 'Tab to complete, Up arrow for history', nvidia: 'Tab to complete, Up arrow for history',
+    concept: 'Tab completion and up-arrow history work here just like IOS. Type ibst then Tab. Press Up to recall the last command.',
+    why: 'Less typing, fewer typos, which matters under pressure.',
+    tryCmd: 'ibstat',
+    sampleNote: 'Type ibst then Tab to complete to ibstat, run it, then Up arrow to bring it back.'
+  },
+  {
+    id: 'A5', part: 'A',
+    title: 'Different tools, not modes',
+    cisco: 'Router> / Router# / Router(config)#', nvidia: 'ibstat  vs  nv show interface  vs  pwd',
+    concept: 'IOS has modes you move between. Here it is different TOOLBOXES: ib* tools diagnose the fabric, nv tools configure an NVIDIA switch, plain Linux runs on the host. Same terminal, three families.',
+    why: 'If a command is not found, you may be in the wrong toolbox, not wrong syntax.',
+    tryCmd: 'whoami',
+    sampleNote: 'A plain Linux command printing the user. Proof host commands share the prompt with ib tools.'
+  },
+  /* Part B */
+  {
+    id: 'B1', part: 'B', partLabel: 'Part B: Mega Lab M1 Walkthrough',
+    title: 'Discover the whole fabric',
+    m1step: 1,
+    cisco: 'show cdp neighbors', nvidia: 'ibnetdiscover',
+    concept: 'Mega Lab M1 step 1. ibnetdiscover walks the fabric and draws the full map: the switch, every host card, and how they connect.',
+    why: 'Before you fix anything you need the map. This is the map.',
+    tryCmd: 'ibnetdiscover',
+    sampleNote: 'A topology file: one Switch (QM9700, lid 1) then 8 host cards. Bottom: 8 HCAs, 1 Switch, 8 active ports.'
+  },
+  {
+    id: 'B2', part: 'B',
+    title: 'List the hosts',
+    m1step: 2,
+    cisco: 'show cdp neighbors detail', nvidia: 'ibhosts',
+    concept: 'M1 step 2. ibhosts is the short list: just the host machines on the fabric, no wiring detail.',
+    why: 'Quick headcount: are all expected nodes present.',
+    tryCmd: 'ibhosts',
+    sampleNote: 'A list of 8 cards across dgx-h100-01 to dgx-h100-04, ending 8 host(s) discovered.'
+  },
+  {
+    id: 'B3', part: 'B',
+    title: 'The link map',
+    m1step: 3,
+    cisco: 'show ip interface brief (fabric-wide)', nvidia: 'iblinkinfo',
+    concept: 'M1 step 3. iblinkinfo shows every switch port and what is plugged in, with speed and state. show ip int brief for the whole fabric.',
+    why: 'One screen: which links are up, how fast, to whom.',
+    tryCmd: 'iblinkinfo',
+    sampleNote: '8 rows off the switch, each ending ( 4X NDR  Active/ LinkUp). 4X NDR = 400G.'
+  },
+  {
+    id: 'B4', part: 'B',
+    title: 'Who is the subnet manager',
+    m1step: 4,
+    cisco: '(closest: who is in charge)', nvidia: 'sminfo',
+    concept: 'M1 step 4. InfiniBand has one brain that hands out addresses and routes: the Subnet Manager. sminfo shows which device is the SM and that it is MASTER (healthy).',
+    why: 'No healthy SM, no working fabric. Want exactly one MASTER.',
+    tryCmd: 'sminfo',
+    sampleNote: 'One line: sm lid 1 ... state 3 SMINFO_MASTER. One master is correct.'
+  },
+  {
+    id: 'B5', part: 'B',
+    title: 'Check your own card',
+    m1step: 5,
+    cisco: 'show ip interface brief (local)', nvidia: 'ibstat',
+    concept: 'M1 step 5. After mapping the fabric, look back at your own host with ibstat. Confirm your ports are Active and LinkUp before any test traffic.',
+    why: 'The fabric can be healthy while your card is not. Verify your end last.',
+    tryCmd: 'ibstat',
+    sampleNote: 'Your two local cards, both Active / LinkUp at 400 Gb/sec. Now you are cleared for the mega lab.'
+  },
+  /* Part C */
+  {
+    id: 'C1', part: 'C', partLabel: 'Part C: Switch CLI (NVUE)',
+    title: 'The switch CLI',
+    cisco: 'show ip interface brief', nvidia: 'nv show interface',
+    concept: 'Now you step onto the NVIDIA switch, which uses the NVUE CLI (commands start with nv). nv show interface lists switch ports, speed, MTU, and what is connected.',
+    why: 'This is how you read a switch port on NVIDIA gear instead of a host card.',
+    tryCmd: 'nv show interface',
+    sampleNote: 'A table: lo, mgmt, swp1..swp4, uplinks swp49/swp50, up at 400G MTU 9216.'
+  },
+  {
+    id: 'C2', part: 'C',
+    title: 'See the RoCE QoS settings',
+    cisco: 'show running-config (a slice)', nvidia: 'nv show qos roce',
+    concept: 'nv show qos roce shows how the switch handles AI traffic (lossless RoCE). You do not need to master it. The point: nv show <thing> reads any switch setting.',
+    why: 'Read config before changing it, same discipline as IOS.',
+    tryCmd: 'nv show qos roce',
+    sampleNote: 'Two columns: operational and applied. Look for mode lossless and pfc-priority 3.'
+  },
+  {
+    id: 'C3', part: 'C',
+    title: 'Pending vs applied (NOT IOS)',
+    cisco: 'config is live on Enter', nvidia: 'nv config show, then nv config apply',
+    concept: 'In IOS a line is live the instant you press Enter. NVUE is different: nv set only STAGES a change. Nothing changes until nv config apply. nv config show displays staged config; nv config diff shows staged vs running.',
+    why: 'Changes are pending until you apply, so you can review safely and never half-break a switch.',
+    tryCmd: 'nv config show',
+    sampleNote: 'A YAML block of staged config. Nothing is live until nv config apply. Try nv config diff to see running vs pending.'
+  },
+];
+
+/* ====================================================================
+   CMDMAP
+   IB diag commands (ibstat/ibstatus/iblinkinfo/ibhosts/ibnetdiscover/
+   ibdiagnet/perfquery/sminfo/ibping/ibportstate) are NOT here; they
+   route through IBTools.run() via the IB_DIAG_RE override below.
+   ==================================================================== */
+var CMDMAP = {
+
+  /* ----------------------------------------------------------------
+     Utilities
+  ---------------------------------------------------------------- */
+  'whoami': 'admin',
+  'pwd': '/home/admin',
+  'clear': '',
+
+  /* ----------------------------------------------------------------
+     nv show interface
+  ---------------------------------------------------------------- */
+  'nv show interface': function (dev, raw, lower) {
+    return [
+      'Interface  State  Speed   MTU    Type      Remote Host       Remote Port',
+      '---------  -----  -----   ----   ----      -----------       -----------',
+      'lo         up     N/A     65536  loopback',
+      'mgmt       up     1G      1500   eth       oob-mgmt-switch   swp1',
+      'swp1       up     400G    9216   swp       dgx-h100-01       mlx5_0',
+      'swp2       up     400G    9216   swp       dgx-h100-02       mlx5_0',
+      'swp3       up     400G    9216   swp       dgx-h100-03       mlx5_0',
+      'swp4       up     400G    9216   swp       dgx-h100-04       mlx5_0',
+      'swp49      up     400G    9216   swp       spine-01          swp1',
+      'swp50      up     400G    9216   swp       spine-01          swp2',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     nv show qos roce
+  ---------------------------------------------------------------- */
+  'nv show qos roce': function (dev, raw, lower) {
+    return [
+      '                      operational            applied',
+      '------------------  ---------------------  ---------------------',
+      'state                                      enabled',
+      'mode                lossless-single-ipool  lossless-single-ipool',
+      'pfc',
+      '  pfc-priority      3',
+      '  rx-enabled        enabled',
+      '  tx-enabled        enabled',
+      '  cable-length      100',
+      'congestion-control',
+      '  congestion-mode   ECN',
+      '  enabled-tc        0,3',
+      '  min-threshold     146.48 KB',
+      '  max-threshold     1.43 MB',
+      '  probability       100',
+      'trust',
+      '  trust-mode        pcp,dscp',
+      'lldp-app-tlv',
+      '  priority          3',
+      '  protocol-id       4791',
+      '  selector          UDP',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     nv config show
+  ---------------------------------------------------------------- */
+  'nv config show': function (dev, raw, lower) {
+    return [
+      '- set:',
+      '    system:',
+      '      hostname: leaf-0',
+      '      timezone: America/Chicago',
+      '    qos:',
+      '      roce:',
+      '        mode: lossless',
+      '        pfc-priority: 3',
+      '        trust: pcp,dscp',
+      '        cable-length: 100',
+      '      congestion-control:',
+      '        enabled-tc: 0,3',
+      '        mode: ecn',
+      '        min-threshold: 146',
+      '        max-threshold: 1467',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     nv config diff
+  ---------------------------------------------------------------- */
+  'nv config diff': function (dev, raw, lower) {
+    return [
+      '--- running',
+      '+++ pending',
+      '',
+      '  qos:',
+      '    roce:',
+      '+     mode: lossless',
+      '+     pfc-priority: 3',
+      '+     trust: pcp,dscp',
+      '',
+      'Run "nv config apply" to activate, or "nv config detach" to discard.',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     help / ?
+  ---------------------------------------------------------------- */
+  'help': [
+    'Console Basics -- admin@dgx-h100-01',
+    '',
+    'InfiniBand host diagnostics (handled by IBTools sim):',
+    '  ibstat              Local HCA state and port info (State: Active / LinkUp)',
+    '  ibstatus            Terse per-port summary with rate and LID',
+    '  iblinkinfo          Fabric-wide link map: speed, width, state per switch port',
+    '  ibhosts             List all compute (CA) nodes in the fabric',
+    '  ibnetdiscover       Full topology walk: switch, HCAs, GUIDs, wiring',
+    '  sminfo              Subnet Manager GUID, priority, state (want SMINFO_MASTER)',
+    '  ibdiagnet           Full fabric health scan',
+    '  perfquery           Port performance counters (Tx/Rx, errors)',
+    '  ibping <lid>        Ping a fabric node by LID',
+    '  ibportstate <lid> <port>  Physical port state',
+    '',
+    'NVIDIA switch CLI (NVUE):',
+    '  nv show interface   List switch ports, speed, MTU, connected host',
+    '  nv show qos roce    RoCE QoS state: mode, PFC, ECN, trust',
+    '  nv config show      Display staged (pending) configuration',
+    '  nv config diff      Show diff: running vs pending changes',
+    '',
+    'Linux utilities:',
+    '  whoami              Print current user',
+    '  pwd                 Print working directory',
+    '  clear               Clear terminal',
+    '  help  or  ?         Show this list',
+    '',
+    'Tip: Tab completes partial commands. Up arrow recalls history.',
+  ].join('\n'),
+
+  '?': null, /* filled after CMDMAP object (self-reference) */
+};
+
+CMDMAP['?'] = CMDMAP['help'];
+
+/* ====================================================================
+   PERSISTENCE
+   localStorage key: 'ncpain_console_basics' -> { done: [id, ...] }
+   ==================================================================== */
+var LS_KEY = 'ncpain_console_basics';
+var _done = {};
+
+function loadDone() {
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    var obj = JSON.parse(raw);
+    if (Array.isArray(obj.done)) {
+      obj.done.forEach(function (id) { _done[id] = true; });
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function saveDone() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ done: Object.keys(_done) }));
+  } catch (e) { /* ignore */ }
+}
+
+/* ====================================================================
+   PROGRESS UI
+   ==================================================================== */
+var TOTAL = LESSONS.length; /* 13 */
+
+function updateProgress() {
+  var count = Object.keys(_done).length;
+  var el = document.getElementById('progressCount');
+  var bar = document.getElementById('progressBar');
+  var cta = document.getElementById('ctaBanner');
+  if (el) el.textContent = count + ' / ' + TOTAL + ' done';
+  if (bar) bar.style.width = Math.round(count / TOTAL * 100) + '%';
+  if (cta) {
+    if (count >= TOTAL) cta.classList.add('visible');
+    else cta.classList.remove('visible');
+  }
+}
+
+/* ====================================================================
+   LESSON -> tryCmd matching
+   A lesson is marked done if the trimmed command starts with (or equals)
+   the lesson's tryCmd (case-insensitive). This handles ibstat matching
+   both A2 and A4 and B5.
+   ==================================================================== */
+function markLessonRun(cmd) {
+  var lower = cmd.trim().toLowerCase();
+  var changed = false;
+  LESSONS.forEach(function (lesson) {
+    if (_done[lesson.id]) return;
+    var tryLower = lesson.tryCmd.toLowerCase();
+    if (lower === tryLower || lower.indexOf(tryLower) === 0) {
+      _done[lesson.id] = true;
+      /* update card DOM */
+      var card = document.getElementById('card-' + lesson.id);
+      if (card) card.classList.add('done');
+      changed = true;
+    }
+  });
+  if (changed) {
+    saveDone();
+    updateProgress();
+  }
+}
+
+/* ====================================================================
+   RENDER CHEAT TABLE
+   ==================================================================== */
+function renderCheat() {
+  var tbody = document.getElementById('cheatBody');
+  if (!tbody) return;
+  CHEAT.forEach(function (row) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + esc(row.task) + '</td>' +
+      '<td class="cisco">' + esc(row.cisco) + '</td>' +
+      '<td class="arrow-col">&#8594;</td>' +
+      '<td class="nvidia">' + esc(row.nvidia) + '</td>' +
+      '<td class="note">' + esc(row.note) + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+/* ====================================================================
+   RENDER LESSONS RAIL
+   ==================================================================== */
+function renderLessons() {
+  var rail = document.getElementById('lessonsRail');
+  if (!rail) return;
+  var lastPart = null;
+
+  LESSONS.forEach(function (lesson) {
+    /* Part heading */
+    if (lesson.part !== lastPart) {
+      lastPart = lesson.part;
+      var heading = document.createElement('div');
+      heading.className = 'part-heading';
+      heading.textContent = lesson.partLabel || ('Part ' + lesson.part);
+      rail.appendChild(heading);
+    }
+
+    /* Card */
+    var card = document.createElement('div');
+    card.className = 'lesson-card' + (_done[lesson.id] ? ' done' : '');
+    card.id = 'card-' + lesson.id;
+
+    /* m1 badge HTML */
+    var m1html = lesson.m1step
+      ? '<span class="lesson-m1-badge">Mega Lab M1 &bull; step ' + lesson.m1step + '</span>'
+      : '';
+
+    card.innerHTML =
+      '<div class="lesson-card-top">' +
+        '<span class="lesson-num">' + esc(lesson.id) + '</span>' +
+        '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
+        m1html +
+        '<span class="lesson-check" aria-label="complete">&#10003;</span>' +
+      '</div>' +
+      '<p class="lesson-concept">' + esc(lesson.concept) + '</p>' +
+      '<div class="lesson-compare">' +
+        '<span class="compare-label cisco">Cisco</span>' +
+        '<code class="compare-cmd">' + esc(lesson.cisco) + '</code>' +
+        '<span class="compare-arrow">&#8594;</span>' +
+        '<span class="compare-label nvidia">NVIDIA</span>' +
+        '<code class="compare-cmd">' + esc(lesson.nvidia) + '</code>' +
+      '</div>' +
+      '<p class="lesson-why">Why: ' + esc(lesson.why) + '</p>' +
+      '<p class="lesson-sample">Sample output: ' + esc(lesson.sampleNote) + '</p>' +
+      '<button class="try-btn" data-cmd="' + esc(lesson.tryCmd) + '">' +
+        'Try: <code>' + esc(lesson.tryCmd) + '</code>' +
+      '</button>';
+
+    /* "Try" button fires the command into the terminal */
+    card.querySelector('.try-btn').addEventListener('click', function () {
+      fireCommand(lesson.tryCmd);
+    });
+
+    rail.appendChild(card);
+  });
+}
+
+/* ====================================================================
+   FIRE COMMAND INTO TERMINAL
+   Sets the contenteditable input to the command, then dispatches Enter.
+   ==================================================================== */
+function fireCommand(cmd) {
+  var mount = document.getElementById('termMount');
+  if (!mount) return;
+  var inputEl = mount.querySelector('.term-input');
+  if (!inputEl) return;
+  inputEl.textContent = cmd;
+  /* place cursor at end */
+  var range = document.createRange();
+  var sel = window.getSelection();
+  range.selectNodeContents(inputEl);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  /* dispatch Enter */
+  inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }));
+  inputEl.focus();
+}
+
+/* ====================================================================
+   CHEAT TOGGLE
+   ==================================================================== */
+function initCheatToggle() {
+  var btn = document.getElementById('cheatToggle');
+  var panel = document.getElementById('cheatPanel');
+  if (!btn || !panel) return;
+  btn.addEventListener('click', function () {
+    var open = panel.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  });
+}
+
+/* ====================================================================
+   LAB ENGINE INIT
+   Run after DOMContentLoaded so deferred scripts have executed.
+   ==================================================================== */
+document.addEventListener('DOMContentLoaded', function () {
+  loadDone();
+  renderCheat();
+  renderLessons();
+  updateProgress();
+  initCheatToggle();
+
+  /* Build lab instance */
+  var lab = new window.Lab.LabBase({ objectives: [] });
+  window._lab = lab;
+
+  lab.addDevice('dgx-h100-01', 'host', {
+    hostname: 'admin@dgx-h100-01',
+    shellPromptFormat: 'linux',
+    commandMap: CMDMAP,
+  });
+
+  lab.initTerminal(document.getElementById('termMount'));
+
+  /* Wrap processCommand: IB-diag commands go to IBTools, rest go to engine */
+  var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate)\b/;
+  var _orig = window.Lab.LabBase.prototype.processCommand;
+  lab.processCommand = function (raw) {
+    var t = String(raw).trim();
+    var out = IB_DIAG_RE.test(t)
+      ? (window.IBTools && window.IBTools.run ? window.IBTools.run(t) : 'IBTools unavailable')
+      : _orig.call(this, raw);
+    markLessonRun(t);
+    return out;
+  };
+});
+</script>
+<script defer src="js/tutor.js?v=7.15.8"></script>
+</body>
+</html>
