@@ -279,7 +279,7 @@
           <div class="lab-menu-header">
             <div class="ncp-badge"><span class="ncp-dot"></span>NCP-AIN Capstone</div>
             <h1>Mega Lab</h1>
-            <p>9-mission rail-optimized fabric capstone. Build the fabric, bring up the SM, configure RoCE lossless, validate health, and troubleshoot four fault scenarios using the real IB/NVUE CLI.</p>
+            <p>16-mission rail-optimized fabric capstone. Build the fabric, bring up the SM, configure RoCE on InfiniBand and Spectrum-X Ethernet, validate health, manage the fabric through UFM, bring up the host NIC, and troubleshoot fault scenarios across IB, Ethernet, and UFM using the real IB/NVUE CLI.</p>
             <a href="ncp-ain-console-basics.html" class="basics-cta">New to the CLI? Start with Console Basics first, then come back.</a>
           </div>
           <div class="lab-menu-labs" id="missionList"></div>
@@ -426,8 +426,8 @@
 </div>
 
 <script defer src="js/store.js"></script>
-<script defer src="js/lab-engine.js?v=7.17.7"></script>
-<script defer src="js/ib-tools.js?v=7.17.7"></script>
+<script defer src="js/lab-engine.js?v=7.17.9"></script>
+<script defer src="js/ib-tools.js?v=7.17.9"></script>
 <script defer src="js/nav.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ===== REGION:MEGA_LABS (Agent B owns) =====
 /* === MEGA_LABS DATA (Agent B) ===
-   NCP-AIN Mega Lab. 9 missions matching the Mission schema exactly.
+   NCP-AIN Mega Lab. 16 missions matching the Mission schema exactly.
    cmd strings and flags match the contract cmd->flag table.
    No em dashes or en dashes anywhere in this file.
    Hints point at concepts only; never print the exact command or value.
@@ -972,6 +972,190 @@ var MEGA_LABS = [
         action: null
       }
     ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M14 -- Spectrum-X Ethernet RoCE Fabric (build + validate + fix)     */
+  /* Closes the Ethernet-side gap: leaf-spine RoCE Ethernet fabric.      */
+  /* Source: NVIDIA Spectrum-X / Cumulus Linux 5.x NVUE docs             */
+  /*   - interface speed / breakout / MTU                                */
+  /*   - BGP unnumbered underlay (neighbor swpX remote-as external)      */
+  /*   - EVPN-VXLAN, PFC/ECN lossless, adaptive routing                  */
+  /* Fault: bgpunnum (swp52 link down -> unnumbered eBGP neighbor idle). */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm14-spectrumx-roce',
+    name: 'M14 - Spectrum-X Ethernet RoCE Fabric',
+    device: 'leaf-0',
+    startMode: 'config',
+    fault: 'bgpunnum',
+    steps: [
+      {
+        device: 'leaf-0',
+        objective: 'Enable RoCE lossless mode on the Ethernet leaf',
+        hint: 'Same no-drop RoCE mode you set on the IB-side leaf in M4; the qos roce subtree has a mode value.',
+        cmd: 'nv set qos roce mode lossless',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Bring up the unnumbered eBGP underlay neighbor on swp51',
+        hint: 'Spectrum-X underlay uses BGP unnumbered: point the neighbor at the interface, not an IP, and let the AS be learned as external.',
+        cmd: 'nv set vrf default router bgp neighbor swp51 remote-as external',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Enable adaptive routing on the spine uplink swp51',
+        hint: 'Adaptive routing is set per interface in its router subtree; turn the feature on for the uplink.',
+        cmd: 'nv set interface swp51 router adaptive-routing enable on',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Apply the candidate Ethernet fabric configuration',
+        hint: 'NVUE stages changes; a separate commit step activates them.',
+        cmd: 'nv config apply',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Validate BGP neighbors: spot the down underlay peer',
+        hint: 'Show the BGP neighbor table; one unnumbered peer will not be Established.',
+        cmd: 'nv show vrf default router bgp neighbor',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Inspect the failed neighbor on swp52 for the root cause',
+        hint: 'Drill into the single down neighbor; the last reset reason tells you the link/peer state.',
+        cmd: 'nv show vrf default router bgp neighbor swp52',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Fix: bring the swp52 link state up',
+        hint: 'Unnumbered eBGP needs an up link to exchange IPv6 link-local addresses; set the down interface link state up.',
+        cmd: 'nv set interface swp52 link state up',
+        action: 'fix-bgp-unnumbered'
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Reverify: all underlay BGP neighbors Established',
+        hint: 'Re-show the neighbor table; every unnumbered peer should now be Established.',
+        cmd: 'nv show vrf default router bgp neighbor',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M15 -- UFM: Link-Error Triage and Remediation                       */
+  /* UFM-driven workflow: find + confirm a fabric problem via UFM        */
+  /* (status, events, fabric validation) instead of raw ib* tools.       */
+  /* Source: NVIDIA UFM Enterprise REST API docs                         */
+  /*   - GET /ufmRest/app/events  (alarm objects)                        */
+  /*   - POST /ufmRest/actions    (port reseat action)                   */
+  /*   - POST /ufmRest/fabricValidation/tests/CheckLinks                 */
+  /* Fault: uflinkerr (Link HW Error on a fabric port).                  */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm15-ufm-linkerr',
+    name: 'M15 - UFM: Link-Error Triage and Remediation',
+    device: 'ufm-sm',
+    startMode: 'troubleshoot',
+    fault: 'uflinkerr',
+    steps: [
+      {
+        device: 'ufm-sm',
+        objective: 'Check overall UFM and fabric health status',
+        hint: 'UFM has a status command that summarizes the management service and fabric health at a glance.',
+        cmd: 'show ufm status',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Pull active UFM events and spot the link alarm',
+        hint: 'Query the UFM events endpoint over its REST API; a hardware link alarm will stand out in the returned objects.',
+        cmd: 'curl -k -u admin:pw https://ufm/ufmRest/app/events',
+        action: null
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Fix: schedule a reseat on the alarmed port via UFM',
+        hint: 'UFM exposes a port action over REST; post the reseat action for the object the alarm named.',
+        cmd: 'curl -k -u admin:pw -X POST https://ufm/ufmRest/actions/reseat-port',
+        action: 'ufm-reseat-port'
+      },
+      {
+        device: 'ufm-sm',
+        objective: 'Reverify: run UFM fabric validation CheckLinks',
+        hint: 'UFM fabric validation has a links test; run it and confirm it passes after the reseat.',
+        cmd: 'curl -k -u admin:pw -X POST https://ufm/ufmRest/fabricValidation/tests/CheckLinks',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M16 -- Host NIC Bring-Up (RoCE v2)  (no fault, pure build)          */
+  /* Host-side ConnectX bring-up before traffic.                         */
+  /* Source: NVIDIA MFT (mst/mlxconfig/mlxfwreset) + show_gids + mlxlink */
+  /*   - LINK_TYPE_P1/P2: IB=1, ETH=2                                    */
+  /*   - mlxconfig writes Next Boot; mlxfwreset applies it               */
+  /*   - show_gids VER v2 = routable RoCE v2                             */
+  /* No fault: zero-risk capstone build mission.                         */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm16-host-nic-bringup',
+    name: 'M16 - Host NIC Bring-Up (RoCE v2)',
+    device: 'dgx-01',
+    startMode: 'config',
+    fault: null,
+    steps: [
+      {
+        device: 'dgx-01',
+        objective: 'Start MST and list the ConnectX device nodes',
+        hint: 'The MFT stack needs its kernel module started; the status command also shows the /dev/mst device path.',
+        cmd: 'mst status -v',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Query current NIC config and read the link type',
+        hint: 'mlxconfig can dump the running NIC parameters; look at the per-port link type to see if it is IB or Ethernet.',
+        cmd: 'mlxconfig -d /dev/mst/mt4125_pciconf0 query',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Set both ports to Ethernet link type for RoCE',
+        hint: 'RoCE rides on Ethernet; set the link type on both ports to the Ethernet value (not the InfiniBand one).',
+        cmd: 'mlxconfig -d /dev/mst/mt4125_pciconf0 set LINK_TYPE_P1=2 LINK_TYPE_P2=2',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Apply the firmware config so the new link type takes effect',
+        hint: 'mlxconfig only writes Next Boot; a firmware reset is needed to load it without a full reboot.',
+        cmd: 'mlxfwreset -d /dev/mst/mt4125_pciconf0 -y reset',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Confirm a RoCE v2 GID is present on the device',
+        hint: 'show_gids lists the GID table; a routable RoCE v2 entry shows version v2.',
+        cmd: 'show_gids',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Verify the port link is up at full speed before traffic',
+        hint: 'mlxlink reports the physical link state, speed, and FEC; confirm it is Active before sending traffic.',
+        cmd: 'mlxlink -d mlx5_0 -m -c',
+        action: null
+      }
+    ]
   }
 
 ]; /* === END MEGA_LABS DATA (Agent B) === */
@@ -1352,6 +1536,236 @@ var LINUX_CMDMAP = {
     ].join('\n');
   },
 
+  /* ----------------------------------------------------------------
+     M15 -- UFM-driven link-error triage (ufm-sm)
+     Source: NVIDIA UFM Enterprise REST API docs.
+     show ufm status / GET app/events / POST actions / POST CheckLinks.
+     [inferred] sim payloads are representative; REST shapes are correct.
+  ---------------------------------------------------------------- */
+  'show ufm status': function (dev, raw, lower) {
+    dev.custom.ufmStatusDone = true;
+    var cleared = !!(window.IBTools && !window.IBTools.activeFault());
+    return [
+      'UFM Enterprise 6.16.0',
+      '  management         : active (running)',
+      '  model              : Master',
+      '  ib fabric          : up (1 switch, 8 CAs, 8 links)',
+      '  health             : ' + (cleared ? 'OK' : 'WARNING'),
+      '  active alarms      : ' + (cleared ? '0' : '1 (Critical: Link HW Error)'),
+      '',
+      cleared
+        ? 'Fabric healthy. No outstanding alarms.'
+        : 'A critical link alarm is active. Inspect /ufmRest/app/events for detail.',
+    ].join('\n');
+  },
+
+  'curl -k -u admin:pw https://ufm/ufmRest/app/events': function (dev, raw, lower) {
+    dev.custom.ufmEventsDone = true;
+    var cleared = !!(window.IBTools && !window.IBTools.activeFault());
+    if (cleared) {
+      return '[]';
+    }
+    return [
+      '[',
+      '  {',
+      '    "id": 4821,',
+      '    "severity": "Critical",',
+      '    "name": "Link HW Error",',
+      '    "event_type": "Infiniband_LinkDowned",',
+      '    "object_name": "Link Downed",',
+      '    "object_path": "default / Switch: QM9700 / Port: 6",',
+      '    "counter": "LinkDownedCounter",',
+      '    "description": "Link HW Error on QM9700 port 6 (peer dgx-h100-03/mlx5_1)",',
+      '    "timestamp": "2026-06-21 09:12:48"',
+      '  }',
+      ']',
+      '',
+      '1 critical alarm. Reseat the alarmed port (QM9700 port 6) via the actions API.',
+    ].join('\n');
+  },
+
+  'curl -k -u admin:pw -X POST https://ufm/ufmRest/actions/reseat-port': function (dev, raw, lower) {
+    /* Fix step: intercepted by maybeApplyFix (action ufm-reseat-port). This
+       output is the fallback if the fix machinery is absent. */
+    return [
+      'HTTP/1.1 202 Accepted',
+      '{ "job_id": "reseat-port-4821", "status": "scheduled" }',
+      '',
+      'Port reseat scheduled for QM9700 port 6.',
+    ].join('\n');
+  },
+
+  'curl -k -u admin:pw -X POST https://ufm/ufmRest/fabricValidation/tests/CheckLinks': function (dev, raw, lower) {
+    var cleared = !!(window.IBTools && !window.IBTools.activeFault());
+    if (cleared) {
+      return [
+        '{',
+        '  "TestName": "CheckLinks",',
+        '  "TestStatus": "Completed",',
+        '  "DetailedStatus": { "Error": [], "Warning": [] },',
+        '  "Summary": "All links healthy. 8/8 links passed."',
+        '}',
+      ].join('\n');
+    }
+    return [
+      '{',
+      '  "TestName": "CheckLinks",',
+      '  "TestStatus": "Completed",',
+      '  "DetailedStatus": {',
+      '    "Error": [ "QM9700 / Port 6: Link HW Error (LinkDownedCounter increasing)" ],',
+      '    "Warning": []',
+      '  },',
+      '  "Summary": "1 link failed. Remediate before retrying."',
+      '}',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     M16 -- Host NIC bring-up for RoCE v2 (dgx-* nodes)
+     Source: NVIDIA MFT (mst/mlxconfig/mlxfwreset), show_gids, mlxlink.
+     LINK_TYPE: IB=1, ETH=2. mlxconfig writes Next Boot; mlxfwreset applies.
+     show_gids VER v2 = routable RoCE v2.
+     [inferred] sim outputs representative; tool syntax/values are correct.
+     Note: CMDMAP keys are lowercased by the engine before lookup, so the
+     "set link_type_p1=2 link_type_p2=2" key is lowercase while the mission
+     cmd keeps LINK_TYPE_P1=2 uppercase (the predicate compares the typed cmd).
+  ---------------------------------------------------------------- */
+  'mst status -v': function (dev, raw, lower) {
+    dev.custom.mstStarted = true;
+    return [
+      'MST modules:',
+      '------------',
+      '    MST PCI module loaded',
+      '    MST PCI configuration module loaded',
+      '',
+      'PCI devices:',
+      '------------',
+      'DEVICE_TYPE        MST                      PCI       RDMA    NET        NUMA',
+      'ConnectX7(rev:0)   /dev/mst/mt4125_pciconf0 0000:1b:00.0  mlx5_0  net-ens1f0   0',
+      'ConnectX7(rev:0)   /dev/mst/mt4125_pciconf0.1 0000:1b:00.1 mlx5_1  net-ens1f1   0',
+    ].join('\n');
+  },
+
+  'mlxconfig -d /dev/mst/mt4125_pciconf0 query': function (dev, raw, lower) {
+    dev.custom.nicQueried = true;
+    var set = !!dev.custom.nicLinkSet;
+    var reset = !!dev.custom.nicReset;
+    /* Before set: both ports IB(1). After set: Next Boot shows ETH(2) pending.
+       After mlxfwreset: current also ETH(2). */
+    var p1cur, p1next, p2cur, p2next;
+    if (reset) {
+      p1cur = 'ETH(2)'; p1next = 'ETH(2)'; p2cur = 'ETH(2)'; p2next = 'ETH(2)';
+    } else if (set) {
+      p1cur = 'IB(1)';  p1next = 'ETH(2)'; p2cur = 'IB(1)';  p2next = 'ETH(2)';
+    } else {
+      p1cur = 'IB(1)';  p1next = 'IB(1)';  p2cur = 'IB(1)';  p2next = 'IB(1)';
+    }
+    return [
+      'Device #1:',
+      '----------',
+      '',
+      'Device type:    ConnectX7',
+      'Name:           MCX755106AS-HEAT_Ax',
+      'Device:         /dev/mst/mt4125_pciconf0',
+      '',
+      'Configurations:                              Current         Next Boot',
+      '        LINK_TYPE_P1                         ' + pad(p1cur) + p1next,
+      '        LINK_TYPE_P2                         ' + pad(p2cur) + p2next,
+      '        ROCE_CC_PRIO_MASK_P1                 255             255',
+      '        CNP_DSCP_P1                          48              48',
+      '',
+      (set && !reset)
+        ? 'Next Boot differs from Current. Run mlxfwreset (or reboot) to apply.'
+        : 'Current matches Next Boot.',
+    ].join('\n');
+
+    function pad(s) {
+      var out = String(s);
+      while (out.length < 16) out += ' ';
+      return out;
+    }
+  },
+
+  'mlxconfig -d /dev/mst/mt4125_pciconf0 set link_type_p1=2 link_type_p2=2': function (dev, raw, lower) {
+    dev.custom.nicLinkSet = true;
+    return [
+      'Device #1:',
+      '----------',
+      '',
+      'Device type:    ConnectX7',
+      'Device:         /dev/mst/mt4125_pciconf0',
+      '',
+      'Configurations:                              Current         Next Boot',
+      '        LINK_TYPE_P1                         IB(1)           ETH(2)',
+      '        LINK_TYPE_P2                         IB(1)           ETH(2)',
+      '',
+      'Apply new Configuration? (y/n) [n] : y',
+      'Applying... Done!',
+      '-I- Please reset or reboot (mlxfwreset) for the changes to take effect.',
+    ].join('\n');
+  },
+
+  'mlxfwreset -d /dev/mst/mt4125_pciconf0 -y reset': function (dev, raw, lower) {
+    dev.custom.nicReset = true;
+    return [
+      'The reset level for device, /dev/mst/mt4125_pciconf0 is:',
+      '3: Driver restart and PCI reset',
+      'Continue with reset?[y/N] y',
+      '-I- Sending Reset Command To Fw             -Done',
+      '-I- Stopping Driver                         -Done',
+      '-I- Resetting PCI                           -Done',
+      '-I- Starting Driver                         -Done',
+      '-I- Restarting MST                          -Done',
+      '-I- FW was loaded successfully.',
+      '',
+      'Link type now active: Ethernet (RoCE-capable).',
+    ].join('\n');
+  },
+
+  'show_gids': function (dev, raw, lower) {
+    dev.custom.gidsChecked = true;
+    if (!dev.custom.nicReset) {
+      return [
+        'DEV     PORT    INDEX   GID                                      IPv4            VER     DEV',
+        '---     ----    -----   ---                                      ------------    ---     ---',
+        'n/a (no Ethernet RoCE GIDs yet -- link type is still IB).',
+        '',
+        'Set LINK_TYPE to Ethernet and run mlxfwreset, then re-check.',
+      ].join('\n');
+    }
+    return [
+      'DEV     PORT    INDEX   GID                                      IPv4            VER     DEV',
+      '---     ----    -----   ---                                      ------------    ---     ---',
+      'mlx5_0  1       0       fe80:0000:0000:0000:966d:aeff:fe7a:1c01                  v1      ens1f0',
+      'mlx5_0  1       1       fe80:0000:0000:0000:966d:aeff:fe7a:1c01                  v2      ens1f0',
+      'mlx5_0  1       2       0000:0000:0000:0000:0000:ffff:0a01:0102  10.1.1.2        v2      ens1f0',
+      '',
+      'n_gids_found=3',
+      'A v2 entry is present: routable RoCE v2 is ready on mlx5_0 port 1.',
+    ].join('\n');
+  },
+
+  'mlxlink -d mlx5_0 -m -c': function (dev, raw, lower) {
+    dev.custom.mlxlinkDone = true;
+    var up = !!dev.custom.nicReset;
+    return [
+      'Operational Info',
+      '----------------',
+      'State                           : ' + (up ? 'Active' : 'Disabled'),
+      'Physical state                  : ' + (up ? 'LinkUp' : 'Disabled'),
+      'Speed                           : ' + (up ? '400G' : 'N/A'),
+      'Width                           : ' + (up ? '4x' : 'N/A'),
+      'FEC                             : ' + (up ? 'Standard RS-FEC - RS(544,514)' : 'N/A'),
+      'Loopback Mode                   : No Loopback',
+      '',
+      'Troubleshooting Info',
+      '--------------------',
+      'Status Opcode                   : 0',
+      'Group Opcode                    : N/A',
+      'Recommendation                  : ' + (up ? 'No issue was observed.' : 'Set link type to Ethernet and reset the device.'),
+    ].join('\n');
+  },
+
 };
 
 // ===== END REGION:LINUX_CMDMAP =====
@@ -1477,6 +1891,93 @@ var NVUE_CMDMAP = {
       'staged: nv set interface swp1 qos adaptive-routing enable on',
       '',
       'Adaptive routing enabled on swp1.',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* ======================================================================
+     M14 Spectrum-X Ethernet RoCE fabric -- BGP unnumbered underlay,
+     adaptive routing, neighbor validate/inspect, link-state fix.
+     Source: NVIDIA Cumulus Linux 5.x NVUE BGP-unnumbered + adaptive-routing
+     docs. [inferred] sim outputs are representative, syntax is correct.
+     ====================================================================== */
+
+  /* Stage the unnumbered eBGP neighbor (interface peer + remote-as external). */
+  'nv set vrf default router bgp neighbor swp51 remote-as external': function (dev, raw, lower) {
+    dev.custom.bgpUnnumStaged = true;
+    return [
+      'staged: nv set vrf default router bgp neighbor swp51 remote-as external',
+      '',
+      'Unnumbered eBGP neighbor staged on swp51 (peer AS learned via IPv6 LLA).',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* Per-interface adaptive routing enable on the spine uplink. */
+  'nv set interface swp51 router adaptive-routing enable on': function (dev, raw, lower) {
+    dev.custom.adaptiveRouting = true;
+    return [
+      'staged: nv set interface swp51 router adaptive-routing enable on',
+      '',
+      'Adaptive routing enabled on swp51.',
+      'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* Validate step: BGP neighbor table -- swp52 peer is down (fault bgpunnum). */
+  'nv show vrf default router bgp neighbor': function (dev, raw, lower) {
+    dev.custom.bgpNeighborShown = true;
+    var swp52up = !!(window.IBTools && !window.IBTools.activeFault());
+    var swp52line = swp52up
+      ? 'swp52      eBGP     external  Established   0   0   1d00h    8'
+      : 'swp52      eBGP     external  Idle (Admin)  0   0   never    0';
+    return [
+      'Interface  Type     PeerAS    State         InQ OutQ Up/Down  PfxRcd',
+      '---------  ----     ------    -----         --- ---- -------  ------',
+      'swp51      eBGP     external  Established   0   0   1d00h    8',
+      swp52line,
+      '',
+      swp52up
+        ? 'All unnumbered eBGP neighbors Established. Underlay is up.'
+        : 'WARNING: swp52 neighbor is not Established. Inspect the neighbor detail.',
+    ].join('\n');
+  },
+
+  /* Inspect the failed neighbor: last-reset-reason points at the down link. */
+  'nv show vrf default router bgp neighbor swp52': function (dev, raw, lower) {
+    dev.custom.bgpNeighborDetail = true;
+    var swp52up = !!(window.IBTools && !window.IBTools.activeFault());
+    if (swp52up) {
+      return [
+        'neighbor swp52 (interface, unnumbered)',
+        '  remote-as            external (65199)',
+        '  bgp state            Established, up for 1d00h',
+        '  link state           up',
+        '  last-reset-reason    N/A',
+        '',
+        'Neighbor is healthy.',
+      ].join('\n');
+    }
+    return [
+      'neighbor swp52 (interface, unnumbered)',
+      '  remote-as            external',
+      '  bgp state            Idle',
+      '  link state           down',
+      '  last-reset-reason    "Waiting for Peer IPv6 LLA"',
+      '',
+      'swp52 has no carrier: IPv6 link-local addresses cannot be exchanged,',
+      'so the unnumbered eBGP session stays Idle. Bring the link state up.',
+    ].join('\n');
+  },
+
+  /* Fix step: set swp52 link state up. Intercepted by maybeApplyFix
+     (action fix-bgp-unnumbered) before this output is shown; the handler
+     output is the fallback if the fix machinery is absent. */
+  'nv set interface swp52 link state up': function (dev, raw, lower) {
+    return [
+      'staged: nv set interface swp52 link state up',
+      '',
+      'swp52 admin link state set to up.',
       'Run "nv config apply" to activate.',
     ].join('\n');
   },
@@ -2185,6 +2686,35 @@ function evalStepPredicate(step, dev, idx, m) {
   if (cmd === 'ibdiagnet -r') return !!(dev && dev.custom.ibdiagnetRDone);
   if (cmd === 'ibportstate 4 1') return !!(dev && dev.custom.ibportstateDone);
   if (cmd === 'sharp_hello') return !!(dev && dev.custom.sharpHelloDone);
+  // M14 Spectrum-X (build/validate read steps)
+  if (cmd === 'nv set vrf default router bgp neighbor swp51 remote-as external')
+    return !!(dev && dev.custom.bgpUnnumStaged);
+  if (cmd === 'nv set interface swp51 router adaptive-routing enable on')
+    return !!(dev && dev.custom.adaptiveRouting);
+  if (cmd === 'nv show vrf default router bgp neighbor swp52')
+    return !!(dev && dev.custom.bgpNeighborDetail);
+  // M14 validate step 5 vs reverify step 8 disambiguation (shared cmd).
+  // Step 5 has no prior clears-fix -> complete on the shown flag.
+  // Step 8 has the fix step before it -> fall through to the priorClearsFix
+  // !activeFault() branch so it only completes after the fault clears.
+  if (cmd === 'nv show vrf default router bgp neighbor') {
+    var m14HasPriorClearsFix = false;
+    for (var z = 0; z < idx; z++) {
+      if (m.steps[z].action && lidFromAction(m.steps[z].action) === null) { m14HasPriorClearsFix = true; break; }
+    }
+    if (!m14HasPriorClearsFix) return !!(dev && dev.custom.bgpNeighborShown);
+    // else fall through to priorClearsFix !activeFault() below (step 8)
+  }
+  // M15 UFM
+  if (cmd === 'show ufm status') return !!(dev && dev.custom.ufmStatusDone);
+  if (cmd.indexOf('/ufmRest/app/events') !== -1) return !!(dev && dev.custom.ufmEventsDone);
+  // M16 Host NIC (no fault, all explicit branches -- no fallthrough path)
+  if (cmd === 'mst status -v') return !!(dev && dev.custom.mstStarted);
+  if (cmd === 'mlxconfig -d /dev/mst/mt4125_pciconf0 query') return !!(dev && dev.custom.nicQueried);
+  if (cmd === 'mlxconfig -d /dev/mst/mt4125_pciconf0 set LINK_TYPE_P1=2 LINK_TYPE_P2=2') return !!(dev && dev.custom.nicLinkSet);
+  if (cmd === 'mlxfwreset -d /dev/mst/mt4125_pciconf0 -y reset') return !!(dev && dev.custom.nicReset);
+  if (cmd === 'show_gids') return !!(dev && dev.custom.gidsChecked);
+  if (cmd === 'mlxlink -d mlx5_0 -m -c') return !!(dev && dev.custom.mlxlinkDone);
   // Reverify steps after a clears-fault action: check that no active fault remains.
   // Detect by looking for a prior fix step whose lid is null (clears-fault type).
   var priorClearsFix = false;
@@ -2439,6 +2969,6 @@ seedSolvedMissions();
 renderMissionMenu();
 });
 </script>
-<script defer src="js/tutor.js?v=7.17.7"></script>
+<script defer src="js/tutor.js?v=7.17.9"></script>
 </body>
 </html>
