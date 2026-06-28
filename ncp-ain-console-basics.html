@@ -93,12 +93,20 @@
 
 /* ---- Single-column workspace -------------------------------------- */
 .lessons-rail { max-width: 760px; margin: var(--s-md) auto 0; }
-.cb-term-shell { max-width: 760px; margin: var(--s-lg) auto 0; }
+.term-home { max-width: 760px; margin: var(--s-lg) auto 0; }
+.cb-term-shell { margin-top: 16px; }
+.term-home .cb-term-shell { margin-top: 0; }
+.term-slot:empty { display: none; }
 .cb-term-label {
   font-family: var(--font-display); font-size: .72rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted);
   margin: 0 0 8px;
 }
+.cb-term-look {
+  font-family: var(--font-body); font-size: .82rem; font-weight: 600;
+  color: var(--ncp-dark); margin: 10px 0 0; line-height: 1.5;
+}
+.cb-term-look:empty { display: none; }
 
 /* ---- Progress strip ----------------------------------------------- */
 .cb-progress {
@@ -417,23 +425,27 @@
     <!-- injected by JS -->
   </div>
 
-  <!-- Live terminal, full width below the lessons -->
-  <div class="cb-term-shell" id="cbTermShell">
-    <p class="cb-term-label">Your terminal</p>
-    <div class="ed-term">
-      <div class="ed-term-bar">
-        <span class="ed-term-dot r"></span>
-        <span class="ed-term-dot y"></span>
-        <span class="ed-term-dot g"></span>
-        <span class="ed-term-title">admin@dgx-h100-01 -- Console Basics</span>
-      </div>
-      <div class="term-wrap" id="termMount">
-        <div class="term-output"></div>
-        <div class="term-input-row">
-          <span class="term-prompt">admin@dgx-h100-01:~$ </span>
-          <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="console"></span>
+  <!-- Live terminal. JS moves this shell into whichever lesson is open;
+       it lives here (below the list) only when every lesson is collapsed. -->
+  <div class="term-home" id="termHome">
+    <div class="cb-term-shell" id="cbTermShell">
+      <p class="cb-term-label">Your terminal</p>
+      <div class="ed-term">
+        <div class="ed-term-bar">
+          <span class="ed-term-dot r"></span>
+          <span class="ed-term-dot y"></span>
+          <span class="ed-term-dot g"></span>
+          <span class="ed-term-title">admin@dgx-h100-01 -- Console Basics</span>
+        </div>
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">admin@dgx-h100-01:~$ </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="console"></span>
+          </div>
         </div>
       </div>
+      <p class="cb-term-look" id="termLook" aria-live="polite"></p>
     </div>
   </div>
 
@@ -613,6 +625,24 @@ var CHALLENGES = {
 };
 
 var PRAISE = ['Nice. You read it right.', 'Got it.', 'That is the one.', 'Sharp eyes.', 'Correct, well spotted.', 'Yep, that matches the output.'];
+
+/* One short "what to spot" line per lesson, shown under the terminal.
+   Ties the raw output back to the find-it quiz below it. */
+var LOOKFOR = {
+  A1: 'the commands that start with ib and nv',
+  A2: 'State: Active and Physical state: LinkUp',
+  A3: 'the rate (400 Gb/sec) and the base lid',
+  A4: 'ibst completing to ibstat',
+  A5: 'the user name it prints',
+  B1: 'the Switch line (QM9700) at the top',
+  B2: 'the "N host(s) discovered" count',
+  B3: '4X NDR and Active/LinkUp on each link',
+  B4: 'the SMINFO_MASTER state',
+  B5: 'your two local cards, both Active',
+  C1: 'the MTU column on the swp ports',
+  C2: 'mode lossless and the pfc-priority',
+  C3: 'nv config apply in the notes',
+};
 
 /* ====================================================================
    CMDMAP
@@ -910,6 +940,7 @@ function renderLessons() {
         '<button class="try-btn" data-cmd="' + esc(lesson.tryCmd) + '">' +
           'Try: <code>' + esc(lesson.tryCmd) + '</code>' +
         '</button>' +
+        '<div class="term-slot"></div>' +
         buildQuizHTML(lesson.id) +
       '</div>';
 
@@ -937,7 +968,9 @@ function renderLessons() {
   }
 }
 
-/* Accordion: one card open at a time. */
+/* Accordion: one card open at a time. The single terminal shell follows
+   the open card (drops into its .term-slot); when all are closed it
+   returns to its home below the list. */
 function toggleCard(card) {
   var wasOpen = card.classList.contains('open');
   var open = document.querySelectorAll('.lesson-card.open');
@@ -950,6 +983,30 @@ function toggleCard(card) {
     card.classList.add('open');
     var hdr = card.querySelector('.lesson-header');
     if (hdr) hdr.setAttribute('aria-expanded', 'true');
+    relocateTerminal(card);
+  } else {
+    relocateTerminal(null);
+  }
+}
+
+/* Move the terminal shell into a card's slot (or home if card is null),
+   and update the "look for" caption to that lesson. */
+function relocateTerminal(card) {
+  var shell = document.getElementById('cbTermShell');
+  if (!shell) return;
+  var look = document.getElementById('termLook');
+  if (card) {
+    var slot = card.querySelector('.term-slot');
+    if (slot) slot.appendChild(shell);
+    var id = card.id.replace('card-', '');
+    if (look) {
+      var txt = LOOKFOR[id];
+      look.innerHTML = txt ? '&#128270; In the output, look for ' + esc(txt) + '.' : '';
+    }
+  } else {
+    var home = document.getElementById('termHome');
+    if (home) home.appendChild(shell);
+    if (look) look.innerHTML = '';
   }
 }
 
