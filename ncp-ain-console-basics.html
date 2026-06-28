@@ -470,7 +470,7 @@
   <div class="cb-header">
     <div class="ncp-badge"><span class="ncp-dot"></span>NCP-AIN Onboarding</div>
     <h1>Console Basics</h1>
-    <p class="subtitle">Learn the NVIDIA fabric CLI before the Mega Lab. You know Cisco. This maps it across.</p>
+    <p class="subtitle">Learn the NVIDIA fabric CLI. Parts A to D cover the InfiniBand Mega Lab. Parts E to G add the wider NCP-AIN world: UFM, Spectrum-X Ethernet, and host NIC config. You know Cisco. This maps it across.</p>
   </div>
 
   <!-- Cisco to NVIDIA cheat sheet (collapsible) -->
@@ -505,7 +505,7 @@
 
   <!-- CTA (revealed when all done) -->
   <div class="cb-cta" id="ctaBanner" aria-live="polite">
-    <p>You ran the commands for every Mega Lab mission, M1 through M13, plus the break-fix loop. You are ready for the Mega Lab.</p>
+    <p>You ran every InfiniBand Mega Lab command (M1 to M13) plus the break-fix loop, and you went wider: UFM health and fabric validation, Spectrum-X RoCE / BGP / EVPN / adaptive routing, and host NIC config and counters. You are ready for the Mega Lab and you have touched the rest of the NCP-AIN map.</p>
     <a class="cb-cta-link" href="ncp-ain-mega-lab.html">Open the Mega Lab</a>
   </div>
 
@@ -834,6 +834,147 @@ var LESSONS = [
     tryCmd: 'ibdiagnet',
     sampleNote: 'Total critical errors: 1 on the broken scan, lid 7, then a frozen counter after the fix.'
   },
+
+  /* ====================================================================
+     Part E: Fabric Manager (UFM) -- the managed path the lab skipped.
+     Lab ran opensm by hand; UFM is the production manager and an exam pillar.
+     ==================================================================== */
+  {
+    id: 'E1', part: 'E', partLabel: 'Part E: Fabric Manager (UFM)',
+    title: 'UFM is the managed brain',
+    cisco: 'show redundancy', nvidia: 'show ufm status',
+    concept: 'The lab ran opensm by hand. In production UFM manages it for you. show ufm status is the first command: it shows which node is Master, HA sync, and every daemon including OpenSM and Telemetry. UFM does not replace opensm, it embeds and runs it.',
+    why: 'One screen tells you the fabric has an active manager. Like show redundancy on a Cisco chassis.',
+    tryCmd: 'show ufm status',
+    sampleNote: 'Node role Master and OpenSM state MASTER, every daemon running.'
+  },
+  {
+    id: 'E2', part: 'E',
+    title: 'Run the fabric health scan',
+    cisco: 'show interface counters errors', nvidia: 'ibdiagnet -o /var/tmp/ibdiagnet2',
+    concept: 'ibdiagnet is the sweep underneath the UFM Fabric Health report. It discovers every node, checks link speed/width, duplicate GUIDs, and the SM, then writes results to an output dir.',
+    why: 'This is the is-the-fabric-clean check you run before and after maintenance.',
+    tryCmd: 'ibdiagnet -o /var/tmp/ibdiagnet2',
+    sampleNote: 'Each check PASS, the SM State SMINFO_MASTER, and Total critical errors: 0.'
+  },
+  {
+    id: 'E3', part: 'E',
+    title: 'Fabric validation over REST',
+    cisco: 'DCNM fabric consistency check', nvidia: 'curl ... /ufmRest/fabricValidation/tests/CheckLinkSpeed',
+    concept: 'From any host with REST access to UFM you can fire one validation test and get structured JSON back with the exact offending GUID/port. The catalog has 18 tests (CheckLinks, CheckSubnetManager, CheckDuplicateGuids, CheckRouting, CheckLinkSpeed, CheckCables...). Better than raw ibdiagnet for automation because it returns JSON.',
+    why: 'JSON with PortGUID means a script or ticket bot can chase the bad link, no human parsing.',
+    tryCmd: 'curl -k -u admin:pw -X POST https://ufm/ufmRest/fabricValidation/tests/CheckLinkSpeed',
+    sampleNote: 'The TestStatus field and the Error array (each error carries a PortGUID).'
+  },
+  {
+    id: 'E4', part: 'E',
+    title: 'Pull the event log as JSON',
+    cisco: 'show logging', nvidia: 'curl ... /ufmRest/app/events',
+    concept: 'UFM streams alarms. show ufm event log tails them live; the REST /ufmRest/app/events endpoint returns them as JSON for dashboards and ticket automation. Each event has severity, category, timestamp, and the affected object.',
+    why: 'Filter on severity Critical/Warning and category Fabric Notification to surface real problems vs noise.',
+    tryCmd: 'curl -k -u admin:pw https://ufm/ufmRest/app/events',
+    sampleNote: 'The severity and category fields, plus object_path to locate the device.'
+  },
+
+  /* ====================================================================
+     Part F: Spectrum-X / Ethernet RoCE (NVUE / Cumulus Linux).
+     The ~30% Ethernet half of AI networking the IB-heavy lab never touches.
+     ==================================================================== */
+  {
+    id: 'F1', part: 'F', partLabel: 'Part F: Spectrum-X / Ethernet (RoCE)',
+    title: 'Turn on lossless RoCE',
+    cisco: 'priority-flow-control mode on + network-qos policy', nvidia: 'nv set qos roce',
+    concept: 'Spectrum-X is the Ethernet half of AI networking. nv set qos roce enables lossless mode (the PFC + ECN profile that makes Ethernet safe for RDMA). One command replaces a whole NX-OS network-qos + queuing policy stack. Then nv config apply commits it.',
+    why: 'This single knob is the most important Spectrum-X command. Lossless or RDMA collapses.',
+    tryCmd: 'nv set qos roce',
+    sampleNote: 'The staged line, then apply, then nv show qos roce reads mode lossless.'
+  },
+  {
+    id: 'F2', part: 'F',
+    title: 'Tune the PFC priority',
+    cisco: 'pause pfc-cos 3', nvidia: 'nv set qos pfc default-global switch-priority 3',
+    concept: 'PFC pause frames protect the no-drop (lossless) class. This picks which switch-priority is that class. On Spectrum-X the RoCE class is priority 3. Pair it with the ECN thresholds nv set qos roce establishes for the PFC+ECN (DCQCN-style) combo.',
+    why: 'Wrong PFC priority and your RDMA traffic is not actually protected, it just looks configured.',
+    tryCmd: 'nv set qos pfc default-global switch-priority 3',
+    sampleNote: 'The staged line; verify later in nv show qos roce under pfc-priority.'
+  },
+  {
+    id: 'F3', part: 'F',
+    title: 'Build the BGP underlay',
+    cisco: 'router bgp / neighbor remote-as', nvidia: 'nv set vrf default router bgp neighbor swp51 remote-as external',
+    concept: 'The Spectrum-X fabric rides an eBGP leaf/spine underlay. Using an interface name (swp51) instead of an IP makes it BGP unnumbered (IPv6 link-local, no per-link /31s), the standard AI-fabric underlay. remote-as external means eBGP with auto-discovered AS. This is near-identical to IOS neighbor remote-as.',
+    why: 'Unnumbered BGP is the AI-fabric default. Fewer addresses to manage, same protocol you already know.',
+    tryCmd: 'nv set vrf default router bgp neighbor swp51 remote-as external',
+    sampleNote: 'The staged line; after apply, nv show vrf default router bgp neighbor shows established.'
+  },
+  {
+    id: 'F4', part: 'F',
+    title: 'Verify the BGP sessions',
+    cisco: 'show ip bgp summary', nvidia: 'nv show vrf default router bgp neighbor',
+    concept: 'After applying BGP, verify it. This shows each neighbor AS, state, uptime, and prefixes sent/received per address-family. The State column is the same Established/Idle/Active machine as IOS.',
+    why: 'A peer stuck in connect or active is a down underlay link. Established with PfxRcvd > 0 means routes are flowing.',
+    tryCmd: 'nv show vrf default router bgp neighbor',
+    sampleNote: 'State established on every fabric link and non-zero PfxRcvd.'
+  },
+  {
+    id: 'F5', part: 'F',
+    title: 'Break out a port and set jumbo MTU',
+    cisco: 'interface breakout + mtu 9216', nvidia: 'nv set interface swp1 link breakout 4x',
+    concept: 'AI fabrics split a high-radix 400G/800G cage into sub-ports (swp1s0..s3) and raise MTU to jumbo (9216) so RoCE payloads are not fragmented. breakout 4x makes the sub-ports; you then set speed and mtu on swp1s0-3.',
+    why: 'MTU mismatch across the fabric is a classic cause of RoCE throughput collapse. Confirm 9216 end to end.',
+    tryCmd: 'nv set interface swp1 link breakout 4x',
+    sampleNote: 'The staged breakout; sub-ports swp1s0-3 appear after apply.'
+  },
+  {
+    id: 'F6', part: 'F',
+    title: 'Enable adaptive routing',
+    cisco: 'NX-OS dynamic load balancing (no exact IOS equivalent)', nvidia: 'nv set interface swp51 router adaptive-routing enable on',
+    concept: 'Adaptive routing is the defining Spectrum-X feature for AI traffic. The ASIC picks the egress port in an ECMP set by live queue occupancy instead of static hashing, killing elephant-flow ECMP polarization. Spectrum-4 (SN5600) GA. Closest Cisco idea is NX-OS dynamic load balancing; classic CEF/ECMP is static-hash, which AR replaces. CL 5.14 uses enable on; CL 5.15+ uses state enabled.',
+    why: 'Static ECMP hashing collapses on a few huge GPU flows. AR spreads them by real-time load.',
+    tryCmd: 'nv set interface swp51 router adaptive-routing enable on',
+    sampleNote: 'The staged line; note enabling restarts switchd and resets ports.'
+  },
+
+  /* ====================================================================
+     Part G: Host NIC + config lifecycle + counters.
+     mlxconfig/mlxlink/mst/show_gids on the host; clear-load-reread loop.
+     ==================================================================== */
+  {
+    id: 'G1', part: 'G', partLabel: 'Part G: Host NIC + Config Lifecycle',
+    title: 'Find the NIC, check the link',
+    cisco: 'show inventory + show interface transceiver', nvidia: 'mst status -v',
+    concept: 'mst status -v lists every ConnectX NIC with its /dev/mst/... path and PCI address. That path is the handle every other mlx tool needs. Then mlxlink -d <path> -m -e -c reads live link state, speed, FEC, and BER.',
+    why: 'Get the device path first, like show inventory before you address a card.',
+    tryCmd: 'mst status -v',
+    sampleNote: 'The /dev/mst/mt..._pciconf0 path and the mlx5 RDMA device it maps to.'
+  },
+  {
+    id: 'G2', part: 'G',
+    title: 'Read persistent NIC firmware config',
+    cisco: 'show running-config (port mode, survives reload)', nvidia: 'mlxconfig -d /dev/mst/mt4129_pciconf0 query',
+    concept: 'mlxconfig reads persistent firmware config: LINK_TYPE_P1 (ETH for RoCE, IB for InfiniBand) and RoCE congestion-control knobs like ROCE_CC_PRIO_MASK and CNP_DSCP. Unlike a show command, mlxconfig writes are persistent and need a reboot or mlxfwreset, like startup-config.',
+    why: 'For RoCE you need LINK_TYPE ETH and the right CNP DSCP. This is firmware-level, not runtime.',
+    tryCmd: 'mlxconfig -d /dev/mst/mt4129_pciconf0 query',
+    sampleNote: 'LINK_TYPE_P1 ETH(2) and the ROCE_CC settings.'
+  },
+  {
+    id: 'G3', part: 'G',
+    title: 'Find the RoCE v2 GID',
+    cisco: 'show ip interface brief (which address on which port)', nvidia: 'show_gids',
+    concept: 'show_gids maps each RDMA device/port to its GID table: GID index, RoCE version (v1 vs v2), bound IPv4, and netdev. RoCE v2 is the routable one (UDP + DSCP) you steer traffic at. You pick the v2 GID index for a v2 flow.',
+    why: 'No v2 row means RoCE v2 is not enabled on that port. This is how you find the index to use.',
+    tryCmd: 'show_gids',
+    sampleNote: 'A v2 row with the correct IPv4 on the expected netdev.'
+  },
+  {
+    id: 'G4', part: 'G',
+    title: 'Clear, load, reread the counters',
+    cisco: 'clear counters then show interface', nvidia: 'ibclearcounters then perfquery -x <lid> <port>',
+    concept: 'To measure errors over a known window, zero the counters first with ibclearcounters, run traffic, then read with perfquery -x (extended 64-bit, avoids wrap). A frozen error counter after the window is healthy. Then ibqueryerrors sweeps the whole fabric and names only ports with errors and their remote endpoint.',
+    why: 'A single read is lifetime totals. Clear-then-reread gives the delta, the real signal. This is the read-fix-reverify loop the exam tests.',
+    tryCmd: 'ibclearcounters',
+    sampleNote: 'Counters cleared confirmation; error rows stay 0 after the window.'
+  },
 ];
 
 /* ====================================================================
@@ -869,6 +1010,23 @@ var CHALLENGES = {
   D12: { q: 'Run ibportstate 4 1. What is the LinkState value?', accept: ['active','linkstate: active'], hint: 'LinkState: ____, the healthy data-layer word.' },
   D13: { q: 'Run ib_write_bw dgx-02. What is the BW average in Gb/sec?', accept: ['382.94','382','382.94 gb/sec'], hint: 'BW average column, around 383.' },
   D14: { q: 'Run nccl all_reduce_perf. What busbw in Gb/s does it report?', accept: ['371.94','371','371.94 gb/s'], hint: 'busbw line, around 372.' },
+  /* Part E: Fabric Manager (UFM) */
+  E1: { q: 'Run show ufm status. What role is this UFM node in?', accept: ['master','node role: master','node role master'], hint: 'Node role line, the opposite of standby.' },
+  E2: { q: 'Run the scan. On this clean fabric, what is the Total critical errors count?', accept: ['0','zero','total critical errors: 0'], hint: 'The bottom verdict line, a single digit.' },
+  E3: { q: 'Run the CheckLinkSpeed REST test. What is the value of the TestStatus field?', accept: ['completed with errors','completed_with_errors'], hint: 'Inside Summary, the TestStatus string.' },
+  E4: { q: 'Run the events REST call. What severity is the MCast Group Deleted event?', accept: ['info'], hint: 'The severity field on that event object.' },
+  /* Part F: Spectrum-X / Ethernet (RoCE) */
+  F1: { q: 'Run nv set qos roce. What word at the start tells you it is not live yet?', accept: ['staged'], hint: 'Same staging model as Part D. First word.' },
+  F2: { q: 'Which switch-priority carries the lossless RoCE class here?', accept: ['3'], hint: 'The value you just set.' },
+  F3: { q: 'What keyword stands in for the remote AS number so BGP auto-discovers it?', accept: ['external','remote-as external'], hint: 'remote-as ____.' },
+  F4: { q: 'Run the neighbor command. What State should every fabric link show?', accept: ['established'], hint: 'The healthy BGP state word.' },
+  F5: { q: 'What MTU value is the jumbo size used for RoCE here?', accept: ['9216'], hint: 'The jumbo MTU max.' },
+  F6: { q: 'What keyword turns adaptive routing on in this release (CL 5.14 style)?', accept: ['enable on','on','enable'], hint: 'adaptive-routing ____ on. (5.15+ uses state enabled.)' },
+  /* Part G: Host NIC + config lifecycle + counters */
+  G1: { q: 'Run mst status -v. What RDMA device name does the ConnectX map to?', accept: ['mlx5_0','mlx50'], hint: 'The RDMA column, mlx5_N.' },
+  G2: { q: 'Run the query. What LINK_TYPE_P1 value means the port is in Ethernet (RoCE) mode?', accept: ['eth','eth(2)','2'], hint: 'LINK_TYPE_P1 line, the word for Ethernet.' },
+  G3: { q: 'Run show_gids. Which RoCE version is the routable one you point traffic at?', accept: ['v2','2','roce v2','rocev2'], hint: 'v1 or v2, the higher one uses UDP/DSCP.' },
+  G4: { q: 'Run ibclearcounters. What does it reset all fabric counters to?', accept: ['0','zero'], hint: 'Single digit, the reset value.' },
 };
 
 var PRAISE = ['Nice. You read it right.', 'Got it.', 'That is the one.', 'Sharp eyes.', 'Correct, well spotted.', 'Yep, that matches the output.'];
@@ -904,6 +1062,20 @@ var LOOKFOR = {
   D13: 'BW average 382.94 Gb/sec and PASS',
   D14: 'busbw: 371.94 Gb/s and PASS',
   'D-CAP': 'Total critical errors: 1 on the broken scan, lid 7, then a frozen counter after the fix',
+  E1: 'Node role Master and the OpenSM daemon in MASTER state',
+  E2: 'each check PASS, SM State SMINFO_MASTER, and Total critical errors: 0',
+  E3: 'the TestStatus field and the Error array (each error has a PortGUID)',
+  E4: 'the severity and category fields, plus object_path',
+  F1: 'the word staged, then mode lossless after apply',
+  F2: 'the staged line; pfc-priority 3 is the lossless class',
+  F3: 'the staged line; remote-as external is the eBGP auto-AS keyword',
+  F4: 'State established and non-zero PfxRcvd on every fabric link',
+  F5: 'the staged breakout 4x; jumbo MTU 9216 for RoCE',
+  F6: 'the staged adaptive-routing enable on line and the switchd restart warning',
+  G1: 'the /dev/mst/mt4129_pciconf0 path and the mlx5_0 RDMA device',
+  G2: 'LINK_TYPE_P1 ETH(2) and the ROCE_CC settings',
+  G3: 'a v2 row with the right IPv4 on the expected netdev',
+  G4: 'the Counters cleared confirmation; reset to 0',
 };
 
 /* ====================================================================
@@ -911,6 +1083,14 @@ var LOOKFOR = {
    IB diag commands (ibstat/ibstatus/iblinkinfo/ibhosts/ibnetdiscover/
    ibdiagnet/perfquery/sminfo/ibping/ibportstate) are NOT here; they
    route through IBTools.run() via the IB_DIAG_RE override below.
+
+   Part E/F/G note: the ib*-prefixed commands ibclearcounters,
+   ibqueryerrors, ibcheckerrors and ibv_devinfo live HERE in CMDMAP by
+   design. They are intentionally NOT added to IB_DIAG_RE because IBTools
+   DISPATCH does not implement them; adding them to the regex would return
+   IBTools "command not found". They are static representative one-shots
+   on a clean fabric. (ibdiagnet -o ... and perfquery -x ... DO still hit
+   IBTools via the regex word-boundary match; no CMDMAP entry is needed.)
    ==================================================================== */
 var CMDMAP = {
 
@@ -1182,6 +1362,315 @@ var CMDMAP = {
     ].join('\n');
   },
 
+  /* ================================================================
+     Part E: Fabric Manager (UFM)
+     ASCII CLI transcripts are [inferred] (representative; syntax known).
+     JSON shapes are [know per NVIDIA UFM REST docs].
+  ================================================================ */
+
+  /* show ufm status
+     [inferred ASCII] src: docs.nvidia UFM Enterprise Appliance SW,
+     ufm-commands (Node role / HA / daemon table). Clean fabric. */
+  'show ufm status': function (dev, raw, lower) {
+    return [
+      'UFM Server Status',
+      '-----------------------------------------------',
+      'Node role           : Master',
+      'HA state            : Active (peer: Standby, in sync)',
+      'Model               : UFM Enterprise Appliance',
+      '',
+      'Daemon              State      Detail',
+      '------------------  ---------  --------------------------------',
+      'ModelMain           running',
+      'OpenSM              running    SM state: MASTER, priority 15',
+      'Health              running',
+      'Telemetry           running    streaming',
+      'WebUI               running',
+      '',
+      'Last SM sweep       : OK (no topology change)',
+    ].join('\n');
+  },
+
+  /* curl POST /ufmRest/fabricValidation/tests/CheckLinkSpeed
+     [know JSON shape] src: docs.nvidia UFM Enterprise REST API,
+     Fabric Validation Tests REST API. */
+  'curl -k -u admin:pw -X POST https://ufm/ufmRest/fabricValidation/tests/CheckLinkSpeed': function (dev, raw, lower) {
+    return [
+      '{',
+      '  "Summary": {',
+      '    "TestName": "CheckLinkSpeed",',
+      '    "TestStatus": "Completed With Errors",',
+      '    "DetailedStatus": {',
+      '      "Error": [',
+      '        {',
+      '          "PortGUID": "0xe41d2d03007c0021",',
+      '          "NodeGUID": "0xe41d2d03007c0020",',
+      '          "PortNum": 1,',
+      '          "Message": "Link running at HDR, expected NDR"',
+      '        }',
+      '      ],',
+      '      "Warning": [],',
+      '      "Info": []',
+      '    }',
+      '  }',
+      '}',
+    ].join('\n');
+  },
+
+  /* curl GET /ufmRest/app/events
+     [know JSON shape] src: docs.nvidia UFM Enterprise REST API,
+     Events REST API. */
+  'curl -k -u admin:pw https://ufm/ufmRest/app/events': function (dev, raw, lower) {
+    return [
+      '[',
+      '  {',
+      '    "id": 4471,',
+      '    "name": "MCast Group Deleted",',
+      '    "severity": "Info",',
+      '    "category": "Fabric Notification",',
+      '    "timestamp": "2026-06-21 08:51:03",',
+      '    "object_path": "default / 0xff12601bffff0000",',
+      '    "type": "224"',
+      '  },',
+      '  {',
+      '    "id": 4470,',
+      '    "name": "Link Went Up",',
+      '    "severity": "Info",',
+      '    "category": "Fabric Notification",',
+      '    "timestamp": "2026-06-21 08:50:47",',
+      '    "object_path": "QM9700 / Port 5",',
+      '    "type": "329"',
+      '  }',
+      ']',
+    ].join('\n');
+  },
+
+  /* ================================================================
+     Part F: Spectrum-X / Ethernet RoCE (NVUE / Cumulus Linux)
+     [inferred ASCII] staged-line shape mirrors existing D1.
+     src: docs.nvidia Cumulus Linux RoCE / Basic BGP / Switch Port
+     Attributes / Adaptive Routing; NVUE Reference Show Commands.
+  ================================================================ */
+
+  /* nv set qos roce  -- enable lossless RoCE (src: CL RoCE doc) */
+  'nv set qos roce': function (dev, raw, lower) {
+    dev.custom.roceLossless = true;
+    return [
+      'staged: nv set qos roce',
+      '',
+      'Change is pending. Run "nv config diff" to review, then "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* nv set qos pfc default-global switch-priority 3 (src: CL RoCE doc) */
+  'nv set qos pfc default-global switch-priority 3': function (dev, raw, lower) {
+    dev.custom.pfcPriority = 3;
+    return [
+      'staged: nv set qos pfc default-global switch-priority 3',
+      '',
+      'Change is pending. Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* nv set vrf default router bgp neighbor swp51 remote-as external
+     (src: CL Basic BGP Configuration, unnumbered eBGP) */
+  'nv set vrf default router bgp neighbor swp51 remote-as external': function (dev, raw, lower) {
+    dev.custom.bgpStaged = true;
+    return [
+      'staged: nv set vrf default router bgp neighbor swp51 remote-as external',
+      '',
+      'Change is pending. Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* nv show vrf default router bgp neighbor
+     [know shape] src: docs.nvidia NVUE Reference, Show Commands / BGP */
+  'nv show vrf default router bgp neighbor': function (dev, raw, lower) {
+    return [
+      'Neighbor      Remote-AS  State        Up/Down   AddressFamily   PfxSent  PfxRcvd',
+      '------------  ---------  -----------  --------  --------------  -------  -------',
+      'peerlink.4094 external   established  02:14:31  ipv4-unicast    18       18',
+      'peerlink.4094 external   established  02:14:31  l2vpn-evpn      42       42',
+      'swp51         external   established  02:14:29  ipv4-unicast    18       16',
+      'swp51         external   established  02:14:29  l2vpn-evpn      42       40',
+    ].join('\n');
+  },
+
+  /* nv set interface swp1 link breakout 4x (src: CL Switch Port Attributes) */
+  'nv set interface swp1 link breakout 4x': function (dev, raw, lower) {
+    dev.custom.breakoutStaged = true;
+    return [
+      'staged: nv set interface swp1 link breakout 4x',
+      '',
+      'Change is pending. After apply, sub-ports swp1s0-swp1s3 appear.',
+      'Set mtu 9216 on the sub-ports for RoCE. Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* nv set interface swp51 router adaptive-routing enable on
+     (src: docs.nvidia NVUE Reference, Set and Unset / Adaptive Routing.
+     CL 5.14 uses "enable on"; CL 5.15+ uses "state enabled".) */
+  'nv set interface swp51 router adaptive-routing enable on': function (dev, raw, lower) {
+    dev.custom.arStaged = true;
+    return [
+      'staged: nv set interface swp51 router adaptive-routing enable on',
+      '',
+      'warning: this will restart switchd and reset all ports.',
+      'Change is pending. Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* ================================================================
+     Part G: Host NIC + config lifecycle + counters
+     Host NIC = ConnectX-7 / MT4129 / mlx5_0 to match the page fabric.
+     [inferred ASCII] src: docs.nvidia MFT (mlxconfig/mst), WinOF2/mlxlink,
+     HPE show_gids RoCE GID guide, man7 perfquery(8), Oracle ibqueryerrors(8),
+     nvidia-peermem README. Clean fabric.
+  ================================================================ */
+
+  /* mst status -v (src: docs.nvidia MFT, examples of mlxconfig usage) */
+  'mst status -v': function (dev, raw, lower) {
+    return [
+      'MST modules:',
+      '------------',
+      '    MST PCI module loaded',
+      '    MST PCI configuration module loaded',
+      '',
+      'PCI devices:',
+      '------------',
+      'DEVICE_TYPE         MST                      PCI       RDMA      NET        NUMA',
+      'ConnectX7(rev:0)    /dev/mst/mt4129_pciconf0 3b:00.0   mlx5_0    net-ens1f0 0',
+      'ConnectX7(rev:0)    /dev/mst/mt4129_pciconf1 5e:00.0   mlx5_1    net-ens2f0 0',
+    ].join('\n');
+  },
+
+  /* mlxconfig query (src: docs.nvidia MFT, examples of mlxconfig usage) */
+  'mlxconfig -d /dev/mst/mt4129_pciconf0 query': function (dev, raw, lower) {
+    return [
+      'Device #1:',
+      '----------',
+      'Device type:    ConnectX7',
+      'Name:           MCX755106AS-HEAT_Ax',
+      'Device:         /dev/mst/mt4129_pciconf0',
+      '',
+      'Configurations:                              Next Boot',
+      '        LINK_TYPE_P1                         ETH(2)',
+      '        LINK_TYPE_P2                         ETH(2)',
+      '        ROCE_CC_ALGORITHM_P1                 ECN(0)',
+      '        ROCE_CC_PRIO_MASK_P1                 0xff',
+      '        CNP_DSCP_P1                          48',
+      '        CNP_802P_PRIO_P1                     6',
+    ].join('\n');
+  },
+
+  /* mlxlink (src: docs.nvidia WinOF2 / ethernet network) */
+  'mlxlink -d /dev/mst/mt4129_pciconf0 -m -e -c': function (dev, raw, lower) {
+    return [
+      'Operational Info',
+      '----------------',
+      'State                           : Active',
+      'Physical state                  : LinkUp',
+      'Speed                           : 200G',
+      'Width                           : 4x',
+      'FEC                             : Standard RS-FEC - RS(528,514)',
+      'Loopback Mode                   : No Loopback',
+      'Auto Negotiation                : ON',
+      '',
+      'Troubleshooting Info',
+      '--------------------',
+      'Status Opcode                   : 0',
+      'Group Opcode                    : N/A',
+      'Recommendation                  : No issue was observed.',
+    ].join('\n');
+  },
+
+  /* show_gids (src: HPE show_gids RoCE GID guide) */
+  'show_gids': function (dev, raw, lower) {
+    return [
+      'DEV     PORT    INDEX   GID                                      IPv4            VER     DEV',
+      '---     ----    -----   ---                                      ----            ---     ---',
+      'mlx5_0  1       0       fe80:0000:0000:0000:e61d:2dff:fe03:7c01                  v1      ens1f0',
+      'mlx5_0  1       1       fe80:0000:0000:0000:e61d:2dff:fe03:7c01                  v2      ens1f0',
+      'mlx5_0  1       2       0000:0000:0000:0000:0000:ffff:0b00:0048  11.0.0.72       v1      ens1f0',
+      'mlx5_0  1       3       0000:0000:0000:0000:0000:ffff:0b00:0048  11.0.0.72       v2      ens1f0',
+      'n_gids_found=4',
+    ].join('\n');
+  },
+
+  /* ibclearcounters -- CMDMAP by design (not in IB_DIAG_RE; IBTools has no
+     handler). [inferred] src: man7 perfquery(8) context. */
+  'ibclearcounters': function (dev, raw, lower) {
+    return [
+      'Cleared all performance counters on the fabric.',
+      'Counters reset to 0. Run traffic, then read with "perfquery -x <lid> <port>".',
+    ].join('\n');
+  },
+
+  /* perfquery -x <lid> <port> -- supporting one-shot. [inferred ASCII]
+     src: man7 perfquery(8). NOTE: this exact form routes via IB_DIAG_RE to
+     IBTools (perfquery\b match), so this CMDMAP key is a fallback only and
+     is normally unreachable. Kept harmless for completeness. */
+  'perfquery -x 12 1': function (dev, raw, lower) {
+    return [
+      '# Port extended counters: Lid 12 port 1',
+      'PortSelect:......................1',
+      'CounterSelect:...................0x1000',
+      'PortXmitData:....................8123456789',
+      'PortRcvData:.....................8098765432',
+      'PortXmitPkts:....................127004412',
+      'PortRcvPkts:.....................126887301',
+      'PortXmitWait:....................44213',
+      'SymbolErrorCounter:..............0',
+      'LinkErrorRecoveryCounter:........0',
+      'PortRcvErrors:...................0',
+      'PortXmitDiscards:................0',
+    ].join('\n');
+  },
+
+  /* ibqueryerrors -- CMDMAP by design. [inferred] src: Oracle ibqueryerrors(8). */
+  'ibqueryerrors': function (dev, raw, lower) {
+    return [
+      '## Summary: 248 nodes checked, 0 ports with errors',
+      '## Errors: 0    Warnings: 0',
+    ].join('\n');
+  },
+
+  /* ibcheckerrors -- CMDMAP by design. [inferred] src: Oracle ibqueryerrors(8). */
+  'ibcheckerrors': function (dev, raw, lower) {
+    return [
+      '## Checking Fabric...',
+      '## Summary: 248 nodes checked, 0 ports with errors',
+    ].join('\n');
+  },
+
+  /* ibv_devinfo -- CMDMAP by design. [inferred ASCII] src: nvidia-peermem README. */
+  'ibv_devinfo': function (dev, raw, lower) {
+    return [
+      'hca_id: mlx5_0',
+      '        transport:                      InfiniBand (0)',
+      '        fw_ver:                         28.39.2048',
+      '        node_guid:                      e41d:2d03:007c:0010',
+      '        vendor_id:                      0x02c9',
+      '        vendor_part_id:                 4129',
+      '        phys_port_cnt:                  1',
+      '                port:   1',
+      '                        state:                  PORT_ACTIVE (4)',
+      '                        max_mtu:                4096 (5)',
+      '                        active_mtu:             4096 (5)',
+      '                        link_layer:             Ethernet',
+    ].join('\n');
+  },
+
+  /* lsmod | grep nvidia_peermem -- GPUDirect RDMA verify.
+     [inferred ASCII] src: nvidia-peermem README. */
+  'lsmod | grep nvidia_peermem': function (dev, raw, lower) {
+    return [
+      'nvidia_peermem         16384  0',
+      'nvidia               56012800  3  nvidia_uvm,nvidia_peermem',
+      'ib_uverbs              167936  2  nvidia_peermem,mlx5_ib',
+    ].join('\n');
+  },
+
   /* ----------------------------------------------------------------
      help / ?
   ---------------------------------------------------------------- */
@@ -1223,6 +1712,31 @@ var CMDMAP = {
     '  ibreset <lid>             Reset a port (link renegotiates)',
     '  ib_write_bw <peer>        RDMA write bandwidth test (want ~380 Gb/s)',
     '  nccl all_reduce_perf      NCCL collective busbw test (pass at 92%+)',
+    '',
+    'Fabric Manager (UFM):',
+    '  show ufm status                          UFM node role, HA, daemon table',
+    '  ibdiagnet -o /var/tmp/ibdiagnet2         Fabric health scan to an output dir',
+    '  curl ... /ufmRest/fabricValidation/...   Fire a validation test, get JSON back',
+    '  curl ... /ufmRest/app/events             Pull the event log as JSON',
+    '',
+    'Spectrum-X Ethernet (NVUE):',
+    '  nv set qos roce                          Enable lossless RoCE',
+    '  nv set qos pfc default-global ...         Set the PFC switch-priority (3)',
+    '  nv set vrf default router bgp ...         Build the eBGP underlay (unnumbered)',
+    '  nv show vrf default router bgp neighbor   Verify BGP sessions (Established)',
+    '  nv set interface swp1 link breakout 4x   Break a cage into sub-ports',
+    '  nv set interface ... adaptive-routing ... Enable adaptive routing',
+    '',
+    'Host NIC and counters:',
+    '  mst status -v                            List ConnectX NICs and /dev/mst paths',
+    '  mlxconfig -d <path> query                Read persistent NIC firmware config',
+    '  mlxlink -d <path> -m -e -c               Live link state, speed, FEC, BER',
+    '  show_gids                                GID table: RoCE v1/v2, IPv4, netdev',
+    '  ibclearcounters                          Zero all fabric counters',
+    '  perfquery -x <lid> <port>                Read extended 64-bit port counters',
+    '  ibqueryerrors / ibcheckerrors            Sweep fabric, name ports with errors',
+    '  ibv_devinfo                              RDMA device info (GPUDirect verify)',
+    '  lsmod | grep nvidia_peermem              Confirm GPUDirect peermem loaded',
     '',
     'Linux utilities:',
     '  whoami              Print current user',
