@@ -926,6 +926,13 @@
     return out;
   }
 
+  function cmdIbreset(parsed) {
+    if (hasFlag(parsed.flags, 'V', 'version')) return 'ibreset 5.9-0';
+    var lid = parsed.args[0] || '7';
+    return '# ibreset: resetting port at lid ' + lid + '...\n' +
+           '# Port reset issued. Link will renegotiate.';
+  }
+
   function cmdIbping(parsed) {
     if (hasFlag(parsed.flags, 'V', 'version')) return 'ibping 5.9-0';
 
@@ -955,7 +962,8 @@
     'perfquery':     cmdPerfquery,
     'ibdiagnet':     cmdIbdiagnet,
     'sminfo':        cmdSminfo,
-    'ibping':        cmdIbping
+    'ibping':        cmdIbping,
+    'ibreset':       cmdIbreset
   };
 
   // ---------------------------------------------------------------------------

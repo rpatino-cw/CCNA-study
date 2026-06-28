@@ -370,6 +370,38 @@
   75% { transform: translateX(5px); }
 }
 
+/* ---- Predict-the-output picker ------------------------------------ */
+.lesson-predict {
+  margin: 0 0 14px; padding: 14px 16px;
+  background: rgba(var(--ncp-rgb),.05);
+  border: 1px dashed rgba(var(--ncp-rgb),.35);
+  border-radius: var(--radius-lg);
+}
+.predict-label {
+  display: block;
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  color: var(--ink); margin-bottom: 10px;
+}
+.predict-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.predict-btn {
+  font-family: var(--font-mono); font-size: .8rem; font-weight: 600;
+  background: var(--surface, #fff); border: 1px solid var(--border);
+  color: var(--ink); border-radius: var(--radius); padding: 6px 14px;
+  cursor: pointer; transition: background 140ms, border-color 140ms;
+}
+.predict-btn:hover { background: rgba(var(--ncp-rgb),.08); }
+.predict-btn.picked { border-color: var(--ncp); background: rgba(var(--ncp-rgb),.12); }
+.predict-btn:disabled { cursor: default; opacity: .65; }
+.predict-fb {
+  font-family: var(--font-body); font-size: .8rem; font-weight: 600;
+  margin: 10px 0 0; min-height: 1em; line-height: 1.5;
+}
+.predict-fb.ok { color: var(--ncp-dark); }
+
+/* ---- Capstone step buttons ---------------------------------------- */
+.cap-steps { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 4px; }
+.cap-btn { font-size: .8rem; }
+
 /* ---- Terminal chrome ---------------------------------------------- */
 .ed-term {
   background: #161b22; border-radius: var(--radius-lg);
@@ -464,16 +496,16 @@
   <!-- Progress strip -->
   <div class="cb-progress">
     <span class="cb-progress-label">Progress:</span>
-    <span class="cb-progress-count" id="progressCount">0 / 13 done</span>
+    <span class="cb-progress-count" id="progressCount">0 / 0 done</span>
     <div class="cb-progress-bar-wrap">
       <div class="cb-progress-bar" id="progressBar"></div>
     </div>
-    <span class="cb-progress-count" id="quizScore" style="margin-left:14px">&#128269; 0 / 13 found</span>
+    <span class="cb-progress-count" id="quizScore" style="margin-left:14px">&#128269; 0 / 0 found</span>
   </div>
 
   <!-- CTA (revealed when all done) -->
   <div class="cb-cta" id="ctaBanner" aria-live="polite">
-    <p>You have run every lesson command. You are ready for the Mega Lab.</p>
+    <p>You ran the commands for every Mega Lab mission, M1 through M13, plus the break-fix loop. You are ready for the Mega Lab.</p>
     <a class="cb-cta-link" href="ncp-ain-mega-lab.html">Open the Mega Lab</a>
   </div>
 
@@ -527,6 +559,11 @@ var CHEAT = [
   { task: 'switch port list',    cisco: 'show ip interface brief',          nvidia: 'nv show interface',      note: '' },
   { task: 'view config',         cisco: 'show running-config',              nvidia: 'nv config show',         note: '' },
   { task: 'make change live',    cisco: '(immediate on Enter)',             nvidia: 'nv set ... then nv config apply', note: '' },
+  { task: 'start SM',            cisco: '(bring up a service)',             nvidia: 'systemctl start opensm', note: 'fabric brain' },
+  { task: 'win SM election',     cisco: '(set election priority)',          nvidia: 'opensm -p 15',           note: '15 = top' },
+  { task: 'register PKey',       cisco: '(assign a VLAN)',                  nvidia: 'saquery -p 0x8001',      note: 'PKey = IB VLAN' },
+  { task: 'port counters',       cisco: 'show interface counters',          nvidia: 'perfquery <lid> <port>', note: 'read twice' },
+  { task: 'bandwidth test',      cisco: '(throughput test)',                nvidia: 'ib_write_bw <peer>',     note: 'want ~380G' },
 ];
 
 /* ====================================================================
@@ -658,6 +695,145 @@ var LESSONS = [
     tryCmd: 'nv config show',
     sampleNote: 'A YAML block of staged config. Nothing is live until nv config apply. Try nv config diff to see running vs pending.'
   },
+  /* Part D: the rest of the Mega Lab (M2 through M13) */
+  {
+    id: 'D1', part: 'D', partLabel: 'Part D: The Rest of the Mega Lab (M2-M13)',
+    title: 'Stage a change with nv set',
+    cisco: 'conf t then a config line', nvidia: 'nv set qos roce mode lossless',
+    concept: 'M9 staging. nv set writes a change to a pending buffer. It is not live yet. This is the half that IOS does not have: in IOS the line is live the instant you press Enter.',
+    why: 'Staging lets you review before you commit, so you never half-break a switch.',
+    tryCmd: 'nv set qos roce mode lossless',
+    sampleNote: 'The first word reads staged. The change is pending until you apply.'
+  },
+  {
+    id: 'D2', part: 'D',
+    title: 'Commit it with nv config apply',
+    cisco: '(IOS has no separate commit)', nvidia: 'nv config apply',
+    concept: 'M9 commit. Nothing you staged is live until you run nv config apply. This is the step that actually programs the switch ASIC. Always: nv set to stage, then nv config apply to commit.',
+    why: 'Forgetting apply is the number one NVUE mistake for Cisco people. The change just sits there pending.',
+    tryCmd: 'nv config apply',
+    sampleNote: 'applying... then Configuration applied successfully. The ASIC is now programmed.'
+  },
+  {
+    id: 'D3', part: 'D',
+    title: 'Start the Subnet Manager service',
+    cisco: '(bring up a service)', nvidia: 'systemctl start opensm',
+    concept: 'M2 step 1. The Subnet Manager (opensm) is the fabric brain. systemctl start opensm brings the service up. Linux service control, same systemctl you know.',
+    why: 'No running SM, no fabric. Everything after this depends on it.',
+    tryCmd: 'systemctl start opensm',
+    sampleNote: 'The line [  OK  ] Started OpenSM means the brain is up.'
+  },
+  {
+    id: 'D4', part: 'D',
+    title: 'Win the master election (opensm -p 15)',
+    cisco: '(set a priority to win an election)', nvidia: 'opensm -p 15',
+    concept: 'M2 step 2 and M11. opensm -p 15 runs the SM with priority 15. Highest priority wins the master election. Like raising a Cisco election priority so your device becomes the active one.',
+    why: 'When two SMs run, the higher priority becomes MASTER. 15 is the top.',
+    tryCmd: 'opensm -p 15',
+    sampleNote: 'The log ends Entering MASTER state. Priority 15 won the election.'
+  },
+  {
+    id: 'D5', part: 'D',
+    title: 'Check the SM is running (systemctl status)',
+    cisco: 'show ... is it up', nvidia: 'systemctl status opensm',
+    concept: 'Confirm opensm is alive. systemctl status opensm shows active (running) and the PID once it is up. Same systemctl status you use on any Linux service.',
+    why: 'Verify the brain is running before you trust the fabric.',
+    tryCmd: 'systemctl status opensm',
+    sampleNote: 'Look at the Active line: active (running) means the service is up.'
+  },
+  {
+    id: 'D6', part: 'D',
+    title: 'Register the compute partition key',
+    cisco: '(assign a VLAN to ports)', nvidia: 'saquery -p 0x8001',
+    concept: 'M3. A PKey (partition key) is the InfiniBand version of a VLAN: it groups ports that may talk. saquery -p 0x8001 registers the compute nodes into partition 0x8001 as FULL members.',
+    why: 'Wrong partition or wrong membership and nodes silently cannot talk.',
+    tryCmd: 'saquery -p 0x8001',
+    sampleNote: 'Every compute node shows PKey 0x8001 MemberType: FULL.'
+  },
+  {
+    id: 'D7', part: 'D',
+    title: 'Read the partition table (FULL vs LIMITED)',
+    cisco: 'show vlan', nvidia: 'saquery --pkey',
+    concept: 'M3 verify. saquery --pkey dumps every partition record. FULL members talk to everyone in the partition. LIMITED members can only talk to FULL members. Compute nodes must be FULL on 0x8001.',
+    why: 'A node stuck LIMITED is the classic silent PKey fault. This is how you confirm membership.',
+    tryCmd: 'saquery --pkey',
+    sampleNote: 'You see 0x8001 with isMember: 1 (full), plus the default 0x7fff partition.'
+  },
+  {
+    id: 'D8', part: 'D',
+    title: 'Read a port counter twice (watch the delta)',
+    cisco: 'show interface counters', nvidia: 'perfquery 7 1',
+    concept: 'M6. perfquery <lid> <port> reads one port error and traffic counters. Run it TWICE. If a counter grows between reads, the port has a live, ongoing problem. A frozen counter is healthy.',
+    why: 'A single read is a snapshot. The delta between two reads is the real signal.',
+    tryCmd: 'perfquery 7 1',
+    sampleNote: 'Watch SymbolErrorCounter. On lid 7 it is higher on the second read.'
+  },
+  {
+    id: 'D9', part: 'D',
+    title: 'Full fabric health scan (ibdiagnet)',
+    cisco: 'show tech-support (the all-in-one check)', nvidia: 'ibdiagnet',
+    concept: 'M4 and used in almost every mission. ibdiagnet walks the whole fabric and runs every check: link width, credit loops, routing, errors. The bottom line is the verdict.',
+    why: 'One command, whole-fabric verdict. Always end on Total critical errors.',
+    tryCmd: 'ibdiagnet',
+    sampleNote: 'On a clean fabric the last line reads Total critical errors: 0.',
+    predict: { choices: ['Active','Down','Polling'], answer: 'Active' }
+  },
+  {
+    id: 'D10', part: 'D',
+    title: 'Routing check (ibdiagnet -r)',
+    cisco: '(check for a loop)', nvidia: 'ibdiagnet -r',
+    concept: 'M12. ibdiagnet -r adds the credit-loop and routing validation pass. In a deadlock-prone fabric this is the check that catches a forbidden Down to Up to Down path.',
+    why: 'Plain ibdiagnet may pass while routing still has a credit loop. -r is the deeper check.',
+    tryCmd: 'ibdiagnet -r',
+    sampleNote: 'On this clean fabric the Routing check line reads PASS.'
+  },
+  {
+    id: 'D11', part: 'D',
+    title: 'SHARP aggregation scan (ibdiagnet --sharp)',
+    cisco: '(in-network compute)', nvidia: 'ibdiagnet --sharp',
+    concept: 'M13. SHARP does math inside the switch to speed up NCCL all-reduce. ibdiagnet --sharp checks the SHARP aggregation manager. On a healthy fabric the scan is clean.',
+    why: 'If SHARP is down, collectives silently fall back to slow point-to-point. This scan flags it.',
+    tryCmd: 'ibdiagnet --sharp',
+    sampleNote: 'A clean scan: Total critical errors: 0.'
+  },
+  {
+    id: 'D12', part: 'D',
+    title: 'Read a port physical state (ibportstate)',
+    cisco: 'show interface status', nvidia: 'ibportstate 4 1',
+    concept: 'M11. ibportstate <lid> <port> shows one port physical state and negotiated speed/width. Use it to confirm a single link is LinkUp at the right speed.',
+    why: 'When one link looks off, this zooms into just that port.',
+    tryCmd: 'ibportstate 4 1',
+    sampleNote: 'Look for LinkState: Active and PhysLinkState: LinkUp.',
+    predict: { choices: ['Active','Down','Polling'], answer: 'Active' }
+  },
+  {
+    id: 'D13', part: 'D',
+    title: 'Validate bandwidth (ib_write_bw)',
+    cisco: '(throughput test)', nvidia: 'ib_write_bw dgx-02',
+    concept: 'M5. ib_write_bw runs an RDMA write throughput test to a peer. On a healthy 400G NDR link you want roughly 380 Gb/s. The last line says PASS or not.',
+    why: 'Links can be up but slow. This proves real bandwidth, not just link state.',
+    tryCmd: 'ib_write_bw dgx-02',
+    sampleNote: 'BW average around 382.94 Gb/sec, and the result line says PASS.'
+  },
+  {
+    id: 'D14', part: 'D',
+    title: 'Validate collectives (nccl all_reduce_perf)',
+    cisco: '(multi-node app test)', nvidia: 'nccl all_reduce_perf',
+    concept: 'M5. nccl all_reduce_perf runs the real GPU collective and reports busbw. Pass is busbw at or above about 92 percent of line rate. This is the closest thing to the actual training workload.',
+    why: 'This is the end goal: the GPUs actually moving data fast across the fabric.',
+    tryCmd: 'nccl all_reduce_perf',
+    sampleNote: 'busbw around 371.94 Gb/s (92.98 percent of line rate), and PASS.'
+  },
+  {
+    id: 'D-CAP', part: 'D', capstone: true,
+    title: 'When it breaks: find it, fix it, reverify',
+    cisco: 'show interface counters, then fix, then re-check',
+    nvidia: 'ibdiagnet to perfquery 7 1 to ibreset 7 to perfquery 7 1',
+    concept: 'This is the whole job in one card. A fault is live on the fabric. Scan it, read the bad port counter twice and watch it climb, replace the cable, then re-read and confirm the counter froze.',
+    why: 'Real fabric work is this loop: read, fix, reverify. Memorize the loop, not the error.',
+    tryCmd: 'ibdiagnet',
+    sampleNote: 'Total critical errors: 1 on the broken scan, lid 7, then a frozen counter after the fix.'
+  },
 ];
 
 /* ====================================================================
@@ -679,6 +855,20 @@ var CHALLENGES = {
   C1: { q: 'Run nv show interface. What MTU are the swp ports set to?', accept: ['9216'], hint: 'Jumbo size in the MTU column.' },
   C2: { q: 'Run nv show qos roce. Which PFC priority carries the lossless traffic?', accept: ['3'], hint: 'The pfc-priority line.' },
   C3: { q: 'Which command makes staged changes go live?', accept: ['nv config apply','config apply','apply'], hint: 'nv config ____' },
+  D1: { q: 'Run nv set qos roce mode lossless. What one word at the start of the output tells you the change is not live yet?', accept: ['staged'], hint: 'First word, before the colon.' },
+  D2: { q: 'Run nv config apply. What two words confirm the config went live?', accept: ['applied successfully','configuration applied successfully','applied'], hint: 'Configuration ____ ____.' },
+  D3: { q: 'Run systemctl start opensm. What service name does it start?', accept: ['opensm','opensm.service','opensm infiniband subnet manager'], hint: 'Three letters after open... the SM daemon.' },
+  D4: { q: 'Run opensm -p 15. What state does the SM enter last?', accept: ['master','entering master state','master state'], hint: 'Entering ____ state, the winning role.' },
+  D5: { q: 'Run systemctl status opensm. What word in the Active line means the service is up?', accept: ['running','active (running)','active'], hint: 'Active: active (____).' },
+  D6: { q: 'Run saquery -p 0x8001. What membership type do the compute nodes get?', accept: ['full','membertype: full','member full'], hint: 'MemberType: ____ (not LIMITED).' },
+  D7: { q: 'Run saquery --pkey. Besides 0x8001, what other PKey value appears on the ports?', accept: ['0x7fff','7fff'], hint: 'The default management partition, four hex digits starting 0x7.' },
+  D8: { q: 'On lid 7, which counter climbs between your first and second perfquery read?', accept: ['symbolerrorcounter','symbol error counter','symbolerror'], hint: 'Symbol____Counter, the BER error count.' },
+  D9: { q: 'Run ibdiagnet. On a clean fabric, what is the Total critical errors count?', accept: ['0','zero','total critical errors: 0'], hint: 'Bottom line, a single digit.' },
+  D10: { q: 'Run ibdiagnet -r on this clean fabric. What is the Routing check result?', accept: ['pass','routing check: pass'], hint: 'One word, the opposite of FAIL.' },
+  D11: { q: 'Run ibdiagnet --sharp on this clean fabric. How many critical errors?', accept: ['0','zero'], hint: 'A clean scan, single digit.' },
+  D12: { q: 'Run ibportstate 4 1. What is the LinkState value?', accept: ['active','linkstate: active'], hint: 'LinkState: ____, the healthy data-layer word.' },
+  D13: { q: 'Run ib_write_bw dgx-02. What is the BW average in Gb/sec?', accept: ['382.94','382','382.94 gb/sec'], hint: 'BW average column, around 383.' },
+  D14: { q: 'Run nccl all_reduce_perf. What busbw in Gb/s does it report?', accept: ['371.94','371','371.94 gb/s'], hint: 'busbw line, around 372.' },
 };
 
 var PRAISE = ['Nice. You read it right.', 'Got it.', 'That is the one.', 'Sharp eyes.', 'Correct, well spotted.', 'Yep, that matches the output.'];
@@ -699,6 +889,21 @@ var LOOKFOR = {
   C1: 'the MTU column on the swp ports',
   C2: 'mode lossless and the pfc-priority',
   C3: 'nv config apply in the notes',
+  D1: 'the word staged and the line that says the change is pending',
+  D2: 'applying... and the line Configuration applied successfully',
+  D3: 'the line [  OK  ] Started OpenSM',
+  D4: 'the last log line, Entering MASTER state',
+  D5: 'the Active line: active (running)',
+  D6: 'PKey 0x8001 and MemberType: FULL',
+  D7: 'PKey 0x8001 with isMember: 1 (full)',
+  D8: 'SymbolErrorCounter and whether it is higher on the second read',
+  D9: 'Total critical errors: 0',
+  D10: 'the Routing check: PASS line',
+  D11: 'Total critical errors: 0',
+  D12: 'LinkState: Active and PhysLinkState: LinkUp',
+  D13: 'BW average 382.94 Gb/sec and PASS',
+  D14: 'busbw: 371.94 Gb/s and PASS',
+  'D-CAP': 'Total critical errors: 1 on the broken scan, lid 7, then a frozen counter after the fix',
 };
 
 /* ====================================================================
@@ -805,6 +1010,179 @@ var CMDMAP = {
   },
 
   /* ----------------------------------------------------------------
+     Part D: SM lifecycle, partitions, staging/commit, validation.
+     Output strings copied verbatim from ncp-ain-mega-lab.html.
+  ---------------------------------------------------------------- */
+  'nv set qos roce mode lossless': function (dev, raw, lower) {
+    dev.custom.roceLossless = true;
+    return [
+      'staged: nv set qos roce mode lossless',
+      '',
+      'Change is pending. Run "nv config diff" to review, then "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  'nv config apply': function (dev, raw, lower) {
+    dev.custom.nvueApplied = true;
+    return [
+      'applying...',
+      '',
+      'Configuration applied successfully.',
+      'ASIC programmed. Verify with "nv show qos roce" or "nv show interface".',
+    ].join('\n');
+  },
+
+  'systemctl start opensm': function (dev, raw, lower) {
+    dev.custom.smStarted = true;
+    return [
+      'Starting opensm.service - OpenSM InfiniBand Subnet Manager...',
+      '[  OK  ] Started OpenSM InfiniBand Subnet Manager.',
+    ].join('\n');
+  },
+
+  'opensm -p 15': function (dev, raw, lower) {
+    dev.custom.smStarted = true;
+    dev.custom.smPriority15 = true;
+    return [
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: OpenSM 5.15.0.0',
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: Loading Subnet Manager (priority 15, guid 0xe41d2d03007c0010)',
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: SM port is 0xe41d2d03007c0010',
+      'Jun 21 08:44:12 ufm-sm opensm[18334]: Entering DISCOVERY state',
+      'Jun 21 08:44:13 ufm-sm opensm[18334]: Entering ROUTING state',
+      'Jun 21 08:44:13 ufm-sm opensm[18334]: Entering MASTER state',
+      '                 (opensm running in foreground -- Ctrl-C to stop)',
+    ].join('\n');
+  },
+
+  'systemctl status opensm': function (dev, raw, lower) {
+    if (!dev.custom.smStarted) {
+      return [
+        'opensm.service - OpenSM InfiniBand Subnet Manager',
+        '   Loaded: loaded (/lib/systemd/system/opensm.service; enabled)',
+        '   Active: inactive (dead)',
+      ].join('\n');
+    }
+    var pri = dev.custom.smPriority15 ? '15' : '14';
+    return [
+      'opensm.service - OpenSM InfiniBand Subnet Manager',
+      '   Loaded: loaded (/lib/systemd/system/opensm.service; enabled)',
+      '   Active: active (running) since Sat 2026-06-21 08:44:13 UTC; 1min ago',
+      ' Main PID: 18334 (opensm)',
+      '   CGroup: /system.slice/opensm.service',
+      '           18334 /usr/sbin/opensm -p ' + pri + ' -f /var/log/opensm.log',
+    ].join('\n');
+  },
+
+  'saquery -p 0x8001': function (dev, raw, lower) {
+    if (!dev.custom.smStarted) {
+      return 'saquery: Cannot connect to SA. SM not running. Start opensm first.';
+    }
+    dev.custom.sakeySet = true;
+    return [
+      'PortRecord:',
+      '  GUID: 0xe41d2d03007c0001  PKey: 0x8001  MemberType: FULL',
+      '  GUID: 0xe41d2d03007c0011  PKey: 0x8001  MemberType: FULL',
+      '  GUID: 0xe41d2d03007c0021  PKey: 0x8001  MemberType: FULL',
+      '  GUID: 0xe41d2d03007c0031  PKey: 0x8001  MemberType: FULL',
+      'PKey 0x8001: all registered compute nodes set to FULL membership.',
+      'Total of 4 records returned.',
+    ].join('\n');
+  },
+
+  'saquery --pkey': function (dev, raw, lower) {
+    if (!dev.custom.smStarted) {
+      return 'saquery: Cannot connect to SA. SM not running. Start opensm first.';
+    }
+    dev.custom.pkeyConfirmed = true;
+    return [
+      'PartitionRecord dump:',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x7fff',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0001',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x7fff',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0011',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x8001',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0001',
+      '',
+      'PartitionRecord:',
+      '   PKey:                            0x8001',
+      '   PartitionFlags:                  isMember: 1 (full)',
+      '   PortGUID:                        0xe41d2d03007c0011',
+      '',
+      '  (entries for dgx-03 and dgx-04 omitted for brevity -- all show 0x8001 full member)',
+      '',
+      'Total of 10 records returned.',
+    ].join('\n');
+  },
+
+  'ib_write_bw dgx-02': function (dev, raw, lower) {
+    dev.custom.bwDone = true;
+    var peer = raw.replace(/^ib_write_bw\s*/i, '').trim() || '(server mode)';
+    return [
+      '',
+      ' ib_write_bw: InfiniBand Write Bandwidth Test',
+      ' Dual-port       : OFF          Device         : mlx5_0',
+      ' Number of qps   : 1            Transport type : IB',
+      ' Connection type : RC           Using SRQ      : OFF',
+      ' CQ Moderation   : 100',
+      ' Link type       : IB           Mtu            : 4096[B]',
+      ' Max inline data : 0[B]         QP timeout     : 14',
+      ' Peer            : ' + peer,
+      '',
+      '---------------------------------------------------------------------------------------',
+      ' #bytes     #iterations    BW peak[Gb/sec]    BW average[Gb/sec]   MsgRate[Mpps]',
+      ' 65536       5000             383.20              382.94              0.729781',
+      '---------------------------------------------------------------------------------------',
+      '',
+      ' Result: 382.94 Gb/sec  (NDR 400G expected range: 380-388 Gb/s)  PASS',
+    ].join('\n');
+  },
+
+  'ib_write_bw': function (dev, raw, lower) {
+    dev.custom.bwDone = true;
+    var peer = raw.replace(/^ib_write_bw\s*/i, '').trim() || '(server mode)';
+    return [
+      '',
+      ' ib_write_bw: InfiniBand Write Bandwidth Test',
+      ' Dual-port       : OFF          Device         : mlx5_0',
+      ' Number of qps   : 1            Transport type : IB',
+      ' Connection type : RC           Using SRQ      : OFF',
+      ' CQ Moderation   : 100',
+      ' Link type       : IB           Mtu            : 4096[B]',
+      ' Max inline data : 0[B]         QP timeout     : 14',
+      ' Peer            : ' + peer,
+      '',
+      '---------------------------------------------------------------------------------------',
+      ' #bytes     #iterations    BW peak[Gb/sec]    BW average[Gb/sec]   MsgRate[Mpps]',
+      ' 65536       5000             383.20              382.94              0.729781',
+      '---------------------------------------------------------------------------------------',
+      '',
+      ' Result: 382.94 Gb/sec  (NDR 400G expected range: 380-388 Gb/s)  PASS',
+    ].join('\n');
+  },
+
+  'nccl all_reduce_perf': function (dev, raw, lower) {
+    dev.custom.ncclDone = true;
+    return [
+      '',
+      'NCCL all_reduce_perf',
+      '#                                                              out-of-place                 in-place',
+      '#    size         count    type    redop   root   time   algbw   busbw #wrong time   algbw   busbw #wrong',
+      ' 1073741824    268435456   float     sum      -1   5.43  197.83  371.94  N/A   5.44  197.47  371.26  N/A',
+      '',
+      'busbw: 371.94 Gb/s   (92.98% of 400G line rate) -- PASS',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
      help / ?
   ---------------------------------------------------------------- */
   'help': [
@@ -827,6 +1205,24 @@ var CMDMAP = {
     '  nv show qos roce    RoCE QoS state: mode, PFC, ECN, trust',
     '  nv config show      Display staged (pending) configuration',
     '  nv config diff      Show diff: running vs pending changes',
+    '  nv set ...          Stage a change into the pending buffer',
+    '  nv config apply     Commit staged changes (programs the ASIC)',
+    '',
+    'Subnet Manager lifecycle:',
+    '  systemctl start opensm    Start the OpenSM Subnet Manager service',
+    '  opensm -p 15              Run opensm at priority 15 (win master election)',
+    '  systemctl status opensm   Check SM service state (active running)',
+    '',
+    'Partitions (PKey = IB VLAN):',
+    '  saquery -p 0x8001         Register compute PKey, FULL membership',
+    '  saquery --pkey            Dump partition table; confirm FULL vs LIMITED',
+    '',
+    'Deeper diagnostics and validation:',
+    '  ibdiagnet -r              Full scan plus routing and credit-loop check',
+    '  ibdiagnet --sharp         Full scan plus SHARP aggregation check',
+    '  ibreset <lid>             Reset a port (link renegotiates)',
+    '  ib_write_bw <peer>        RDMA write bandwidth test (want ~380 Gb/s)',
+    '  nccl all_reduce_perf      NCCL collective busbw test (pass at 92%+)',
     '',
     'Linux utilities:',
     '  whoami              Print current user',
@@ -876,23 +1272,29 @@ function saveDone() {
 /* ====================================================================
    PROGRESS UI
    ==================================================================== */
-var TOTAL = LESSONS.length; /* 13 */
+/* DONE_TOTAL counts every lesson, including the capstone D-CAP.
+   QUIZ_TOTAL counts only lessons that have a find-it challenge; the
+   capstone has no CHALLENGES entry, so it is excluded from the find-it
+   denominator. Both stay derived (never hardcoded). */
+var TOTAL = LESSONS.length;
+var DONE_TOTAL = LESSONS.length;
+var QUIZ_TOTAL = Object.keys(CHALLENGES).length;
 
 function updateProgress() {
   var count = Object.keys(_done).length;
   var el = document.getElementById('progressCount');
   var bar = document.getElementById('progressBar');
   var cta = document.getElementById('ctaBanner');
-  if (el) el.textContent = count + ' / ' + TOTAL + ' done';
-  if (bar) bar.style.width = Math.round(count / TOTAL * 100) + '%';
-  if (cta) {
-    if (count >= TOTAL) cta.classList.add('visible');
-    else cta.classList.remove('visible');
-  }
+  if (el) el.textContent = count + ' / ' + DONE_TOTAL + ' done';
+  if (bar) bar.style.width = Math.round(count / DONE_TOTAL * 100) + '%';
   var solved = Object.keys(_solved).length;
   var qs = document.getElementById('quizScore');
-  if (qs) qs.innerHTML = '&#128269; ' + solved + ' / ' + TOTAL + ' found' +
-    (solved >= TOTAL ? ' &#127881;' : '');
+  if (qs) qs.innerHTML = '&#128269; ' + solved + ' / ' + QUIZ_TOTAL + ' found' +
+    (solved >= QUIZ_TOTAL ? ' &#127881;' : '');
+  if (cta) {
+    if (count >= DONE_TOTAL && solved >= QUIZ_TOTAL) cta.classList.add('visible');
+    else cta.classList.remove('visible');
+  }
 }
 
 /* ====================================================================
@@ -906,6 +1308,10 @@ function markLessonRun(cmd) {
   var changed = false;
   LESSONS.forEach(function (lesson) {
     if (_done[lesson.id]) return;
+    /* D8 (two-reads gate) and the capstone (read-fix-reverify predicate)
+       are marked done by the processCommand wrapper, NOT by this prefix
+       rule. Skip them so a single run does not flip them early. */
+    if (lesson.id === 'D8' || lesson.capstone) return;
     var tryLower = lesson.tryCmd.toLowerCase();
     if (lower === tryLower || lower.indexOf(tryLower) === 0) {
       _done[lesson.id] = true;
@@ -975,23 +1381,8 @@ function renderLessons() {
       ? '<span class="lesson-m1-badge">M1 &bull; step ' + lesson.m1step + '</span>'
       : '';
 
-    card.innerHTML =
-      '<button class="lesson-header" type="button" aria-expanded="false">' +
-        '<span class="lesson-num">' + esc(lesson.id) + '</span>' +
-        '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
-        m1html +
-        '<span class="lesson-check" aria-label="complete">&#10003;</span>' +
-        '<span class="lesson-caret" aria-hidden="true">&#9662;</span>' +
-      '</button>' +
-      '<div class="lesson-body">' +
-        '<div class="lesson-do">' +
-          '<span class="do-label">Do this</span>' +
-          '<ol class="do-steps">' +
-            '<li>Run <code>' + esc(lesson.tryCmd) + '</code>. Tap the green button below, or type it in the terminal.</li>' +
-            '<li>Read what prints. Look for <strong>' + esc(LOOKFOR[lesson.id] || 'the key values') + '</strong>.</li>' +
-            '<li>Answer the <strong>Find it</strong> question at the bottom.</li>' +
-          '</ol>' +
-        '</div>' +
+    /* The compare box is shared by normal and capstone cards. */
+    var compareHTML =
         '<p class="block-label">Same job, two CLIs</p>' +
         '<div class="lesson-compare">' +
           '<div class="cmp-side">' +
@@ -1009,18 +1400,110 @@ function renderLessons() {
               '<code class="compare-cmd">' + esc(lesson.nvidia) + '</code>' +
             '</div>' +
           '</div>' +
-        '</div>' +
-        '<p class="cmp-explain">You already know the Cisco command on the left. This lesson teaches the NVIDIA one on the right. Both do the same thing.</p>' +
-        '<button class="try-btn" data-cmd="' + esc(lesson.tryCmd) + '">' +
-          'Try: <code>' + esc(lesson.tryCmd) + '</code>' +
-        '</button>' +
-        '<div class="term-slot"></div>' +
-        buildQuizHTML(lesson.id) +
+        '</div>';
+
+    var bgHTML =
         '<details class="lesson-bg">' +
           '<summary>Why this matters</summary>' +
           '<p class="lesson-concept">' + esc(lesson.concept) + '</p>' +
           '<p class="lesson-why"><strong>Why: </strong>' + esc(lesson.why) + '</p>' +
-        '</details>' +
+        '</details>';
+
+    var headerHTML =
+      '<button class="lesson-header" type="button" aria-expanded="false">' +
+        '<span class="lesson-num">' + esc(lesson.id) + '</span>' +
+        '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
+        m1html +
+        '<span class="lesson-check" aria-label="complete">&#10003;</span>' +
+        '<span class="lesson-caret" aria-hidden="true">&#9662;</span>' +
+      '</button>';
+
+    if (lesson.capstone) {
+      /* Capstone: 3-step read -> fix -> reverify drill plus its own
+         hand-wired "find the bad lid" quiz. No standard CHALLENGES entry. */
+      card.innerHTML =
+        headerHTML +
+        '<div class="lesson-body">' +
+          '<div class="lesson-do">' +
+            '<span class="do-label">The loop: read, fix, reverify</span>' +
+            '<ol class="do-steps">' +
+              '<li><strong>Read.</strong> Run <code>ibdiagnet</code>, then <code>perfquery 7 1</code> TWICE. Watch the counter climb.</li>' +
+              '<li><strong>Fix.</strong> Run <code>ibreset 7</code> to replace the bad link.</li>' +
+              '<li><strong>Reverify.</strong> Run <code>perfquery 7 1</code> again. The counter is frozen now.</li>' +
+            '</ol>' +
+          '</div>' +
+          compareHTML +
+          '<p class="cmp-explain">A fault is live. Find the bad lid, fix it, and prove it stopped. This is the whole job in one card.</p>' +
+          '<div class="cap-steps">' +
+            '<button class="try-btn cap-btn" data-cap="scan">Step 1: scan with <code>ibdiagnet</code></button>' +
+            '<button class="try-btn cap-btn" data-cap="read">read counter <code>perfquery 7 1</code></button>' +
+            '<button class="try-btn cap-btn" data-cap="fix">Step 2: fix with <code>ibreset 7</code></button>' +
+            '<button class="try-btn cap-btn" data-cap="reverify">Step 3: reverify <code>perfquery 7 1</code></button>' +
+          '</div>' +
+          '<div class="term-slot"></div>' +
+          '<div class="lesson-quiz" data-cap-quiz="D-CAP">' +
+            '<p class="quiz-q">Read the scan. Which lid has the BER fault?</p>' +
+            '<div class="quiz-row">' +
+              '<input class="quiz-input" type="text" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="your answer" placeholder="type the lid">' +
+              '<button class="quiz-check" type="button">Check</button>' +
+              '<button class="quiz-hint-btn" type="button">Hint</button>' +
+            '</div>' +
+            '<p class="quiz-hint" hidden>The DEGRADED / BER line names a lid.</p>' +
+            '<p class="quiz-feedback" aria-live="polite"></p>' +
+          '</div>' +
+          bgHTML +
+        '</div>';
+
+      card.querySelector('.lesson-header').addEventListener('click', function () {
+        toggleCard(card);
+      });
+      wireCapstone(card);
+      rail.appendChild(card);
+      return;
+    }
+
+    /* Predict-the-output picker (only when lesson.predict exists). It sits
+       between the Do-this callout and the Try button, and gates the quiz. */
+    var predictHTML = '';
+    if (lesson.predict) {
+      var btns = lesson.predict.choices.map(function (c) {
+        return '<button class="predict-btn" type="button" data-choice="' + esc(c) + '">' + esc(c) + '</button>';
+      }).join('');
+      predictHTML =
+        '<div class="lesson-predict" data-answer="' + esc(lesson.predict.answer) + '">' +
+          '<span class="predict-label">Predict first: what State will the port show?</span>' +
+          '<div class="predict-row">' + btns + '</div>' +
+          '<p class="predict-fb" aria-live="polite"></p>' +
+        '</div>';
+    }
+
+    var quizHTML = buildQuizHTML(lesson.id);
+    /* When a predictor exists, hide the find-it quiz until the learner
+       predicts. The prediction gates only quiz visibility, never _done. */
+    if (lesson.predict && quizHTML) {
+      quizHTML = quizHTML.replace('class="lesson-quiz', 'hidden class="lesson-quiz');
+    }
+
+    card.innerHTML =
+      headerHTML +
+      '<div class="lesson-body">' +
+        '<div class="lesson-do">' +
+          '<span class="do-label">Do this</span>' +
+          '<ol class="do-steps">' +
+            '<li>Run <code>' + esc(lesson.tryCmd) + '</code>. Tap the green button below, or type it in the terminal.</li>' +
+            '<li>Read what prints. Look for <strong>' + esc(LOOKFOR[lesson.id] || 'the key values') + '</strong>.</li>' +
+            '<li>Answer the <strong>Find it</strong> question at the bottom.</li>' +
+          '</ol>' +
+        '</div>' +
+        compareHTML +
+        '<p class="cmp-explain">You already know the Cisco command on the left. This lesson teaches the NVIDIA one on the right. Both do the same thing.</p>' +
+        predictHTML +
+        '<button class="try-btn" data-cmd="' + esc(lesson.tryCmd) + '">' +
+          'Try: <code>' + esc(lesson.tryCmd) + '</code>' +
+        '</button>' +
+        '<div class="term-slot"></div>' +
+        quizHTML +
+        bgHTML +
       '</div>';
 
     /* Header toggles this card open (closing any other open card) */
@@ -1033,6 +1516,7 @@ function renderLessons() {
       fireCommand(lesson.tryCmd);
     });
 
+    if (lesson.predict) wirePredict(card, lesson);
     wireQuiz(card, lesson.id);
 
     rail.appendChild(card);
@@ -1068,6 +1552,21 @@ function toggleCard(card) {
   }
 }
 
+/* Which lesson card is currently open (null when all closed). */
+var currentOpenCardId = null;
+
+/* Per-card fault lifecycle: D8 and D-CAP need the ber fault live so the
+   perfquery counter climbs; every other card must be clean free-play so
+   no fault leaks into D9/D10/D11/D12 scans. */
+function applyCardFault(id) {
+  if (!window.IBTools || !window.IBTools.setFault) return;
+  if (id === 'D8' || id === 'D-CAP') {
+    window.IBTools.setFault('ber');
+  } else {
+    window.IBTools.clearFault();
+  }
+}
+
 /* Move the terminal shell into a card's slot (or home if card is null),
    and update the "look for" caption to that lesson. */
 function relocateTerminal(card) {
@@ -1078,6 +1577,9 @@ function relocateTerminal(card) {
     var slot = card.querySelector('.term-slot');
     if (slot) slot.appendChild(shell);
     var id = card.id.replace('card-', '');
+    currentOpenCardId = id;
+    applyCardFault(id);
+    if (id === 'D-CAP') { _capState = { scanned: false, readTwice: false, fixed: false, reverified: false }; }
     if (look) {
       var txt = LOOKFOR[id];
       look.innerHTML = txt ? '&#128270; In the output, look for ' + esc(txt) + '.' : '';
@@ -1085,6 +1587,8 @@ function relocateTerminal(card) {
   } else {
     var home = document.getElementById('termHome');
     if (home) home.appendChild(shell);
+    currentOpenCardId = null;
+    if (window.IBTools && window.IBTools.clearFault) window.IBTools.clearFault();
     if (look) look.innerHTML = '';
   }
 }
@@ -1166,6 +1670,111 @@ function wireQuiz(card, id) {
 }
 
 /* ====================================================================
+   PREDICT-THE-OUTPUT  (retention win 1)
+   The learner picks a State before running. We reveal the verdict, then
+   unhide the find-it quiz. Predicting gates only quiz VISIBILITY, never
+   the _done flag (markLessonRun still marks the lesson on run).
+   ==================================================================== */
+function wirePredict(card, lesson) {
+  var box = card.querySelector('.lesson-predict');
+  if (!box) return;
+  var answer = box.getAttribute('data-answer');
+  var fb = box.querySelector('.predict-fb');
+  var quiz = card.querySelector('.lesson-quiz');
+  var btns = box.querySelectorAll('.predict-btn');
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var choice = b.getAttribute('data-choice');
+      btns.forEach(function (x) { x.disabled = true; x.classList.remove('picked'); });
+      b.classList.add('picked');
+      var right = (choice === answer);
+      fb.className = 'predict-fb ok';
+      if (right) {
+        fb.textContent = 'You said ' + choice + '. The output confirms: State ' + answer + '. (Active does not mean healthy, the counters tell the real story.)';
+      } else {
+        fb.textContent = 'You said ' + choice + ', but the output shows State ' + answer + '. Run the command and read it.';
+      }
+      if (quiz) quiz.hidden = false;
+    });
+  });
+}
+
+/* ====================================================================
+   CAPSTONE break-fix drill  (read -> fix -> reverify)
+   Tracks step flags; marks D-CAP done only after all four are true.
+   The ber fault is set/cleared by the per-card lifecycle in toggleCard.
+   ==================================================================== */
+var _capState = { scanned: false, readTwice: false, fixed: false, reverified: false };
+
+function capRunsCommand(cmd) { fireCommand(cmd); }
+
+function wireCapstone(card) {
+  var btns = card.querySelectorAll('.cap-btn');
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var step = b.getAttribute('data-cap');
+      if (step === 'scan') capRunsCommand('ibdiagnet');
+      else if (step === 'read') capRunsCommand('perfquery 7 1');
+      else if (step === 'fix') capRunsCommand('ibreset 7');
+      else if (step === 'reverify') capRunsCommand('perfquery 7 1');
+    });
+  });
+  /* Hand-wired "find the bad lid" quiz (not in CHALLENGES). */
+  var box = card.querySelector('[data-cap-quiz]');
+  if (!box) return;
+  var input = box.querySelector('.quiz-input');
+  var checkBtn = box.querySelector('.quiz-check');
+  var hintBtn = box.querySelector('.quiz-hint-btn');
+  var hintEl = box.querySelector('.quiz-hint');
+  var fb = box.querySelector('.quiz-feedback');
+  var accept = ['7', 'lid 7'];
+  function check() {
+    var val = normAns(input.value);
+    if (!val) { input.focus(); return; }
+    var hit = accept.some(function (a) { return normAns(a) === val; });
+    if (hit) {
+      box.classList.add('solved');
+      fb.className = 'quiz-feedback ok';
+      fb.innerHTML = '&#10003; That is the bad lid. Now fix it and reverify.';
+    } else {
+      fb.className = 'quiz-feedback no';
+      fb.textContent = 'Not that one. Read the DEGRADED / BER line in the scan.';
+      if (hintEl) hintEl.hidden = false;
+      input.focus(); input.select();
+    }
+  }
+  checkBtn.addEventListener('click', check);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); check(); }
+  });
+  hintBtn.addEventListener('click', function () {
+    if (hintEl) hintEl.hidden = !hintEl.hidden;
+  });
+}
+
+function markCapDone() {
+  if (_done['D-CAP']) return;
+  if (_capState.scanned && _capState.readTwice && _capState.fixed && _capState.reverified) {
+    _done['D-CAP'] = true;
+    var card = document.getElementById('card-D-CAP');
+    if (card) card.classList.add('done');
+    saveDone();
+    updateProgress();
+  }
+}
+
+function markD8Done() {
+  if (_done['D8']) return;
+  if (window.IBTools && window.IBTools.portReads && window.IBTools.portReads(7) >= 2) {
+    _done['D8'] = true;
+    var card = document.getElementById('card-D8');
+    if (card) card.classList.add('done');
+    saveDone();
+    updateProgress();
+  }
+}
+
+/* ====================================================================
    FIRE COMMAND INTO TERMINAL
    Sets the contenteditable input to the command, then dispatches Enter.
    ==================================================================== */
@@ -1227,15 +1836,78 @@ document.addEventListener('DOMContentLoaded', function () {
 
   lab.initTerminal(document.getElementById('termMount'));
 
-  /* Wrap processCommand: IB-diag commands go to IBTools, rest go to engine */
-  var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate)\b/;
+  /* Seed the SM as started so saquery / systemctl status work even if a
+     learner opens D6/D7 before running D3. D3/D4 still set the same flag. */
+  var seedDev = lab.devices['dgx-h100-01'];
+  if (seedDev) {
+    seedDev.custom = seedDev.custom || {};
+    seedDev.custom.smStarted = true;
+    seedDev.custom.smPriority15 = true;
+  }
+
+  /* Did-you-mean map: repairs the Cisco -> NVUE misconception. If a typed
+     command matches a key exactly, return the repair line and do NOT mark
+     any lesson done. Kept on this page only. */
+  var DIDYOUMEAN = {
+    'nv config show running':  'Command not found. Did you mean: nv config show? NVUE stages config; there is no "show running" like IOS. nv config show prints the staged config.',
+    'show running-config':     'Command not found. That is IOS. On NVUE use: nv config show.',
+    'show run':                'Command not found. That is IOS. On NVUE use: nv config show.',
+    'nv commit':               'Command not found. Did you mean: nv config apply? NVUE commits with apply, not commit.',
+    'commit':                  'Command not found. Did you mean: nv config apply? NVUE commits staged changes with apply.',
+    'write memory':            'Command not found. That is IOS. On NVUE use: nv config save.',
+    'wr':                      'Command not found. That is IOS. On NVUE use: nv config save.',
+    'conf t':                  'Command not found. NVUE has no config mode. Just type nv set ... then nv config apply.',
+    'configure terminal':      'Command not found. NVUE has no config mode. Just type nv set ... then nv config apply.',
+    'show ip interface brief': 'Command not found. That is IOS. On a host use: ibstat. On the switch use: nv show interface.',
+    'show interface':          'Command not found. On NVUE use: nv show interface.',
+    'nv config apply running':  'Command not found. Did you mean: nv config apply? Apply takes no target; it commits everything staged.'
+  };
+
+  /* Wrap processCommand: did-you-mean first, then IB-diag to IBTools, rest
+     to the engine. After running, mark lessons and run the D8 / capstone
+     completion gates. */
+  var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate|ibreset)\b/;
   var _orig = window.Lab.LabBase.prototype.processCommand;
   lab.processCommand = function (raw) {
     var t = String(raw).trim();
+    var lc = t.toLowerCase();
+
+    /* (1) Did-you-mean: return the repair line, skip all marking. */
+    if (DIDYOUMEAN.hasOwnProperty(lc)) {
+      return DIDYOUMEAN[lc];
+    }
+
+    /* (2) IB-diag commands route through IBTools, else the engine. */
     var out = IB_DIAG_RE.test(t)
       ? (window.IBTools && window.IBTools.run ? window.IBTools.run(t) : 'IBTools unavailable')
       : _orig.call(this, raw);
+
+    /* (3) Capstone fix interceptor: inside D-CAP, ibreset 7 applies the
+       real fix (freezes the lid 7 counter) and reports the fix message. */
+    if (currentOpenCardId === 'D-CAP' && window.IBTools &&
+        window.IBTools.activeFault && window.IBTools.activeFault() === 'ber' &&
+        /^ibreset\s+7\b/.test(lc)) {
+      var res = window.IBTools.applyFix(7, 'replace-cable');
+      if (res && res.msg) out = res.msg;
+    }
+
+    /* (4) Standard lesson marking (D8 and capstone excluded inside). */
     markLessonRun(t);
+
+    /* (5) D8 two-reads gate and capstone read-fix-reverify gate. */
+    if (currentOpenCardId === 'D8') {
+      markD8Done();
+    }
+    if (currentOpenCardId === 'D-CAP' && window.IBTools) {
+      if (/^ibdiagnet\b/.test(lc)) { _capState.scanned = true; }
+      if (window.IBTools.portReads && window.IBTools.portReads(7) >= 2) { _capState.readTwice = true; }
+      if (window.IBTools.portFrozen && window.IBTools.portFrozen(7)) { _capState.fixed = true; }
+      if (/^perfquery\s+7\b/.test(lc) && window.IBTools.portFrozen && window.IBTools.portFrozen(7)) {
+        _capState.reverified = true;
+      }
+      markCapDone();
+    }
+
     return out;
   };
 });
