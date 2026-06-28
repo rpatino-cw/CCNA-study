@@ -139,7 +139,13 @@
     'reseat-link':       { fault: 'linkflap',    lid: 4 },
     'set-updn-routing':  { fault: 'creditloop',  lid: null, clears: true },
     'set-mtu-4096':      { fault: 'mtu',         lid: null, clears: true },
-    'restart-sharp-am':  { fault: 'sharp',       lid: null, clears: true }
+    'restart-sharp-am':  { fault: 'sharp',       lid: null, clears: true },
+    // M14 Spectrum-X Ethernet: unnumbered eBGP underlay neighbor brought up.
+    // Source: NVIDIA Cumulus Linux 5.x BGP unnumbered docs (interface peer + remote-as external).
+    'fix-bgp-unnumbered':{ fault: 'bgpunnum',    lid: null, clears: true },
+    // M15 UFM: link HW error remediated by scheduling a port reseat.
+    // Source: NVIDIA UFM Enterprise REST API (actions / fabric validation CheckLinks).
+    'ufm-reseat-port':   { fault: 'uflinkerr',   lid: null, clears: true }
   };
 
   // ---------------------------------------------------------------------------
@@ -1095,6 +1101,12 @@
         }
         if (action === 'restart-sharp-am') {
           return { ok: true, msg: 'sharp_am restarted, aggregation trees rebuilt.' };
+        }
+        if (action === 'fix-bgp-unnumbered') {
+          return { ok: true, msg: 'swp52 link up; IPv6 RA/LLA exchanged, unnumbered eBGP established.' };
+        }
+        if (action === 'ufm-reseat-port') {
+          return { ok: true, msg: 'Port scheduled for reseat. UFM Link HW Error alarm cleared; CheckLinks will now pass.' };
         }
         return { ok: true, msg: 'Fault cleared.' };
       }
