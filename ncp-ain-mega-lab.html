@@ -1199,6 +1199,58 @@ var MEGA_LABS = [
         action: null
       }
     ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M18 -- SuperNIC / DOCA Bring-Up and Validate  (no fault, validate)  */
+  /* Blueprint 2.7 (DOCA install) + 2.8 (ConnectX-8 SuperNIC) + 5.3      */
+  /* (verify low-latency GPU/CPU interconnects). Guided validate, all    */
+  /* steps action:null. Each step cmd has an explicit evalStepPredicate  */
+  /* branch keyed on a custom flag the LINUX_CMDMAP handler sets.        */
+  /* Device path mt4131 is distinct from M16's mt4125 so the two         */
+  /* missions' CMDMAP keys never collide. The final step uses mlxlink    */
+  /* (mlx5_2, distinct from M16's mlx5_0) so it has a predicate that can  */
+  /* complete -- ibstat has no predicate branch and would never finish.  */
+  /* Source: NVIDIA DOCA-Host install guide + MFT (mst/mlxconfig/mlxlink)*/
+  /*   + ConnectX-8 SuperNIC user manual. Outputs representative         */
+  /*   [inferred]; tool syntax/values correct.                          */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm18-supernic-doca-bringup',
+    name: 'M18 - SuperNIC / DOCA Bring-Up and Validate',
+    device: 'dgx-01',
+    startMode: 'config',
+    fault: null,
+    steps: [
+      {
+        device: 'dgx-01',
+        objective: 'Confirm the DOCA stack version on the host',
+        hint: 'One canonical command dumps DOCA Base, MFT, firmware, and OFED version.',
+        cmd: 'doca-info',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Start MST and list the SuperNIC device node',
+        hint: 'The MFT device layer must be started; status shows the /dev/mst path.',
+        cmd: 'mst status -v',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Read the SuperNIC link type and congestion settings',
+        hint: 'mlxconfig query dumps LINK_TYPE and the ROCE_CC parameters per port.',
+        cmd: 'mlxconfig -d /dev/mst/mt4131_pciconf0 query',
+        action: null
+      },
+      {
+        device: 'dgx-01',
+        objective: 'Confirm the SuperNIC port is up at full rate before traffic',
+        hint: 'mlxlink reports the physical link state, speed, and FEC; confirm it is Active before sending traffic.',
+        cmd: 'mlxlink -d mlx5_2 -m -c',
+        action: null
+      }
+    ]
   }
 
 ]; /* === END MEGA_LABS DATA (Agent B) === */
@@ -1806,6 +1858,73 @@ var LINUX_CMDMAP = {
       'Status Opcode                   : 0',
       'Group Opcode                    : N/A',
       'Recommendation                  : ' + (up ? 'No issue was observed.' : 'Set link type to Ethernet and reset the device.'),
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     M18 -- SuperNIC / DOCA bring-up and validate (dgx-* nodes)
+     Source: NVIDIA DOCA-Host install guide + MFT (mlxconfig/mlxlink)
+     + ConnectX-8 SuperNIC user manual. Device path mt4131 / mlx5_2 is
+     distinct from M16's mt4125 / mlx5_0 so the CMDMAP keys never collide.
+     None are ib* commands, so none belong in IB_DIAG_RE.
+     [inferred] outputs representative; tool syntax/values are correct.
+  ---------------------------------------------------------------- */
+  'doca-info': function (dev, raw, lower) {
+    dev.custom.docaInfoDone = true;
+    return [
+      'NVIDIA DOCA Information',
+      '-----------------------',
+      'DOCA Base version:        <version>  (e.g. 2.9.0)',
+      'DOCA SDK build:           <version>',
+      'MFT version:              <version>  (mft-4.x)',
+      'Firmware (ConnectX-8):    40.48.1000',
+      'MLNX_OFED / DOCA-OFED:    <version>  (e.g. 24.10-1.1.4.0)',
+      '',
+      'Full-stack meta-package is doca-all. doca-info also at',
+      '/opt/mellanox/doca/tools/doca-info.',
+    ].join('\n');
+  },
+
+  'mlxconfig -d /dev/mst/mt4131_pciconf0 query': function (dev, raw, lower) {
+    dev.custom.superNicQueried = true;
+    return [
+      'Device #1:',
+      '----------',
+      '',
+      'Device type:    ConnectX8',
+      'Name:           MCX8-SuperNIC',
+      'Device:         /dev/mst/mt4131_pciconf0',
+      '',
+      'Configurations:                              Next Boot',
+      '        LINK_TYPE_P1                         IB(1)',
+      '        LINK_TYPE_P2                         ETH(2)',
+      '        ROCE_CC_ALGORITHM_P1                 ECN(0)',
+      '        ROCE_CC_PRIO_MASK_P1                 0xff',
+      '        CNP_DSCP_P1                          48',
+      '        ADAPTIVE_ROUTING_EN                  True(1)',
+      '',
+      'SuperNIC: dual-mode (IB XDR or Ethernet), in-NIC congestion control',
+      'plus adaptive routing. (values representative, not real device data)',
+    ].join('\n');
+  },
+
+  'mlxlink -d mlx5_2 -m -c': function (dev, raw, lower) {
+    dev.custom.superNicLinkUp = true;
+    return [
+      'Operational Info',
+      '----------------',
+      'State                           : Active',
+      'Physical state                  : LinkUp',
+      'Speed                           : 400G',
+      'Width                           : 4x',
+      'FEC                             : Standard RS-FEC - RS(544,514)',
+      'Loopback Mode                   : No Loopback',
+      '',
+      'Troubleshooting Info',
+      '--------------------',
+      'Status Opcode                   : 0',
+      'Group Opcode                    : N/A',
+      'Recommendation                  : No issue was observed.',
     ].join('\n');
   },
 
@@ -2835,6 +2954,11 @@ function evalStepPredicate(step, dev, idx, m) {
   if (cmd === 'mlxfwreset -d /dev/mst/mt4125_pciconf0 -y reset') return !!(dev && dev.custom.nicReset);
   if (cmd === 'show_gids') return !!(dev && dev.custom.gidsChecked);
   if (cmd === 'mlxlink -d mlx5_0 -m -c') return !!(dev && dev.custom.mlxlinkDone);
+  // M18 SuperNIC / DOCA bring-up (no fault, all explicit branches -- no fallthrough).
+  // mst status -v reuses the mstStarted branch above; these add the rest.
+  if (cmd === 'doca-info') return !!(dev && dev.custom.docaInfoDone);
+  if (cmd === 'mlxconfig -d /dev/mst/mt4131_pciconf0 query') return !!(dev && dev.custom.superNicQueried);
+  if (cmd === 'mlxlink -d mlx5_2 -m -c') return !!(dev && dev.custom.superNicLinkUp);
   // Reverify steps after a clears-fault action: check that no active fault remains.
   // Detect by looking for a prior fix step whose lid is null (clears-fault type).
   var priorClearsFix = false;
