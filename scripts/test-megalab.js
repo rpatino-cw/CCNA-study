@@ -113,6 +113,35 @@ function evalStep(step, dev, idx, m) {
   if (flag) return !!(dev && dev.custom[flag]);
   if (c.indexOf('pfc-priority') !== -1) return !!(dev && dev.custom.rocePfc);
   if (c.indexOf('pcp,dscp') !== -1) return !!(dev && dev.custom.roceTrust);
+  // M14 Spectrum-X build/validate read steps
+  if (c === 'nv set vrf default router bgp neighbor swp51 remote-as external') return !!(dev && dev.custom.bgpUnnumStaged);
+  if (c === 'nv set interface swp51 router adaptive-routing enable on') return !!(dev && dev.custom.adaptiveRouting);
+  if (c === 'nv show vrf default router bgp neighbor swp52') return !!(dev && dev.custom.bgpNeighborDetail);
+  // M14 validate step 5 vs reverify step 8 (shared cmd): step 5 has no prior
+  // clears-fix -> complete on bgpNeighborShown; step 8 falls through to priorClearsFix.
+  if (c === 'nv show vrf default router bgp neighbor') {
+    var m14HasPriorClearsFix = false;
+    for (var z = 0; z < idx; z++) {
+      if (m.steps[z].action && lidFromAction(m.steps[z].action) === null) { m14HasPriorClearsFix = true; break; }
+    }
+    if (!m14HasPriorClearsFix) return !!(dev && dev.custom.bgpNeighborShown);
+  }
+  // M15 UFM
+  if (c === 'show ufm status') return !!(dev && dev.custom.ufmStatusDone);
+  if (c.indexOf('/ufmRest/app/events') !== -1) return !!(dev && dev.custom.ufmEventsDone);
+  // M17 WJH/NetQ SPOT step
+  if (c === 'nv show system wjh packet-buffer') return !!(dev && dev.custom.wjhRead);
+  // M16 Host NIC bring-up
+  if (c === 'mst status -v') return !!(dev && dev.custom.mstStarted);
+  if (c === 'mlxconfig -d /dev/mst/mt4125_pciconf0 query') return !!(dev && dev.custom.nicQueried);
+  if (c === 'mlxconfig -d /dev/mst/mt4125_pciconf0 set LINK_TYPE_P1=2 LINK_TYPE_P2=2') return !!(dev && dev.custom.nicLinkSet);
+  if (c === 'mlxfwreset -d /dev/mst/mt4125_pciconf0 -y reset') return !!(dev && dev.custom.nicReset);
+  if (c === 'show_gids') return !!(dev && dev.custom.gidsChecked);
+  if (c === 'mlxlink -d mlx5_0 -m -c') return !!(dev && dev.custom.mlxlinkDone);
+  // M18 SuperNIC / DOCA bring-up
+  if (c === 'doca-info') return !!(dev && dev.custom.docaInfoDone);
+  if (c === 'mlxconfig -d /dev/mst/mt4131_pciconf0 query') return !!(dev && dev.custom.superNicQueried);
+  if (c === 'mlxlink -d mlx5_2 -m -c') return !!(dev && dev.custom.superNicLinkUp);
   // Reverify steps after a clears-fault action: check no active fault
   var priorClearsFix = false;
   for (var j = 0; j < idx; j++) {

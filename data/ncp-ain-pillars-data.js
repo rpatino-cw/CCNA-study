@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════════
    ncp-ain-pillars-data.js  SINGLE SOURCE OF TRUTH for NVIDIA NCP-AIN
-   31 pillars (P1-P3). Domain weights from NCP-AIN official blueprint.
+   32 pillars (P1-P3). Domain weights from NCP-AIN official blueprint.
    Same value model shape as encor-pillars-data.js.
    ══════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -36,7 +36,9 @@
             "Scalable Unit (SU) is the modular building block: on the GB200 RA an SU is 8 DGX GB200 NVL72 rack systems; the fabric scales by adding SUs (up to 16)",
             "Inside an SU a spine-leaf group uses 8 leaf switches (one per compute rack) and 6 spine switches, yielding a non-blocking full-fat tree per SU",
             "Compute IB fabric runs NDR InfiniBand at 400 Gb/s per direction per port and is 1:1 non-blocking; the storage fabric is intentionally mildly oversubscribed (blocking factor 5:3) because bulk I/O tolerates blocking that collectives cannot",
-            "NVIDIA Air: free cloud-hosted 1:1 network digital twin (not just a topology sketcher); runs Cumulus Linux or SONiC images so you can validate routing, automation, and upgrades before any hardware arrives"
+            "NVIDIA Air: free cloud-hosted 1:1 network digital twin (not just a topology sketcher); runs Cumulus Linux or SONiC images so you can validate routing, automation, and upgrades before any hardware arrives",
+            "GPU-to-GPU has two scale tiers: SCALE-UP = NVLink/NVSwitch inside one NVLink domain (8 or 72 GPUs act as one big GPU, TB/s); SCALE-OUT = leaf-spine fat-tree over InfiniBand or Spectrum-X between nodes and SUs",
+            "NVLink domain example: GB200 NVL72 puts all 72 GPUs in ONE NVLink domain via 9 NVLink Switch trays; beyond the domain you scale out over the network fabric"
         ]
     },
     {
@@ -773,6 +775,26 @@
             "Note: the counts and percentages shown are simulated representative values, not a reading off a real ASIC [inferred]"
         ],
         "show": "cumulus@leaf01:mgmt:~$ nv show platform asic resource global\n                  count  maximum  % of maximum value\n----------------  -----  -------  ------------------\nipv4-routes        18342   131072   14\nipv6-routes         4096    20480   20\nhost-entries        9011    49152   18\nmac-entries        12087    81920   15\necmp-nexthops       1842    16384   11\n\ncumulus@leaf01:mgmt:~$ sudo cl-resource-query   # legacy alias, same data\n  ACL Regions, ingress:  42,  50% of maximum\n  ACL Regions, egress:   12,  25% of maximum\n# watch the % of maximum column; a table near 100% stops offloading silently\n# (counts shown are simulated representative values, not real ASIC data)"
+    },
+    {
+        "n": 32,
+        "tier": "P3",
+        "obj": "1.3",
+        "dom": 1,
+        "freq": 25,
+        "load": 30,
+        "title": "GPU-to-GPU: NVLink, NVSwitch, NVLink domains",
+        "dims": [
+            "concept",
+            "scope"
+        ],
+        "bullets": [
+            "<code>NVLink</code>: direct GPU-to-GPU interconnect, far faster than PCIe (5th-gen = 1.8 TB/s per GPU); the INTRA-node / intra-NVLink-domain path",
+            "<code>NVSwitch</code>: switch silicon that ties many NVLinks together for all-to-all GPU comms at full NVLink speed across a rack; embeds SHARP for in-network reduction",
+            "NVLink domain = the set of GPUs that talk over NVLink/NVSwitch as one fabric (8-GPU or 72-GPU); GB200 NVL72 = 72 GPUs, one domain, about 130 TB/s aggregate NVLink",
+            "<code>MN-NVL (Multi-Node NVLink)</code> extends the domain across racks; past the NVLink domain you scale OUT over InfiniBand or Spectrum-X",
+            "Scale-up (NVLink) vs scale-out (network fabric) is the core exam anchor: NVLink is GPU-to-GPU only, never GPU-to-leaf"
+        ]
     }
   ];
 

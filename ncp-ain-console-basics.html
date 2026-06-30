@@ -505,7 +505,7 @@
 
   <!-- CTA (revealed when all done) -->
   <div class="cb-cta" id="ctaBanner" aria-live="polite">
-    <p>You ran every InfiniBand Mega Lab command (M1 to M13) plus the break-fix loop, and you went wider: UFM health and fabric validation, Spectrum-X RoCE / BGP / EVPN / adaptive routing, and host NIC config and counters. You are ready for the Mega Lab and you have touched the rest of the NCP-AIN map.</p>
+    <p>You ran every InfiniBand Mega Lab command (M1 to M13) plus the break-fix loop, and you went wider: UFM health and fabric validation, Spectrum-X RoCE / BGP / EVPN / adaptive routing, host NIC config and counters, plus NVIDIA Air, DOCA install, and the ConnectX-8 SuperNIC. You are ready for the Mega Lab and you have touched the rest of the NCP-AIN map.</p>
     <a class="cb-cta-link" href="ncp-ain-mega-lab.html">Open the Mega Lab</a>
   </div>
 
@@ -1056,6 +1056,44 @@ var LESSONS = [
     tryCmd: 'ib_write_lat -d mlx5_0 -i 1 -s 2 -n 1000 -F',
     sampleNote: 'the t_typical[usec] value on the 2-byte row (~1.5 us).'
   },
+
+  /* ====================================================================
+     Part I: Air, DOCA and SuperNIC.
+     Blueprint 2.4 (NVIDIA Air digital twin), 2.7 (DOCA install), 2.8
+     (ConnectX-8 SuperNIC). I1 is a concept lesson (Air has no shell
+     binary; the SDK is the automation surface). I2/I3 are host one-shots
+     in CMDMAP. None are ib* commands, so none go in IB_DIAG_RE.
+     Grounded in: github.com/NVIDIA/nv-air-sdk, NVIDIA DOCA-Host install
+     guide, NVIDIA ConnectX-8 SuperNIC user manual + Spectrum-X docs.
+     Versions/outputs marked [inferred] where representative.
+     ==================================================================== */
+  {
+    id: 'I1', part: 'I', partLabel: 'Part I: Air, DOCA and SuperNIC',
+    title: 'Build the fabric before the hardware (NVIDIA Air)',
+    cisco: '(no IOS analog) build the lab before the hardware', nvidia: 'DSX Air UI + nv-air-sdk',
+    concept: 'Spin up a whole fabric in the cloud before any hardware lands. NVIDIA Air (DSX Air) is a free 1:1 digital twin: build a leaf-spine topology, boot Cumulus Linux or SONiC images, validate BGP/EVPN, then tear it down. It runs the real software image, not a sketch.',
+    why: 'You test config, automation, and upgrades against a real image, so day-one on hardware is repeat-not-debug.',
+    tryCmd: 'pip install nv-air-sdk',
+    sampleNote: 'Air is UI-first at dsx-air.nvidia.com (NGC login): Create Simulation, import a topology, Start it, double-click a node for a console. Automation is the nv-air-sdk Python SDK (import_from_dot, simulations.start/shutdown/rebuild), not a shell command.'
+  },
+  {
+    id: 'I2', part: 'I',
+    title: 'Install the DOCA stack on a host',
+    cisco: '(install the IOS image)', nvidia: 'apt install doca-all',
+    concept: 'Install DOCA so the host can drive a BlueField DPU or a ConnectX / SuperNIC. Register the DOCA-Host repo deb, apt-update, then install one meta-package: doca-all (full driver plus OFED plus libs). DOCA sits on top of the OFED driver and exposes the NIC/DPU offloads.',
+    why: 'No DOCA, no RDMA/RoCE tooling on the host. doca-info is your version check, like show version after an image load.',
+    tryCmd: 'doca-info',
+    sampleNote: 'doca-info prints the DOCA Base version, MFT, current firmware, and OFED version. Full order: dpkg -i the repo deb, apt-get update, apt install -y doca-all, mlnx-fw-updater, then /etc/init.d/openibd restart.'
+  },
+  {
+    id: 'I3', part: 'I',
+    title: 'SuperNIC vs a standard NIC',
+    cisco: '(a plain router interface)', nvidia: 'ConnectX-8 SuperNIC',
+    concept: 'Know why a SuperNIC is more than a NIC. The ConnectX-8 SuperNIC is dual-mode (InfiniBand XDR or Ethernet) on one card and adds in-NIC packet processing plus telemetry-based congestion control and adaptive routing for AI east-west traffic. The card family ceiling is 800G; current shipping SKUs top at 400G per port.',
+    why: 'A standard NIC just moves bytes. The SuperNIC keeps giant GPU clusters stable by reacting to congestion in-fabric, which is the headline AI-fabric feature.',
+    tryCmd: 'mlxconfig -d /dev/mst/mt4131_pciconf0 query',
+    sampleNote: 'LINK_TYPE_P1 shows IB or ETH; the ROCE_CC / congestion-control settings appear here too. SuperNIC headline: dual-mode IB plus Ethernet, in-NIC congestion control and adaptive routing. Pairs with Spectrum-X (Ethernet) and Quantum-X (InfiniBand).'
+  },
 ];
 
 /* ====================================================================
@@ -1117,6 +1155,10 @@ var CHALLENGES = {
   H6: { q: 'What REST port does the nvidia.nvue collection use over httpapi?', accept: ['8765'], hint: '87__.' },
   H7: { q: 'RoCE has no object module, so Ansible drives it through which nvidia.nvue module (the simplest one)?', accept: ['command','nvidia.nvue.command'], hint: 'The module that wraps the nv CLI.' },
   H8: { q: 'Run ib_write_lat. Which column gives the typical small-message latency in microseconds?', accept: ['t_typical','t_typical[usec]','t_typical usec'], hint: 't_____[usec], the representative value.' },
+  /* Part I: Air, DOCA and SuperNIC */
+  I1: { q: 'What free NVIDIA platform is a 1:1 network digital twin for validating a fabric before hardware?', accept: ['air','nvidia air','dsx air','dsx-air'], hint: 'Cloud-hosted, runs Cumulus/SONiC images, NGC login.' },
+  I2: { q: 'What single command prints the installed DOCA Base version, MFT, and OFED version?', accept: ['doca-info','/opt/mellanox/doca/tools/doca-info'], hint: 'doca-____ ; lives under /opt/mellanox/doca/tools.' },
+  I3: { q: 'Besides moving packets, name the AI-fabric feature a SuperNIC adds that a standard NIC does not.', accept: ['congestion control','adaptive routing','telemetry-based congestion control','congestion-control'], hint: 'It reacts to a full buffer in-fabric to keep big GPU clusters stable.' },
 };
 
 var PRAISE = ['Nice. You read it right.', 'Got it.', 'That is the one.', 'Sharp eyes.', 'Correct, well spotted.', 'Yep, that matches the output.'];
@@ -1174,6 +1216,9 @@ var LOOKFOR = {
   H6: 'the revision lifecycle (new / merged / apply) and PLAY RECAP',
   H7: 'apply: true and the literal nv set qos roce mode lossless line',
   H8: 'the t_typical[usec] value on the 2-byte row (~1.5 us)',
+  I1: 'the package name nv-air-sdk; Air is UI-first, the SDK is the automation surface',
+  I2: 'the DOCA Base version line and the OFED version; doca-all is the full-stack meta-package',
+  I3: 'the LINK_TYPE_P1 value and the ROCE_CC / congestion-control lines; SuperNIC = NIC + in-NIC congestion control',
 };
 
 /* ====================================================================
@@ -1896,6 +1941,75 @@ var CMDMAP = {
   },
 
   /* ----------------------------------------------------------------
+     Part I: Air, DOCA and SuperNIC (static one-shots).
+     None are ib* commands, so none belong in IB_DIAG_RE.
+  ---------------------------------------------------------------- */
+
+  /* I1: install the NVIDIA Air automation SDK.
+     src: github.com/NVIDIA/nv-air-sdk [know] (Air has no shell binary;
+     the Python SDK is the automation surface). */
+  'pip install nv-air-sdk': function (dev, raw, lower) {
+    dev.custom.airSdkInstalled = true;
+    return [
+      'Collecting nv-air-sdk',
+      '  Downloading nv_air_sdk-2.6.0-py3-none-any.whl (78 kB)',
+      'Installing collected packages: air_sdk, nv-air-sdk',
+      'Successfully installed nv-air-sdk-2.6.0 air_sdk-2.6.0',
+      '',
+      '# Air is UI-first at dsx-air.nvidia.com (NGC login). The SDK automates it:',
+      '#   from air_sdk import AirApi; air = AirApi(...)',
+      '#   sim = air.simulations.create(...); sim.start()  /  sim.shutdown()  /  sim.rebuild()',
+    ].join('\n');
+  },
+
+  /* I2: DOCA version check.
+     src: networking-docs.nvidia.com/doca/sdk host-install guide [know];
+     version strings representative [inferred], firmware 40.48.1000. */
+  'doca-info': function (dev, raw, lower) {
+    dev.custom.docaInfoDone = true;
+    return [
+      'NVIDIA DOCA Information',
+      '-----------------------',
+      'DOCA Base version:        <version>  (e.g. 2.9.0)',
+      'DOCA SDK build:           <version>',
+      'MFT version:              <version>  (mft-4.x)',
+      'Firmware (ConnectX):      40.48.1000',
+      'MLNX_OFED / DOCA-OFED:    <version>  (e.g. 24.10-1.1.4.0)',
+      '',
+      '# Full-stack meta-package is doca-all. Install order:',
+      '#   dpkg -i doca-host_<ver>_*.deb ; apt-get update ; apt install -y doca-all',
+      '#   mlnx-fw-updater ; /etc/init.d/openibd restart ; mst restart',
+      '# doca-info also lives at /opt/mellanox/doca/tools/doca-info',
+    ].join('\n');
+  },
+
+  /* I3: ConnectX-8 SuperNIC firmware query (mt4131, distinct from the
+     ConnectX-7 mt4129 used in Part G/G2). NOT in IB_DIAG_RE (mlxconfig
+     is not an ib* command). src: NVIDIA MFT (mlxconfig) + ConnectX-8
+     SuperNIC user manual; output representative [inferred]. */
+  'mlxconfig -d /dev/mst/mt4131_pciconf0 query': function (dev, raw, lower) {
+    dev.custom.superNicQueried = true;
+    return [
+      'Device #1:',
+      '----------',
+      'Device type:    ConnectX8',
+      'Name:           MCX8-SuperNIC',
+      'Device:         /dev/mst/mt4131_pciconf0',
+      '',
+      'Configurations:                              Next Boot',
+      '        LINK_TYPE_P1                         IB(1)',
+      '        LINK_TYPE_P2                         ETH(2)',
+      '        ROCE_CC_ALGORITHM_P1                 ECN(0)',
+      '        ROCE_CC_PRIO_MASK_P1                 0xff',
+      '        CNP_DSCP_P1                          48',
+      '        ADAPTIVE_ROUTING_EN                  True(1)',
+      '',
+      '# SuperNIC: dual-mode (IB XDR or Ethernet), in-NIC congestion control + adaptive routing.',
+      '# (values representative, not a reading off a real device)',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
      help / ?
   ---------------------------------------------------------------- */
   'help': [
@@ -1961,6 +2075,11 @@ var CMDMAP = {
     '  ibqueryerrors / ibcheckerrors            Sweep fabric, name ports with errors',
     '  ibv_devinfo                              RDMA device info (GPUDirect verify)',
     '  lsmod | grep nvidia_peermem              Confirm GPUDirect peermem loaded',
+    '',
+    'Air, DOCA and SuperNIC:',
+    '  pip install nv-air-sdk                   Install the NVIDIA Air automation SDK',
+    '  doca-info                                Show DOCA Base, MFT, firmware, OFED version',
+    '  mlxconfig -d /dev/mst/mt4131_pciconf0 query  Read ConnectX-8 SuperNIC firmware config',
     '',
     'Linux utilities:',
     '  whoami              Print current user',
