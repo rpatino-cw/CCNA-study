@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════════
    ncp-ain-pillars-data.js  SINGLE SOURCE OF TRUTH for NVIDIA NCP-AIN
-   23 pillars (P1-P2). Domain weights from NCP-AIN official blueprint.
+   31 pillars (P1-P3). Domain weights from NCP-AIN official blueprint.
    Same value model shape as encor-pillars-data.js.
    ══════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -44,8 +44,8 @@
         "tier": "P1",
         "obj": "3.1",
         "dom": 3,
-        "freq": 78,
-        "load": 72,
+        "freq": 82,
+        "load": 60,
         "title": "IB link speeds: SDR through XDR (4x lane series)",
         "dims": [
             "concept",
@@ -68,8 +68,8 @@
         "tier": "P1",
         "obj": "3.2",
         "dom": 3,
-        "freq": 75,
-        "load": 68,
+        "freq": 70,
+        "load": 60,
         "title": "Quantum-2 QM9700 vs QM9790: 64x NDR400, 25.6 Tbps",
         "dims": [
             "concept",
@@ -90,8 +90,8 @@
         "tier": "P1",
         "obj": "3.3",
         "dom": 3,
-        "freq": 80,
-        "load": 74,
+        "freq": 86,
+        "load": 72,
         "title": "Subnet Manager: LIDs, GIDs, SM priority, sweep",
         "dims": [
             "concept",
@@ -115,7 +115,7 @@
         "tier": "P1",
         "obj": "3.4",
         "dom": 3,
-        "freq": 72,
+        "freq": 64,
         "load": 65,
         "title": "Virtual Lanes and SL/QoS: VL0-VL15, credit-based flow control",
         "dims": [
@@ -140,7 +140,7 @@
         "tier": "P1",
         "obj": "3.5",
         "dom": 3,
-        "freq": 68,
+        "freq": 60,
         "load": 60,
         "title": "PKeys: 16-bit partition keys, full/limited member, multi-tenancy",
         "dims": [
@@ -165,7 +165,7 @@
         "tier": "P1",
         "obj": "3.6",
         "dom": 3,
-        "freq": 74,
+        "freq": 70,
         "load": 66,
         "title": "IB routing and Adaptive Routing: fat-tree min-hop, AR by credit",
         "dims": [
@@ -190,7 +190,7 @@
         "tier": "P1",
         "obj": "3.7",
         "dom": 3,
-        "freq": 65,
+        "freq": 58,
         "load": 58,
         "title": "SHARP in-network compute: AllReduce offload, aggregation tree",
         "dims": [
@@ -214,8 +214,8 @@
         "tier": "P1",
         "obj": "2.1",
         "dom": 2,
-        "freq": 76,
-        "load": 70,
+        "freq": 66,
+        "load": 58,
         "title": "Spectrum-4 ASIC: 51.2 Tbps, SN5600 64x800G, Spectrum-X",
         "dims": [
             "concept",
@@ -237,7 +237,7 @@
         "tier": "P1",
         "obj": "2.2",
         "dom": 2,
-        "freq": 80,
+        "freq": 85,
         "load": 74,
         "title": "RoCEv2: RDMA over UDP 4791, routable L3, GPUDirect RDMA",
         "dims": [
@@ -261,7 +261,7 @@
         "tier": "P1",
         "obj": "2.3",
         "dom": 2,
-        "freq": 82,
+        "freq": 85,
         "load": 76,
         "title": "PFC + ECN + DCQCN: lossless Ethernet congestion pipeline",
         "dims": [
@@ -336,7 +336,7 @@
         "tier": "P1",
         "obj": "3.8",
         "dom": 3,
-        "freq": 70,
+        "freq": 66,
         "load": 62,
         "title": "BlueField-3 DPU vs SuperNIC vs ConnectX-7/8: GPUDirect path",
         "dims": [
@@ -362,7 +362,7 @@
         "tier": "P1",
         "obj": "3.9",
         "dom": 3,
-        "freq": 72,
+        "freq": 62,
         "load": 64,
         "title": "Fat-tree 1:1 non-blocking + rail-optimized GPU topology",
         "dims": [
@@ -386,7 +386,7 @@
         "tier": "P2",
         "obj": "3.10",
         "dom": 3,
-        "freq": 48,
+        "freq": 56,
         "load": 40,
         "title": "Transceiver types: DAC, AOC, OSFP DR4/FR4, OSFP vs QSFP112",
         "dims": [
@@ -409,8 +409,8 @@
         "tier": "P1",
         "obj": "3.11",
         "dom": 3,
-        "freq": 72,
-        "load": 65,
+        "freq": 78,
+        "load": 64,
         "title": "UFM: telemetry, SHARP tree config, required for QM9790",
         "dims": [
             "concept",
@@ -433,8 +433,8 @@
         "tier": "P1",
         "obj": "4.1",
         "dom": 4,
-        "freq": 85,
-        "load": 78,
+        "freq": 92,
+        "load": 80,
         "title": "IB diagnostic command toolkit: ibstat through perfquery",
         "dims": [
             "concept",
@@ -460,8 +460,8 @@
         "tier": "P1",
         "obj": "4.2",
         "dom": 4,
-        "freq": 78,
-        "load": 70,
+        "freq": 84,
+        "load": 72,
         "title": "Spectrum tools: WJH, NetQ, nv show, ibdump",
         "dims": [
             "concept",
@@ -482,11 +482,11 @@
     },
     {
         "n": 20,
-        "tier": "P2",
+        "tier": "P1",
         "obj": "4.3",
         "dom": 4,
-        "freq": 55,
-        "load": 46,
+        "freq": 64,
+        "load": 50,
         "title": "Bring-up and validation workflow: OFED, BER, ib_write_bw baseline",
         "dims": [
             "concept",
@@ -508,11 +508,11 @@
     },
     {
         "n": 21,
-        "tier": "P1",
+        "tier": "P2",
         "obj": "5.1",
         "dom": 5,
-        "freq": 68,
-        "load": 60,
+        "freq": 80,
+        "load": 56,
         "title": "NVUE CLI: nv set/unset/show/apply, Cumulus Linux",
         "dims": [
             "concept",
@@ -537,7 +537,7 @@
         "tier": "P2",
         "obj": "5.2",
         "dom": 5,
-        "freq": 55,
+        "freq": 50,
         "load": 46,
         "title": "Ansible nvidia.nvue collection: idempotent, test in NVIDIA Air",
         "dims": [
@@ -561,7 +561,7 @@
         "tier": "P2",
         "obj": "6.1",
         "dom": 6,
-        "freq": 55,
+        "freq": 42,
         "load": 46,
         "title": "Network Operator, fabric side: DOCA-OFED, SR-IOV IB VFs, ib-kubernetes (isolation)",
         "dims": [
@@ -586,7 +586,7 @@
         "tier": "P2",
         "obj": "2.6",
         "dom": 2,
-        "freq": 50,
+        "freq": 46,
         "load": 44,
         "title": "Spectrum-X Security: ACLs, NVUE RBAC, VRF-per-tenant, port security",
         "dims": [
@@ -611,7 +611,7 @@
         "tier": "P2",
         "obj": "5.3",
         "dom": 5,
-        "freq": 55,
+        "freq": 52,
         "load": 48,
         "title": "NVUE declarative config: startup.yaml, config history, rollback, ZTP",
         "dims": [
@@ -633,10 +633,10 @@
     },
     {
         "n": 26,
-        "tier": "P2",
+        "tier": "P3",
         "obj": "6.2",
         "dom": 6,
-        "freq": 50,
+        "freq": 40,
         "load": 44,
         "title": "Network Operator, pod side: NicClusterPolicy CRD, shared RDMA, IPoIB vs MACVLAN (scale)",
         "dims": [
@@ -660,8 +660,8 @@
         "tier": "P2",
         "obj": "3.12",
         "dom": 3,
-        "freq": 52,
-        "load": 46,
+        "freq": 46,
+        "load": 44,
         "title": "BlueField DPU operating modes: NIC mode vs DPU mode, mlxconfig, DOCA install",
         "dims": [
             "concept",
@@ -682,10 +682,10 @@
     },
     {
         "n": 28,
-        "tier": "P2",
+        "tier": "P1",
         "obj": "3.13",
         "dom": 3,
-        "freq": 50,
+        "freq": 54,
         "load": 44,
         "title": "IB SM High-Availability: redundant SM priority, failover, UFM Cyber-AI",
         "dims": [
@@ -707,10 +707,10 @@
     },
     {
         "n": 29,
-        "tier": "P2",
+        "tier": "P3",
         "obj": "1.2",
         "dom": 1,
-        "freq": 52,
+        "freq": 44,
         "load": 46,
         "title": "AI collective ops: all-reduce topology, bandwidth, oversubscription",
         "dims": [
@@ -729,6 +729,50 @@
         ],
         "config": "# Build NVIDIA nccl-tests (one time)\ngit clone https://github.com/NVIDIA/nccl-tests\ncd nccl-tests && make MPI=1 MPI_HOME=/usr/lib/x86_64-linux-gnu/openmpi\n\n# Single node, 8 GPUs: AllReduce sweep 8 bytes up to 8 GB\n./build/all_reduce_perf -b 8 -e 8G -f 2 -g 8\n\n# Multi-node over InfiniBand (16 GPUs across 2 nodes) via MPI,\n# pin NCCL to the IB HCAs so it does not fall back to TCP\nmpirun -np 16 -H node1:8,node2:8 \\\n  -x NCCL_IB_HCA=mlx5 \\\n  -x NCCL_DEBUG=INFO \\\n  ./build/all_reduce_perf -b 8 -e 8G -f 2 -g 1\n# flags: -b begin size, -e end size, -f 2 doubles each step, -g GPUs per thread",
         "show": "#       size         count  type   redop  root    time   algbw   busbw  #wrong\n#        (B)      (elements)                  (us)  (GB/s)  (GB/s)\n     8388608        2097152  float    sum    -1    180    46.6    81.6      0\n    33554432        8388608  float    sum    -1    310   108.2   189.4      0\n   134217728       33554432  float    sum    -1    870   154.3   270.0      0\n   536870912      134217728  float    sum    -1   3489   153.9   302.9      0\n  1073741824      268435456  float    sum    -1   6060   177.2   348.8      0\n  2147483648      536870912  float    sum    -1  11523   186.4   366.9      0\n# Avg bus bandwidth : 309.7 GB/s\n# busbw = algbw * 2*(n-1)/n; it climbs then plateaus; the plateau vs line rate is the pass/fail signal"
+    },
+    {
+        "n": 30,
+        "tier": "P2",
+        "obj": "2.4-air",
+        "dom": 2,
+        "freq": 50,
+        "load": 42,
+        "title": "NVIDIA Air: digital-twin sim, validate Cumulus/SONiC before hardware",
+        "dims": [
+            "concept",
+            "scope"
+        ],
+        "bullets": [
+            "<code>NVIDIA Air</code>: free cloud-hosted 1:1 network digital twin (not a topology drawing); it boots the SAME Cumulus Linux or SONiC switch images and the same NVUE config you will run on real hardware",
+            "Use it to validate golden configs, NVUE templates, and Ansible playbooks BEFORE any switch arrives or before a change window, so day-1 config and upgrades are proven against the actual NOS",
+            "A simulation is a topology of virtual switches plus servers; you SSH into the virtual oob-mgmt-server, then into each switch (cumulus@leaf01), and run nv set / nv config apply exactly as on metal",
+            "Same artifacts move both ways: a startup.yaml or playbook validated in Air deploys unchanged to the physical fabric (and a captured production topology can be re-created in Air for repro)",
+            "Scope: this is the sub-objective 2.4 design/validation tool inside the 30 percent Spectrum-Ethernet domain; it complements (does not replace) on-hardware testing for timing and optics",
+            "Note: sample bandwidth and timing in Air are simulated, not a substitute for real-fabric BER or ib_write_bw numbers [inferred]"
+        ],
+        "show": "# Air: SSH into the management server, then the virtual leaf\nubuntu@oob-mgmt-server:~$ ssh cumulus@leaf01\ncumulus@leaf01:mgmt:~$ nv show platform\n               operational\n-------------  -----------\nsystem-type    VX             # VX = virtual (Cumulus VX image running in Air)\nasic-model     vx\n# the same nv set / nv config apply workflow runs here as on a real SN5600\n# topology and outputs here are a simulated digital twin, not real fabric data"
+    },
+    {
+        "n": 31,
+        "tier": "P2",
+        "obj": "5.1-clrq",
+        "dom": 4,
+        "freq": 58,
+        "load": 48,
+        "title": "cl-resource-query: ASIC hardware table utilization (routes, hosts, MACs, ECMP, ACL)",
+        "dims": [
+            "concept",
+            "scope"
+        ],
+        "bullets": [
+            "<code>cl-resource-query</code>: dumps current-vs-max utilization of the Spectrum ASIC forwarding tables (IPv4/IPv6 routes, host entries, MAC entries, ECMP next-hops, ACL regions) as a count and a percent of the silicon maximum",
+            "Why it matters: hardware-table overflow is SILENT. When a table hits its max the switch stops offloading new entries to the ASIC and falls back to slow-path or drops them, with no obvious log; you catch it by watching the percent-of-max column climb",
+            "Exam-current preferred form is the NVUE command <code>nv show platform asic resource global</code> (and <code>nv show platform asic resource acl</code>); <code>sudo cl-resource-query</code> is the legacy alias that still works in CL 5.x",
+            "Read it like a capacity gauge: any line approaching 100 percent of maximum is the table to watch (a leaf summarizing too many routes, or an ACL rule-set near the TCAM limit)",
+            "Scope: this is a domain-4 troubleshooting/validation check (spot a table nearing the limit before routes stop programming); pairs with WJH (drops) and NetQ (history)",
+            "Note: the counts and percentages shown are simulated representative values, not a reading off a real ASIC [inferred]"
+        ],
+        "show": "cumulus@leaf01:mgmt:~$ nv show platform asic resource global\n                  count  maximum  % of maximum value\n----------------  -----  -------  ------------------\nipv4-routes        18342   131072   14\nipv6-routes         4096    20480   20\nhost-entries        9011    49152   18\nmac-entries        12087    81920   15\necmp-nexthops       1842    16384   11\n\ncumulus@leaf01:mgmt:~$ sudo cl-resource-query   # legacy alias, same data\n  ACL Regions, ingress:  42,  50% of maximum\n  ACL Regions, egress:   12,  25% of maximum\n# watch the % of maximum column; a table near 100% stops offloading silently\n# (counts shown are simulated representative values, not real ASIC data)"
     }
   ];
 

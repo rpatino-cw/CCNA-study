@@ -975,6 +975,87 @@ var LESSONS = [
     tryCmd: 'ibclearcounters',
     sampleNote: 'Counters cleared confirmation; error rows stay 0 after the window.'
   },
+
+  /* ====================================================================
+     Part H: Telemetry and Automation.
+     WJH (on-box + NetQ off-box), cl-resource-query, NVUE templates,
+     Ansible nvidia.nvue, ib_write_lat. Static one-shots in CMDMAP except
+     ib_write_lat (ib* -> IB_DIAG_RE -> IBTools DISPATCH).
+     Grounded in NVIDIA Cumulus 5.15 WJH / NetQ 4.13 / nvidia.nvue docs.
+     Sample outputs simulated, not real fabric data.
+     ==================================================================== */
+  {
+    id: 'H1', part: 'H', partLabel: 'Part H: Telemetry and Automation',
+    title: 'WJH on-box: see every dropped packet and its reason',
+    cisco: 'show platform hardware drops', nvidia: 'nv show system wjh packet-buffer',
+    concept: 'WJH (What Just Happened) taps the Spectrum ASIC drop pipeline and logs every dropped packet with its reason and a recommended action, at line rate, no SPAN and no sampling. The on-box NVUE form is nv show system wjh packet-buffer. The Drop Reason column names exactly why each packet died (Tail drop, WRED, Port TC Congestion Threshold Crossed, Packet Latency Threshold Crossed).',
+    why: 'Silent RoCE loss is invisible to a counter total; WJH is how you triage which packets dropped and why.',
+    tryCmd: 'nv show system wjh packet-buffer',
+    sampleNote: 'the Drop Reason column (WRED / Port TC Congestion Threshold Crossed).'
+  },
+  {
+    id: 'H2', part: 'H',
+    title: 'NetQ off-box: fabric-wide WJH history',
+    cisco: 'central telemetry collector (historical, fleet-wide)', nvidia: 'netq show wjh-drop',
+    concept: 'NetQ is the off-box telemetry platform: it stores WJH history fleet-wide and lets you filter by reason, port, or traffic class over a time window. netq show wjh-drop is the fabric summary; netq leaf01 show wjh-drop details between now and 7d pulls one switch over 7 days. Trap: the NetQ agent and on-box WJH are mutually exclusive on a single switch; enabling the NetQ agent stops the local WJH service, so never picture both running at once on the same box.',
+    why: 'On-box WJH is live and local only; NetQ gives the historical, cross-switch view on-box WJH cannot.',
+    tryCmd: 'netq show wjh-drop',
+    sampleNote: 'the Drop type / Aggregate Count / Reason columns.'
+  },
+  {
+    id: 'H3', part: 'H',
+    title: 'Arm a WJH latency/congestion threshold',
+    cisco: 'no direct analog (ASIC latency watchpoint)', nvidia: 'netq config add agent wjh-threshold latency 3 swp1 10 1',
+    concept: 'Latency and congestion WJH events are NOT free-running. You arm a per-traffic-class, per-port high/low threshold first; only crossings then emit Buffer events. The argument order is type (latency), tc-list (3), port-list (swp1), then th-hi (10) and th-lo (1). This is how the Packet Latency Threshold Crossed reason ever appears.',
+    why: 'If you never see latency events, the threshold was never set. This is the prerequisite step.',
+    tryCmd: 'netq config add agent wjh-threshold latency 3 swp1 10 1',
+    sampleNote: 'the tc-list, port-list, th-hi, th-lo argument order.'
+  },
+  {
+    id: 'H4', part: 'H',
+    title: 'cl-resource-query: ASIC table utilization',
+    cisco: 'show platform hardware capacity', nvidia: 'nv show platform asic resource global',
+    concept: 'This dumps current-vs-max fill of the ASIC forwarding tables (routes, hosts, MACs, ECMP next-hops, ACL regions) with a percent-of-maximum column. The exam-current NVUE form is nv show platform asic resource global; the legacy alias is sudo cl-resource-query. Hardware-table overflow is silent: when a table hits its max the switch stops offloading new entries, with no obvious log. You catch it by watching the percent-of-maximum column climb.',
+    why: 'A route table near the silicon limit drops new routes silently; this is the only place you see it coming.',
+    tryCmd: 'nv show platform asic resource global',
+    sampleNote: 'the "% of maximum value" column on each table.'
+  },
+  {
+    id: 'H5', part: 'H',
+    title: 'NVUE golden-config templates',
+    cisco: 'configure replace flash:golden.cfg', nvidia: 'nv config replace /home/cumulus/golden.yaml',
+    concept: 'The full switch config is YAML. nv config show -o commands dumps it as nv set lines; nv config diff applied startup compares states; nv config replace <file.yaml> loads an ENTIRE golden config into pending (a full replace, so the file must contain everything you want to keep); then nv config apply activates it. A patch is a partial delta, replace is the whole file. Trap: never hand-edit /etc/network/interfaces or frr.conf, because nv config apply overwrites them.',
+    why: 'Golden-config push is how you make every leaf identical; replace is the whole-file verb you reach for.',
+    tryCmd: 'nv config replace /home/cumulus/golden.yaml',
+    sampleNote: 'the pending -> applied -> startup lifecycle.'
+  },
+  {
+    id: 'H6', part: 'H',
+    title: 'Ansible nvidia.nvue: VLAN at scale',
+    cisco: 'ios_config / nxos_vlans module', nvidia: 'ansible-playbook -i inventory bridge.yml',
+    concept: 'The nvidia.nvue collection (ansible-galaxy collection install nvidia.nvue) configures Cumulus over NVUE. The object modules follow a revision lifecycle: config new -> bridge merged -> config apply, driven over httpapi on REST port 8765. There is NO nvue_config module. The two high-level modules are nvidia.nvue.command (wraps the nv CLI) and nvidia.nvue.api (wraps the REST API); object modules like bridge/vlan/interface target one resource each.',
+    why: 'One playbook pushes the same VLAN-to-VNI map to every leaf; the revision lifecycle is what makes it idempotent.',
+    tryCmd: 'ansible-playbook -i inventory bridge.yml',
+    sampleNote: 'the revision lifecycle (new / merged / apply) and the PLAY RECAP.'
+  },
+  {
+    id: 'H7', part: 'H',
+    title: 'Ansible nvidia.nvue: RoCE the simple way',
+    cisco: 'ios_config with literal command lines', nvidia: 'ansible-playbook -i inventory roce.yml',
+    concept: 'RoCE has no dedicated object module, so Ansible drives it through nvidia.nvue.command: the playbook pushes the literal nv set qos roce mode lossless line with apply: true (lower risk than the api module for RoCE). A Jinja loop in the command module bridges the 6.1 templates and 6.2 Ansible worlds: template the nv set lines, then apply them in one task.',
+    why: 'Lossless RoCE is the core Spectrum-X setting; the command module is the simplest module that pushes it at scale.',
+    tryCmd: 'ansible-playbook -i inventory roce.yml',
+    sampleNote: 'apply: true and the literal nv set qos roce mode lossless line.'
+  },
+  {
+    id: 'H8', part: 'H',
+    title: 'ib_write_lat: RDMA latency baseline',
+    cisco: 'ping with timestamp (rough latency only)', nvidia: 'ib_write_lat -d mlx5_0 -i 1 -s 2 -n 1000 -F',
+    concept: 'ib_write_lat is the perftest RDMA write LATENCY test (ib_write_bw measures bandwidth; this measures round-trip time). Start the server first with no IP, then run the client with the server IP. Read the t_typical[usec] column on the small 2-byte row: about 1.0 to 1.5 us is representative for HDR/NDR. A latency far above that points at congestion, wrong GID, or a marginal link.',
+    why: 'Bandwidth alone hides latency problems; small-message t_typical is the number collectives actually feel.',
+    tryCmd: 'ib_write_lat -d mlx5_0 -i 1 -s 2 -n 1000 -F',
+    sampleNote: 'the t_typical[usec] value on the 2-byte row (~1.5 us).'
+  },
 ];
 
 /* ====================================================================
@@ -1027,6 +1108,15 @@ var CHALLENGES = {
   G2: { q: 'Run the query. What LINK_TYPE_P1 value means the port is in Ethernet (RoCE) mode?', accept: ['eth','eth(2)','2'], hint: 'LINK_TYPE_P1 line, the word for Ethernet.' },
   G3: { q: 'Run show_gids. Which RoCE version is the routable one you point traffic at?', accept: ['v2','2','roce v2','rocev2'], hint: 'v1 or v2, the higher one uses UDP/DSCP.' },
   G4: { q: 'Run ibclearcounters. What does it reset all fabric counters to?', accept: ['0','zero'], hint: 'Single digit, the reset value.' },
+  /* Part H: Telemetry and Automation */
+  H1: { q: 'Which WJH drop reason means the RED engine dropped a packet to avoid congestion?', accept: ['wred'], hint: 'Starts with W: randomized early drop on a full buffer.' },
+  H2: { q: 'What time-window syntax pulls the last 7 days of WJH history in NetQ?', accept: ['between now and 7d','now and 7d'], hint: 'between ___ and 7d.' },
+  H3: { q: 'Latency and congestion WJH events need what set first before any are emitted?', accept: ['threshold','thresholds','high/low threshold','high low threshold'], hint: 'A high and low ___ per TC per port.' },
+  H4: { q: 'Which NVUE command shows ASIC hardware table utilization?', accept: ['nv show platform asic resource global','nv show platform asic resource'], hint: 'nv show platform asic ...' },
+  H5: { q: 'Which nv config verb pushes an ENTIRE golden YAML file (not a partial patch)?', accept: ['replace','nv config replace'], hint: 'Not patch: the whole-file verb.' },
+  H6: { q: 'What REST port does the nvidia.nvue collection use over httpapi?', accept: ['8765'], hint: '87__.' },
+  H7: { q: 'RoCE has no object module, so Ansible drives it through which nvidia.nvue module (the simplest one)?', accept: ['command','nvidia.nvue.command'], hint: 'The module that wraps the nv CLI.' },
+  H8: { q: 'Run ib_write_lat. Which column gives the typical small-message latency in microseconds?', accept: ['t_typical','t_typical[usec]','t_typical usec'], hint: 't_____[usec], the representative value.' },
 };
 
 var PRAISE = ['Nice. You read it right.', 'Got it.', 'That is the one.', 'Sharp eyes.', 'Correct, well spotted.', 'Yep, that matches the output.'];
@@ -1076,6 +1166,14 @@ var LOOKFOR = {
   G2: 'LINK_TYPE_P1 ETH(2) and the ROCE_CC settings',
   G3: 'a v2 row with the right IPv4 on the expected netdev',
   G4: 'the Counters cleared confirmation; reset to 0',
+  H1: 'the Drop Reason column (WRED / Port TC Congestion Threshold Crossed)',
+  H2: 'the Drop type / Aggregate Count / Reason columns',
+  H3: 'the tc-list, port-list, th-hi, th-lo argument order',
+  H4: 'the "% of maximum value" column on each table',
+  H5: 'the pending -> applied -> startup lifecycle',
+  H6: 'the revision lifecycle (new / merged / apply) and PLAY RECAP',
+  H7: 'apply: true and the literal nv set qos roce mode lossless line',
+  H8: 'the t_typical[usec] value on the 2-byte row (~1.5 us)',
 };
 
 /* ====================================================================
@@ -1668,6 +1766,132 @@ var CMDMAP = {
       'nvidia_peermem         16384  0',
       'nvidia               56012800  3  nvidia_uvm,nvidia_peermem',
       'ib_uverbs              167936  2  nvidia_peermem,mlx5_ib',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     Part H: Telemetry and Automation (static one-shots).
+     WJH / NetQ / cl-resource-query / NVUE config / Ansible.
+     These are NOT in IB_DIAG_RE (they are not ib* IBTools commands).
+     Grounded in NVIDIA Cumulus 5.15 WJH + NetQ 4.13 + nvidia.nvue docs.
+     Reason strings verbatim; counts, ports, IPs, timings simulated
+     [inferred]. Not real fabric data. ib_write_lat (H8) is ib* and
+     routes via IB_DIAG_RE to IBTools DISPATCH, so it is NOT here.
+  ---------------------------------------------------------------- */
+
+  /* H1: on-box WJH packet-buffer drops (NVUE, CL 5.3+). */
+  'nv show system wjh packet-buffer': function (dev, raw, lower) {
+    return [
+      'Ingress Port  Traffic Class  Drop Reason                            Severity  Count',
+      '------------  -------------  -------------------------------------  --------  -----',
+      'swp1s2        3              WRED                                   Warning   84213',
+      'swp1s2        3              Port TC Congestion Threshold Crossed   Warning   12950',
+      'swp3          3              Tail drop                              Warning   311',
+      '',
+      '# WRED = the RED engine dropped to avoid congestion (buffer filled before ECN marked).',
+      '# (counts simulated, not real fabric data)',
+    ].join('\n');
+  },
+
+  /* H2: NetQ fabric-wide WJH summary (off-box). */
+  'netq show wjh-drop': function (dev, raw, lower) {
+    return [
+      'Matching wjh records: 4',
+      '',
+      'Hostname  Drop type  Reason                                Agg Count  Last Seen',
+      '--------  ---------  ------------------------------------  ---------  -------------------',
+      'leaf01    buffer     WRED                                  84213      2026-06-30 09:14:02',
+      'leaf01    buffer     Port TC Congestion Threshold Crossed  12950      2026-06-30 09:14:02',
+      'leaf02    l2         Vlan tag mismatch                     57         2026-06-30 09:02:41',
+      'leaf03    acl        Ingress router ACL                    9          2026-06-30 08:58:10',
+      '',
+      '# netq leaf01 show wjh-drop details between now and 7d  -> one switch, last 7 days.',
+      '# (records simulated, not real fabric data)',
+    ].join('\n');
+  },
+
+  /* H3: arm a WJH latency threshold (NetQ agent config). */
+  'netq config add agent wjh-threshold latency 3 swp1 10 1': function (dev, raw, lower) {
+    return [
+      'Successfully added agent wjh-threshold',
+      '  type      : latency',
+      '  tc-list   : 3',
+      '  port-list : swp1',
+      '  th-hi     : 10 (usec)',
+      '  th-lo     : 1  (usec)',
+      '',
+      '# Latency/congestion WJH events only emit on a crossing of this high/low threshold.',
+    ].join('\n');
+  },
+
+  /* H4: ASIC table utilization (NVUE preferred form). */
+  'nv show platform asic resource global': function (dev, raw, lower) {
+    return [
+      '                  count  maximum  % of maximum value',
+      '----------------  -----  -------  ------------------',
+      'ipv4-routes        18342   131072   14',
+      'ipv6-routes         4096    20480   20',
+      'host-entries        9011    49152   18',
+      'mac-entries        12087    81920   15',
+      'ecmp-nexthops       1842    16384   11',
+      '',
+      '# Watch the % of maximum column; a table near 100% stops offloading silently.',
+      '# Legacy alias: sudo cl-resource-query. (values simulated, not real ASIC data)',
+    ].join('\n');
+  },
+
+  /* H4 legacy alias. */
+  'sudo cl-resource-query': function (dev, raw, lower) {
+    return [
+      'ACL Regions, ingress :  42   50% of maximum',
+      'ACL Regions, egress  :  12   25% of maximum',
+      'IPv4 routes          :  18342   14% of maximum',
+      'Host entries         :  9011   18% of maximum',
+      '',
+      '# legacy alias for nv show platform asic resource global.',
+      '# (values simulated, not real ASIC data)',
+    ].join('\n');
+  },
+
+  /* H5: full golden-config replace (NVUE, CL 5.13+). */
+  'nv config replace /home/cumulus/golden.yaml': function (dev, raw, lower) {
+    return [
+      'Loaded /home/cumulus/golden.yaml into pending config (full replace).',
+      '',
+      'Run "nv config diff applied pending" to review, then "nv config apply".',
+      '# replace = whole file (must contain everything to keep); patch = partial delta.',
+    ].join('\n');
+  },
+
+  /* H6: Ansible nvidia.nvue VLAN playbook. */
+  'ansible-playbook -i inventory bridge.yml': function (dev, raw, lower) {
+    return [
+      'PLAY [Configure VLAN-to-VNI on leaves] *****************************************',
+      '',
+      'TASK [nvidia.nvue.config : new revision] ***************************************',
+      'changed: [leaf01]  (revision rev_2)',
+      'TASK [nvidia.nvue.bridge : merged] *********************************************',
+      'changed: [leaf01]  (vlan 10 -> vni 10)',
+      'TASK [nvidia.nvue.config : apply revision] *************************************',
+      'changed: [leaf01]  (httpapi port 8765)',
+      '',
+      'PLAY RECAP *********************************************************************',
+      'leaf01  : ok=3  changed=3  unreachable=0  failed=0',
+      '# revision lifecycle: new -> merged -> apply, over REST port 8765.',
+    ].join('\n');
+  },
+
+  /* H7: Ansible nvidia.nvue RoCE via command module. */
+  'ansible-playbook -i inventory roce.yml': function (dev, raw, lower) {
+    return [
+      'PLAY [Set lossless RoCE on leaves] *********************************************',
+      '',
+      'TASK [nvidia.nvue.command : push nv set qos roce mode lossless] ****************',
+      'changed: [leaf01]  => { "commands": ["set qos roce mode lossless"], "apply": true }',
+      '',
+      'PLAY RECAP *********************************************************************',
+      'leaf01  : ok=1  changed=1  unreachable=0  failed=0',
+      '# RoCE has no object module; nvidia.nvue.command wraps the literal nv set line.',
     ].join('\n');
   },
 
@@ -2380,7 +2604,7 @@ document.addEventListener('DOMContentLoaded', function () {
   /* Wrap processCommand: did-you-mean first, then IB-diag to IBTools, rest
      to the engine. After running, mark lessons and run the D8 / capstone
      completion gates. */
-  var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate|ibreset)\b/;
+  var IB_DIAG_RE = /^(ibstat|ibstatus|iblinkinfo|ibhosts|ibnetdiscover|ibdiagnet|perfquery|sminfo|ibping|ibportstate|ibreset|ib_write_lat)\b/;
   var _orig = window.Lab.LabBase.prototype.processCommand;
   lab.processCommand = function (raw) {
     var t = String(raw).trim();
