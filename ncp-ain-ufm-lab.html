@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>UFM REST API and Telemetry Lab -- NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+.ib-back { margin-bottom: var(--s-md); }
+.ib-header { margin-bottom: var(--s-lg); }
+.ib-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.ib-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 62ch;
+}
+.ib-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.1); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 6px 14px;
+  font-family: var(--font-display); font-weight: 700; font-size: .9rem;
+  color: var(--ncp-dark); margin-bottom: var(--s-md);
+}
+
+/* Mode selector */
+.ib-mode-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: var(--s-md); flex-wrap: wrap;
+}
+.ib-mode-label {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-secondary); white-space: nowrap;
+}
+.ib-mode-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ib-mode-tab {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 5px 14px; background: var(--bg-surface);
+  color: var(--ink-secondary); cursor: pointer;
+  transition: background 160ms, color 160ms, border-color 160ms;
+}
+.ib-mode-tab:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+.ib-mode-tab.active {
+  background: rgba(var(--ncp-rgb),.12);
+  border-color: var(--ncp); color: var(--ncp-dark);
+}
+
+/* Scenario picker */
+#scenarioSection { margin-bottom: var(--s-md); }
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: var(--s-md);
+}
+.scenario-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 160ms, box-shadow 160ms, background 160ms;
+  position: relative;
+}
+.scenario-card:hover {
+  border-color: var(--ncp); box-shadow: 0 0 0 2px rgba(var(--ncp-rgb),.12);
+}
+.scenario-card.active {
+  border-color: var(--ncp);
+  background: rgba(var(--ncp-rgb),.08);
+  box-shadow: 0 0 0 2px rgba(var(--ncp-rgb),.18);
+}
+.scenario-card.solved {
+  border-color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.15);
+}
+.scenario-card .sc-num {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .72rem; font-weight: 700;
+  color: var(--ncp-dark); margin-bottom: 4px; display: block;
+}
+.scenario-card .sc-title {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 600;
+  color: var(--ink); line-height: 1.3;
+}
+.scenario-card .sc-tool {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .72rem; color: var(--ink-secondary);
+  margin-top: 5px; display: block;
+}
+.scenario-card .sc-solved-badge {
+  position: absolute; top: 8px; right: 10px;
+  font-size: .72rem; font-weight: 700;
+  color: var(--ncp-dark); display: none;
+}
+.scenario-card.solved .sc-solved-badge { display: block; }
+
+/* Scenario briefing panel */
+#scenarioBrief {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ncp);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md);
+  margin-bottom: var(--s-md);
+  display: none;
+}
+#scenarioBrief.visible { display: block; }
+.brief-title {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  color: var(--ink); margin-bottom: 6px;
+}
+.brief-symptom {
+  font-family: var(--font-body); font-size: .88rem; color: var(--ink-secondary);
+  line-height: 1.6; margin-bottom: 10px;
+}
+.brief-objective {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.08);
+  border-radius: 6px; padding: 6px 10px;
+  margin-bottom: 10px;
+}
+.brief-hint-btn {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  color: var(--ink-secondary); background: none; border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 4px 12px;
+  cursor: pointer; transition: border-color 160ms, color 160ms;
+}
+.brief-hint-btn:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+.brief-hint-text {
+  font-family: var(--font-body); font-size: .85rem; color: var(--ink);
+  background: rgba(var(--ncp-rgb),.06); border-radius: 6px;
+  padding: 8px 12px; margin-top: 8px; display: none; line-height: 1.55;
+}
+.brief-hint-text.visible { display: block; }
+
+/* Success banner */
+#successBanner {
+  background: rgba(var(--ncp-rgb),.13);
+  border: 1.5px solid var(--ncp);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  margin-bottom: var(--s-md);
+  display: none;
+  font-family: var(--font-display); font-size: .95rem; font-weight: 600;
+  color: var(--ncp-dark);
+}
+#successBanner.visible { display: block; }
+
+/* Two-column body */
+.ib-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--s-lg);
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .ib-body { grid-template-columns: 1fr; }
+}
+
+/* Terminal chrome */
+.ed-term {
+  background: #161b22; border-radius: var(--radius-lg);
+  overflow: hidden; border: 1px solid #30363d;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.ed-term-bar {
+  display: flex; align-items: center; gap: 7px;
+  background: #21262d; padding: 10px 14px; border-bottom: 1px solid #30363d;
+}
+.ed-term-dot { width: 11px; height: 11px; border-radius: 50%; }
+.ed-term-dot.r { background: #ff5f56; }
+.ed-term-dot.y { background: #ffbd2e; }
+.ed-term-dot.g { background: #27c93f; }
+.ed-term-title {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: #8b949e; margin-left: 6px; letter-spacing: .02em;
+}
+
+/* Terminal body */
+#termWrap .term-wrap {
+  padding: 14px 18px;
+  min-height: 340px;
+  max-height: 520px;
+  overflow-y: auto;
+  cursor: text;
+}
+#termWrap .term-output {
+  white-space: pre-wrap; word-break: break-word;
+  color: #e6edf3; font-size: .82rem; line-height: 1.55;
+  margin-bottom: 4px;
+}
+#termWrap .term-line { margin: 0; }
+#termWrap .term-line.cmd { color: #a5d6ff; }
+#termWrap .term-input-row {
+  display: flex; align-items: baseline; gap: 0;
+  color: #e6edf3; font-size: .82rem;
+}
+#termWrap .term-prompt { color: #7ee787; white-space: pre; user-select: none; }
+#termWrap .term-input {
+  flex: 1; outline: none; caret-color: #e6edf3;
+  color: #e6edf3; min-width: 2ch;
+  font-family: inherit; font-size: inherit;
+}
+
+/* Cheat-list sidebar */
+.ib-cheat {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--s-md);
+}
+.ib-cheat h2 {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+}
+.ib-cheat ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ib-cheat li {}
+.ib-cheat code {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .78rem; font-weight: 600; color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.1); border-radius: 4px;
+  padding: 1px 5px; display: block; margin-bottom: 2px;
+}
+.ib-cheat .desc {
+  font-family: var(--font-body); font-size: .78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+
+/* Progress tracker */
+.ib-progress {
+  margin-top: var(--s-md);
+  padding-top: var(--s-md);
+  border-top: 1px solid var(--border);
+}
+.ib-progress-label {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: var(--ink-secondary); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.ib-progress-bar-wrap {
+  background: var(--border); border-radius: 4px; height: 6px; overflow: hidden;
+}
+.ib-progress-bar {
+  background: var(--ncp); height: 100%; border-radius: 4px;
+  transition: width 320ms cubic-bezier(.16,1,.3,1);
+  width: 0%;
+}
+.ib-progress-count {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .75rem; color: var(--ncp-dark);
+  margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="navMount"></div>
+
+<div class="container-wide">
+
+  <div class="ib-back">
+    <a href="ncp-ain-hub.html" class="back-link">&#8592; NCP-AIN Hub</a>
+  </div>
+
+  <div class="ib-header">
+    <div class="ib-badge">NCP-AIN · UFM REST API and Telemetry</div>
+    <h1>UFM Management Console</h1>
+    <p class="subtitle">
+      You are logged in to the UFM management node for a QM9790 InfiniBand fabric.
+      UFM (Unified Fabric Manager) exposes a REST API at <code>/ufmRest/</code> for topology,
+      telemetry, and fabric events. Use <code>GET</code> and <code>POST</code> commands to query
+      the API. Switch to Troubleshooting Scenarios to diagnose real fabric faults.
+      Type <code>help</code> for the full endpoint list.
+    </p>
+  </div>
+
+  <!-- Mode bar -->
+  <div class="ib-mode-bar">
+    <span class="ib-mode-label">Mode:</span>
+    <div class="ib-mode-tabs">
+      <button class="ib-mode-tab active" id="tabFreeplay" onclick="setMode('freeplay')">Free Play</button>
+      <button class="ib-mode-tab" id="tabTroubleshoot" onclick="setMode('troubleshoot')">Troubleshooting Scenarios</button>
+    </div>
+  </div>
+
+  <!-- Scenario picker (hidden in free-play) -->
+  <div id="scenarioSection" style="display:none;">
+
+    <div class="scenario-grid" id="scenarioGrid">
+      <!-- cards injected by JS -->
+    </div>
+
+    <!-- Briefing panel -->
+    <div id="scenarioBrief">
+      <div class="brief-title" id="briefTitle"></div>
+      <div class="brief-symptom" id="briefSymptom"></div>
+      <div class="brief-objective" id="briefObjective"></div>
+      <button class="brief-hint-btn" onclick="toggleHint()">Show Hint</button>
+      <div class="brief-hint-text" id="briefHint"></div>
+    </div>
+
+    <!-- Success banner -->
+    <div id="successBanner">
+      Scenario solved. Root cause identified and action taken. Well done.
+      <span id="successDetail"></span>
+    </div>
+
+  </div>
+
+  <!-- Body: terminal + sidebar -->
+  <div class="ib-body">
+
+    <div>
+      <div class="ed-term" id="termWrap">
+        <div class="ed-term-bar">
+          <span class="ed-term-dot r"></span>
+          <span class="ed-term-dot y"></span>
+          <span class="ed-term-dot g"></span>
+          <span class="ed-term-title" id="termTitle">admin@ufm-mgmt -- UFM REST API console</span>
+        </div>
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">admin@ufm-mgmt:~$ </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="UFM REST API console"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="ib-cheat" aria-label="Available endpoints">
+      <h2>Try these</h2>
+      <ul>
+        <li>
+          <code>GET /ufmRest/resources/ports</code>
+          <span class="desc">All fabric ports: GUID, LID, state, speed, width</span>
+        </li>
+        <li>
+          <code>GET /ufmRest/resources/links</code>
+          <span class="desc">Fabric links: source/dest GUID, width, speed</span>
+        </li>
+        <li>
+          <code>GET /ufmRest/resources/systems</code>
+          <span class="desc">Switches and HCAs: model, managed vs unmanaged</span>
+        </li>
+        <li>
+          <code>GET /ufmRest/monitoring/snapshot</code>
+          <span class="desc">Telemetry counters per port: errors, wait, discards</span>
+        </li>
+        <li>
+          <code>GET /ufmRest/app/events</code>
+          <span class="desc">Fabric alarms and events (link down, threshold breach)</span>
+        </li>
+        <li>
+          <code>POST /ufmRest/actions</code>
+          <span class="desc">Reset a port or trigger SM re-route</span>
+        </li>
+      </ul>
+
+      <!-- Progress (visible in troubleshoot mode) -->
+      <div class="ib-progress" id="progressSection" style="display:none;">
+        <div class="ib-progress-label">Scenarios solved</div>
+        <div class="ib-progress-bar-wrap">
+          <div class="ib-progress-bar" id="progressBar"></div>
+        </div>
+        <div class="ib-progress-count" id="progressCount">0 / 4</div>
+      </div>
+    </aside>
+
+  </div>
+
+</div><!-- /.container-wide -->
+
+<script defer src="js/lab-engine.js?v=7.17.10"></script>
+<script defer src="js/nav.js"></script>
+<script>
+/* ====================================================================
+   SCENARIO DEFINITIONS
+   Each scenario maps a fabric symptom to the REST endpoints that reveal
+   the root cause, and a fix action to complete.
+   ==================================================================== */
+var SCENARIOS = [
+  {
+    id: 'degradedlink',
+    num: '01',
+    title: 'Degraded Link Width',
+    diagTool: 'GET /ufmRest/resources/links',
+    symptom: 'A compute node (dgx-02) shows 15% lower bandwidth than its peers during all-reduce. No link-down alarms have fired. The link appears active.',
+    objective: 'Query the links endpoint to find the port running at 4X instead of 12X. Then confirm with the telemetry snapshot that SymbolErrorCounter is climbing.',
+    hint: 'Link width negotiates down when a cable lane fails. The links endpoint shows the active width for each link. Look for one that differs from its neighbors.',
+    diagCmds: ['GET /ufmRest/resources/links', 'get /ufmrest/resources/links'],
+    fixCmds: ['GET /ufmRest/monitoring/snapshot', 'get /ufmrest/monitoring/snapshot', 'POST /ufmRest/actions', 'post /ufmrest/actions'],
+    fixKeyword: 'actions',
+    fixDescription: 'Switch s01/port 12 is running 4X (degraded lane). SymbolErrorCounter is rising. Reset the port via POST /ufmRest/actions to force re-negotiation; replace cable if error persists.'
+  },
+  {
+    id: 'congestion',
+    num: '02',
+    title: 'Congestion Hotspot',
+    diagTool: 'GET /ufmRest/monitoring/snapshot',
+    symptom: 'Collective operations on the storage tier take 3x longer than normal. No link errors in ibdiagnet. GPU utilization looks fine.',
+    objective: 'Query the telemetry snapshot to find the port with elevated PortXmitWait. Explain why that counter signals incast congestion.',
+    hint: 'PortXmitWait counts clock cycles a port spent unable to transmit because its output buffer was full. High values = credit starvation or incast from many-to-one traffic pattern.',
+    diagCmds: ['GET /ufmRest/monitoring/snapshot', 'get /ufmrest/monitoring/snapshot'],
+    fixCmds: ['POST /ufmRest/actions', 'post /ufmrest/actions'],
+    fixKeyword: 'actions',
+    fixDescription: 'Switch s02/port 7 shows PortXmitWait=9812044. Incast from 8 sources hitting the same egress port. Mitigation: enable IB Congestion Control or rebalance routes via POST /ufmRest/actions SM re-route.'
+  },
+  {
+    id: 'portflap',
+    num: '03',
+    title: 'Port Flap Alarm',
+    diagTool: 'GET /ufmRest/app/events',
+    symptom: 'Overnight job logs show periodic RDMA connection resets every 8 minutes. The link is currently up. No one saw it go down.',
+    objective: 'Query the events endpoint to find LinkDowned events for the flapping port. Then confirm via the telemetry snapshot that LinkDownedCounter is non-zero.',
+    hint: 'The events endpoint logs every fabric alarm with a timestamp. Look for repeated LinkDown/LinkUp pairs on the same GUID within a short window.',
+    diagCmds: ['GET /ufmRest/app/events', 'get /ufmrest/app/events'],
+    fixCmds: ['GET /ufmRest/monitoring/snapshot', 'get /ufmrest/monitoring/snapshot', 'POST /ufmRest/actions', 'post /ufmrest/actions'],
+    fixKeyword: 'actions',
+    fixDescription: 'Switch s01/port 4 logged 11 LinkDowned events overnight. LinkDownedCounter=11, LinkErrorRecovery=11. Faulty cable or SFP. Schedule cable replacement and reset counters via POST /ufmRest/actions.'
+  },
+  {
+    id: 'unmanaged',
+    num: '04',
+    title: 'Unmanaged Switch Limits',
+    diagTool: 'GET /ufmRest/resources/systems',
+    symptom: 'You need to reboot a leaf switch via the REST API to apply a firmware update. The usual POST /ufmRest/actions returns 403 for that switch GUID.',
+    objective: 'Query the systems endpoint to determine whether the target switch is managed or unmanaged. Explain what an unmanaged switch means for direct REST control.',
+    hint: 'The systems endpoint includes a field showing whether UFM has a direct management path to a switch. QM9790 ships in both managed and unmanaged (edge-managed) variants.',
+    diagCmds: ['GET /ufmRest/resources/systems', 'get /ufmrest/resources/systems'],
+    fixCmds: ['GET /ufmRest/resources/systems', 'get /ufmrest/resources/systems'],
+    fixKeyword: 'systems',
+    fixDescription: 'Switch s03 is externally-managed (no management IP). It has no CPU exposed to UFM. All actions must go through the Subnet Manager or a direct console connection, not the UFM REST API.'
+  }
+];
+
+/* ====================================================================
+   FABRIC STATE
+   Synthesized sample data. All GUIDs, counters, and JSON are
+   original to this simulation; they do not reproduce UFM SDK verbatim.
+   ==================================================================== */
+
+var TS = '2026-06-25T';
+
+/* ---- /resources/ports ---- */
+var PORTS_DATA = [
+  { guid: '0x0002c90300aa0001', lid: 1,  system: 's01', port: 1,  state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '12X', logical_name: 'switch-s01/P1'  },
+  { guid: '0x0002c90300aa0002', lid: 1,  system: 's01', port: 4,  state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '12X', logical_name: 'switch-s01/P4'  },
+  { guid: '0x0002c90300aa0003', lid: 1,  system: 's01', port: 12, state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '4X',  logical_name: 'switch-s01/P12' },
+  { guid: '0x0002c90300bb0001', lid: 2,  system: 's02', port: 7,  state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '12X', logical_name: 'switch-s02/P7'  },
+  { guid: '0x0002c90300bb0002', lid: 2,  system: 's02', port: 8,  state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '12X', logical_name: 'switch-s02/P8'  },
+  { guid: '0x0002c90300cc0001', lid: 3,  system: 's03', port: 1,  state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '12X', logical_name: 'switch-s03/P1'  },
+  { guid: '0x0002c90300dd0001', lid: 10, system: 'dgx-01', port: 1, state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '12X', logical_name: 'dgx-01/mlx5_0' },
+  { guid: '0x0002c90300dd0002', lid: 11, system: 'dgx-02', port: 1, state: 'Active', physical_state: 'LinkUp', speed: 'NDR 400Gb/s', width: '4X',  logical_name: 'dgx-02/mlx5_0' }
+];
+
+/* ---- /resources/links ---- */
+var LINKS_DATA = [
+  { link_id: 'L001', src_guid: '0x0002c90300aa0001', src_port: 1,  dst_guid: '0x0002c90300dd0001', dst_port: 1, width: '12X', speed: 'NDR 400Gb/s', state: 'Active' },
+  { link_id: 'L002', src_guid: '0x0002c90300aa0003', src_port: 12, dst_guid: '0x0002c90300dd0002', dst_port: 1, width: '4X',  speed: 'NDR 400Gb/s', state: 'Active' },
+  { link_id: 'L003', src_guid: '0x0002c90300bb0001', src_port: 7,  dst_guid: '0x0002c90300aa0001', dst_port: 2, width: '12X', speed: 'NDR 400Gb/s', state: 'Active' },
+  { link_id: 'L004', src_guid: '0x0002c90300bb0002', src_port: 8,  dst_guid: '0x0002c90300cc0001', dst_port: 1, width: '12X', speed: 'NDR 400Gb/s', state: 'Active' },
+  { link_id: 'L005', src_guid: '0x0002c90300cc0001', src_port: 2,  dst_guid: '0x0002c90300aa0002', dst_port: 4, width: '12X', speed: 'NDR 400Gb/s', state: 'Active' }
+];
+
+/* ---- /resources/systems ---- */
+var SYSTEMS_DATA = [
+  { system_name: 's01', type: 'Switch', model: 'QM9790', node_guid: '0x0002c90300aa0000', management_ip: '192.168.1.101', managed: true,  num_ports: 64, description: 'Leaf switch 01, managed -- UFM has direct REST+SSH control' },
+  { system_name: 's02', type: 'Switch', model: 'QM9790', node_guid: '0x0002c90300bb0000', management_ip: '192.168.1.102', managed: true,  num_ports: 64, description: 'Leaf switch 02, managed -- UFM has direct REST+SSH control' },
+  { system_name: 's03', type: 'Switch', model: 'QM9790', node_guid: '0x0002c90300cc0000', management_ip: null,            managed: false, num_ports: 64, description: 'Leaf switch 03, externally-managed -- no management IP; SM-only control' },
+  { system_name: 'dgx-01', type: 'HCA', model: 'ConnectX-7', node_guid: '0x0002c90300dd0000', management_ip: '10.0.0.11', managed: true,  num_ports: 8,  description: 'DGX H100 compute node 01' },
+  { system_name: 'dgx-02', type: 'HCA', model: 'ConnectX-7', node_guid: '0x0002c90300ee0000', management_ip: '10.0.0.12', managed: true,  num_ports: 8,  description: 'DGX H100 compute node 02' }
+];
+
+/* ---- /monitoring/snapshot ---- */
+var SNAPSHOT_DATA = [
+  {
+    guid: '0x0002c90300aa0001', system: 's01', port: 1,
+    SymbolErrorCounter: 0, LinkErrorRecovery: 0, LinkDownedCounter: 0,
+    PortXmitWait: 124, PortXmitDiscards: 0, PortRcvErrors: 0,
+    PortRcvConstraintErrors: 0, bad_pkey_cntr: 0,
+    timestamp: TS + '06:00:01Z'
+  },
+  {
+    guid: '0x0002c90300aa0002', system: 's01', port: 4,
+    SymbolErrorCounter: 0, LinkErrorRecovery: 11, LinkDownedCounter: 11,
+    PortXmitWait: 88, PortXmitDiscards: 0, PortRcvErrors: 0,
+    PortRcvConstraintErrors: 0, bad_pkey_cntr: 0,
+    timestamp: TS + '06:00:01Z'
+  },
+  {
+    guid: '0x0002c90300aa0003', system: 's01', port: 12,
+    SymbolErrorCounter: 4821, LinkErrorRecovery: 3, LinkDownedCounter: 1,
+    PortXmitWait: 201, PortXmitDiscards: 0, PortRcvErrors: 0,
+    PortRcvConstraintErrors: 0, bad_pkey_cntr: 0,
+    timestamp: TS + '06:00:01Z'
+  },
+  {
+    guid: '0x0002c90300bb0001', system: 's02', port: 7,
+    SymbolErrorCounter: 0, LinkErrorRecovery: 0, LinkDownedCounter: 0,
+    PortXmitWait: 9812044, PortXmitDiscards: 1204, PortRcvErrors: 0,
+    PortRcvConstraintErrors: 0, bad_pkey_cntr: 0,
+    timestamp: TS + '06:00:01Z'
+  },
+  {
+    guid: '0x0002c90300bb0002', system: 's02', port: 8,
+    SymbolErrorCounter: 0, LinkErrorRecovery: 0, LinkDownedCounter: 0,
+    PortXmitWait: 331, PortXmitDiscards: 0, PortRcvErrors: 0,
+    PortRcvConstraintErrors: 0, bad_pkey_cntr: 0,
+    timestamp: TS + '06:00:01Z'
+  },
+  {
+    guid: '0x0002c90300cc0001', system: 's03', port: 1,
+    SymbolErrorCounter: 0, LinkErrorRecovery: 0, LinkDownedCounter: 0,
+    PortXmitWait: 55, PortXmitDiscards: 0, PortRcvErrors: 0,
+    PortRcvConstraintErrors: 0, bad_pkey_cntr: 0,
+    timestamp: TS + '06:00:01Z'
+  }
+];
+
+/* ---- /app/events ---- */
+var EVENTS_DATA = [
+  { event_id: 'EVT-1041', severity: 'INFO',    category: 'Link',   object_name: 'switch-s01/P4',  description: 'LinkDown event detected',   timestamp: TS + '22:01:00Z' },
+  { event_id: 'EVT-1042', severity: 'INFO',    category: 'Link',   object_name: 'switch-s01/P4',  description: 'LinkUp event detected',     timestamp: TS + '22:01:08Z' },
+  { event_id: 'EVT-1043', severity: 'INFO',    category: 'Link',   object_name: 'switch-s01/P4',  description: 'LinkDown event detected',   timestamp: TS + '22:09:12Z' },
+  { event_id: 'EVT-1044', severity: 'INFO',    category: 'Link',   object_name: 'switch-s01/P4',  description: 'LinkUp event detected',     timestamp: TS + '22:09:20Z' },
+  { event_id: 'EVT-1061', severity: 'WARNING', category: 'Link',   object_name: 'switch-s01/P4',  description: 'LinkDown event detected',   timestamp: TS + '23:14:33Z' },
+  { event_id: 'EVT-1062', severity: 'INFO',    category: 'Link',   object_name: 'switch-s01/P4',  description: 'LinkUp event detected',     timestamp: TS + '23:14:41Z' },
+  { event_id: 'EVT-2010', severity: 'WARNING', category: 'Perf',   object_name: 'switch-s02/P7',  description: 'PortXmitWait threshold exceeded (BER limit: 1e-12)', timestamp: TS + '05:58:00Z' },
+  { event_id: 'EVT-2011', severity: 'WARNING', category: 'Perf',   object_name: 'switch-s02/P7',  description: 'PortXmitDiscards rising (incast suspected)',          timestamp: TS + '05:59:10Z' },
+  { event_id: 'EVT-3001', severity: 'INFO',    category: 'Width',  object_name: 'switch-s01/P12', description: 'Link width degraded: negotiated 4X (expected 12X)',  timestamp: TS + '01:03:55Z' },
+  { event_id: 'EVT-0900', severity: 'INFO',    category: 'System', object_name: 's03',             description: 'System discovered via SM only (no management IP)', timestamp: TS + '00:00:12Z' }
+];
+
+/* ====================================================================
+   JSON FORMATTERS
+   ==================================================================== */
+
+function prettyJSON(obj) {
+  return JSON.stringify(obj, null, 2);
+}
+
+function fmtPorts() {
+  return prettyJSON({ status: 200, count: PORTS_DATA.length, ports: PORTS_DATA });
+}
+
+function fmtLinks() {
+  return prettyJSON({ status: 200, count: LINKS_DATA.length, links: LINKS_DATA });
+}
+
+function fmtSystems() {
+  return prettyJSON({ status: 200, count: SYSTEMS_DATA.length, systems: SYSTEMS_DATA });
+}
+
+function fmtSnapshot() {
+  return prettyJSON({ status: 200, snapshot_time: TS + '06:00:01Z', entries: SNAPSHOT_DATA });
+}
+
+function fmtEvents() {
+  return prettyJSON({ status: 200, count: EVENTS_DATA.length, events: EVENTS_DATA });
+}
+
+function fmtActions(raw) {
+  /* Synthesize a plausible POST body echo + result */
+  var body = raw.replace(/^post\s+\/ufmrest\/actions\s*/i, '').trim();
+  if (!body) {
+    return prettyJSON({
+      status: 400,
+      error: 'Request body required.',
+      example: { action: 'reset_port', target_guid: '0x0002c90300aa0003', target_port: 12 }
+    });
+  }
+  /* Detect unmanaged switch 403 for scenario 04 */
+  if (body.indexOf('cc') !== -1 || body.toLowerCase().indexOf('s03') !== -1) {
+    return prettyJSON({
+      status: 403,
+      error: 'Action not permitted: switch s03 is externally-managed (no management IP). Use SM-based control or direct console.'
+    });
+  }
+  return prettyJSON({
+    status: 202,
+    message: 'Action accepted and queued.',
+    action_id: 'ACT-' + Math.floor(Math.random() * 90000 + 10000),
+    detail: 'Port will be reset. Monitor /app/events for LinkUp confirmation.'
+  });
+}
+
+/* ====================================================================
+   SCENARIO / OBJECTIVE TRACKER
+   ==================================================================== */
+var _activeScenario = null;
+var _diagDone = false;
+var _fixDone = false;
+var _solvedSet = {};
+var _hintVisible = false;
+
+function setMode(mode) {
+  var isTS = (mode === 'troubleshoot');
+  document.getElementById('tabFreeplay').classList.toggle('active', !isTS);
+  document.getElementById('tabTroubleshoot').classList.toggle('active', isTS);
+  document.getElementById('scenarioSection').style.display = isTS ? '' : 'none';
+  document.getElementById('progressSection').style.display = isTS ? '' : 'none';
+
+  if (!isTS) {
+    _activeScenario = null;
+    _diagDone = false;
+    _fixDone = false;
+    hideBrief();
+    hideSuccess();
+    document.getElementById('termTitle').textContent = 'admin@ufm-mgmt -- UFM REST API console';
+    if (window._lab && window._lab.terminal) {
+      window._lab.terminal.writeLine('');
+      window._lab.terminal.writeLine('[Mode: Free Play] No active scenario. All endpoints return normal fabric state.');
+      window._lab.terminal.writeLine('');
+      window._lab.terminal.updatePrompt();
+    }
+  }
+}
+
+function selectScenario(sc) {
+  _activeScenario = sc;
+  _diagDone = false;
+  _fixDone = false;
+  _hintVisible = false;
+
+  var cards = document.querySelectorAll('.scenario-card');
+  cards.forEach(function (c) {
+    c.classList.toggle('active', c.dataset.scId === sc.id);
+  });
+
+  document.getElementById('briefTitle').textContent = sc.num + '. ' + sc.title;
+  document.getElementById('briefSymptom').textContent = 'Symptom: ' + sc.symptom;
+  document.getElementById('briefObjective').textContent = 'Objective: ' + sc.objective;
+  document.getElementById('briefHint').textContent = sc.hint;
+  document.getElementById('briefHint').classList.remove('visible');
+  document.getElementById('scenarioBrief').classList.add('visible');
+
+  hideSuccess();
+
+  document.getElementById('termTitle').textContent =
+    'admin@ufm-mgmt -- FAULT: ' + sc.title;
+
+  if (window._lab && window._lab.terminal) {
+    window._lab.terminal.writeLine('');
+    window._lab.terminal.writeLine('======================================================');
+    window._lab.terminal.writeLine('SCENARIO ' + sc.num + ': ' + sc.title.toUpperCase());
+    window._lab.terminal.writeLine('------------------------------------------------------');
+    window._lab.terminal.writeLine('Symptom: ' + sc.symptom);
+    window._lab.terminal.writeLine('Objective: ' + sc.objective);
+    window._lab.terminal.writeLine('Fault injected. Query the endpoints to reveal the root cause.');
+    window._lab.terminal.writeLine('======================================================');
+    window._lab.terminal.writeLine('');
+    window._lab.terminal.updatePrompt();
+  }
+}
+
+function toggleHint() {
+  _hintVisible = !_hintVisible;
+  document.getElementById('briefHint').classList.toggle('visible', _hintVisible);
+  document.querySelector('.brief-hint-btn').textContent =
+    _hintVisible ? 'Hide Hint' : 'Show Hint';
+}
+
+function hideBrief() {
+  document.getElementById('scenarioBrief').classList.remove('visible');
+}
+
+function hideSuccess() {
+  document.getElementById('successBanner').classList.remove('visible');
+}
+
+function showSuccess(sc) {
+  document.getElementById('successDetail').textContent =
+    ' Root cause: ' + sc.fixDescription;
+  document.getElementById('successBanner').classList.add('visible');
+
+  _solvedSet[sc.id] = true;
+  var card = document.querySelector('.scenario-card[data-sc-id="' + sc.id + '"]');
+  if (card) card.classList.add('solved');
+
+  updateProgress();
+}
+
+function updateProgress() {
+  var solved = Object.keys(_solvedSet).length;
+  var total = SCENARIOS.length;
+  document.getElementById('progressBar').style.width = Math.round(solved / total * 100) + '%';
+  document.getElementById('progressCount').textContent = solved + ' / ' + total;
+}
+
+function checkObjective(rawCmd) {
+  if (!_activeScenario) return;
+  var sc = _activeScenario;
+  var cmd = rawCmd.trim().toLowerCase();
+
+  if (!_diagDone) {
+    for (var i = 0; i < sc.diagCmds.length; i++) {
+      if (cmd.indexOf(sc.diagCmds[i].toLowerCase()) !== -1) {
+        _diagDone = true;
+        break;
+      }
+    }
+  }
+
+  if (_diagDone && !_fixDone) {
+    for (var j = 0; j < sc.fixCmds.length; j++) {
+      if (cmd.indexOf(sc.fixCmds[j].toLowerCase()) !== -1) {
+        _fixDone = true;
+        break;
+      }
+    }
+    if (cmd.indexOf(sc.fixKeyword.toLowerCase()) !== -1) {
+      _fixDone = true;
+    }
+  }
+
+  if (_diagDone && _fixDone && !_solvedSet[sc.id]) {
+    showSuccess(sc);
+  }
+}
+
+/* ====================================================================
+   PAGE INIT
+   ==================================================================== */
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* Build scenario cards */
+  var grid = document.getElementById('scenarioGrid');
+  SCENARIOS.forEach(function (sc) {
+    var card = document.createElement('div');
+    card.className = 'scenario-card';
+    card.dataset.scId = sc.id;
+    card.innerHTML =
+      '<span class="sc-num">Scenario ' + sc.num + '</span>' +
+      '<span class="sc-title">' + sc.title + '</span>' +
+      '<span class="sc-tool">Diagnose with: ' + sc.diagTool + '</span>' +
+      '<span class="sc-solved-badge">Solved</span>';
+    card.addEventListener('click', function () { selectScenario(sc); });
+    grid.appendChild(card);
+  });
+
+  /* Command map */
+  var MAP = {};
+
+  /* GET endpoints */
+  MAP['GET'] = MAP['get'] = function (dev, raw) {
+    checkObjective(raw);
+    var lower = raw.trim().toLowerCase();
+
+    if (lower.indexOf('/ufmrest/resources/ports') !== -1) {
+      return fmtPorts();
+    }
+    if (lower.indexOf('/ufmrest/resources/links') !== -1) {
+      return fmtLinks();
+    }
+    if (lower.indexOf('/ufmrest/resources/systems') !== -1) {
+      return fmtSystems();
+    }
+    if (lower.indexOf('/ufmrest/monitoring/snapshot') !== -1) {
+      return fmtSnapshot();
+    }
+    if (lower.indexOf('/ufmrest/app/events') !== -1) {
+      return fmtEvents();
+    }
+    return '[sim] 404 Not Found: ' + raw.replace(/^get\s+/i, '').trim() +
+      '\nKnown GET paths: /ufmRest/resources/ports, /resources/links, /resources/systems, /monitoring/snapshot, /app/events';
+  };
+
+  MAP['GET ...'] = MAP['get ...'] = MAP['GET'];
+
+  /* POST endpoint */
+  MAP['POST'] = MAP['post'] = function (dev, raw) {
+    checkObjective(raw);
+    var lower = raw.trim().toLowerCase();
+    if (lower.indexOf('/ufmrest/actions') !== -1) {
+      return fmtActions(raw);
+    }
+    return '[sim] 404 Not Found: ' + raw.replace(/^post\s+/i, '').trim() +
+      '\nKnown POST paths: /ufmRest/actions';
+  };
+
+  MAP['POST ...'] = MAP['post ...'] = MAP['POST'];
+
+  /* Shell utilities */
+  MAP['clear'] = function () {
+    if (window._lab && window._lab.terminal) { window._lab.terminal.clear(); }
+    return '';
+  };
+
+  MAP['pwd']      = '/home/admin';
+  MAP['whoami']   = 'admin';
+  MAP['hostname'] = 'ufm-mgmt';
+  MAP['date']     = new Date().toUTCString();
+  MAP['ls']       = 'configs  logs  scripts';
+  MAP['uname']    = 'Linux';
+  MAP['uname ...'] = function (dev, raw) {
+    if (raw.indexOf('-a') !== -1) return 'Linux ufm-mgmt 5.15.0-102-generic #112-Ubuntu SMP x86_64 GNU/Linux';
+    if (raw.indexOf('-r') !== -1) return '5.15.0-102-generic';
+    return 'Linux';
+  };
+
+  MAP['help'] = MAP['?'] = [
+    'NCP-AIN UFM REST API Console -- available commands:',
+    '',
+    'UFM REST API endpoints:',
+    '  GET /ufmRest/resources/ports        Fabric ports: GUID, LID, state, speed, width',
+    '  GET /ufmRest/resources/links        Fabric links: src/dst, width, speed, state',
+    '  GET /ufmRest/resources/systems      Switches and HCAs: model, managed status',
+    '  GET /ufmRest/monitoring/snapshot    Telemetry counters per port',
+    '  GET /ufmRest/app/events             Fabric alarms: link events, threshold breaches',
+    '  POST /ufmRest/actions [body]        Actions: reset_port, sm_reroute, etc.',
+    '',
+    'Key telemetry counters to know:',
+    '  SymbolErrorCounter    Physical-layer errors (rising = bad cable / BER high)',
+    '  LinkErrorRecovery     Times port recovered from error without going down',
+    '  LinkDownedCounter     Times port fully went down (flap = LinkDowned + LER both rising)',
+    '  PortXmitWait          Cycles port could not transmit (credit starvation, incast)',
+    '  PortXmitDiscards      Packets dropped at egress (congestion overflow)',
+    '  PortRcvConstraintErrors  Packets dropped due to PKey/access policy violation',
+    '  bad_pkey_cntr         Partition key violations (PKey mismatch between nodes)',
+    '',
+    'Managed vs unmanaged switches (exam-critical):',
+    '  managed=true  -- UFM has direct REST+SSH control (management IP present)',
+    '  managed=false -- externally-managed; no management IP; SM-only control',
+    '                   QM9790 ships in both variants.',
+    '',
+    'Shell utils:',
+    '  pwd / ls / whoami / hostname / uname [-a|-r] / date / clear',
+    '',
+    'Troubleshooting tip:',
+    '  Start with: GET /ufmRest/app/events       (see active alarms)',
+    '  Then:       GET /ufmRest/monitoring/snapshot  (find the bad counter)',
+    '  Confirm:    GET /ufmRest/resources/links   (check link width)',
+    '  Act:        POST /ufmRest/actions          (reset port or re-route)'
+  ].join('\n');
+
+  /* Build LabBase + device */
+  var lab = new Lab.LabBase({ objectives: [] });
+  window._lab = lab;
+  lab.addDevice('ufm-mgmt', 'host', {
+    hostname: 'admin@ufm-mgmt',
+    shellPromptFormat: 'linux',
+    commandMap: MAP
+  });
+
+  lab.initTerminal(document.getElementById('termMount'));
+
+  lab.terminal.writeLine('NCP-AIN UFM REST API and Telemetry Console');
+  lab.terminal.writeLine('Server: ufm-mgmt   UFM Enterprise v6.23.x   Fabric: QM9790 NDR 400Gb/s');
+  lab.terminal.writeLine('REST base: /ufmRest/   Auth: HTTP Basic (pre-authenticated in sim)');
+  lab.terminal.writeLine('Type: GET /ufmRest/resources/ports   or   help   to begin.');
+  lab.terminal.writeLine('Switch to Troubleshooting Scenarios to practice fault diagnosis.');
+  lab.terminal.writeLine('');
+  lab.terminal.updatePrompt();
+  lab.terminal.focus();
+});
+</script>
+<script defer src="js/tutor.js?v=7.17.10"></script>
+</body>
+</html>

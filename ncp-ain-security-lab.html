@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Spectrum-X Security Lab -- NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+/* Layout */
+.lab-back { margin-bottom: var(--s-md); }
+.lab-header { margin-bottom: var(--s-lg); }
+.lab-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.lab-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 68ch;
+}
+.ncp-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.08); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 5px 13px; margin-bottom: var(--s-md);
+  font-family: var(--font-display); font-weight: 700; font-size: .85rem; color: var(--ncp);
+}
+.ncp-badge .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--ncp);
+}
+
+/* Mode selector */
+.lab-mode-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: var(--s-md); flex-wrap: wrap;
+}
+.lab-mode-label {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-secondary); white-space: nowrap;
+}
+.lab-mode-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.lab-mode-tab {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 5px 14px; background: var(--bg-surface);
+  color: var(--ink-secondary); cursor: pointer;
+  transition: background 160ms, color 160ms, border-color 160ms;
+}
+.lab-mode-tab:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+.lab-mode-tab.active {
+  background: rgba(var(--ncp-rgb),.12);
+  border-color: var(--ncp); color: var(--ncp-dark);
+}
+
+/* Scenario picker */
+#scenarioSection { margin-bottom: var(--s-md); }
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px; margin-bottom: var(--s-md);
+}
+.scenario-card {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg-surface); padding: 12px 14px;
+  cursor: pointer; position: relative;
+  transition: border-color 160ms, box-shadow 160ms, background 160ms;
+}
+.scenario-card:hover {
+  border-color: var(--ncp); box-shadow: 0 0 0 2px rgba(var(--ncp-rgb),.12);
+}
+.scenario-card.active {
+  border-color: var(--ncp); background: rgba(var(--ncp-rgb),.08);
+  box-shadow: 0 0 0 2px rgba(var(--ncp-rgb),.18);
+}
+.scenario-card.solved {
+  border-color: var(--ncp-dark); background: rgba(var(--ncp-rgb),.15);
+}
+.scenario-card .sc-num {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .72rem; font-weight: 700;
+  color: var(--ncp-dark); margin-bottom: 4px; display: block;
+}
+.scenario-card .sc-title {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 600;
+  color: var(--ink); line-height: 1.3;
+}
+.scenario-card .sc-tool {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .72rem; color: var(--ink-secondary);
+  margin-top: 5px; display: block;
+}
+.scenario-card .sc-solved-badge {
+  position: absolute; top: 8px; right: 10px;
+  font-size: .72rem; font-weight: 700;
+  color: var(--ncp-dark); display: none;
+}
+.scenario-card.solved .sc-solved-badge { display: block; }
+
+/* Scenario briefing panel */
+#scenarioBrief {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--ncp); border-radius: var(--radius-lg);
+  padding: var(--s-md); margin-bottom: var(--s-md); display: none;
+}
+#scenarioBrief.visible { display: block; }
+.brief-title {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  color: var(--ink); margin-bottom: 6px;
+}
+.brief-symptom {
+  font-family: var(--font-body); font-size: .88rem; color: var(--ink-secondary);
+  line-height: 1.6; margin-bottom: 10px;
+}
+.brief-objective {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  color: var(--ncp-dark); background: rgba(var(--ncp-rgb),.08);
+  border-radius: 6px; padding: 6px 10px; margin-bottom: 10px;
+}
+.brief-hint-btn {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  color: var(--ink-secondary); background: none; border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 4px 12px;
+  cursor: pointer; transition: border-color 160ms, color 160ms;
+}
+.brief-hint-btn:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+.brief-hint-text {
+  font-family: var(--font-body); font-size: .85rem; color: var(--ink);
+  background: rgba(var(--ncp-rgb),.06); border-radius: 6px;
+  padding: 8px 12px; margin-top: 8px; display: none; line-height: 1.55;
+}
+.brief-hint-text.visible { display: block; }
+
+/* Success banner */
+#successBanner {
+  background: rgba(var(--ncp-rgb),.13); border: 1.5px solid var(--ncp);
+  border-radius: var(--radius-lg); padding: 12px 18px;
+  margin-bottom: var(--s-md); display: none;
+  font-family: var(--font-display); font-size: .95rem; font-weight: 600;
+  color: var(--ncp-dark);
+}
+#successBanner.visible { display: block; }
+
+/* Two-column body: terminal + cheat panel */
+.lab-body {
+  display: grid; grid-template-columns: 1fr 280px;
+  gap: var(--s-lg); align-items: start;
+}
+@media (max-width: 820px) { .lab-body { grid-template-columns: 1fr; } }
+
+/* Terminal chrome */
+.term-chrome {
+  background: #06090d; border: 1px solid #243140; border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,.35);
+}
+.term-titlebar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: #0d131b; border-bottom: 1px solid #243140;
+}
+.term-dot { width: 12px; height: 12px; border-radius: 50%; }
+.term-dot.r { background: #ff5f56; }
+.term-dot.y { background: #ffbd2e; }
+.term-dot.g { background: #27c93f; }
+.term-title-text {
+  margin-left: 8px; font-family: var(--font-mono); font-size: .82rem;
+  color: #9aa7b4; letter-spacing: .02em;
+}
+.term-title-text span { color: var(--ncp-light, #A4D65E); font-weight: 600; }
+
+.term-wrap {
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+  color: #cfe3e0; height: 440px; overflow-y: auto;
+  padding: 14px 16px 8px;
+}
+.term-output { white-space: pre-wrap; word-break: break-word; }
+.term-line { white-space: pre-wrap; word-break: break-word; }
+.term-line.cmd { color: #a4d65e; }
+.term-input-row {
+  display: flex; align-items: flex-start; gap: 0;
+  margin-top: 2px; padding-bottom: 4px;
+}
+.term-prompt {
+  color: var(--ncp-light, #A4D65E); white-space: pre; user-select: none;
+  font-family: var(--font-mono); font-size: 13px; flex-shrink: 0;
+}
+.term-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #e6edf3; font-family: var(--font-mono); font-size: 13px;
+  line-height: 1.6; caret-color: var(--ncp-light, #A4D65E);
+  white-space: pre-wrap; word-break: break-word; min-width: 0;
+}
+.term-input:empty::before { content: '\00a0'; }
+
+/* Cheat sheet sidebar */
+.cheat-panel {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--s-md);
+}
+.cheat-panel h2 {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+}
+.cheat-panel ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cheat-panel li {}
+.cheat-panel code {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .78rem; font-weight: 600; color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.1); border-radius: 4px;
+  padding: 1px 5px; display: block; margin-bottom: 2px;
+  cursor: pointer; transition: background 120ms;
+}
+.cheat-panel code:hover { background: rgba(var(--ncp-rgb),.2); }
+.cheat-panel .desc {
+  font-family: var(--font-body); font-size: .78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+.workflow-note {
+  margin-top: var(--s-md); padding: 10px 12px;
+  background: rgba(var(--ncp-rgb),.06); border: 1px solid rgba(var(--ncp-rgb),.2);
+  border-radius: var(--radius); font-family: var(--font-display); font-size: .8rem;
+  color: var(--ink-secondary); line-height: 1.6;
+}
+.workflow-note strong { color: var(--ncp); font-weight: 700; }
+.workflow-note code {
+  font-family: var(--font-mono); font-size: .83em; color: var(--ink);
+  background: none; padding: 0; cursor: default;
+}
+.workflow-note code:hover { background: none; }
+
+/* Progress tracker */
+.lab-progress {
+  margin-top: var(--s-md); padding-top: var(--s-md);
+  border-top: 1px solid var(--border);
+}
+.lab-progress-label {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: var(--ink-secondary); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.lab-progress-bar-wrap {
+  background: var(--border); border-radius: 4px; height: 6px; overflow: hidden;
+}
+.lab-progress-bar {
+  background: var(--ncp); height: 100%; border-radius: 4px;
+  transition: width 320ms cubic-bezier(.16,1,.3,1); width: 0%;
+}
+.lab-progress-count {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .75rem; color: var(--ncp-dark); margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<script defer src="js/lab-engine.js?v=7.17.10"></script>
+<div id="navMount"></div>
+
+<div class="container-wide" style="padding-top: var(--s-lg); padding-bottom: 80px;">
+
+  <!-- Back link -->
+  <div class="lab-back">
+    <a href="ncp-ain-hub.html" style="font-family:var(--font-display);font-size:.88rem;color:var(--ink-muted);text-decoration:none;">
+      &larr; NCP-AIN Hub
+    </a>
+  </div>
+
+  <!-- Header -->
+  <div class="lab-header">
+    <div class="ncp-badge"><span class="dot"></span>NCP-AIN · Spectrum-X Security Lab</div>
+    <h1>Cumulus Linux Security Console</h1>
+    <p class="subtitle">
+      Harden a Spectrum-4 leaf switch in a shared GPU fabric using Cumulus Linux tools.
+      In Free Play, explore any command. In Troubleshooting Scenarios, a security misconfiguration
+      is injected. Use <strong>cl-acltool</strong>, <strong>nv show</strong>, and
+      <strong>nv set</strong> to find the gap, then apply the fix.
+      Type <code>help</code> for the full command list.
+    </p>
+  </div>
+
+  <!-- Mode bar -->
+  <div class="lab-mode-bar">
+    <span class="lab-mode-label">Mode:</span>
+    <div class="lab-mode-tabs">
+      <button class="lab-mode-tab active" id="tabFreeplay" onclick="setMode('freeplay')">Free Play</button>
+      <button class="lab-mode-tab" id="tabTroubleshoot" onclick="setMode('troubleshoot')">Troubleshooting Scenarios</button>
+    </div>
+  </div>
+
+  <!-- Scenario picker (hidden in free-play) -->
+  <div id="scenarioSection" style="display:none;">
+
+    <div class="scenario-grid" id="scenarioGrid">
+      <!-- cards injected by JS -->
+    </div>
+
+    <!-- Briefing panel -->
+    <div id="scenarioBrief">
+      <div class="brief-title" id="briefTitle"></div>
+      <div class="brief-symptom" id="briefSymptom"></div>
+      <div class="brief-objective" id="briefObjective"></div>
+      <button class="brief-hint-btn" onclick="toggleHint()">Show Hint</button>
+      <div class="brief-hint-text" id="briefHint"></div>
+    </div>
+
+    <!-- Success banner -->
+    <div id="successBanner">
+      Scenario solved. Security gap identified and fix command run. Well done.
+      <span id="successDetail"></span>
+    </div>
+
+  </div>
+
+  <!-- Body: terminal + cheat sidebar -->
+  <div class="lab-body">
+
+    <!-- Terminal -->
+    <div>
+      <div class="term-chrome">
+        <div class="term-titlebar">
+          <span class="term-dot r"></span>
+          <span class="term-dot y"></span>
+          <span class="term-dot g"></span>
+          <span class="term-title-text" id="termTitleText">
+            <span>cumulus@leaf01</span> -- Cumulus Linux Security
+          </span>
+        </div>
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">cumulus@leaf01:mgmt:~$ </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="Cumulus Linux security console"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cheat panel sidebar -->
+    <aside class="cheat-panel" aria-label="Available commands">
+      <h2>Try these</h2>
+      <ul id="cheatList">
+        <!-- populated by JS -->
+      </ul>
+
+      <div class="workflow-note">
+        <strong>ACL workflow:</strong>
+        Edit <code>/etc/cumulus/acl/policy.d/</code>, then
+        <code>cl-acltool -i</code> installs rules.
+        <code>cl-acltool -L all</code> verifies.
+        NVUE: <code>nv set acl ...</code> then <code>nv config apply</code>.
+      </div>
+
+      <!-- Scenario progress (visible in troubleshoot mode) -->
+      <div class="lab-progress" id="progressSection" style="display:none;">
+        <div class="lab-progress-label">Scenarios solved</div>
+        <div class="lab-progress-bar-wrap">
+          <div class="lab-progress-bar" id="progressBar"></div>
+        </div>
+        <div class="lab-progress-count" id="progressCount">0 / 4</div>
+      </div>
+    </aside>
+
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ====================================================================
+     FAULT INJECTION LAYER
+     _activeFault = null (free-play) or string scenario ID.
+     FAULT_OUTPUTS maps scenario-id -> { commandKey: fn|string, ... }
+     ==================================================================== */
+  var _activeFault = null;
+
+  var FAULT_OUTPUTS = {
+
+    /* Scenario 1: ACL rule staged but cl-acltool -i never run.
+       Traffic still passes. cl-acltool -L shows the old kernel rules.
+       nv show acl shows the staged rule exists in NVUE but is not applied. */
+    'acl-not-applied': {
+      'cl-acltool -l all': function () {
+        return [
+          '== Current ACL rules in kernel (cl-acltool -L all) ==',
+          '',
+          'Chain INPUT (policy ACCEPT)',
+          'target     prot opt source               destination',
+          'ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:ssh',
+          'ACCEPT     udp  --  anywhere             anywhere             udp dpt:snmp',
+          'ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED',
+          'DROP       all  --  anywhere             anywhere',
+          '',
+          'Chain FORWARD (policy ACCEPT)',
+          'target     prot opt source               destination',
+          '(empty -- no data-plane rules installed)',
+          '',
+          'NOTE: NVUE shows an acl BLOCK-10-20 rule staged.',
+          'But kernel FORWARD chain is empty. cl-acltool -i was never run.',
+          'Traffic between 10.0.1.0/24 and 10.0.2.0/24 still passes.',
+        ].join('\n');
+      },
+      'nv show acl': function () {
+        return [
+          'ACL name          type  rule  action  src-ip         dst-ip         state',
+          '----------------  ----  ----  ------  -------------  -------------  ---------',
+          'BLOCK-10-20       ipv4  10    deny    10.0.1.0/24    10.0.2.0/24    staged',
+          'ALLOW-MGMT        ipv4  10    permit  192.168.1.0/24 any            applied',
+          '',
+          'BLOCK-10-20 rule state is "staged" -- nv config apply was not run.',
+          'Or the file was edited directly and cl-acltool -i was skipped.',
+          'Result: the deny rule is not in the kernel. Run cl-acltool -i to install.',
+        ].join('\n');
+      },
+      'nv show acl block-10-20': function () {
+        return [
+          'ACL: BLOCK-10-20',
+          'Type: ipv4',
+          '',
+          'Rule  Action  Src IP         Dst IP         Protocol  State',
+          '----  ------  -------------  -------------  --------  ---------',
+          '10    deny    10.0.1.0/24    10.0.2.0/24    any       staged',
+          '',
+          'This rule has not been installed to the ASIC.',
+          'Fix: run "nv config apply" or "cl-acltool -i" to push to kernel.',
+        ].join('\n');
+      }
+    },
+
+    /* Scenario 2: Tenant isolation gap.
+       Two VRFs (tenant-a, tenant-b) share the same leaf.
+       A route leak policy was accidentally left in place.
+       nv show vrf shows the leak route.
+       Fix: nv unset vrf tenant-a ip route-leak + nv config apply. */
+    'vrf-leak': {
+      'nv show vrf': function () {
+        return [
+          'VRF         Table  State  BGP-AS  Description',
+          '---------   -----  -----  ------  --------------------------',
+          'default     254    up     65001',
+          'mgmt        1000   up     --      Management plane (OOB only)',
+          'tenant-a    1001   up     65101   GPU tenant A (pods 1-4)',
+          'tenant-b    1002   up     65102   GPU tenant B (pods 5-8)',
+          '',
+          'WARNING: tenant-a has a static leak route into tenant-b.',
+          'Run: nv show vrf tenant-a ip route for details.',
+        ].join('\n');
+      },
+      'nv show vrf tenant-a ip route': function () {
+        return [
+          'VRF: tenant-a',
+          '',
+          'Prefix          Nexthop         Interface   Protocol  Distance  Metric',
+          '-----------     -----------     ---------   --------  --------  ------',
+          '10.1.0.0/24     directly conn   swp1-4      connected 0         0',
+          '10.2.0.0/24     10.1.0.1        vrf-leak    static    1         0',
+          '',
+          'ALERT: 10.2.0.0/24 is tenant-b\'s prefix.',
+          'A static route was leaked from tenant-b into tenant-a.',
+          'Hosts in tenant-a can now reach tenant-b directly.',
+          'This breaks L3 isolation on the shared GPU fabric.',
+          'Fix: nv unset vrf tenant-a ip route 10.2.0.0/24, then nv config apply.',
+        ].join('\n');
+      },
+      'nv show vrf tenant-b ip route': function () {
+        return [
+          'VRF: tenant-b',
+          '',
+          'Prefix          Nexthop         Interface   Protocol  Distance  Metric',
+          '-----------     -----------     ---------   --------  --------  ------',
+          '10.2.0.0/24     directly conn   swp5-8      connected 0         0',
+          '',
+          'tenant-b routes look clean. No leak from tenant-a detected here.',
+          'The exposure is one-way: tenant-a can reach tenant-b, not vice versa.',
+        ].join('\n');
+      }
+    },
+
+    /* Scenario 3: Management hardening gap.
+       SSH password auth is still enabled. The switch is not in the mgmt VRF.
+       nv show system security ssh shows password auth=enabled.
+       nv show vrf shows mgmt VRF exists but the SSH service is bound to default.
+       Fix: nv set system security ssh server password-auth disabled + nv config apply,
+            then nv set service ssh server vrf mgmt + nv config apply. */
+    'mgmt-hardening': {
+      'nv show system security ssh': function () {
+        return [
+          'SSH server configuration:',
+          '',
+          '  password-auth    enabled        <-- INSECURE',
+          '  pubkey-auth      enabled',
+          '  permit-root      disabled',
+          '  max-auth-tries   6',
+          '  vrf              default        <-- should be mgmt',
+          '  port             22',
+          '  listen-address   0.0.0.0',
+          '',
+          'RISK: Password authentication is enabled.',
+          'Any reachable IP can attempt brute-force login.',
+          '',
+          'RISK: SSH listens on the default VRF (all interfaces).',
+          'Management access should be isolated to the mgmt VRF.',
+          'Fix 1: nv set system security ssh server password-auth disabled',
+          'Fix 2: nv set service ssh server vrf mgmt',
+          'Then: nv config apply for each change.',
+        ].join('\n');
+      },
+      'nv show vrf': function () {
+        return [
+          'VRF         Table  State  BGP-AS  Description',
+          '---------   -----  -----  ------  -----------------------------------',
+          'default     254    up     65001',
+          'mgmt        1000   up     --      Management plane (OOB eth0 only)',
+          '',
+          'mgmt VRF exists but SSH service is bound to default.',
+          'Data-plane interfaces (swp*) are exposed to SSH attempts.',
+          'Fix: nv set service ssh server vrf mgmt',
+        ].join('\n');
+      }
+    },
+
+    /* Scenario 4: RBAC operator has too many privileges.
+       User "netops" was assigned the nvue-admin role instead of monitor.
+       They ran "nv set interface swp1 link speed 100G" by mistake.
+       nv show system aaa user netops shows the wrong role.
+       Fix: nv set system aaa user netops role monitor + nv config apply. */
+    'rbac-overpriv': {
+      'nv show system aaa': function () {
+        return [
+          'System AAA configuration:',
+          '',
+          'Authentication order: local, tacacs',
+          '',
+          'Users:',
+          '  Name         Role          Last-login',
+          '  ----------   -----------   ---------------------',
+          '  cumulus      system-admin  2026-06-29 06:01:14',
+          '  netops       nvue-admin    2026-06-29 14:32:08',
+          '  svcaccount   monitor       never',
+          '',
+          'RISK: netops has nvue-admin role.',
+          'nvue-admin can run "nv set" and "nv config apply".',
+          'Operators who only need to read state should have the monitor role.',
+          'Run: nv show system aaa user netops for full role detail.',
+        ].join('\n');
+      },
+      'nv show system aaa user netops': function () {
+        return [
+          'User: netops',
+          '',
+          '  role            nvue-admin      <-- OVER-PRIVILEGED',
+          '  full-name       Network Ops Viewer',
+          '  hashed-passwd   (set)',
+          '  ssh-pubkey      (not set)',
+          '',
+          'Role permissions for nvue-admin:',
+          '  nv show         allowed',
+          '  nv set          allowed   <-- should be denied for read-only user',
+          '  nv config apply allowed   <-- should be denied for read-only user',
+          '  nv config save  allowed   <-- should be denied for read-only user',
+          '',
+          'History: netops ran "nv set interface swp1 link speed 100G" at 14:32.',
+          'The change was applied. Traffic on swp1 dropped to 100G.',
+          'Fix: nv set system aaa user netops role monitor, then nv config apply.',
+        ].join('\n');
+      }
+    }
+
+  }; // end FAULT_OUTPUTS
+
+  /* ====================================================================
+     COMMAND MAP
+     ==================================================================== */
+  var CMD_MAP = {};
+
+  function resolveCmd(key, normalFn, dev, raw, lower) {
+    if (_activeFault && FAULT_OUTPUTS[_activeFault] && FAULT_OUTPUTS[_activeFault][key]) {
+      var fv = FAULT_OUTPUTS[_activeFault][key];
+      return (typeof fv === 'function') ? fv(dev, raw, lower) : fv;
+    }
+    return (typeof normalFn === 'function') ? normalFn(dev, raw, lower) : normalFn;
+  }
+
+  /* ---- cl-acltool ---------------------------------------------------------- */
+  CMD_MAP['cl-acltool -l all'] = function (dev, raw, lower) {
+    return resolveCmd('cl-acltool -l all', function () {
+      return [
+        '== Current ACL rules in kernel (cl-acltool -L all) ==',
+        '',
+        'Chain INPUT (policy ACCEPT)',
+        'target     prot opt source               destination',
+        'ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:ssh',
+        'ACCEPT     udp  --  anywhere             anywhere             udp dpt:snmp',
+        'ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED',
+        'DROP       all  --  anywhere             anywhere',
+        '',
+        'Chain FORWARD (policy ACCEPT)',
+        'target     prot opt source               destination',
+        'DROP       all  --  10.0.1.0/24          10.0.2.0/24',
+        'DROP       all  --  10.0.2.0/24          10.0.1.0/24',
+        'ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED',
+        '',
+        'All rules installed. cl-acltool -L all shows the kernel state.',
+        'Data-plane ACLs are active and enforcing.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  CMD_MAP['cl-acltool -i'] = function (dev, raw) {
+    checkObjective(raw);
+    return [
+      'Reading policy files in /etc/cumulus/acl/policy.d/',
+      'Installing ACL rules...',
+      '',
+      'iptables:  3 rules installed',
+      'ip6tables: 0 rules installed',
+      'ebtables:  0 rules installed',
+      '',
+      'cl-acltool: install complete.',
+      'Run "cl-acltool -L all" to verify rules are now in the kernel.',
+    ].join('\n');
+  };
+
+  CMD_MAP['cl-acltool -l'] = function (dev, raw, lower) {
+    return resolveCmd('cl-acltool -l all', function () {
+      return 'Usage: cl-acltool -L all   (capital L lists rules; -i installs them)';
+    }, dev, raw, lower);
+  };
+
+  CMD_MAP['cl-acltool'] = [
+    'cl-acltool -- Cumulus ACL management tool',
+    '',
+    '  cl-acltool -L all     List all kernel ACL rules (shows what is installed)',
+    '  cl-acltool -i         Install/refresh rules from /etc/cumulus/acl/policy.d/',
+    '',
+    'Common gotcha: editing policy files but forgetting to run -i.',
+    'The rules exist on disk but are NOT active until -i is run.',
+  ].join('\n');
+
+  /* ---- nv show acl --------------------------------------------------------- */
+  CMD_MAP['nv show acl'] = function (dev, raw, lower) {
+    return resolveCmd('nv show acl', function () {
+      return [
+        'ACL name          type  rule  action  src-ip         dst-ip         state',
+        '----------------  ----  ----  ------  -------------  -------------  ---------',
+        'BLOCK-10-20       ipv4  10    deny    10.0.1.0/24    10.0.2.0/24    applied',
+        'ALLOW-MGMT        ipv4  10    permit  192.168.1.0/24 any            applied',
+        '',
+        'All ACLs are applied. No staged (unapplied) rules.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  CMD_MAP['nv show acl block-10-20'] = function (dev, raw, lower) {
+    return resolveCmd('nv show acl block-10-20', function () {
+      return [
+        'ACL: BLOCK-10-20',
+        'Type: ipv4',
+        '',
+        'Rule  Action  Src IP         Dst IP         Protocol  State',
+        '----  ------  -------------  -------------  --------  -------',
+        '10    deny    10.0.1.0/24    10.0.2.0/24    any       applied',
+        '',
+        'Rule is installed and active in the ASIC.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  /* ---- nv show vrf --------------------------------------------------------- */
+  CMD_MAP['nv show vrf'] = function (dev, raw, lower) {
+    return resolveCmd('nv show vrf', function () {
+      return [
+        'VRF         Table  State  BGP-AS  Description',
+        '---------   -----  -----  ------  -----------------------------------',
+        'default     254    up     65001',
+        'mgmt        1000   up     --      Management plane (OOB eth0 only)',
+        'tenant-a    1001   up     65101   GPU tenant A (pods 1-4)',
+        'tenant-b    1002   up     65102   GPU tenant B (pods 5-8)',
+        '',
+        'VRFs look healthy. mgmt VRF isolates OOB management from data plane.',
+        'No unexpected route leaks detected.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  CMD_MAP['nv show vrf tenant-a ip route'] = function (dev, raw, lower) {
+    return resolveCmd('nv show vrf tenant-a ip route', function () {
+      return [
+        'VRF: tenant-a',
+        '',
+        'Prefix          Nexthop         Interface   Protocol  Distance  Metric',
+        '-----------     -----------     ---------   --------  --------  ------',
+        '10.1.0.0/24     directly conn   swp1-4      connected 0         0',
+        '',
+        'No route leaks. tenant-a can only reach its own prefix 10.1.0.0/24.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  CMD_MAP['nv show vrf tenant-b ip route'] = function (dev, raw, lower) {
+    return resolveCmd('nv show vrf tenant-b ip route', function () {
+      return [
+        'VRF: tenant-b',
+        '',
+        'Prefix          Nexthop         Interface   Protocol  Distance  Metric',
+        '-----------     -----------     ---------   --------  --------  ------',
+        '10.2.0.0/24     directly conn   swp5-8      connected 0         0',
+        '',
+        'No route leaks. tenant-b can only reach its own prefix 10.2.0.0/24.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  /* ---- nv show system security ssh ----------------------------------------- */
+  CMD_MAP['nv show system security ssh'] = function (dev, raw, lower) {
+    return resolveCmd('nv show system security ssh', function () {
+      return [
+        'SSH server configuration:',
+        '',
+        '  password-auth    disabled       (key-only)',
+        '  pubkey-auth      enabled',
+        '  permit-root      disabled',
+        '  max-auth-tries   3',
+        '  vrf              mgmt           (isolated to OOB)',
+        '  port             22',
+        '  listen-address   0.0.0.0',
+        '',
+        'SSH is hardened: password auth disabled, VRF=mgmt.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  /* ---- nv show system aaa -------------------------------------------------- */
+  CMD_MAP['nv show system aaa'] = function (dev, raw, lower) {
+    return resolveCmd('nv show system aaa', function () {
+      return [
+        'System AAA configuration:',
+        '',
+        'Authentication order: local, tacacs',
+        '',
+        'Users:',
+        '  Name         Role          Last-login',
+        '  ----------   -----------   ---------------------',
+        '  cumulus      system-admin  2026-06-29 06:01:14',
+        '  netops       monitor       2026-06-29 14:32:08',
+        '  svcaccount   monitor       never',
+        '',
+        'All users follow least-privilege. Operators have monitor role.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  CMD_MAP['nv show system aaa user netops'] = function (dev, raw, lower) {
+    return resolveCmd('nv show system aaa user netops', function () {
+      return [
+        'User: netops',
+        '',
+        '  role            monitor',
+        '  full-name       Network Ops Viewer',
+        '  hashed-passwd   (set)',
+        '  ssh-pubkey      (not set)',
+        '',
+        'Role permissions for monitor:',
+        '  nv show         allowed',
+        '  nv set          denied',
+        '  nv config apply denied',
+        '  nv config save  denied',
+        '',
+        'netops is read-only. Least-privilege is enforced.',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  /* ---- nv show system ------------------------------------------------------ */
+  CMD_MAP['nv show system'] = function (dev, raw, lower) {
+    return resolveCmd('nv show system', function () {
+      return [
+        'operational              applied',
+        '-----------              -------',
+        'hostname                 leaf01',
+        'build                    Cumulus Linux 5.12.0',
+        'uptime                   7 days, 11:04:22',
+        'timezone                 America/Chicago',
+        'platform-name            SN5600',
+        'platform-asic            Spectrum-4',
+        'platform-port-config     64x400G',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  /* ---- nv show interface --------------------------------------------------- */
+  CMD_MAP['nv show interface'] = function (dev, raw, lower) {
+    return resolveCmd('nv show interface', function () {
+      return [
+        'Interface  State  Speed   MTU    Type      Remote Host       Remote Port',
+        '---------  -----  -----   ----   ----      -----------       -----------',
+        'lo         up     N/A     65536  loopback',
+        'eth0       up     1G      1500   eth       oob-mgmt-switch   swp1',
+        'swp1       up     400G    9216   swp       gb300-host-01     mlx5_0',
+        'swp2       up     400G    9216   swp       gb300-host-02     mlx5_0',
+        'swp3       up     400G    9216   swp       gb300-host-03     mlx5_0',
+        'swp4       up     400G    9216   swp       gb300-host-04     mlx5_0',
+        'swp5       up     400G    9216   swp       gb300-host-05     mlx5_0',
+        'swp6       up     400G    9216   swp       gb300-host-06     mlx5_0',
+        'swp7       up     400G    9216   swp       gb300-host-07     mlx5_0',
+        'swp8       up     400G    9216   swp       gb300-host-08     mlx5_0',
+        'swp49      up     400G    9216   swp       sn5600-spine-01   swp1',
+        'swp50      up     400G    9216   swp       sn5600-spine-02   swp1',
+      ].join('\n');
+    }, dev, raw, lower);
+  };
+
+  /* ---- nv show service ----------------------------------------------------- */
+  CMD_MAP['nv show service'] = function () {
+    return [
+      'Service    Status   VRF     Description',
+      '-------    ------   ---     -----------',
+      'ntp        active   mgmt    Network Time Protocol (4 servers synced)',
+      'syslog     active   mgmt    Remote syslog to 192.168.1.50:514',
+      'snmp       active   mgmt    v2c read-only',
+      'lldp       active   default Topology discovery',
+      'ssh        active   mgmt    OpenSSH 9.2p1 (key-only, password disabled)',
+      'frr        active   default FRRouting (BGP/EVPN)',
+    ].join('\n');
+  };
+
+  /* ---- nv config apply ----------------------------------------------------- */
+  CMD_MAP['nv config apply'] = function (dev, raw) {
+    checkObjective(raw);
+    return [
+      'applying...',
+      '',
+      'Configuration applied successfully.',
+      'ASIC programmed. Verify with the relevant nv show command.',
+    ].join('\n');
+  };
+
+  /* ---- nv config diff ------------------------------------------------------ */
+  CMD_MAP['nv config diff'] = function () {
+    return [
+      '--- running',
+      '+++ pending',
+      '',
+      '(no pending changes)',
+      '',
+      'Run "nv set ..." to stage a change, then "nv config apply" to commit.',
+    ].join('\n');
+  };
+
+  /* ---- nv config save ------------------------------------------------------ */
+  CMD_MAP['nv config save'] = function () {
+    return 'Configuration saved to /etc/nvue.d/startup.yaml';
+  };
+
+  /* ---- nv config detach ---------------------------------------------------- */
+  CMD_MAP['nv config detach'] = function () {
+    return 'Pending configuration discarded.';
+  };
+
+  /* ---- nv set stubs -------------------------------------------------------- */
+  function stageMsg(what) {
+    return [
+      'staged: nv set ' + what,
+      '',
+      'Change is pending. Run "nv config diff" to review, then "nv config apply" to activate.',
+    ].join('\n');
+  }
+
+  var _nvSetPrefixes = [
+    'nv set acl',
+    'nv set system aaa',
+    'nv set system security',
+    'nv set service ssh',
+    'nv set vrf',
+    'nv set interface',
+    'nv set router',
+    'nv set evpn',
+  ];
+
+  /* ---- nv unset stubs ------------------------------------------------------ */
+  CMD_MAP['nv unset'] = function (dev, raw) {
+    checkObjective(raw);
+    return '[sim] ' + raw + ': change staged. Run "nv config apply" to activate.';
+  };
+  CMD_MAP['nv unset ...'] = function (dev, raw) {
+    checkObjective(raw);
+    return '[sim] ' + raw + ': change staged. Run "nv config apply" to activate.';
+  };
+
+  /* ---- help / ? ------------------------------------------------------------ */
+  var HELP_TEXT = [
+    'Cumulus Linux Security Console -- available commands:',
+    '',
+    'ACL tools:',
+    '  cl-acltool -L all               List all installed kernel ACL rules',
+    '  cl-acltool -i                   Install/refresh from /etc/cumulus/acl/policy.d/',
+    '  nv show acl                     NVUE ACL table (staged vs applied state)',
+    '  nv show acl BLOCK-10-20         Detail for a specific ACL',
+    '  nv set acl <name> rule <n> ...  Stage an ACL rule in NVUE',
+    '  nv config apply                 Push staged rules to ASIC',
+    '',
+    'VRF / tenant isolation:',
+    '  nv show vrf                     VRF table (default, mgmt, tenant-a, tenant-b)',
+    '  nv show vrf tenant-a ip route   Routing table for tenant-a',
+    '  nv show vrf tenant-b ip route   Routing table for tenant-b',
+    '  nv unset vrf <name> ip route ... Remove a route leak',
+    '',
+    'SSH hardening:',
+    '  nv show system security ssh     SSH auth mode, VRF binding',
+    '  nv set system security ssh server password-auth disabled',
+    '  nv set service ssh server vrf mgmt',
+    '',
+    'RBAC / AAA:',
+    '  nv show system aaa              Users, roles, auth order',
+    '  nv show system aaa user netops  Per-user role detail',
+    '  nv set system aaa user <name> role monitor    Read-only role',
+    '  nv set system aaa user <name> role nvue-admin Config role',
+    '',
+    'General:',
+    '  nv show system                  Hostname, version, platform',
+    '  nv show interface               All interfaces: state/speed/MTU',
+    '  nv show service                 NTP, SNMP, SSH, syslog, FRR',
+    '  nv config diff                  Pending vs running',
+    '  nv config apply                 Commit staged changes',
+    '  nv config save                  Persist across reboots',
+    '  nv config detach                Discard pending changes',
+    '  clear, pwd, ls, whoami          Shell stubs',
+    '  help, ?                         Print this list',
+  ].join('\n');
+
+  CMD_MAP['help'] = HELP_TEXT;
+  CMD_MAP['?']    = HELP_TEXT;
+
+  /* ---- shell stubs --------------------------------------------------------- */
+  CMD_MAP['clear'] = '';
+  CMD_MAP['pwd']   = '/home/cumulus';
+  CMD_MAP['ls']    = 'acl-policy  scripts  logs';
+  CMD_MAP['whoami']   = 'cumulus';
+  CMD_MAP['hostname'] = 'leaf01';
+  CMD_MAP['date']     = new Date().toUTCString();
+  CMD_MAP['uname']    = 'Linux';
+
+  /* ---- catch-all for nv ... ------------------------------------------------ */
+  CMD_MAP['nv ...'] = function (dev, raw, lower) {
+    // nv show vrf <name> ip route catch-all
+    var vrfRouteM = lower.match(/^nv show vrf (\S+) ip route$/);
+    if (vrfRouteM) {
+      var vrfName = vrfRouteM[1];
+      var faultKey = 'nv show vrf ' + vrfName + ' ip route';
+      if (_activeFault && FAULT_OUTPUTS[_activeFault] && FAULT_OUTPUTS[_activeFault][faultKey]) {
+        var fv = FAULT_OUTPUTS[_activeFault][faultKey];
+        return (typeof fv === 'function') ? fv(dev, raw, lower) : fv;
+      }
+      return 'VRF ' + vrfName + ': no routes (try tenant-a or tenant-b).';
+    }
+
+    // nv show acl <name> catch-all
+    var aclM = lower.match(/^nv show acl (\S+)$/);
+    if (aclM) {
+      var aclName = aclM[1].toUpperCase();
+      var faultKeyAcl = 'nv show acl ' + aclM[1];
+      if (_activeFault && FAULT_OUTPUTS[_activeFault] && FAULT_OUTPUTS[_activeFault][faultKeyAcl]) {
+        var fvAcl = FAULT_OUTPUTS[_activeFault][faultKeyAcl];
+        return (typeof fvAcl === 'function') ? fvAcl(dev, raw, lower) : fvAcl;
+      }
+      return 'ACL ' + aclName + ': not found. Run "nv show acl" for all ACLs.';
+    }
+
+    // nv show system aaa user <name> catch-all
+    var aaaUserM = lower.match(/^nv show system aaa user (\S+)$/);
+    if (aaaUserM) {
+      var userName = aaaUserM[1];
+      var faultKeyUser = 'nv show system aaa user ' + userName;
+      if (_activeFault && FAULT_OUTPUTS[_activeFault] && FAULT_OUTPUTS[_activeFault][faultKeyUser]) {
+        var fvUser = FAULT_OUTPUTS[_activeFault][faultKeyUser];
+        return (typeof fvUser === 'function') ? fvUser(dev, raw, lower) : fvUser;
+      }
+      return 'User ' + userName + ': not found.';
+    }
+
+    if (lower.startsWith('nv show')) {
+      if (_activeFault && FAULT_OUTPUTS[_activeFault] && FAULT_OUTPUTS[_activeFault][lower]) {
+        var fv2 = FAULT_OUTPUTS[_activeFault][lower];
+        return (typeof fv2 === 'function') ? fv2(dev, raw, lower) : fv2;
+      }
+      return [
+        '% Unrecognized nv show sub-command.',
+        'Try: nv show acl | vrf | system | system aaa | system security ssh',
+        '     nv show interface | service | help',
+      ].join('\n');
+    }
+
+    if (lower.startsWith('nv set')) {
+      checkObjective(raw);
+      var what = raw.slice('nv set '.length).trim() || '(nothing)';
+      return stageMsg(what);
+    }
+
+    if (lower.startsWith('nv unset')) {
+      checkObjective(raw);
+      return '[sim] ' + raw + ': change staged. Run "nv config apply" to activate.';
+    }
+
+    if (lower.startsWith('nv config')) {
+      checkObjective(raw);
+      return '% Unknown nv config sub-command. Try: apply | diff | save | detach';
+    }
+
+    return [
+      'Usage: nv <action> <object> [options]',
+      'Actions: show | set | unset | config',
+      'Try "help" for a command list.',
+    ].join('\n');
+  };
+
+  CMD_MAP['nv'] = [
+    'Usage: nv <action> <object> [options]',
+    'Actions: show | set | unset | config',
+    'Try "help" for a command list.',
+  ].join('\n');
+
+  /* ---- cl-acltool catch-all ------------------------------------------------ */
+  CMD_MAP['cl-acltool ...'] = function (dev, raw, lower) {
+    if (lower.indexOf('-l') !== -1) {
+      return resolveCmd('cl-acltool -l all', function () {
+        return CMD_MAP['cl-acltool -l all'](dev, raw, lower);
+      }, dev, raw, lower);
+    }
+    if (lower.indexOf('-i') !== -1) {
+      return CMD_MAP['cl-acltool -i'](dev, raw);
+    }
+    return CMD_MAP['cl-acltool'];
+  };
+
+  /* ====================================================================
+     SCENARIO DEFINITIONS
+     ==================================================================== */
+  var SCENARIOS = [
+    {
+      id: 'acl-not-applied',
+      num: '01',
+      title: 'ACL Not Taking Effect',
+      diagTool: 'cl-acltool -L all',
+      symptom: 'An ACL was configured to block traffic between tenant subnets 10.0.1.0/24 and 10.0.2.0/24. But hosts in those subnets can still reach each other. No errors in the NVUE config.',
+      objective: 'Run the ACL list command to see what is actually installed in the kernel. Then identify what step was skipped. Run the install command to fix it and verify.',
+      hint: 'There are two ways to configure ACLs on Cumulus Linux: NVUE (nv set acl) and direct file editing (/etc/cumulus/acl/policy.d/). Either way, rules do not take effect until they are pushed to the kernel. Check whether the kernel state matches the NVUE staged state.',
+      diagCmds: ['cl-acltool -l all', 'nv show acl'],
+      fixKeyword: 'cl-acltool -i',
+      fixCmds: ['cl-acltool -i', 'nv config apply'],
+      fixDescription: 'ACL rule BLOCK-10-20 was staged in NVUE but cl-acltool -i (or nv config apply) was never run. The kernel FORWARD chain was empty. Fix: cl-acltool -i installs the rules and traffic is blocked.'
+    },
+    {
+      id: 'vrf-leak',
+      num: '02',
+      title: 'Tenant Route Leak',
+      diagTool: 'nv show vrf tenant-a ip route',
+      symptom: 'A security audit found that VM traffic from tenant-a pods can reach tenant-b pods on the shared GPU fabric. VRF segmentation was supposed to prevent this. BGP is healthy and no ACL changes were made recently.',
+      objective: 'Check the tenant-a routing table to find the unauthorized route leak. Then enter the fix command to remove it and restore isolation.',
+      hint: 'VRF isolation keeps tenant routing tables separate. But a static route can be manually added that leaks a prefix from one VRF into another. Look at the routes in tenant-a. A prefix that belongs to tenant-b does not belong there.',
+      diagCmds: ['nv show vrf tenant-a ip route', 'nv show vrf'],
+      fixKeyword: 'nv unset',
+      fixCmds: ['nv unset vrf', 'nv config apply'],
+      fixDescription: 'A static route 10.2.0.0/24 (tenant-b prefix) was leaked into tenant-a. Fix: nv unset vrf tenant-a ip route 10.2.0.0/24, then nv config apply.'
+    },
+    {
+      id: 'mgmt-hardening',
+      num: '03',
+      title: 'SSH Management Hardening Gap',
+      diagTool: 'nv show system security ssh',
+      symptom: 'A security scan flagged this switch: SSH password authentication is enabled and the SSH service is reachable from data-plane interfaces. The requirement is key-only auth and management access via the mgmt VRF only.',
+      objective: 'Inspect the SSH server configuration to see both gaps. Then run the two fix commands to disable password auth and bind SSH to the mgmt VRF.',
+      hint: 'Two separate settings control this. One is whether SSH accepts passwords (versus keys only). The other is which VRF the SSH process listens on. A switch that listens on the default VRF is reachable from any swp interface, not just OOB.',
+      diagCmds: ['nv show system security ssh', 'nv show vrf'],
+      fixKeyword: 'nv set system security',
+      fixCmds: ['nv set system security', 'nv set service ssh', 'nv config apply'],
+      fixDescription: 'SSH had password-auth=enabled and vrf=default. Fix: nv set system security ssh server password-auth disabled + nv set service ssh server vrf mgmt + nv config apply.'
+    },
+    {
+      id: 'rbac-overpriv',
+      num: '04',
+      title: 'RBAC Over-Privilege',
+      diagTool: 'nv show system aaa',
+      symptom: 'User "netops" is a read-only operator who monitors the switch state. They accidentally ran a config change that dropped swp1 from 400G to 100G. The change was accepted. Investigate why and fix the role.',
+      objective: 'Check the AAA user list to find the misconfigured role. Then run the fix command to downgrade netops to the read-only monitor role.',
+      hint: 'NVUE has tiered roles. system-admin has full control. nvue-admin can run nv set and nv config apply. monitor can only run nv show. If a read-only operator has the nvue-admin role, they can make config changes unintentionally.',
+      diagCmds: ['nv show system aaa', 'nv show system aaa user netops'],
+      fixKeyword: 'nv set system aaa',
+      fixCmds: ['nv set system aaa user netops role monitor', 'nv config apply'],
+      fixDescription: 'netops had the nvue-admin role which allows nv set and nv config apply. Fix: nv set system aaa user netops role monitor, then nv config apply.'
+    }
+  ];
+
+  /* ====================================================================
+     OBJECTIVE TRACKER
+     ==================================================================== */
+  var _activeScenario = null;
+  var _diagDone = false;
+  var _fixDone  = false;
+  var _solvedSet = {};
+  var _hintVisible = false;
+  var _lab = null;
+
+  function setMode(mode) {
+    var isTS = (mode === 'troubleshoot');
+    document.getElementById('tabFreeplay').classList.toggle('active', !isTS);
+    document.getElementById('tabTroubleshoot').classList.toggle('active', isTS);
+    document.getElementById('scenarioSection').style.display = isTS ? '' : 'none';
+    document.getElementById('progressSection').style.display = isTS ? '' : 'none';
+
+    if (!isTS) {
+      _activeFault = null;
+      _activeScenario = null;
+      _diagDone = false;
+      _fixDone  = false;
+      hideBrief();
+      hideSuccess();
+      document.getElementById('termTitleText').innerHTML =
+        '<span>cumulus@leaf01</span> -- Cumulus Linux Security';
+      if (_lab && _lab.terminal) {
+        _lab.terminal.writeLine('');
+        _lab.terminal.writeLine('[Mode: Free Play] Fault cleared. Commands return normal output.');
+        _lab.terminal.writeLine('');
+        _lab.terminal.updatePrompt();
+      }
+    }
+  }
+
+  function selectScenario(sc) {
+    _activeScenario = sc;
+    _activeFault    = sc.id;
+    _diagDone = false;
+    _fixDone  = false;
+    _hintVisible = false;
+
+    document.querySelectorAll('.scenario-card').forEach(function (c) {
+      c.classList.toggle('active', c.dataset.scId === sc.id);
+    });
+
+    document.getElementById('briefTitle').textContent = sc.num + '. ' + sc.title;
+    document.getElementById('briefSymptom').textContent = 'Symptom: ' + sc.symptom;
+    document.getElementById('briefObjective').textContent = 'Objective: ' + sc.objective;
+    document.getElementById('briefHint').textContent = sc.hint;
+    document.getElementById('briefHint').classList.remove('visible');
+    document.querySelector('.brief-hint-btn').textContent = 'Show Hint';
+    document.getElementById('scenarioBrief').classList.add('visible');
+    hideSuccess();
+
+    document.getElementById('termTitleText').innerHTML =
+      '<span>cumulus@leaf01</span> -- FAULT: ' + escHtml(sc.title);
+
+    if (_lab && _lab.terminal) {
+      _lab.terminal.writeLine('');
+      _lab.terminal.writeLine('======================================================');
+      _lab.terminal.writeLine('SCENARIO ' + sc.num + ': ' + sc.title.toUpperCase());
+      _lab.terminal.writeLine('------------------------------------------------------');
+      _lab.terminal.writeLine('Symptom: ' + sc.symptom);
+      _lab.terminal.writeLine('Objective: ' + sc.objective);
+      _lab.terminal.writeLine('Fault injected. Relevant commands now return faulty output.');
+      _lab.terminal.writeLine('======================================================');
+      _lab.terminal.writeLine('');
+      _lab.terminal.updatePrompt();
+    }
+  }
+
+  function toggleHint() {
+    _hintVisible = !_hintVisible;
+    document.getElementById('briefHint').classList.toggle('visible', _hintVisible);
+    document.querySelector('.brief-hint-btn').textContent =
+      _hintVisible ? 'Hide Hint' : 'Show Hint';
+  }
+
+  function hideBrief() {
+    document.getElementById('scenarioBrief').classList.remove('visible');
+  }
+
+  function hideSuccess() {
+    document.getElementById('successBanner').classList.remove('visible');
+  }
+
+  function showSuccess(sc) {
+    document.getElementById('successDetail').textContent =
+      ' Root cause: ' + sc.fixDescription;
+    document.getElementById('successBanner').classList.add('visible');
+    _solvedSet[sc.id] = true;
+    var card = document.querySelector('.scenario-card[data-sc-id="' + sc.id + '"]');
+    if (card) card.classList.add('solved');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    var solved = Object.keys(_solvedSet).length;
+    var total  = SCENARIOS.length;
+    document.getElementById('progressBar').style.width = Math.round(solved / total * 100) + '%';
+    document.getElementById('progressCount').textContent = solved + ' / ' + total;
+  }
+
+  /* ====================================================================
+     COMMAND INTERCEPT
+     ==================================================================== */
+  function checkObjective(rawCmd) {
+    if (!_activeScenario) return;
+    var sc  = _activeScenario;
+    var cmd = rawCmd.trim().toLowerCase();
+
+    if (!_diagDone) {
+      for (var i = 0; i < sc.diagCmds.length; i++) {
+        if (cmd.indexOf(sc.diagCmds[i].toLowerCase()) !== -1) {
+          _diagDone = true;
+          break;
+        }
+      }
+    }
+
+    if (_diagDone && !_fixDone) {
+      if (cmd.indexOf(sc.fixKeyword.toLowerCase()) !== -1) {
+        _fixDone = true;
+      }
+      if (!_fixDone) {
+        for (var j = 0; j < sc.fixCmds.length; j++) {
+          if (cmd.indexOf(sc.fixCmds[j].toLowerCase()) !== -1) {
+            _fixDone = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (_diagDone && _fixDone && !_solvedSet[sc.id]) {
+      showSuccess(sc);
+    }
+  }
+
+  window.checkObjective = checkObjective;
+
+  /* Wrap show commands so diagDone triggers on display */
+  var _showKeys = [
+    'cl-acltool -l all',
+    'nv show acl',
+    'nv show acl block-10-20',
+    'nv show vrf',
+    'nv show vrf tenant-a ip route',
+    'nv show vrf tenant-b ip route',
+    'nv show system security ssh',
+    'nv show system aaa',
+    'nv show system aaa user netops',
+    'nv show system',
+    'nv show interface',
+    'nv show service',
+  ];
+  _showKeys.forEach(function (k) {
+    var orig = CMD_MAP[k];
+    CMD_MAP[k] = function (dev, raw, lower) {
+      checkObjective(raw || k);
+      return (typeof orig === 'function') ? orig(dev, raw, lower) : orig;
+    };
+  });
+
+  /* ====================================================================
+     PAGE INIT: build scenario cards + cheat list + mount terminal
+     ==================================================================== */
+
+  /* Build scenario cards */
+  var grid = document.getElementById('scenarioGrid');
+  SCENARIOS.forEach(function (sc) {
+    var card = document.createElement('div');
+    card.className = 'scenario-card';
+    card.dataset.scId = sc.id;
+    card.innerHTML =
+      '<span class="sc-num">Scenario ' + sc.num + '</span>' +
+      '<span class="sc-title">' + escHtml(sc.title) + '</span>' +
+      '<span class="sc-tool">Diagnose: ' + escHtml(sc.diagTool) + '</span>' +
+      '<span class="sc-solved-badge">Solved</span>';
+    card.addEventListener('click', function () { selectScenario(sc); });
+    grid.appendChild(card);
+  });
+
+  /* Build cheat list sidebar */
+  var CHEAT = [
+    { cmd: 'cl-acltool -L all',               desc: 'List all installed kernel ACL rules' },
+    { cmd: 'cl-acltool -i',                   desc: 'Install/refresh ACLs from policy files' },
+    { cmd: 'nv show acl',                     desc: 'NVUE ACL table (staged vs applied)' },
+    { cmd: 'nv show vrf',                     desc: 'VRF table: default, mgmt, tenants' },
+    { cmd: 'nv show vrf tenant-a ip route',   desc: 'Routing table inside tenant-a' },
+    { cmd: 'nv show vrf tenant-b ip route',   desc: 'Routing table inside tenant-b' },
+    { cmd: 'nv show system security ssh',     desc: 'SSH auth mode + VRF binding' },
+    { cmd: 'nv show system aaa',              desc: 'Users, roles, auth order' },
+    { cmd: 'nv show system aaa user netops',  desc: 'Specific user role detail' },
+    { cmd: 'nv show system',                  desc: 'Platform, version, uptime' },
+    { cmd: 'nv show interface',               desc: 'All ports: state / speed / MTU' },
+    { cmd: 'nv config diff',                  desc: 'Preview pending vs running' },
+    { cmd: 'nv config apply',                 desc: 'Commit staged changes' },
+  ];
+
+  var cheatList = document.getElementById('cheatList');
+  CHEAT.forEach(function (item) {
+    var li = document.createElement('li');
+    li.innerHTML =
+      '<code data-cmd="' + escHtml(item.cmd) + '">' + escHtml(item.cmd) + '</code>' +
+      '<span class="desc">' + escHtml(item.desc) + '</span>';
+    li.querySelector('code').addEventListener('click', function () {
+      var inputEl = document.querySelector('#termMount .term-input');
+      if (!inputEl) return;
+      inputEl.textContent = item.cmd;
+      inputEl.focus();
+      var range = document.createRange();
+      var sel   = window.getSelection();
+      if (inputEl.childNodes.length > 0) {
+        range.setStartAfter(inputEl.lastChild);
+      } else {
+        range.setStart(inputEl, 0);
+      }
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    cheatList.appendChild(li);
+  });
+
+  /* Mount the lab engine */
+  if (!window.Lab) {
+    var _retry = 0;
+    var _wait = setInterval(function () {
+      if (window.Lab || _retry++ > 40) {
+        clearInterval(_wait);
+        if (window.Lab) mount();
+      }
+    }, 100);
+  } else {
+    mount();
+  }
+
+  function mount() {
+    _lab = new Lab.LabBase({ objectives: [] });
+    _lab.addDevice('leaf01', 'switch', {
+      hostname: 'cumulus@leaf01',
+      shellPromptFormat: 'nvue',
+      commandMap: CMD_MAP,
+    });
+
+    _lab.initTerminal(document.getElementById('termMount'));
+
+    _lab.terminal.writeLine('Cumulus Linux 5.12.0 (Spectrum-4 SN5600)');
+    _lab.terminal.writeLine('NVUE 2.0.0  |  leaf01  |  Security console');
+    _lab.terminal.writeLine('');
+    _lab.terminal.writeLine('Type "help" or "?" for a full command list.');
+    _lab.terminal.writeLine('Try: nv show system aaa   or   cl-acltool -L all');
+    _lab.terminal.writeLine('Switch to Troubleshooting Scenarios to practice security diagnosis.');
+    _lab.terminal.writeLine('');
+    _lab.terminal.updatePrompt();
+    _lab.terminal.focus();
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  window.setMode    = setMode;
+  window.toggleHint = toggleHint;
+});
+</script>
+
+<script defer src="js/nav.js"></script>
+<script defer src="js/tutor.js?v=7.17.10"></script>
+</body>
+</html>
