@@ -369,8 +369,8 @@
           <span class="desc">Switches and HCAs: model, managed vs unmanaged</span>
         </li>
         <li>
-          <code>GET /ufmRest/monitoring/snapshot</code>
-          <span class="desc">Telemetry counters per port: errors, wait, discards</span>
+          <code>POST /ufmRest/monitoring/snapshot</code>
+          <span class="desc">Create a one-time telemetry snapshot. Body: {"attributes":[...]}. Counters per port: errors, wait, discards</span>
         </li>
         <li>
           <code>GET /ufmRest/app/events</code>
@@ -414,7 +414,7 @@ var SCENARIOS = [
     objective: 'Query the links endpoint to find the port running at 4X instead of 12X. Then confirm with the telemetry snapshot that SymbolErrorCounter is climbing.',
     hint: 'Link width negotiates down when a cable lane fails. The links endpoint shows the active width for each link. Look for one that differs from its neighbors.',
     diagCmds: ['GET /ufmRest/resources/links', 'get /ufmrest/resources/links'],
-    fixCmds: ['GET /ufmRest/monitoring/snapshot', 'get /ufmrest/monitoring/snapshot', 'POST /ufmRest/actions', 'post /ufmrest/actions'],
+    fixCmds: ['POST /ufmRest/monitoring/snapshot', 'post /ufmrest/monitoring/snapshot', 'POST /ufmRest/actions', 'post /ufmrest/actions'],
     fixKeyword: 'actions',
     fixDescription: 'Switch s01/port 12 is running 4X (degraded lane). SymbolErrorCounter is rising. Reset the port via POST /ufmRest/actions to force re-negotiation; replace cable if error persists.'
   },
@@ -422,11 +422,11 @@ var SCENARIOS = [
     id: 'congestion',
     num: '02',
     title: 'Congestion Hotspot',
-    diagTool: 'GET /ufmRest/monitoring/snapshot',
+    diagTool: 'POST /ufmRest/monitoring/snapshot',
     symptom: 'Collective operations on the storage tier take 3x longer than normal. No link errors in ibdiagnet. GPU utilization looks fine.',
     objective: 'Query the telemetry snapshot to find the port with elevated PortXmitWait. Explain why that counter signals incast congestion.',
     hint: 'PortXmitWait counts clock cycles a port spent unable to transmit because its output buffer was full. High values = credit starvation or incast from many-to-one traffic pattern.',
-    diagCmds: ['GET /ufmRest/monitoring/snapshot', 'get /ufmrest/monitoring/snapshot'],
+    diagCmds: ['POST /ufmRest/monitoring/snapshot', 'post /ufmrest/monitoring/snapshot'],
     fixCmds: ['POST /ufmRest/actions', 'post /ufmrest/actions'],
     fixKeyword: 'actions',
     fixDescription: 'Switch s02/port 7 shows PortXmitWait=9812044. Incast from 8 sources hitting the same egress port. Mitigation: enable IB Congestion Control or rebalance routes via POST /ufmRest/actions SM re-route.'
@@ -440,7 +440,7 @@ var SCENARIOS = [
     objective: 'Query the events endpoint to find LinkDowned events for the flapping port. Then confirm via the telemetry snapshot that LinkDownedCounter is non-zero.',
     hint: 'The events endpoint logs every fabric alarm with a timestamp. Look for repeated LinkDown/LinkUp pairs on the same GUID within a short window.',
     diagCmds: ['GET /ufmRest/app/events', 'get /ufmrest/app/events'],
-    fixCmds: ['GET /ufmRest/monitoring/snapshot', 'get /ufmrest/monitoring/snapshot', 'POST /ufmRest/actions', 'post /ufmrest/actions'],
+    fixCmds: ['POST /ufmRest/monitoring/snapshot', 'post /ufmrest/monitoring/snapshot', 'POST /ufmRest/actions', 'post /ufmrest/actions'],
     fixKeyword: 'actions',
     fixDescription: 'Switch s01/port 4 logged 11 LinkDowned events overnight. LinkDownedCounter=11, LinkErrorRecovery=11. Faulty cable or SFP. Schedule cable replacement and reset counters via POST /ufmRest/actions.'
   },
@@ -577,8 +577,28 @@ function fmtSystems() {
   return prettyJSON({ status: 200, count: SYSTEMS_DATA.length, systems: SYSTEMS_DATA });
 }
 
-function fmtSnapshot() {
-  return prettyJSON({ status: 200, snapshot_time: TS + '06:00:01Z', entries: SNAPSHOT_DATA });
+function fmtSnapshot(raw) {
+  /* POST creates a one-time monitoring session and returns the sampled counters.
+     Echo the requested attributes from the body if the operator supplied one. */
+  var attributes = ['SymbolErrorCounter', 'LinkErrorRecovery', 'LinkDownedCounter',
+    'PortXmitWait', 'PortXmitDiscards', 'PortRcvErrors'];
+  if (raw) {
+    var body = raw.replace(/^post\s+\/ufmrest\/monitoring\/snapshot\s*/i, '').trim();
+    var m = body.match(/"attributes"\s*:\s*\[([^\]]*)\]/i);
+    if (m) {
+      var parsed = m[1].match(/"([^"]+)"/g);
+      if (parsed && parsed.length) {
+        attributes = parsed.map(function (s) { return s.replace(/"/g, ''); });
+      }
+    }
+  }
+  return prettyJSON({
+    status: 200,
+    session: 'one-time',
+    snapshot_time: TS + '06:00:01Z',
+    requested_attributes: attributes,
+    entries: SNAPSHOT_DATA
+  });
 }
 
 function fmtEvents() {
@@ -782,13 +802,16 @@ document.addEventListener('DOMContentLoaded', function () {
       return fmtSystems();
     }
     if (lower.indexOf('/ufmrest/monitoring/snapshot') !== -1) {
-      return fmtSnapshot();
+      return '[sim] 405 Method Not Allowed: /ufmRest/monitoring/snapshot' +
+        '\nA snapshot is created with POST (it opens a one-time monitoring session).' +
+        '\nTry: POST /ufmRest/monitoring/snapshot {"attributes":["PortXmitWait","SymbolErrorCounter"]}';
     }
     if (lower.indexOf('/ufmrest/app/events') !== -1) {
       return fmtEvents();
     }
     return '[sim] 404 Not Found: ' + raw.replace(/^get\s+/i, '').trim() +
-      '\nKnown GET paths: /ufmRest/resources/ports, /resources/links, /resources/systems, /monitoring/snapshot, /app/events';
+      '\nKnown GET paths: /ufmRest/resources/ports, /resources/links, /resources/systems, /app/events' +
+      '\nSnapshots are created with POST /ufmRest/monitoring/snapshot';
   };
 
   MAP['GET ...'] = MAP['get ...'] = MAP['GET'];
@@ -797,11 +820,14 @@ document.addEventListener('DOMContentLoaded', function () {
   MAP['POST'] = MAP['post'] = function (dev, raw) {
     checkObjective(raw);
     var lower = raw.trim().toLowerCase();
+    if (lower.indexOf('/ufmrest/monitoring/snapshot') !== -1) {
+      return fmtSnapshot(raw);
+    }
     if (lower.indexOf('/ufmrest/actions') !== -1) {
       return fmtActions(raw);
     }
     return '[sim] 404 Not Found: ' + raw.replace(/^post\s+/i, '').trim() +
-      '\nKnown POST paths: /ufmRest/actions';
+      '\nKnown POST paths: /ufmRest/monitoring/snapshot, /ufmRest/actions';
   };
 
   MAP['POST ...'] = MAP['post ...'] = MAP['POST'];
@@ -831,11 +857,11 @@ document.addEventListener('DOMContentLoaded', function () {
     '  GET /ufmRest/resources/ports        Fabric ports: GUID, LID, state, speed, width',
     '  GET /ufmRest/resources/links        Fabric links: src/dst, width, speed, state',
     '  GET /ufmRest/resources/systems      Switches and HCAs: model, managed status',
-    '  GET /ufmRest/monitoring/snapshot    Telemetry counters per port',
     '  GET /ufmRest/app/events             Fabric alarms: link events, threshold breaches',
+    '  POST /ufmRest/monitoring/snapshot   Create a one-time telemetry snapshot (body: {"attributes":[...]})',
     '  POST /ufmRest/actions [body]        Actions: reset_port, sm_reroute, etc.',
     '',
-    'Key telemetry counters to know:',
+    'Key telemetry counters to know (raw IB-MAD PortCounters names, not UFM REST attribute labels):',
     '  SymbolErrorCounter    Physical-layer errors (rising = bad cable / BER high)',
     '  LinkErrorRecovery     Times port recovered from error without going down',
     '  LinkDownedCounter     Times port fully went down (flap = LinkDowned + LER both rising)',
@@ -854,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function () {
     '',
     'Troubleshooting tip:',
     '  Start with: GET /ufmRest/app/events       (see active alarms)',
-    '  Then:       GET /ufmRest/monitoring/snapshot  (find the bad counter)',
+    '  Then:       POST /ufmRest/monitoring/snapshot  (sample the bad counter)',
     '  Confirm:    GET /ufmRest/resources/links   (check link width)',
     '  Act:        POST /ufmRest/actions          (reset port or re-route)'
   ].join('\n');

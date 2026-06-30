@@ -397,6 +397,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var FAULT_OUTPUTS = {
 
     /* ── Scenario 1: Vanishing Config ───────────────────────────────────
+       This switch has auto-save DISABLED (nv set system config auto-save
+       state disabled), so nv config apply does NOT persist on its own.
        nv config apply was run but nv config save was NOT.
        After reboot the switch came up with the previous startup.yaml.
        Reveal: nv config diff (pending=empty, applied has changes)
@@ -421,7 +423,8 @@ document.addEventListener('DOMContentLoaded', function () {
           '+          state: up',
           '',
           'Difference detected. Applied config has vlan100 SVI.',
-          'startup.yaml does NOT have it. A reboot will lose this config.',
+          'startup.yaml does NOT have it. Auto-save is disabled on this switch,',
+          'so apply did not persist it. A reboot will lose this config.',
           'Fix: run "nv config save" to persist applied config to startup.yaml.',
         ].join('\n');
       },
@@ -446,6 +449,9 @@ document.addEventListener('DOMContentLoaded', function () {
           '',
           'system:',
           '  hostname: leaf01',
+          '  config:',
+          '    auto-save:',
+          '      state: disabled        # apply does NOT persist on its own',
           'interface:',
           '  lo:',
           '    type: loopback',
@@ -457,6 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '',
           '# NOTE: vlan100 SVI is NOT here.',
           '# It exists in applied (running) config but was never saved.',
+          '# Auto-save is disabled, so apply alone did not write it here.',
           '# Run "nv config save" to fix this.',
         ].join('\n');
       }
@@ -814,6 +821,9 @@ document.addEventListener('DOMContentLoaded', function () {
         '',
         'system:',
         '  hostname: leaf01',
+        '  config:',
+        '    auto-save:',
+        '      state: disabled',
         'interface:',
         '  lo:',
         '    type: loopback',
@@ -1143,9 +1153,9 @@ document.addEventListener('DOMContentLoaded', function () {
       num: '01',
       title: 'The Vanishing Config',
       diagTool: 'nv config diff',
-      symptom: 'VLAN 100 SVI was configured yesterday. After an overnight reboot, the SVI is gone. The engineer says they ran "nv config apply" but nothing more.',
+      symptom: 'VLAN 100 SVI was configured yesterday. After an overnight reboot, the SVI is gone. The engineer says they ran "nv config apply" but nothing more. This switch has auto-save disabled.',
       objective: 'Run nv config diff to see what the startup file is missing. Then save the applied config so it survives the next reboot.',
-      hint: 'There are three states: PENDING, APPLIED, and STARTUP. "nv config apply" only moves pending to applied. It does NOT touch the startup file. Check what is in startup vs applied.',
+      hint: 'There are three states: PENDING, APPLIED, and STARTUP. With auto-save disabled, "nv config apply" only moves pending to applied. It does NOT touch the startup file. Check what is in startup vs applied.',
       diagCmds: ['nv config diff', 'nv config history', 'cat /etc/nvue.d/startup.yaml'],
       fixKeyword: 'nv config save',
       fixCmds: ['nv config save'],

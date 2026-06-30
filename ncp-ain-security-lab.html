@@ -496,31 +496,30 @@ document.addEventListener('DOMContentLoaded', function () {
     },
 
     /* Scenario 3: Management hardening gap.
-       SSH password auth is still enabled. The switch is not in the mgmt VRF.
-       nv show system security ssh shows password auth=enabled.
-       nv show vrf shows mgmt VRF exists but the SSH service is bound to default.
-       Fix: nv set system security ssh server password-auth disabled + nv config apply,
-            then nv set service ssh server vrf mgmt + nv config apply. */
+       SSH still permits root password login. The switch is not in the mgmt VRF.
+       nv show system ssh-server shows permit-root-login=yes.
+       nv show vrf shows mgmt VRF exists but the SSH server is bound to default.
+       Fix: nv set system ssh-server permit-root-login prohibit-password + nv config apply,
+            then nv set system ssh-server vrf mgmt + nv config apply. */
     'mgmt-hardening': {
-      'nv show system security ssh': function () {
+      'nv show system ssh-server': function () {
         return [
           'SSH server configuration:',
           '',
-          '  password-auth    enabled        <-- INSECURE',
-          '  pubkey-auth      enabled',
-          '  permit-root      disabled',
-          '  max-auth-tries   6',
-          '  vrf              default        <-- should be mgmt',
-          '  port             22',
-          '  listen-address   0.0.0.0',
+          '  permit-root-login    yes            <-- INSECURE',
+          '  pubkey-auth          enabled',
+          '  max-auth-tries       6',
+          '  vrf                  default        <-- should be mgmt',
+          '  port                 22',
+          '  listen-address       0.0.0.0',
           '',
-          'RISK: Password authentication is enabled.',
-          'Any reachable IP can attempt brute-force login.',
+          'RISK: Root login with a password is permitted.',
+          'Any reachable IP can attempt a brute-force root login.',
           '',
           'RISK: SSH listens on the default VRF (all interfaces).',
           'Management access should be isolated to the mgmt VRF.',
-          'Fix 1: nv set system security ssh server password-auth disabled',
-          'Fix 2: nv set service ssh server vrf mgmt',
+          'Fix 1: nv set system ssh-server permit-root-login prohibit-password',
+          'Fix 2: nv set system ssh-server vrf mgmt',
           'Then: nv config apply for each change.',
         ].join('\n');
       },
@@ -531,18 +530,18 @@ document.addEventListener('DOMContentLoaded', function () {
           'default     254    up     65001',
           'mgmt        1000   up     --      Management plane (OOB eth0 only)',
           '',
-          'mgmt VRF exists but SSH service is bound to default.',
+          'mgmt VRF exists but the SSH server is bound to default.',
           'Data-plane interfaces (swp*) are exposed to SSH attempts.',
-          'Fix: nv set service ssh server vrf mgmt',
+          'Fix: nv set system ssh-server vrf mgmt',
         ].join('\n');
       }
     },
 
     /* Scenario 4: RBAC operator has too many privileges.
-       User "netops" was assigned the nvue-admin role instead of monitor.
+       User "netops" was assigned the nvue-admin role instead of nvue-monitor.
        They ran "nv set interface swp1 link speed 100G" by mistake.
        nv show system aaa user netops shows the wrong role.
-       Fix: nv set system aaa user netops role monitor + nv config apply. */
+       Fix: nv set system aaa user netops role nvue-monitor + nv config apply. */
     'rbac-overpriv': {
       'nv show system aaa': function () {
         return [
@@ -555,11 +554,11 @@ document.addEventListener('DOMContentLoaded', function () {
           '  ----------   -----------   ---------------------',
           '  cumulus      system-admin  2026-06-29 06:01:14',
           '  netops       nvue-admin    2026-06-29 14:32:08',
-          '  svcaccount   monitor       never',
+          '  svcaccount   nvue-monitor  never',
           '',
           'RISK: netops has nvue-admin role.',
           'nvue-admin can run "nv set" and "nv config apply".',
-          'Operators who only need to read state should have the monitor role.',
+          'Operators who only need to read state should have the nvue-monitor role.',
           'Run: nv show system aaa user netops for full role detail.',
         ].join('\n');
       },
@@ -580,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '',
           'History: netops ran "nv set interface swp1 link speed 100G" at 14:32.',
           'The change was applied. Traffic on swp1 dropped to 100G.',
-          'Fix: nv set system aaa user netops role monitor, then nv config apply.',
+          'Fix: nv set system aaa user netops role nvue-monitor, then nv config apply.',
         ].join('\n');
       }
     }
@@ -730,21 +729,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }, dev, raw, lower);
   };
 
-  /* ---- nv show system security ssh ----------------------------------------- */
-  CMD_MAP['nv show system security ssh'] = function (dev, raw, lower) {
-    return resolveCmd('nv show system security ssh', function () {
+  /* ---- nv show system ssh-server ------------------------------------------- */
+  CMD_MAP['nv show system ssh-server'] = function (dev, raw, lower) {
+    return resolveCmd('nv show system ssh-server', function () {
       return [
         'SSH server configuration:',
         '',
-        '  password-auth    disabled       (key-only)',
-        '  pubkey-auth      enabled',
-        '  permit-root      disabled',
-        '  max-auth-tries   3',
-        '  vrf              mgmt           (isolated to OOB)',
-        '  port             22',
-        '  listen-address   0.0.0.0',
+        '  permit-root-login    prohibit-password  (key-only for root)',
+        '  pubkey-auth          enabled',
+        '  max-auth-tries       3',
+        '  vrf                  mgmt               (isolated to OOB)',
+        '  port                 22',
+        '  listen-address       0.0.0.0',
         '',
-        'SSH is hardened: password auth disabled, VRF=mgmt.',
+        'SSH is hardened: root password login disabled, VRF=mgmt.',
       ].join('\n');
     }, dev, raw, lower);
   };
@@ -761,10 +759,10 @@ document.addEventListener('DOMContentLoaded', function () {
         '  Name         Role          Last-login',
         '  ----------   -----------   ---------------------',
         '  cumulus      system-admin  2026-06-29 06:01:14',
-        '  netops       monitor       2026-06-29 14:32:08',
-        '  svcaccount   monitor       never',
+        '  netops       nvue-monitor  2026-06-29 14:32:08',
+        '  svcaccount   nvue-monitor  never',
         '',
-        'All users follow least-privilege. Operators have monitor role.',
+        'All users follow least-privilege. Operators have nvue-monitor role.',
       ].join('\n');
     }, dev, raw, lower);
   };
@@ -774,12 +772,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return [
         'User: netops',
         '',
-        '  role            monitor',
+        '  role            nvue-monitor',
         '  full-name       Network Ops Viewer',
         '  hashed-passwd   (set)',
         '  ssh-pubkey      (not set)',
         '',
-        'Role permissions for monitor:',
+        'Role permissions for nvue-monitor:',
         '  nv show         allowed',
         '  nv set          denied',
         '  nv config apply denied',
@@ -838,7 +836,7 @@ document.addEventListener('DOMContentLoaded', function () {
       'syslog     active   mgmt    Remote syslog to 192.168.1.50:514',
       'snmp       active   mgmt    v2c read-only',
       'lldp       active   default Topology discovery',
-      'ssh        active   mgmt    OpenSSH 9.2p1 (key-only, password disabled)',
+      'ssh        active   mgmt    OpenSSH 9.2p1 (root key-only, mgmt VRF)',
       'frr        active   default FRRouting (BGP/EVPN)',
     ].join('\n');
   };
@@ -888,8 +886,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var _nvSetPrefixes = [
     'nv set acl',
     'nv set system aaa',
-    'nv set system security',
-    'nv set service ssh',
+    'nv set system ssh-server',
     'nv set vrf',
     'nv set interface',
     'nv set router',
@@ -925,15 +922,15 @@ document.addEventListener('DOMContentLoaded', function () {
     '  nv unset vrf <name> ip route ... Remove a route leak',
     '',
     'SSH hardening:',
-    '  nv show system security ssh     SSH auth mode, VRF binding',
-    '  nv set system security ssh server password-auth disabled',
-    '  nv set service ssh server vrf mgmt',
+    '  nv show system ssh-server       SSH login policy, VRF binding',
+    '  nv set system ssh-server permit-root-login prohibit-password',
+    '  nv set system ssh-server vrf mgmt',
     '',
     'RBAC / AAA:',
     '  nv show system aaa              Users, roles, auth order',
     '  nv show system aaa user netops  Per-user role detail',
-    '  nv set system aaa user <name> role monitor    Read-only role',
-    '  nv set system aaa user <name> role nvue-admin Config role',
+    '  nv set system aaa user <name> role nvue-monitor  Read-only role',
+    '  nv set system aaa user <name> role nvue-admin    Config role',
     '',
     'General:',
     '  nv show system                  Hostname, version, platform',
@@ -1004,7 +1001,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       return [
         '% Unrecognized nv show sub-command.',
-        'Try: nv show acl | vrf | system | system aaa | system security ssh',
+        'Try: nv show acl | vrf | system | system aaa | system ssh-server',
         '     nv show interface | service | help',
       ].join('\n');
     }
@@ -1085,14 +1082,14 @@ document.addEventListener('DOMContentLoaded', function () {
       id: 'mgmt-hardening',
       num: '03',
       title: 'SSH Management Hardening Gap',
-      diagTool: 'nv show system security ssh',
-      symptom: 'A security scan flagged this switch: SSH password authentication is enabled and the SSH service is reachable from data-plane interfaces. The requirement is key-only auth and management access via the mgmt VRF only.',
-      objective: 'Inspect the SSH server configuration to see both gaps. Then run the two fix commands to disable password auth and bind SSH to the mgmt VRF.',
-      hint: 'Two separate settings control this. One is whether SSH accepts passwords (versus keys only). The other is which VRF the SSH process listens on. A switch that listens on the default VRF is reachable from any swp interface, not just OOB.',
-      diagCmds: ['nv show system security ssh', 'nv show vrf'],
-      fixKeyword: 'nv set system security',
-      fixCmds: ['nv set system security', 'nv set service ssh', 'nv config apply'],
-      fixDescription: 'SSH had password-auth=enabled and vrf=default. Fix: nv set system security ssh server password-auth disabled + nv set service ssh server vrf mgmt + nv config apply.'
+      diagTool: 'nv show system ssh-server',
+      symptom: 'A security scan flagged this switch: SSH permits root password login and the SSH server is reachable from data-plane interfaces. The requirement is key-only root access and management reachability via the mgmt VRF only.',
+      objective: 'Inspect the SSH server configuration to see both gaps. Then run the two fix commands to restrict root login to keys only and bind SSH to the mgmt VRF.',
+      hint: 'Two separate settings control this. One is whether root can log in with a password (versus keys only). The other is which VRF the SSH server listens on. A switch that listens on the default VRF is reachable from any swp interface, not just OOB.',
+      diagCmds: ['nv show system ssh-server', 'nv show vrf'],
+      fixKeyword: 'nv set system ssh-server',
+      fixCmds: ['nv set system ssh-server permit-root-login', 'nv set system ssh-server vrf', 'nv config apply'],
+      fixDescription: 'SSH had permit-root-login=yes and vrf=default. Fix: nv set system ssh-server permit-root-login prohibit-password + nv set system ssh-server vrf mgmt + nv config apply.'
     },
     {
       id: 'rbac-overpriv',
@@ -1100,12 +1097,12 @@ document.addEventListener('DOMContentLoaded', function () {
       title: 'RBAC Over-Privilege',
       diagTool: 'nv show system aaa',
       symptom: 'User "netops" is a read-only operator who monitors the switch state. They accidentally ran a config change that dropped swp1 from 400G to 100G. The change was accepted. Investigate why and fix the role.',
-      objective: 'Check the AAA user list to find the misconfigured role. Then run the fix command to downgrade netops to the read-only monitor role.',
-      hint: 'NVUE has tiered roles. system-admin has full control. nvue-admin can run nv set and nv config apply. monitor can only run nv show. If a read-only operator has the nvue-admin role, they can make config changes unintentionally.',
+      objective: 'Check the AAA user list to find the misconfigured role. Then run the fix command to downgrade netops to the read-only nvue-monitor role.',
+      hint: 'NVUE has tiered roles. system-admin has full control. nvue-admin can run nv set and nv config apply. nvue-monitor can only run nv show. If a read-only operator has the nvue-admin role, they can make config changes unintentionally.',
       diagCmds: ['nv show system aaa', 'nv show system aaa user netops'],
       fixKeyword: 'nv set system aaa',
-      fixCmds: ['nv set system aaa user netops role monitor', 'nv config apply'],
-      fixDescription: 'netops had the nvue-admin role which allows nv set and nv config apply. Fix: nv set system aaa user netops role monitor, then nv config apply.'
+      fixCmds: ['nv set system aaa user netops role nvue-monitor', 'nv config apply'],
+      fixDescription: 'netops had the nvue-admin role which allows nv set and nv config apply. Fix: nv set system aaa user netops role nvue-monitor, then nv config apply.'
     }
   ];
 
@@ -1259,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'nv show vrf',
     'nv show vrf tenant-a ip route',
     'nv show vrf tenant-b ip route',
-    'nv show system security ssh',
+    'nv show system ssh-server',
     'nv show system aaa',
     'nv show system aaa user netops',
     'nv show system',
@@ -1301,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', function () {
     { cmd: 'nv show vrf',                     desc: 'VRF table: default, mgmt, tenants' },
     { cmd: 'nv show vrf tenant-a ip route',   desc: 'Routing table inside tenant-a' },
     { cmd: 'nv show vrf tenant-b ip route',   desc: 'Routing table inside tenant-b' },
-    { cmd: 'nv show system security ssh',     desc: 'SSH auth mode + VRF binding' },
+    { cmd: 'nv show system ssh-server',       desc: 'SSH login policy + VRF binding' },
     { cmd: 'nv show system aaa',              desc: 'Users, roles, auth order' },
     { cmd: 'nv show system aaa user netops',  desc: 'Specific user role detail' },
     { cmd: 'nv show system',                  desc: 'Platform, version, uptime' },
