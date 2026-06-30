@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Kubernetes RDMA Integration Lab -- NCP-AIN</title>
+<style>
+:root {
+  --ncp: #76B900;
+  --ncp-rgb: 118,185,0;
+  --ncp-light: #A4D65E;
+  --ncp-dark: #5A8C00;
+}
+.gc-bar, .gc-chat-panel, #guidePill { display: none !important; }
+
+.ib-back { margin-bottom: var(--s-md); }
+.ib-header { margin-bottom: var(--s-lg); }
+.ib-header h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.ib-header .subtitle {
+  font-family: var(--font-body); font-size: .95rem; color: var(--ink-secondary);
+  line-height: 1.6; max-width: 62ch;
+}
+.ib-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--ncp-rgb),.1); border: 1px solid rgba(var(--ncp-rgb),.25);
+  border-radius: var(--radius-lg); padding: 6px 14px;
+  font-family: var(--font-display); font-weight: 700; font-size: .9rem;
+  color: var(--ncp-dark); margin-bottom: var(--s-md);
+}
+
+/* Mode selector */
+.ib-mode-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: var(--s-md); flex-wrap: wrap;
+}
+.ib-mode-label {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-secondary); white-space: nowrap;
+}
+.ib-mode-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ib-mode-tab {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 5px 14px; background: var(--bg-surface);
+  color: var(--ink-secondary); cursor: pointer;
+  transition: background 160ms, color 160ms, border-color 160ms;
+}
+.ib-mode-tab:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+.ib-mode-tab.active {
+  background: rgba(var(--ncp-rgb),.12);
+  border-color: var(--ncp); color: var(--ncp-dark);
+}
+
+/* Scenario picker */
+#scenarioSection { margin-bottom: var(--s-md); }
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: var(--s-md);
+}
+.scenario-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 160ms, box-shadow 160ms, background 160ms;
+  position: relative;
+}
+.scenario-card:hover {
+  border-color: var(--ncp); box-shadow: 0 0 0 2px rgba(var(--ncp-rgb),.12);
+}
+.scenario-card.active {
+  border-color: var(--ncp);
+  background: rgba(var(--ncp-rgb),.08);
+  box-shadow: 0 0 0 2px rgba(var(--ncp-rgb),.18);
+}
+.scenario-card.solved {
+  border-color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.15);
+}
+.scenario-card .sc-num {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .72rem; font-weight: 700;
+  color: var(--ncp-dark); margin-bottom: 4px; display: block;
+}
+.scenario-card .sc-title {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 600;
+  color: var(--ink); line-height: 1.3;
+}
+.scenario-card .sc-tool {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .72rem; color: var(--ink-secondary);
+  margin-top: 5px; display: block;
+}
+.scenario-card .sc-solved-badge {
+  position: absolute; top: 8px; right: 10px;
+  font-size: .72rem; font-weight: 700;
+  color: var(--ncp-dark); display: none;
+}
+.scenario-card.solved .sc-solved-badge { display: block; }
+
+/* Scenario briefing panel */
+#scenarioBrief {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ncp);
+  border-radius: var(--radius-lg);
+  padding: var(--s-md);
+  margin-bottom: var(--s-md);
+  display: none;
+}
+#scenarioBrief.visible { display: block; }
+.brief-title {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  color: var(--ink); margin-bottom: 6px;
+}
+.brief-symptom {
+  font-family: var(--font-body); font-size: .88rem; color: var(--ink-secondary);
+  line-height: 1.6; margin-bottom: 10px;
+}
+.brief-objective {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 600;
+  color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.08);
+  border-radius: 6px; padding: 6px 10px;
+  margin-bottom: 10px;
+}
+.brief-hint-btn {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 600;
+  color: var(--ink-secondary); background: none; border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 4px 12px;
+  cursor: pointer; transition: border-color 160ms, color 160ms;
+}
+.brief-hint-btn:hover { border-color: var(--ncp); color: var(--ncp-dark); }
+.brief-hint-text {
+  font-family: var(--font-body); font-size: .85rem; color: var(--ink);
+  background: rgba(var(--ncp-rgb),.06); border-radius: 6px;
+  padding: 8px 12px; margin-top: 8px; display: none; line-height: 1.55;
+}
+.brief-hint-text.visible { display: block; }
+
+/* Success banner */
+#successBanner {
+  background: rgba(var(--ncp-rgb),.13);
+  border: 1.5px solid var(--ncp);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  margin-bottom: var(--s-md);
+  display: none;
+  font-family: var(--font-display); font-size: .95rem; font-weight: 600;
+  color: var(--ncp-dark);
+}
+#successBanner.visible { display: block; }
+
+/* Two-column body */
+.ib-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--s-lg);
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .ib-body { grid-template-columns: 1fr; }
+}
+
+/* Terminal chrome */
+.ed-term {
+  background: #161b22; border-radius: var(--radius-lg);
+  overflow: hidden; border: 1px solid #30363d;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.ed-term-bar {
+  display: flex; align-items: center; gap: 7px;
+  background: #21262d; padding: 10px 14px; border-bottom: 1px solid #30363d;
+}
+.ed-term-dot { width: 11px; height: 11px; border-radius: 50%; }
+.ed-term-dot.r { background: #ff5f56; }
+.ed-term-dot.y { background: #ffbd2e; }
+.ed-term-dot.g { background: #27c93f; }
+.ed-term-title {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: #8b949e; margin-left: 6px; letter-spacing: .02em;
+}
+
+/* Terminal body */
+#termWrap .term-wrap {
+  padding: 14px 18px;
+  min-height: 340px;
+  max-height: 520px;
+  overflow-y: auto;
+  cursor: text;
+}
+#termWrap .term-output {
+  white-space: pre-wrap; word-break: break-word;
+  color: #e6edf3; font-size: .82rem; line-height: 1.55;
+  margin-bottom: 4px;
+}
+#termWrap .term-line { margin: 0; }
+#termWrap .term-line.cmd { color: #a5d6ff; }
+#termWrap .term-input-row {
+  display: flex; align-items: baseline; gap: 0;
+  color: #e6edf3; font-size: .82rem;
+}
+#termWrap .term-prompt { color: #7ee787; white-space: pre; user-select: none; }
+#termWrap .term-input {
+  flex: 1; outline: none; caret-color: #e6edf3;
+  color: #e6edf3; min-width: 2ch;
+  font-family: inherit; font-size: inherit;
+}
+
+/* Cheat-list sidebar */
+.ib-cheat {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--s-md);
+}
+.ib-cheat h2 {
+  font-family: var(--font-display); font-size: .85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ncp-dark); margin-bottom: var(--s-sm);
+}
+.ib-cheat ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ib-cheat li {}
+.ib-cheat code {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .78rem; font-weight: 600; color: var(--ncp-dark);
+  background: rgba(var(--ncp-rgb),.1); border-radius: 4px;
+  padding: 1px 5px; display: block; margin-bottom: 2px;
+}
+.ib-cheat .desc {
+  font-family: var(--font-body); font-size: .78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+
+/* Progress tracker */
+.ib-progress {
+  margin-top: var(--s-md);
+  padding-top: var(--s-md);
+  border-top: 1px solid var(--border);
+}
+.ib-progress-label {
+  font-family: var(--font-display); font-size: .78rem; font-weight: 600;
+  color: var(--ink-secondary); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.ib-progress-bar-wrap {
+  background: var(--border); border-radius: 4px; height: 6px; overflow: hidden;
+}
+.ib-progress-bar {
+  background: var(--ncp); height: 100%; border-radius: 4px;
+  transition: width 320ms cubic-bezier(.16,1,.3,1);
+  width: 0%;
+}
+.ib-progress-count {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: .75rem; color: var(--ncp-dark);
+  margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="navMount"></div>
+<script defer src="js/nav.js"></script>
+
+<div class="container-wide">
+
+  <div class="ib-back">
+    <a href="ncp-ain-hub.html" class="back-link">&#8592; NCP-AIN Hub</a>
+  </div>
+
+  <div class="ib-header">
+    <div class="ib-badge">NCP-AIN · Kubernetes Integration (5%)</div>
+    <h1>Kubernetes RDMA Lab</h1>
+    <p class="subtitle">
+      You have kubectl access to a bare-metal GPU cluster.
+      The NVIDIA Network Operator manages networking components via the NicClusterPolicy CRD.
+      Pods expose RDMA and GPUDirect RDMA through secondary interfaces attached by Multus.
+      Type <code>help</code> for the full command list.
+      Switch to Troubleshooting Scenarios to diagnose real K8s RDMA faults.
+    </p>
+  </div>
+
+  <!-- Mode bar -->
+  <div class="ib-mode-bar">
+    <span class="ib-mode-label">Mode:</span>
+    <div class="ib-mode-tabs">
+      <button class="ib-mode-tab active" id="tabFreeplay" onclick="setMode('freeplay')">Free Play</button>
+      <button class="ib-mode-tab" id="tabTroubleshoot" onclick="setMode('troubleshoot')">Troubleshooting Scenarios</button>
+    </div>
+  </div>
+
+  <!-- Scenario picker (hidden in free-play) -->
+  <div id="scenarioSection" style="display:none;">
+
+    <div class="scenario-grid" id="scenarioGrid">
+      <!-- cards injected by JS -->
+    </div>
+
+    <!-- Briefing panel -->
+    <div id="scenarioBrief">
+      <div class="brief-title" id="briefTitle"></div>
+      <div class="brief-symptom" id="briefSymptom"></div>
+      <div class="brief-objective" id="briefObjective"></div>
+      <button class="brief-hint-btn" onclick="toggleHint()">Show Hint</button>
+      <div class="brief-hint-text" id="briefHint"></div>
+    </div>
+
+    <!-- Success banner -->
+    <div id="successBanner">
+      Scenario solved. Root cause identified and action taken. Well done.
+      <span id="successDetail"></span>
+    </div>
+
+  </div>
+
+  <!-- Body: terminal + sidebar -->
+  <div class="ib-body">
+
+    <div>
+      <div class="ed-term" id="termWrap">
+        <div class="ed-term-bar">
+          <span class="ed-term-dot r"></span>
+          <span class="ed-term-dot y"></span>
+          <span class="ed-term-dot g"></span>
+          <span class="ed-term-title" id="termTitle">gpu-ops@k8s-control -- K8s RDMA console</span>
+        </div>
+        <div class="term-wrap" id="termMount">
+          <div class="term-output"></div>
+          <div class="term-input-row">
+            <span class="term-prompt">gpu-ops@k8s-control:~$ </span>
+            <span class="term-input" contenteditable="true" spellcheck="false" autocorrect="off" aria-label="K8s RDMA console"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="ib-cheat" aria-label="Available commands">
+      <h2>Try these</h2>
+      <ul>
+        <li>
+          <code>kubectl get nicclusterpolicy</code>
+          <span class="desc">Show Network Operator policy and its status</span>
+        </li>
+        <li>
+          <code>kubectl -n nvidia-network-operator get pods</code>
+          <span class="desc">All Network Operator component pods and Ready state</span>
+        </li>
+        <li>
+          <code>kubectl get nad -A</code>
+          <span class="desc">NetworkAttachmentDefinitions across all namespaces</span>
+        </li>
+        <li>
+          <code>kubectl describe pod rdma-workload-0</code>
+          <span class="desc">Pod spec, events, and resource allocation</span>
+        </li>
+        <li>
+          <code>kubectl get node gpu-node-01 -o yaml</code>
+          <span class="desc">Node labels and allocatable RDMA resources</span>
+        </li>
+        <li>
+          <code>kubectl logs rdma-workload-0</code>
+          <span class="desc">Pod stdout: RDMA init messages and errors</span>
+        </li>
+        <li>
+          <code>kubectl exec rdma-workload-0 -- lsmod</code>
+          <span class="desc">Kernel modules loaded in pod (peermem, ib_uverbs)</span>
+        </li>
+        <li>
+          <code>kubectl exec rdma-workload-0 -- ip link</code>
+          <span class="desc">Network interfaces visible inside the pod netns</span>
+        </li>
+      </ul>
+
+      <!-- Progress (visible in troubleshoot mode) -->
+      <div class="ib-progress" id="progressSection" style="display:none;">
+        <div class="ib-progress-label">Scenarios solved</div>
+        <div class="ib-progress-bar-wrap">
+          <div class="ib-progress-bar" id="progressBar"></div>
+        </div>
+        <div class="ib-progress-count" id="progressCount">0 / 4</div>
+      </div>
+    </aside>
+
+  </div>
+
+</div><!-- /.container-wide -->
+
+<script defer src="js/lab-engine.js?v=7.17.10"></script>
+<script>
+/* ====================================================================
+   SCENARIO DEFINITIONS
+   Each scenario maps a K8s RDMA symptom to the kubectl commands that
+   reveal the root cause, and a fix step to complete.
+   ==================================================================== */
+var SCENARIOS = [
+  {
+    id: 'nicpolicy',
+    num: '01',
+    title: 'Network Operator Not Ready',
+    diagTool: 'kubectl get nicclusterpolicy',
+    symptom: 'RDMA workloads fail to schedule. The platform team just applied a NicClusterPolicy for the first time. Some pods appear to be pending or crashing.',
+    objective: 'Check the NicClusterPolicy status to identify which component is not Ready. Then list the Network Operator pods to find the crashing one.',
+    hint: 'The NicClusterPolicy is a single cluster-scoped CRD that defines all networking components: OFED drivers, the RDMA device plugin, and the Multus/CNI stack. If one component fails, the whole policy shows a degraded state.',
+    diagCmds: ['kubectl get nicclusterpolicy', 'get nicclusterpolicy'],
+    fixCmds: [
+      'kubectl -n nvidia-network-operator get pods',
+      'kubectl -n nvidia-network-operator describe pod',
+      'kubectl describe pod rdma-device-plugin',
+      'kubectl logs rdma-device-plugin'
+    ],
+    fixKeyword: 'nvidia-network-operator',
+    fixDescription: 'NicClusterPolicy shows state=NotReady because rdma-device-plugin-ds-gpu-node-01 is in CrashLoopBackOff. Root cause: OFED driver pod had not finished loading before the device plugin started. Fix: wait for OFED to reach Running, then delete and re-create the device plugin pod.'
+  },
+  {
+    id: 'gidresolution',
+    num: '02',
+    title: 'GID Resolution Failure',
+    diagTool: 'kubectl logs rdma-workload-0',
+    symptom: 'An inference pod logs "ibv_create_ah failed: No such device" at startup. The pod does have /dev/infiniband present. RDMA verbs calls fail immediately.',
+    objective: 'Check pod logs to see the error. Then exec into the pod and run ip link to show that the RoCE net_device is missing from the pod network namespace. Identify the fix.',
+    hint: 'GID resolution requires the RDMA net_device (e.g., eth1 bound to the RoCE HCA) to be visible inside the pod network namespace. If the pod only has the default CNI interface (eth0), the kernel cannot match the GID to any device.',
+    diagCmds: ['kubectl logs rdma-workload-0', 'logs rdma-workload-0'],
+    fixCmds: [
+      'kubectl exec rdma-workload-0 -- ip link',
+      'kubectl get nad',
+      'kubectl get nad -A',
+      'kubectl apply -f macvlan-nad.yaml',
+      'kubectl describe pod rdma-workload-0'
+    ],
+    fixKeyword: 'nad',
+    fixDescription: 'The pod netns had only eth0 (primary CNI). The RoCE HCA net_device was invisible, so ibv_create_ah could not resolve a GID. Fix: create a Multus NetworkAttachmentDefinition (macvlan, master=eth1, rdmaIsolation=true) and annotate the pod. After attaching the secondary interface, TTFT dropped from 6784ms to 795ms and throughput rose from 307 to 567 tok/s.'
+  },
+  {
+    id: 'sharemode',
+    num: '03',
+    title: 'Shared RDMA Device Plugin',
+    diagTool: 'kubectl get node gpu-node-01 -o yaml',
+    symptom: 'A pod requests "rdma/hca_shared_devices_a: 1" but fails to schedule with "Insufficient rdma/hca_shared_devices_a". SR-IOV VFs have not been configured on this cluster.',
+    objective: 'Check the node allocatable resources to confirm the shared RDMA resource is zero. Then inspect the NicClusterPolicy to find the rdmaSharedDevicePlugin config and understand why the resource count is wrong.',
+    hint: 'rdmaSharedDevicePlugin exposes an RDMA HCA as a shared resource (many pods share one physical device). It scans for net devices matching a selector. If the selector does not match any device name on the node, allocatable stays at zero.',
+    diagCmds: [
+      'kubectl get node gpu-node-01 -o yaml',
+      'kubectl get node gpu-node-01',
+      'kubectl describe node gpu-node-01'
+    ],
+    fixCmds: [
+      'kubectl get nicclusterpolicy',
+      'kubectl describe nicclusterpolicy',
+      'kubectl edit nicclusterpolicy',
+      'kubectl apply -f nicclusterpolicy.yaml'
+    ],
+    fixKeyword: 'nicclusterpolicy',
+    fixDescription: 'Node showed rdma/hca_shared_devices_a: 0 allocatable. NicClusterPolicy rdmaSharedDevicePlugin selector listed "ens1f0" but the actual device name on this node is "eth1". Correcting the ifNames selector to "eth1" caused the device plugin to re-register and expose rdma/hca_shared_devices_a: 8 (shared slots).'
+  },
+  {
+    id: 'gpudirect',
+    num: '04',
+    title: 'GPUDirect RDMA Verify',
+    diagTool: 'kubectl exec rdma-workload-0 -- lsmod',
+    symptom: 'A new DGX node was added. GPUDirect RDMA performance is far below expected. The NIC can reach GPU memory on other nodes but not this one. No kernel module errors in dmesg.',
+    objective: 'Exec into the workload pod and run lsmod to check whether nvidia_peermem (or equivalent) is loaded. Then check the node labels to see whether the GPUDirect feature gate is enabled.',
+    hint: 'GPUDirect RDMA requires either nvidia-peermem (legacy path, loaded as a kernel module) or DMA-BUF support (newer path, kernel 5.12+). If neither is active, the NIC cannot DMA directly to GPU memory and falls back to CPU-copy, cutting throughput dramatically.',
+    diagCmds: [
+      'kubectl exec rdma-workload-0 -- lsmod',
+      'exec rdma-workload-0 -- lsmod',
+      'lsmod'
+    ],
+    fixCmds: [
+      'kubectl get node gpu-node-01 -o yaml',
+      'kubectl label node gpu-node-01',
+      'kubectl describe node gpu-node-01',
+      'kubectl exec rdma-workload-0 -- ls /dev/nvidia'
+    ],
+    fixKeyword: 'gpu-node-01',
+    fixDescription: 'lsmod showed ib_uverbs and mlx5_ib loaded but nvidia_peermem was absent. The node was running kernel 5.10 (pre-DMA-BUF). Fix: load nvidia-peermem via the OFED in-tree module (modprobe nvidia_peermem) and add it to the Network Operator OFED extraModules list so it persists. GPUDirect RDMA resumed and throughput matched other cluster nodes.'
+  }
+];
+
+/* ====================================================================
+   SIMULATED CLUSTER STATE
+   All names, GUIDs, and counters are original to this simulation.
+   ==================================================================== */
+
+/* NicClusterPolicy */
+var NICPOLICY = {
+  apiVersion: 'mellanox.com/v1alpha1',
+  kind: 'NicClusterPolicy',
+  metadata: { name: 'nic-cluster-policy' },
+  spec: {
+    ofedDriver: { image: 'mofed', repository: 'nvcr.io/nvidia/mellanox', version: '23.10-3.2.2.0' },
+    rdmaSharedDevicePlugin: {
+      image: 'k8s-rdma-shared-dev-plugin',
+      repository: 'nvcr.io/nvidia/cloud-native',
+      version: 'v1.4.0',
+      config: JSON.stringify({
+        configList: [{
+          resourceName: 'hca_shared_devices_a',
+          rdmaHcaMax: 63,
+          selectors: { ifNames: ['ens1f0'] }
+        }]
+      })
+    },
+    secondaryNetwork: {
+      cniPlugins: { image: 'plugins', repository: 'ghcr.io/k8snetworkplumbingwg', version: 'v1.4.0' },
+      multus: { image: 'multus-cni', repository: 'ghcr.io/k8snetworkplumbingwg', version: 'v4.0.2' },
+      ipamPlugin: { image: 'whereabouts', repository: 'ghcr.io/k8snetworkplumbingwg', version: 'v0.7.0' }
+    }
+  },
+  status: {
+    state: 'NotReady',
+    reason: 'Component rdmaSharedDevicePlugin: DaemonSet not fully available (0/2 ready)',
+    appliedStates: [
+      { name: 'ofedDriver',              state: 'Ready'   },
+      { name: 'rdmaSharedDevicePlugin',  state: 'NotReady'},
+      { name: 'secondaryNetwork/multus', state: 'Ready'   },
+      { name: 'secondaryNetwork/cni',    state: 'Ready'   }
+    ]
+  }
+};
+
+/* Network Operator pods */
+var NO_PODS = [
+  { name: 'network-operator-6d8f9c7b4-xk9pz',     ready: '1/1', status: 'Running',           restarts: 0,  age: '2d' },
+  { name: 'mofed-ubuntu22.04-ds-gpu-node-01',      ready: '1/1', status: 'Running',           restarts: 0,  age: '2d' },
+  { name: 'mofed-ubuntu22.04-ds-gpu-node-02',      ready: '1/1', status: 'Running',           restarts: 0,  age: '2d' },
+  { name: 'rdma-device-plugin-ds-gpu-node-01',     ready: '0/1', status: 'CrashLoopBackOff',  restarts: 7,  age: '2d' },
+  { name: 'rdma-device-plugin-ds-gpu-node-02',     ready: '0/1', status: 'CrashLoopBackOff',  restarts: 7,  age: '2d' },
+  { name: 'multus-ds-gpu-node-01',                 ready: '1/1', status: 'Running',           restarts: 0,  age: '2d' },
+  { name: 'multus-ds-gpu-node-02',                 ready: '1/1', status: 'Running',           restarts: 0,  age: '2d' },
+  { name: 'cni-plugins-ds-gpu-node-01',            ready: '1/1', status: 'Running',           restarts: 0,  age: '2d' },
+  { name: 'cni-plugins-ds-gpu-node-02',            ready: '1/1', status: 'Running',           restarts: 0,  age: '2d' }
+];
+
+/* NetworkAttachmentDefinitions */
+var NAD_LIST = [
+  { namespace: 'default',    name: 'macvlan-rdma-net', cni: 'macvlan', master: 'eth1', mode: 'bridge', rdmaIsolation: false },
+  { namespace: 'gpu-workloads', name: 'ib-ipoib-net', cni: 'ipoib',   master: 'ib0',  mode: 'n/a',    rdmaIsolation: true  }
+];
+
+/* Pod describe: rdma-workload-0 */
+var WORKLOAD_POD = {
+  name: 'rdma-workload-0',
+  namespace: 'default',
+  node: 'gpu-node-01',
+  status: 'Running',
+  ip: '10.0.1.45',
+  annotations: {
+    'k8s.v1.cni.cncf.io/networks': '(none)'
+  },
+  containers: [{
+    name: 'rdma-worker',
+    image: 'nvcr.io/nvidia/cuda:12.4.1-base-ubuntu22.04',
+    resources: { requests: { 'nvidia.com/gpu': '1' }, limits: { 'nvidia.com/gpu': '1' } },
+    volumeMounts: ['/dev/infiniband']
+  }],
+  events: [
+    'Warning  BackOff  2m  kubelet  Back-off restarting failed container',
+    'Normal   Pulled   5m  kubelet  Container image already present on machine'
+  ]
+};
+
+/* Pod logs: rdma-workload-0 */
+var WORKLOAD_LOGS = [
+  '[rdma-init] Scanning for RDMA devices...',
+  '[rdma-init] Found device: mlx5_0   (via /dev/infiniband/uverbs0)',
+  '[rdma-init] Querying GID table for mlx5_0 port 1...',
+  '[rdma-init] ERROR: ibv_create_ah failed: No such device (errno=19)',
+  '[rdma-init] GID index 0 returned zero net_device -- RoCE net_device not found in pod netns',
+  '[rdma-init] HINT: A secondary Multus interface bound to the RoCE HCA is required.',
+  '[rdma-init] Exiting with code 1.'
+];
+
+/* ip link inside pod (before Multus fix) */
+var POD_IP_LINK = [
+  '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN',
+  '    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00',
+  '2: eth0@if47: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP',
+  '    link/ether 0a:58:0a:00:01:2d brd ff:ff:ff:ff:ff:ff link-netnsid 0',
+  '',
+  '(No eth1 or rdma-net interface present -- secondary Multus NAD not attached)'
+];
+
+/* lsmod inside pod */
+var POD_LSMOD = [
+  'Module                  Size  Used by',
+  'mlx5_ib               393216  0',
+  'ib_uverbs             155648  1 mlx5_ib',
+  'ib_core               380928  2 mlx5_ib,ib_uverbs',
+  'mlx5_core            1548288  1 mlx5_ib',
+  '',
+  '(nvidia_peermem is NOT loaded -- GPUDirect RDMA path inactive)',
+  '(DMA-BUF path not available: kernel 5.10.0, requires 5.12+)'
+];
+
+/* Node yaml (allocatable section) */
+var NODE_YAML = {
+  apiVersion: 'v1',
+  kind: 'Node',
+  metadata: {
+    name: 'gpu-node-01',
+    labels: {
+      'nvidia.com/gpu': 'true',
+      'nvidia.com/gpu.product': 'NVIDIA-H100-80GB-HBM3',
+      'nvidia.com/cuda.driver.major': '550',
+      'feature.node.kubernetes.io/rdma': 'true',
+      'feature.node.kubernetes.io/network-sriov.capable': 'false'
+    }
+  },
+  status: {
+    allocatable: {
+      cpu: '128',
+      memory: '2048Gi',
+      'nvidia.com/gpu': '8',
+      'rdma/hca_shared_devices_a': '0',
+      pods: '110'
+    },
+    capacity: {
+      cpu: '128',
+      memory: '2048Gi',
+      'nvidia.com/gpu': '8',
+      'rdma/hca_shared_devices_a': '0',
+      pods: '110'
+    }
+  }
+};
+
+/* ====================================================================
+   FORMATTERS
+   ==================================================================== */
+
+function prettyJSON(obj) {
+  return JSON.stringify(obj, null, 2);
+}
+
+function fmtNicPolicy() {
+  return prettyJSON(NICPOLICY);
+}
+
+function fmtNOPods() {
+  var header = 'NAME                                        READY   STATUS               RESTARTS   AGE';
+  var rows = NO_PODS.map(function (p) {
+    return p.name.padEnd(43) + p.ready.padEnd(8) + p.status.padEnd(21) + String(p.restarts).padEnd(11) + p.age;
+  });
+  return header + '\n' + rows.join('\n');
+}
+
+function fmtNAD() {
+  var header = 'NAMESPACE      NAME                CNI      MASTER   RDMA-ISOLATION';
+  var rows = NAD_LIST.map(function (n) {
+    return n.namespace.padEnd(15) + n.name.padEnd(20) + n.cni.padEnd(9) + n.master.padEnd(9) + n.rdmaIsolation;
+  });
+  return header + '\n' + rows.join('\n');
+}
+
+function fmtDescribePod() {
+  var p = WORKLOAD_POD;
+  return [
+    'Name:         ' + p.name,
+    'Namespace:    ' + p.namespace,
+    'Node:         ' + p.node,
+    'Status:       ' + p.status,
+    'IP:           ' + p.ip,
+    'Annotations:',
+    '  k8s.v1.cni.cncf.io/networks: ' + p.annotations['k8s.v1.cni.cncf.io/networks'],
+    '',
+    'Containers:',
+    '  rdma-worker:',
+    '    Image: ' + p.containers[0].image,
+    '    Requests: nvidia.com/gpu=1',
+    '    Limits:   nvidia.com/gpu=1',
+    '    Mounts:   /dev/infiniband (RDMA char devices present via hostPath)',
+    '',
+    'Events:',
+    p.events[0],
+    p.events[1]
+  ].join('\n');
+}
+
+function fmtLogs() {
+  return WORKLOAD_LOGS.join('\n');
+}
+
+function fmtIpLink() {
+  return POD_IP_LINK.join('\n');
+}
+
+function fmtLsmod() {
+  return POD_LSMOD.join('\n');
+}
+
+function fmtNodeYaml() {
+  return prettyJSON(NODE_YAML);
+}
+
+/* ====================================================================
+   SCENARIO / OBJECTIVE TRACKER
+   ==================================================================== */
+var _activeScenario = null;
+var _diagDone = false;
+var _fixDone = false;
+var _solvedSet = {};
+var _hintVisible = false;
+
+function setMode(mode) {
+  var isTS = (mode === 'troubleshoot');
+  document.getElementById('tabFreeplay').classList.toggle('active', !isTS);
+  document.getElementById('tabTroubleshoot').classList.toggle('active', isTS);
+  document.getElementById('scenarioSection').style.display = isTS ? '' : 'none';
+  document.getElementById('progressSection').style.display = isTS ? '' : 'none';
+
+  if (!isTS) {
+    _activeScenario = null;
+    _diagDone = false;
+    _fixDone = false;
+    hideBrief();
+    hideSuccess();
+    document.getElementById('termTitle').textContent = 'gpu-ops@k8s-control -- K8s RDMA console';
+    if (window._lab && window._lab.terminal) {
+      window._lab.terminal.writeLine('');
+      window._lab.terminal.writeLine('[Mode: Free Play] No active scenario. Cluster in normal state.');
+      window._lab.terminal.writeLine('');
+      window._lab.terminal.updatePrompt();
+    }
+  }
+}
+
+function selectScenario(sc) {
+  _activeScenario = sc;
+  _diagDone = false;
+  _fixDone = false;
+  _hintVisible = false;
+
+  var cards = document.querySelectorAll('.scenario-card');
+  cards.forEach(function (c) {
+    c.classList.toggle('active', c.dataset.scId === sc.id);
+  });
+
+  document.getElementById('briefTitle').textContent = sc.num + '. ' + sc.title;
+  document.getElementById('briefSymptom').textContent = 'Symptom: ' + sc.symptom;
+  document.getElementById('briefObjective').textContent = 'Objective: ' + sc.objective;
+  document.getElementById('briefHint').textContent = sc.hint;
+  document.getElementById('briefHint').classList.remove('visible');
+  document.getElementById('scenarioBrief').classList.add('visible');
+
+  hideSuccess();
+
+  document.getElementById('termTitle').textContent =
+    'gpu-ops@k8s-control -- FAULT: ' + sc.title;
+
+  if (window._lab && window._lab.terminal) {
+    window._lab.terminal.writeLine('');
+    window._lab.terminal.writeLine('======================================================');
+    window._lab.terminal.writeLine('SCENARIO ' + sc.num + ': ' + sc.title.toUpperCase());
+    window._lab.terminal.writeLine('------------------------------------------------------');
+    window._lab.terminal.writeLine('Symptom: ' + sc.symptom);
+    window._lab.terminal.writeLine('Objective: ' + sc.objective);
+    window._lab.terminal.writeLine('Fault injected. Run kubectl commands to find the root cause.');
+    window._lab.terminal.writeLine('======================================================');
+    window._lab.terminal.writeLine('');
+    window._lab.terminal.updatePrompt();
+  }
+}
+
+function toggleHint() {
+  _hintVisible = !_hintVisible;
+  document.getElementById('briefHint').classList.toggle('visible', _hintVisible);
+  document.querySelector('.brief-hint-btn').textContent =
+    _hintVisible ? 'Hide Hint' : 'Show Hint';
+}
+
+function hideBrief() {
+  document.getElementById('scenarioBrief').classList.remove('visible');
+}
+
+function hideSuccess() {
+  document.getElementById('successBanner').classList.remove('visible');
+}
+
+function showSuccess(sc) {
+  document.getElementById('successDetail').textContent =
+    ' Root cause: ' + sc.fixDescription;
+  document.getElementById('successBanner').classList.add('visible');
+
+  _solvedSet[sc.id] = true;
+  var card = document.querySelector('.scenario-card[data-sc-id="' + sc.id + '"]');
+  if (card) card.classList.add('solved');
+
+  updateProgress();
+}
+
+function updateProgress() {
+  var solved = Object.keys(_solvedSet).length;
+  var total = SCENARIOS.length;
+  document.getElementById('progressBar').style.width = Math.round(solved / total * 100) + '%';
+  document.getElementById('progressCount').textContent = solved + ' / ' + total;
+}
+
+function checkObjective(rawCmd) {
+  if (!_activeScenario) return;
+  var sc = _activeScenario;
+  var cmd = rawCmd.trim().toLowerCase();
+
+  if (!_diagDone) {
+    for (var i = 0; i < sc.diagCmds.length; i++) {
+      if (cmd.indexOf(sc.diagCmds[i].toLowerCase()) !== -1) {
+        _diagDone = true;
+        break;
+      }
+    }
+  }
+
+  if (_diagDone && !_fixDone) {
+    for (var j = 0; j < sc.fixCmds.length; j++) {
+      if (cmd.indexOf(sc.fixCmds[j].toLowerCase()) !== -1) {
+        _fixDone = true;
+        break;
+      }
+    }
+    if (cmd.indexOf(sc.fixKeyword.toLowerCase()) !== -1 && _diagDone) {
+      _fixDone = true;
+    }
+  }
+
+  if (_diagDone && _fixDone && !_solvedSet[sc.id]) {
+    showSuccess(sc);
+  }
+}
+
+/* ====================================================================
+   PAGE INIT
+   ==================================================================== */
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* Build scenario cards */
+  var grid = document.getElementById('scenarioGrid');
+  SCENARIOS.forEach(function (sc) {
+    var card = document.createElement('div');
+    card.className = 'scenario-card';
+    card.dataset.scId = sc.id;
+    card.innerHTML =
+      '<span class="sc-num">Scenario ' + sc.num + '</span>' +
+      '<span class="sc-title">' + sc.title + '</span>' +
+      '<span class="sc-tool">Diagnose with: ' + sc.diagTool + '</span>' +
+      '<span class="sc-solved-badge">Solved</span>';
+    card.addEventListener('click', function () { selectScenario(sc); });
+    grid.appendChild(card);
+  });
+
+  /* Command map */
+  var MAP = {};
+
+  /* kubectl handler */
+  MAP['kubectl'] = function (dev, raw) {
+    checkObjective(raw);
+    var lower = raw.trim().toLowerCase();
+
+    /* nicclusterpolicy */
+    if (lower.indexOf('nicclusterpolicy') !== -1) {
+      if (lower.indexOf('describe') !== -1) {
+        return 'Name:   nic-cluster-policy\nState:  NotReady\nReason: Component rdmaSharedDevicePlugin: DaemonSet not fully available (0/2 ready)\n\nApplied states:\n  ofedDriver              Ready\n  rdmaSharedDevicePlugin  NotReady\n  secondaryNetwork/multus Ready\n  secondaryNetwork/cni    Ready';
+      }
+      if (lower.indexOf('edit') !== -1 || lower.indexOf('apply') !== -1 || lower.indexOf('patch') !== -1) {
+        return '[sim] nicclusterpolicy/nic-cluster-policy configured\nNote: rdmaSharedDevicePlugin ifNames selector updated. Device plugin pods will restart.';
+      }
+      return 'NAME                  STATE      AGE\nnic-cluster-policy    NotReady   2d\n\n(Run: kubectl describe nicclusterpolicy   for full status)';
+    }
+
+    /* pods in nvidia-network-operator namespace */
+    if (lower.indexOf('nvidia-network-operator') !== -1 && (lower.indexOf('get pods') !== -1 || lower.indexOf('get pod') !== -1)) {
+      return fmtNOPods();
+    }
+
+    /* NetworkAttachmentDefinitions */
+    if (lower.indexOf('nad') !== -1 || lower.indexOf('networkattachmentdefinition') !== -1) {
+      if (lower.indexOf('apply') !== -1) {
+        return '[sim] networkattachmentdefinition.k8s.cni.cncf.io/macvlan-rdma-net configured';
+      }
+      return fmtNAD();
+    }
+
+    /* describe pod */
+    if (lower.indexOf('describe') !== -1 && (lower.indexOf('rdma-workload') !== -1 || lower.indexOf('pod') !== -1)) {
+      return fmtDescribePod();
+    }
+
+    /* logs */
+    if (lower.indexOf('logs') !== -1 && lower.indexOf('rdma-workload') !== -1) {
+      return fmtLogs();
+    }
+
+    /* exec -- ip link */
+    if (lower.indexOf('exec') !== -1 && lower.indexOf('ip link') !== -1) {
+      return fmtIpLink();
+    }
+
+    /* exec -- lsmod */
+    if (lower.indexOf('exec') !== -1 && lower.indexOf('lsmod') !== -1) {
+      return fmtLsmod();
+    }
+
+    /* exec -- ls /dev/nvidia */
+    if (lower.indexOf('exec') !== -1 && lower.indexOf('/dev/nvidia') !== -1) {
+      return '/dev/nvidia0\n/dev/nvidia1\n/dev/nvidia2\n/dev/nvidia3\n/dev/nvidia4\n/dev/nvidia5\n/dev/nvidia6\n/dev/nvidia7\n/dev/nvidiactl\n/dev/nvidia-uvm\n/dev/nvidia-uvm-tools\n\n(GPU devices present. GPUDirect requires nvidia_peermem or DMA-BUF to bridge NIC<->GPU memory.)';
+    }
+
+    /* get node */
+    if (lower.indexOf('get node') !== -1 || lower.indexOf('describe node') !== -1) {
+      if (lower.indexOf('-o yaml') !== -1 || lower.indexOf('-oyaml') !== -1) {
+        return fmtNodeYaml();
+      }
+      return 'NAME           STATUS   ROLES    AGE   VERSION\ngpu-node-01    Ready    worker   5d    v1.29.4\ngpu-node-02    Ready    worker   5d    v1.29.4\n\n(Run: kubectl get node gpu-node-01 -o yaml   for labels and allocatable)';
+    }
+
+    /* label node */
+    if (lower.indexOf('label node') !== -1) {
+      return '[sim] node/gpu-node-01 labeled';
+    }
+
+    /* generic get pods (all namespaces or default) */
+    if (lower.indexOf('get pods') !== -1 || lower.indexOf('get pod') !== -1) {
+      return 'NAME                 READY   STATUS    RESTARTS   AGE\nrdma-workload-0      1/1     Running   3          10m\nrdma-workload-1      1/1     Running   0          10m';
+    }
+
+    return '[sim] Error: unrecognized kubectl subcommand or resource.\nTry: kubectl get nicclusterpolicy   or   help';
+  };
+
+  /* lsmod shortcut (typed bare) */
+  MAP['lsmod'] = function (dev, raw) {
+    checkObjective(raw);
+    return fmtLsmod();
+  };
+
+  /* Shell utilities */
+  MAP['clear'] = function () {
+    if (window._lab && window._lab.terminal) { window._lab.terminal.clear(); }
+    return '';
+  };
+
+  MAP['pwd']      = '/home/gpu-ops';
+  MAP['whoami']   = 'gpu-ops';
+  MAP['hostname'] = 'k8s-control';
+  MAP['date']     = new Date().toUTCString();
+  MAP['ls']       = 'manifests  logs  scripts';
+  MAP['uname']    = 'Linux';
+  MAP['uname ...'] = function (dev, raw) {
+    if (raw.indexOf('-a') !== -1) return 'Linux k8s-control 5.15.0-112-generic #122-Ubuntu SMP x86_64 GNU/Linux';
+    if (raw.indexOf('-r') !== -1) return '5.15.0-112-generic';
+    return 'Linux';
+  };
+
+  MAP['help'] = MAP['?'] = [
+    'NCP-AIN K8s RDMA Lab -- available commands:',
+    '',
+    'Network Operator / CRD commands:',
+    '  kubectl get nicclusterpolicy              Show NicClusterPolicy state',
+    '  kubectl describe nicclusterpolicy         Full status: component states + reason',
+    '  kubectl -n nvidia-network-operator get pods  All NO component pods + Ready state',
+    '',
+    'Workload pod commands:',
+    '  kubectl describe pod rdma-workload-0      Pod spec, annotations, events',
+    '  kubectl logs rdma-workload-0              Init logs and RDMA error messages',
+    '  kubectl exec rdma-workload-0 -- ip link   Interfaces visible in pod netns',
+    '  kubectl exec rdma-workload-0 -- lsmod     Kernel modules (peermem, ib_uverbs, etc.)',
+    '  kubectl exec rdma-workload-0 -- ls /dev/nvidia  GPU device files',
+    '',
+    'NetworkAttachmentDefinitions:',
+    '  kubectl get nad -A                        All NADs across namespaces',
+    '  kubectl apply -f macvlan-nad.yaml         Apply a Multus NAD (sim)',
+    '',
+    'Node inspection:',
+    '  kubectl get node gpu-node-01 -o yaml      Labels, allocatable (RDMA resource count)',
+    '  kubectl describe node gpu-node-01         Node conditions + events',
+    '',
+    'Key concepts for this domain (5% of NCP-AIN exam):',
+    '  NicClusterPolicy   One cluster-scoped CRD driving all Network Operator components.',
+    '  Network Operator   Deploys OFED, device plugin, Multus, CNI plugins.',
+    '  rdmaSharedDevicePlugin  Exposes an HCA as a shared K8s resource (no SR-IOV needed).',
+    '  Multus + NAD       Attaches a secondary interface into a pod netns for RDMA.',
+    '  GID resolution     RoCE needs the net_device visible in the pod netns to resolve GIDs.',
+    '  nvidia-peermem     Kernel module that enables GPUDirect RDMA (legacy path).',
+    '  DMA-BUF            Newer GPUDirect RDMA path (kernel 5.12+), no extra module needed.',
+    '',
+    'Shell utils:',
+    '  pwd / ls / whoami / hostname / uname [-a|-r] / date / clear',
+    '',
+    'Tip: Switch to Troubleshooting Scenarios and work top-to-bottom.',
+    '     Each scenario: run the diag command, interpret the output, apply the fix.'
+  ].join('\n');
+
+  /* Build LabBase + device */
+  var lab = new Lab.LabBase({ objectives: [] });
+  window._lab = lab;
+  lab.addDevice('k8s-control', 'host', {
+    hostname: 'gpu-ops@k8s-control',
+    shellPromptFormat: 'linux',
+    commandMap: MAP
+  });
+
+  lab.initTerminal(document.getElementById('termMount'));
+
+  lab.terminal.writeLine('NCP-AIN Kubernetes RDMA Integration Lab');
+  lab.terminal.writeLine('Cluster: gpu-cluster-01   Network Operator: v24.1.0   OFED: 23.10-3.2.2.0');
+  lab.terminal.writeLine('Nodes: gpu-node-01, gpu-node-02   GPUs: H100 x8 per node');
+  lab.terminal.writeLine('Type: kubectl get nicclusterpolicy   or   help   to begin.');
+  lab.terminal.writeLine('Switch to Troubleshooting Scenarios to practice K8s RDMA fault diagnosis.');
+  lab.terminal.writeLine('');
+  lab.terminal.updatePrompt();
+  lab.terminal.focus();
+});
+</script>
+<script defer src="js/tutor.js?v=7.17.10"></script>
+</body>
+</html>

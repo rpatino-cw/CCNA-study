@@ -426,8 +426,8 @@
 </div>
 
 <script defer src="js/store.js"></script>
-<script defer src="js/lab-engine.js?v=7.17.9"></script>
-<script defer src="js/ib-tools.js?v=7.17.9"></script>
+<script defer src="js/lab-engine.js?v=7.17.10"></script>
+<script defer src="js/ib-tools.js?v=7.17.10"></script>
 <script defer src="js/nav.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ===== REGION:MEGA_LABS (Agent B owns) =====
 /* === MEGA_LABS DATA (Agent B) ===
-   NCP-AIN Mega Lab. 16 missions matching the Mission schema exactly.
+   NCP-AIN Mega Lab. 17 missions matching the Mission schema exactly.
    cmd strings and flags match the contract cmd->flag table.
    No em dashes or en dashes anywhere in this file.
    Hints point at concepts only; never print the exact command or value.
@@ -1153,6 +1153,49 @@ var MEGA_LABS = [
         objective: 'Verify the port link is up at full speed before traffic',
         hint: 'mlxlink reports the physical link state, speed, and FEC; confirm it is Active before sending traffic.',
         cmd: 'mlxlink -d mlx5_0 -m -c',
+        action: null
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* M17 -- WJH / NetQ congestion triage on a Spectrum-X leaf            */
+  /* clears-style fault (lid null), modeled on M15 (UFM) wiring:         */
+  /*   - NVUE/NetQ read handlers flip broken->clean on IBTools           */
+  /*     .activeFault() and set dev.custom.wjhRead for the read step     */
+  /*   - fix step action fix-wjh-congestion -> REMEDY_MAP clears wjhdrop */
+  /*   - reverify step has a different cmd and falls through to the      */
+  /*     priorClearsFix !activeFault() branch (no explicit flag)         */
+  /* Source: NVIDIA Cumulus 5.15 WJH (nv show system wjh packet-buffer)  */
+  /*   + NetQ 4.13 (netq ... show wjh-drop). Reason strings verbatim;    */
+  /*   counts/IPs simulated [inferred]. Not real fabric data.            */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'm17-wjh-netq-congestion',
+    name: 'M17 - WJH / NetQ: Congestion Drop Triage',
+    device: 'leaf-0',
+    startMode: 'troubleshoot',
+    fault: 'wjhdrop',
+    steps: [
+      {
+        device: 'leaf-0',
+        objective: 'Spot the drops: on-box WJH packet-buffer events',
+        hint: 'WJH taps the Spectrum ASIC drop pipeline on the box; the NVUE form shows every dropped packet with its reason. Read the Drop Reason column.',
+        cmd: 'nv show system wjh packet-buffer',
+        action: null
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Fix: ease congestion (lower ECN min-threshold) and apply',
+        hint: 'WRED / Port TC Congestion drops mean the buffer fills before ECN marks. Lower the ECN min-threshold so DCQCN reacts earlier, then apply.',
+        cmd: 'nv set qos roce congestion-control min-threshold 120',
+        action: 'fix-wjh-congestion'
+      },
+      {
+        device: 'leaf-0',
+        objective: 'Reverify off-box: NetQ shows zero WRED buffer drops',
+        hint: 'Query NetQ for WRED buffer drops on this leaf over the last hour; after the fix the aggregate count should be zero.',
+        cmd: 'netq leaf01 show wjh-drop buffer reason WRED between now and 1h',
         action: null
       }
     ]
@@ -1867,6 +1910,79 @@ var NVUE_CMDMAP = {
       '',
       'ECN Kmin set to ~146 KB (146.48 KB effective after buffer alignment).',
       'Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* ----------------------------------------------------------------
+     M17 WJH/NetQ congestion triage (leaf-0).
+     Source: NVIDIA Cumulus 5.15 WJH + NetQ 4.13 docs.
+     Reason strings (WRED, Port TC Congestion Threshold Crossed) verbatim;
+     counts, ports, IPs, timestamps are simulated [inferred]. Not real data.
+     The fix step command (min-threshold 120) is normally intercepted by
+     maybeApplyFix; this handler is the fallback output and clears no state. */
+  'nv set qos roce congestion-control min-threshold 120': function (dev, raw, lower) {
+    return [
+      'staged: nv set qos roce congestion-control min-threshold 120',
+      '',
+      'ECN Kmin lowered to ~120 KB so DCQCN reacts earlier and the buffer',
+      'stops filling to the WRED/tail-drop point. Run "nv config apply" to activate.',
+    ].join('\n');
+  },
+
+  /* On-box WJH (NVUE). SPOT step: sets wjhRead. Output flips clean once the
+     wjhdrop fault is cleared by the fix (IBTools.activeFault() goes null). */
+  'nv show system wjh packet-buffer': function (dev, raw, lower) {
+    dev.custom.wjhRead = true;
+    var cleared = !!(window.IBTools && !window.IBTools.activeFault());
+    if (cleared) {
+      return [
+        'cumulus@leaf-0:mgmt:~$ nv show system wjh packet-buffer',
+        '',
+        'No WJH events.',
+        '  buffer drops (WRED / tail / latency): 0',
+        '  Fabric buffer pressure cleared.',
+      ].join('\n');
+    }
+    return [
+      'cumulus@leaf-0:mgmt:~$ nv show system wjh packet-buffer',
+      '',
+      'Ingress Port  Traffic Class  Drop Reason                            Severity  Count',
+      '------------  -------------  -------------------------------------  --------  -----',
+      'swp1s2        3              WRED                                   Warning   84213',
+      'swp1s2        3              Port TC Congestion Threshold Crossed   Warning   12950',
+      'swp3          3              WRED                                   Warning   4471',
+      '',
+      'Buffer drops on TC3 (RoCE). WRED is firing: the egress buffer fills before',
+      'ECN can mark, so packets are dropped. Lower the ECN min-threshold to fix.',
+      '(counts simulated, not real fabric data)',
+    ].join('\n');
+  },
+
+  /* Off-box NetQ (hostname-first form, matches pillar n19). REVERIFY step:
+     no explicit predicate flag -- the engine completes it via priorClearsFix
+     once the fault is cleared. Output flips clean on IBTools.activeFault(). */
+  'netq leaf01 show wjh-drop buffer reason wred between now and 1h': function (dev, raw, lower) {
+    var cleared = !!(window.IBTools && !window.IBTools.activeFault());
+    if (cleared) {
+      return [
+        'cumulus@netq-ts:~$ netq leaf01 show wjh-drop buffer reason WRED between now and 1h',
+        '',
+        'Matching wjh records: 0',
+        'Aggregate Count: 0',
+        '',
+        'No WRED buffer drops in the window. Congestion remediated.',
+      ].join('\n');
+    }
+    return [
+      'cumulus@netq-ts:~$ netq leaf01 show wjh-drop buffer reason WRED between now and 1h',
+      '',
+      'Hostname  Ingress Port  Reason  Agg Count  Src IP        Dst IP        TC  First Seen',
+      '--------  ------------  ------  ---------  ------------  ------------  --  -------------------',
+      'leaf01    swp1s2        WRED    84213      10.0.3.21     10.0.3.44     3   2026-06-30 09:14:02',
+      'leaf01    swp3          WRED    4471       10.0.3.21     10.0.3.52     3   2026-06-30 09:14:09',
+      '',
+      'WRED buffer drops on TC3 confirmed off-box. Aggregate Count rising.',
+      '(records simulated, not real fabric data)',
     ].join('\n');
   },
 
@@ -2708,6 +2824,10 @@ function evalStepPredicate(step, dev, idx, m) {
   // M15 UFM
   if (cmd === 'show ufm status') return !!(dev && dev.custom.ufmStatusDone);
   if (cmd.indexOf('/ufmRest/app/events') !== -1) return !!(dev && dev.custom.ufmEventsDone);
+  // M17 WJH/NetQ: SPOT step (on-box WJH) completes on the wjhRead flag.
+  // The NetQ reverify cmd has no branch here -- it falls through to the
+  // priorClearsFix !activeFault() branch below (so it only completes after the fix).
+  if (cmd === 'nv show system wjh packet-buffer') return !!(dev && dev.custom.wjhRead);
   // M16 Host NIC (no fault, all explicit branches -- no fallthrough path)
   if (cmd === 'mst status -v') return !!(dev && dev.custom.mstStarted);
   if (cmd === 'mlxconfig -d /dev/mst/mt4125_pciconf0 query') return !!(dev && dev.custom.nicQueried);
@@ -2969,6 +3089,6 @@ seedSolvedMissions();
 renderMissionMenu();
 });
 </script>
-<script defer src="js/tutor.js?v=7.17.9"></script>
+<script defer src="js/tutor.js?v=7.17.10"></script>
 </body>
 </html>

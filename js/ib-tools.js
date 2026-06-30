@@ -145,7 +145,12 @@
     'fix-bgp-unnumbered':{ fault: 'bgpunnum',    lid: null, clears: true },
     // M15 UFM: link HW error remediated by scheduling a port reseat.
     // Source: NVIDIA UFM Enterprise REST API (actions / fabric validation CheckLinks).
-    'ufm-reseat-port':   { fault: 'uflinkerr',   lid: null, clears: true }
+    'ufm-reseat-port':   { fault: 'uflinkerr',   lid: null, clears: true },
+    // M17 WJH/NetQ: buffer/WRED congestion drops cleared by lowering ECN min-threshold.
+    // clears-style (lid null): the mega-lab CMDMAP handler reads IBTools.activeFault()
+    // to flip its WJH/NetQ output broken -> clean. Source: NVIDIA Cumulus 5.15 WJH +
+    // NetQ 4.13 RoCE congestion (WRED / Port TC Congestion Threshold Crossed) docs.
+    'fix-wjh-congestion':{ fault: 'wjhdrop',     lid: null, clears: true }
   };
 
   // ---------------------------------------------------------------------------
@@ -955,6 +960,58 @@
     return out;
   }
 
+  // perftest ib_write_lat: RDMA write LATENCY test (one-sided RDMA write).
+  // Run the server first (no IP arg), then the client with the server IP.
+  // Column schema verbatim from perftest; t_typical ~1.0-1.5us is HDR/NDR
+  // representative [know syntax / inferred values]. Simulated, not real fabric data.
+  function cmdIbWriteLat(parsed) {
+    if (hasFlag(parsed.flags, 'V', 'version')) return 'ib_write_lat 5.9-0';
+    // The last bare arg, if present and not a device name, is the server IP (client mode).
+    var serverIp = null;
+    for (var i = 0; i < parsed.args.length; i++) {
+      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(parsed.args[i])) { serverIp = parsed.args[i]; }
+    }
+    var out = '';
+    out += '---------------------------------------------------------------------------------------\n';
+    out += '                    RDMA_Write Latency Test\n';
+    out += ' Dual-port       : OFF          Device         : mlx5_0\n';
+    out += ' Number of qps   : 1            Transport type : IB\n';
+    out += ' Connection type : RC           Using SRQ      : OFF\n';
+    if (serverIp) {
+      out += ' TX depth        : 1\n';
+      out += ' Mtu             : 4096[B]\n';
+      out += ' Link type       : IB\n';
+      out += ' Outstand reads  : 16\n';
+      out += ' rdma_cm QPs     : OFF\n';
+      out += ' Data ex. method : Ethernet\n';
+      out += '---------------------------------------------------------------------------------------\n';
+      out += ' local address: LID 0x02 QPN 0x0137 PSN 0x9a4c2b RKey 0x18010f VAddr 0x007f4c1a2b1000\n';
+      out += ' remote address: LID 0x04 QPN 0x0141 PSN 0x5c1d33 RKey 0x1a0210 VAddr 0x007fa9b3c4d000\n';
+      out += '---------------------------------------------------------------------------------------\n';
+      out += ' #bytes #iterations    t_min[usec]    t_max[usec]  t_typical[usec]    t_avg[usec]    t_stdev[usec]   99% percentile[usec]   99.9% percentile[usec]\n';
+      out += ' 2      1000           1.38           4.72         1.50               1.54           0.21            2.10                    4.50\n';
+      out += '---------------------------------------------------------------------------------------\n';
+    } else {
+      out += ' CQ Moderation   : 1\n';
+      out += ' Mtu             : 4096[B]\n';
+      out += ' Link type       : IB\n';
+      out += ' Max inline data : 220[B]\n';
+      out += ' rdma_cm QPs     : OFF\n';
+      out += ' Data ex. method : Ethernet\n';
+      out += '---------------------------------------------------------------------------------------\n';
+      out += ' Waiting for client to connect...\n';
+      out += ' local address: LID 0x02 QPN 0x0137 PSN 0x9a4c2b RKey 0x18010f VAddr 0x007f4c1a2b1000\n';
+      out += ' remote address: LID 0x04 QPN 0x0141 PSN 0x5c1d33 RKey 0x1a0210 VAddr 0x007fa9b3c4d000\n';
+      out += '---------------------------------------------------------------------------------------\n';
+      out += ' #bytes #iterations    t_min[usec]    t_max[usec]  t_typical[usec]    t_avg[usec]    t_stdev[usec]   99% percentile[usec]   99.9% percentile[usec]\n';
+      out += ' 2      1000           1.38           4.72         1.50               1.54           0.21            2.10                    4.50\n';
+      out += '---------------------------------------------------------------------------------------\n';
+    }
+    out += '# t_typical 1.50 usec at 2 bytes is representative HDR/NDR small-message latency.\n';
+    out += '# Simulated for study; not real fabric data.\n';
+    return out;
+  }
+
   // ---------------------------------------------------------------------------
   // Command dispatch table
   // ---------------------------------------------------------------------------
@@ -969,7 +1026,8 @@
     'ibdiagnet':     cmdIbdiagnet,
     'sminfo':        cmdSminfo,
     'ibping':        cmdIbping,
-    'ibreset':       cmdIbreset
+    'ibreset':       cmdIbreset,
+    'ib_write_lat':  cmdIbWriteLat
   };
 
   // ---------------------------------------------------------------------------
@@ -1107,6 +1165,9 @@
         }
         if (action === 'ufm-reseat-port') {
           return { ok: true, msg: 'Port scheduled for reseat. UFM Link HW Error alarm cleared; CheckLinks will now pass.' };
+        }
+        if (action === 'fix-wjh-congestion') {
+          return { ok: true, msg: 'Lowered congestion: set ECN min-threshold and eased TC buffer. Buffer drops cleared. Re-run WJH to confirm zero events.' };
         }
         return { ok: true, msg: 'Fault cleared.' };
       }
